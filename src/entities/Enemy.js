@@ -1,5 +1,5 @@
-// 敵。オブジェクトプールで再利用する。M1 ではプレイヤーへ直進する chase を基本とする。
-// dasher / elite などの詳細な挙動は Milestone 2 で拡張する（TODO 参照）。
+// 敵。オブジェクトプールで再利用する。プレイヤーへ直進する chase を基本とし、
+// 骸骨は接近後に短い予告→突進（dasher）、ゴーレムはエリート（高HP・軽減）。
 
 const TEX_BY_ID = {
   slime: 'enemy_slime',
@@ -21,9 +21,15 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.xpValue = 1;
     this.damageReduction = 0;
     this.alive = false;
-    this._flashUntil = 0;
+    this.lastDamage = 0;
     this._knockback = new Phaser.Math.Vector2();
     this._knockbackTimer = 0;
+    this._slowUntil = 0;
+    this._slowFactor = 0;
+    // dasher 用
+    this._chargeState = 'idle'; // idle | telegraph | dash
+    this._chargeTimer = 0;
+    this._chargeDir = new Phaser.Math.Vector2();
   }
 
   reset(def, x, y, mult) {
@@ -38,12 +44,23 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.xpValue = def.xp || 1;
     this.damageReduction = def.damageReduction || 0;
     this.knockbackResist = def.knockbackResist ?? 0.2;
+    this.behavior = def.behavior || 'chase';
+    this.isElite = !!def.elite;
     this.alive = true;
-    this._flashUntil = 0;
+    this.lastDamage = 0;
     this._knockbackTimer = 0;
-    this.setActive(true).setVisible(true).setAlpha(1).setTint(0xffffff);
+    this._slowUntil = 0;
+    this._slowFactor = 0;
+    this._chargeState = 'idle';
+    this._chargeCd = 1200;
+    this.setActive(true).setVisible(true).setAlpha(1).clearTint();
     this.body.enable = true;
-    if (def.elite) this.setScale(1.15); else this.setScale(1);
+    this.setScale(def.elite ? 1.15 : 1);
+  }
+
+  effectiveSpeed() {
+    const now = this.scene.time.now;
+    return now < this._slowUntil ? this.speed * (1 - this._slowFactor) : this.speed;
   }
 
   update(px, py, dt) {
@@ -53,15 +70,53 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
       this._knockbackTimer -= dt;
       this.setVelocity(this._knockback.x, this._knockback.y);
       this._knockback.scale(0.9);
-    } else {
-      const ang = Math.atan2(py - this.y, px - this.x);
-      this.setVelocity(Math.cos(ang) * this.speed, Math.sin(ang) * this.speed);
+      return;
     }
 
-    if (this._flashUntil > 0 && this.scene.time.now > this._flashUntil) {
-      this._flashUntil = 0;
-      this.clearTint();
+    const spd = this.effectiveSpeed();
+
+    if (this.behavior === 'dasher') {
+      this._updateDasher(px, py, dt, spd);
+      return;
     }
+
+    const ang = Math.atan2(py - this.y, px - this.x);
+    this.setVelocity(Math.cos(ang) * spd, Math.sin(ang) * spd);
+  }
+
+  // 骸骨: 一定距離まで近づき、短い予告のあと突進する。
+  _updateDasher(px, py, dt, spd) {
+    const dx = px - this.x, dy = py - this.y;
+    const dist = Math.hypot(dx, dy);
+
+    if (this._chargeState === 'dash') {
+      this._chargeTimer -= dt;
+      this.setVelocity(this._chargeDir.x * (this.def.chargeSpeed || 200), this._chargeDir.y * (this.def.chargeSpeed || 200));
+      if (this._chargeTimer <= 0) { this._chargeState = 'idle'; this._chargeCd = 1400; }
+      return;
+    }
+    if (this._chargeState === 'telegraph') {
+      this._chargeTimer -= dt;
+      this.setVelocity(0, 0);
+      this.setTint(0xffcc80);
+      if (this._chargeTimer <= 0) {
+        this.clearTint();
+        this._chargeDir.set(dx, dy).normalize();
+        this._chargeState = 'dash';
+        this._chargeTimer = 360;
+      }
+      return;
+    }
+
+    // idle: 近づく
+    this._chargeCd -= dt;
+    if (dist < 140 && this._chargeCd <= 0) {
+      this._chargeState = 'telegraph';
+      this._chargeTimer = this.def.chargeTelegraphMs || 600;
+      return;
+    }
+    const ang = Math.atan2(dy, dx);
+    this.setVelocity(Math.cos(ang) * spd, Math.sin(ang) * spd);
   }
 
   applyKnockback(fromX, fromY, force) {
@@ -72,14 +127,20 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this._knockbackTimer = 120;
   }
 
-  // ダメージを適用。倒れたら true。
+  applySlow(factor, ms) {
+    // 強い方の減速を優先
+    if (factor >= this._slowFactor || this.scene.time.now >= this._slowUntil) {
+      this._slowFactor = factor;
+    }
+    this._slowUntil = this.scene.time.now + ms;
+  }
+
+  // ダメージを適用。倒れたら true。フラッシュ演出は EffectManager 側で行う。
   takeDamage(amount) {
     if (!this.alive) return false;
     const dealt = amount * (1 - this.damageReduction);
+    this.lastDamage = dealt; // 与ダメージ（統計/最高ダメージ用。オーバーキルも出力として計上）
     this.hp -= dealt;
-    this.setTint(0xffffff);
-    this.setTintFill(0xffffff);
-    this._flashUntil = this.scene.time.now + 60;
     if (this.hp <= 0) {
       this.alive = false;
       return true;

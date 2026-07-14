@@ -37,7 +37,7 @@ export class TitleScene extends Phaser.Scene {
       { label: '続きから', enabled: hasRun, onClick: () => this.continueRun() },
       { label: '拠点', enabled: true, onClick: () => this.toast('拠点は Milestone 3 で実装予定') },
       { label: 'データ管理', enabled: true, onClick: () => this.toast('データ管理は Milestone 5 で実装予定') },
-      { label: '設定', enabled: true, onClick: () => this.toast('設定は Milestone 2 で実装予定') },
+      { label: '設定', enabled: true, onClick: () => this.toast('エフェクト品質などは戦闘中の一時停止(Esc)から変更できます') },
     ];
 
     let y = 150;
@@ -82,6 +82,8 @@ export class TitleScene extends Phaser.Scene {
   }
 
   startNewRun() {
+    // 新規開始時は途中セーブを破棄する。
+    SaveManager.clearActiveRun();
     const difficulty = 1;
     this.scene.start('BattleScene', { difficulty, resume: null });
   }

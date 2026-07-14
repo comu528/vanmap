@@ -1,11 +1,14 @@
 # セーブフォーマット
 
-セーブは JSON。M1 は **localStorage のみ**。フォルダ保存/バックアップ/競合解決は **M5** で実装する。
-以下は最終形の完全仕様（M1 実装済み範囲は明記）。
+セーブは JSON。M2 時点で **localStorage のみ**。フォルダ保存/バックアップ/競合解決は **M5** で実装する。
+以下は最終形の完全仕様（各項目に実装済み範囲を明記）。
 
 ## save_version
-`data/balance.json` の `saveVersion`（現在 `1`）を各セーブに埋め込む。
-読み込み時にバージョン差があればマイグレーション（M3 以降で実装）。
+`data/balance.json` の `saveVersion`（現在 `2`）を各セーブに埋め込む。
+- **profile**: 版差があれば不足フィールドを既定値で補って移行し版数を更新する（追加専用スキーマ）。
+- **active_run**: 版不一致・破損・必須欠落なら破棄して「新規のみ可」に安全にフォールバックする
+  （途中再開できないだけで起動不能にはならない）。
+- BootScene が `SaveManager.init(saveVersion, gameVersion)` で版数を注入する。
 
 ## 保存先の優先順位
 - フォルダ接続時: (1) フォルダ内 JSON → (2) ブラウザ内バックアップ
@@ -66,9 +69,12 @@ difficultyUnlocked, reincarnationCount, reincarnationNodes, skillMastery, stats,
 敵の個体位置までは保存しない。再開時は `elapsedSec` と進行状況から戦闘を安全に再構築する
 （`utils/math.js` の `createRng(seed)` を用いた決定論的スポーン。M2 で実装）。
 
-**M1 実装状況**: スキーマとアクセサ（`loadActiveRun/saveActiveRun/clearActiveRun/hasActiveRun`）は
-用意済み。実際の途中セーブ書き出しと再構築は **M2**。現状 `hasActiveRun()` は常に false のため
-タイトルの「続きから」は無効表示。
+**M2 実装済み**: 実際の値で `save_version / inProgress / difficulty / elapsedSec / playerHp / maxHp /
+playerLevel / xp / xpToNext / skills(id→level) / kills / bossActive / bossHp / rngSeed /
+pendingCurrency / bonus / updated_at` を保存。自動保存は 20秒毎・レベルアップ選択後・一時停止時・
+タブ非表示時。`BattleScene.restoreFromRun()` が進行状況から戦闘を再構築する（敵個体は復元しない。
+ボスは `bossActive` なら再出現し `bossHp` を復元）。勝敗確定で削除。`hasActiveRun()` が true のとき
+タイトルの「続きから」が有効になる。
 
 ## settings.json
 ```jsonc

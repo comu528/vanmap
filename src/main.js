@@ -7,6 +7,7 @@ import { BootScene } from './scenes/BootScene.js';
 import { TitleScene } from './scenes/TitleScene.js';
 import { BattleScene } from './scenes/BattleScene.js';
 import { LevelUpScene } from './scenes/LevelUpScene.js';
+import { ResultScene } from './scenes/ResultScene.js';
 
 function boot() {
   const bootMsg = document.getElementById('boot-message');
@@ -20,7 +21,7 @@ function boot() {
   const params = new URLSearchParams(window.location.search);
   window.RFS_DEBUG = params.get('debug') === '1';
 
-  const scenes = [BootScene, TitleScene, BattleScene, LevelUpScene];
+  const scenes = [BootScene, TitleScene, BattleScene, LevelUpScene, ResultScene];
   const config = buildPhaserConfig(scenes, 'game-container');
   const game = new Phaser.Game(config);
   window.RFS_GAME = game;

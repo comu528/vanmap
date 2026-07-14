@@ -3,6 +3,7 @@
 
 import { TEX } from '../config/game-config.js';
 import { DataManager } from '../systems/DataManager.js';
+import { SaveManager } from '../systems/SaveManager.js';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -29,6 +30,9 @@ export class BootScene extends Phaser.Scene {
       }).setOrigin(0.5);
       return;
     }
+
+    // セーブの版数を注入（移行/初期化判定に使用）。
+    SaveManager.init(DataManager.balance.saveVersion, DataManager.balance.gameVersion);
 
     this.scene.start('TitleScene');
   }

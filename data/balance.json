@@ -1,6 +1,6 @@
 {
-  "saveVersion": 1,
-  "gameVersion": "0.1.0",
+  "saveVersion": 2,
+  "gameVersion": "0.2.0",
   "player": {
     "maxHp": 100,
     "moveSpeed": 110,

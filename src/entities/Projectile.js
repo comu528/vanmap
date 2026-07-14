@@ -13,6 +13,8 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     this.pierce = 0;
     this.knockback = 0;
     this.explosionRadius = 0;
+    this.hostile = false;       // true = 敵（ボス）弾。プレイヤーへ命中判定する
+    this.skillId = null;        // 与ダメージ集計用（プレイヤー弾）
     this._hitSet = new Set();
     this._lifeTimer = 0;
   }
@@ -23,11 +25,14 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     this.pierce = opts.pierce || 0;
     this.knockback = opts.knockback || 0;
     this.explosionRadius = opts.explosionRadius || 0;
+    this.hostile = !!opts.hostile;
+    this.skillId = opts.skillId || null;
     this._hitSet.clear();
     this._lifeTimer = opts.lifeMs || 1600;
     this.alive = true;
     this.setActive(true).setVisible(true).setAlpha(1);
     this.setScale(opts.scale || 1);
+    this.setTint(opts.tint || 0xffffff);
     this.setRotation(angle);
     this.body.enable = true;
     this.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);

@@ -37,6 +37,27 @@ export class HUD {
       .setOrigin(1, 0).setScrollFactor(0).setInteractive({ useHandCursor: true });
     this.autoBtn = scene.add.text(GAME_WIDTH - 8, GAME_HEIGHT - 16, 'オート移動: OFF (Q)', { fontSize: '10px', color: '#fff', backgroundColor: '#3e2723', padding: { x: 4, y: 2 } })
       .setOrigin(1, 0).setScrollFactor(0).setInteractive({ useHandCursor: true });
+
+    // ボスHPバー（初期は非表示）
+    this.bossName = scene.add.text(GAME_WIDTH / 2, 44, '', { fontSize: '9px', color: '#ff8a80' }).setOrigin(0.5, 0).setScrollFactor(0).setVisible(false);
+    this.bossBg = scene.add.rectangle(GAME_WIDTH / 2, 56, 280, 8, 0x3e2723).setScrollFactor(0).setVisible(false);
+    this.bossBar = scene.add.rectangle(GAME_WIDTH / 2 - 139, 56, 278, 6, 0xff5252).setOrigin(0, 0.5).setScrollFactor(0).setVisible(false);
+  }
+
+  showBoss(name) {
+    this.bossName.setText(name).setVisible(true);
+    this.bossBg.setVisible(true);
+    this.bossBar.setVisible(true).width = 278;
+  }
+
+  updateBoss(ratio) {
+    this.bossBar.width = 278 * Math.max(0, Math.min(1, ratio));
+  }
+
+  hideBoss() {
+    this.bossName.setVisible(false);
+    this.bossBg.setVisible(false);
+    this.bossBar.setVisible(false);
   }
 
   onPause(fn) { this.pauseBtn.on('pointerdown', fn); }
