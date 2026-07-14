@@ -1,0 +1,123 @@
+{
+  "skills": [
+    {
+      "id": "fireball",
+      "name": "火球",
+      "description": "最も近い敵へ火球を自動発射し、命中時に小爆発を起こす。",
+      "icon": "icon_fireball",
+      "maxLevel": 8,
+      "initial": true,
+      "levels": [
+        { "level": 1, "damage": 8,  "cooldown": 900, "count": 1, "pierce": 0, "explosionRadius": 12, "knockback": 40,  "visual": "small" },
+        { "level": 2, "damage": 11, "cooldown": 850, "count": 1, "pierce": 0, "explosionRadius": 14, "knockback": 45,  "visual": "small" },
+        { "level": 3, "damage": 14, "cooldown": 800, "count": 1, "pierce": 1, "explosionRadius": 16, "knockback": 50,  "visual": "medium" },
+        { "level": 4, "damage": 18, "cooldown": 760, "count": 2, "pierce": 1, "explosionRadius": 18, "knockback": 55,  "visual": "medium" },
+        { "level": 5, "damage": 23, "cooldown": 720, "count": 2, "pierce": 1, "explosionRadius": 22, "knockback": 60,  "visual": "large" },
+        { "level": 6, "damage": 29, "cooldown": 680, "count": 3, "pierce": 2, "explosionRadius": 26, "knockback": 65,  "visual": "large" },
+        { "level": 7, "damage": 36, "cooldown": 640, "count": 3, "pierce": 2, "explosionRadius": 30, "knockback": 70,  "visual": "huge" },
+        { "level": 8, "damage": 46, "cooldown": 600, "count": 4, "pierce": 3, "explosionRadius": 36, "knockback": 80,  "visual": "huge" }
+      ],
+      "evolution": {
+        "id": "infernal_barrage",
+        "name": "業火弾幕",
+        "description": "多数の火球を扇状に発射し、敵撃破時に追加火球を生成、着弾で連鎖爆発。",
+        "requires": [
+          { "skill": "fireball", "level": 8 },
+          { "skill": "orbiting_flame", "level": 4 }
+        ]
+      }
+    },
+    {
+      "id": "flame_pillar",
+      "name": "火柱",
+      "description": "敵の位置に予告を出し、短時間後に火柱で範囲ダメージを与える。",
+      "icon": "icon_flame_pillar",
+      "maxLevel": 8,
+      "initial": false,
+      "levels": [
+        { "level": 1, "damage": 14, "cooldown": 2400, "count": 1, "radius": 30, "duration": 400, "telegraph": 600, "knockback": 20, "visual": "small" },
+        { "level": 2, "damage": 18, "cooldown": 2300, "count": 1, "radius": 34, "duration": 420, "telegraph": 580, "knockback": 20, "visual": "small" },
+        { "level": 3, "damage": 23, "cooldown": 2200, "count": 2, "radius": 38, "duration": 440, "telegraph": 560, "knockback": 25, "visual": "medium" },
+        { "level": 4, "damage": 29, "cooldown": 2100, "count": 2, "radius": 42, "duration": 460, "telegraph": 540, "knockback": 25, "visual": "medium" },
+        { "level": 5, "damage": 36, "cooldown": 2000, "count": 3, "radius": 46, "duration": 500, "telegraph": 520, "knockback": 30, "visual": "large" },
+        { "level": 6, "damage": 44, "cooldown": 1900, "count": 3, "radius": 52, "duration": 520, "telegraph": 500, "knockback": 30, "visual": "large" },
+        { "level": 7, "damage": 54, "cooldown": 1800, "count": 4, "radius": 58, "duration": 560, "telegraph": 480, "knockback": 35, "visual": "huge" },
+        { "level": 8, "damage": 66, "cooldown": 1700, "count": 5, "radius": 64, "duration": 600, "telegraph": 460, "knockback": 40, "visual": "huge" }
+      ],
+      "evolution": {
+        "id": "purgatory_eruption",
+        "name": "煉獄噴火",
+        "description": "複数の火柱が連続発生し地面に炎を残し、最後に大爆発する。",
+        "requires": [
+          { "skill": "flame_pillar", "level": 8 },
+          { "skill": "meteor", "level": 4 }
+        ]
+      }
+    },
+    {
+      "id": "burning_trail",
+      "name": "燃える軌跡",
+      "description": "移動経路に炎を残し、継続ダメージと減速を与える。",
+      "icon": "icon_burning_trail",
+      "maxLevel": 8,
+      "initial": false,
+      "levels": [
+        { "level": 1, "damage": 4,  "cooldown": 220, "duration": 1200, "radius": 12, "slow": 0.0,  "visual": "small" },
+        { "level": 2, "damage": 5,  "cooldown": 210, "duration": 1300, "radius": 13, "slow": 0.05, "visual": "small" },
+        { "level": 3, "damage": 6,  "cooldown": 200, "duration": 1400, "radius": 14, "slow": 0.1,  "visual": "medium" },
+        { "level": 4, "damage": 8,  "cooldown": 190, "duration": 1500, "radius": 15, "slow": 0.12, "visual": "medium" },
+        { "level": 5, "damage": 10, "cooldown": 180, "duration": 1700, "radius": 16, "slow": 0.15, "visual": "large" },
+        { "level": 6, "damage": 12, "cooldown": 170, "duration": 1900, "radius": 18, "slow": 0.18, "visual": "large" },
+        { "level": 7, "damage": 15, "cooldown": 160, "duration": 2100, "radius": 20, "slow": 0.22, "visual": "huge" },
+        { "level": 8, "damage": 19, "cooldown": 150, "duration": 2400, "radius": 22, "slow": 0.28, "visual": "huge" }
+      ],
+      "evolution": {
+        "id": "eternal_pyre",
+        "name": "永劫火界",
+        "description": "プレイヤー周辺が常時炎上し、炎が敵へ感染、炎上した敵の死亡で爆発する。",
+        "requires": [
+          { "skill": "burning_trail", "level": 8 },
+          { "skill": "orbiting_flame", "level": 4 }
+        ]
+      }
+    },
+    {
+      "id": "orbiting_flame",
+      "name": "周回する炎",
+      "description": "プレイヤーの周囲を火球が回転し、接触した敵へダメージを与える。",
+      "icon": "icon_orbiting_flame",
+      "maxLevel": 8,
+      "initial": false,
+      "levels": [
+        { "level": 1, "damage": 6,  "cooldown": 300, "count": 1, "radius": 36, "rotationSpeed": 2.0, "visual": "small" },
+        { "level": 2, "damage": 8,  "cooldown": 300, "count": 1, "radius": 40, "rotationSpeed": 2.2, "visual": "small" },
+        { "level": 3, "damage": 10, "cooldown": 300, "count": 2, "radius": 44, "rotationSpeed": 2.4, "visual": "medium" },
+        { "level": 4, "damage": 13, "cooldown": 300, "count": 2, "radius": 48, "rotationSpeed": 2.6, "visual": "medium" },
+        { "level": 5, "damage": 16, "cooldown": 300, "count": 3, "radius": 52, "rotationSpeed": 2.8, "visual": "large" },
+        { "level": 6, "damage": 20, "cooldown": 300, "count": 3, "radius": 56, "rotationSpeed": 3.0, "visual": "large" },
+        { "level": 7, "damage": 25, "cooldown": 300, "count": 4, "radius": 60, "rotationSpeed": 3.2, "visual": "huge" },
+        { "level": 8, "damage": 31, "cooldown": 300, "count": 5, "radius": 66, "rotationSpeed": 3.5, "visual": "huge" }
+      ],
+      "evolution": null
+    },
+    {
+      "id": "meteor",
+      "name": "隕石",
+      "description": "一定時間ごとに敵が多い場所へ隕石を落とし、大範囲ダメージと画面揺れを与える。",
+      "icon": "icon_meteor",
+      "maxLevel": 8,
+      "initial": false,
+      "levels": [
+        { "level": 1, "damage": 40,  "cooldown": 6000, "count": 1, "radius": 50, "telegraph": 900, "shake": 6,  "visual": "small" },
+        { "level": 2, "damage": 52,  "cooldown": 5800, "count": 1, "radius": 55, "telegraph": 880, "shake": 7,  "visual": "small" },
+        { "level": 3, "damage": 66,  "cooldown": 5600, "count": 1, "radius": 60, "telegraph": 860, "shake": 8,  "visual": "medium" },
+        { "level": 4, "damage": 82,  "cooldown": 5400, "count": 2, "radius": 66, "telegraph": 840, "shake": 9,  "visual": "medium" },
+        { "level": 5, "damage": 100, "cooldown": 5200, "count": 2, "radius": 72, "telegraph": 820, "shake": 10, "visual": "large" },
+        { "level": 6, "damage": 122, "cooldown": 5000, "count": 2, "radius": 80, "telegraph": 800, "shake": 12, "visual": "large" },
+        { "level": 7, "damage": 148, "cooldown": 4800, "count": 3, "radius": 88, "telegraph": 780, "shake": 14, "visual": "huge" },
+        { "level": 8, "damage": 180, "cooldown": 4600, "count": 3, "radius": 96, "telegraph": 760, "shake": 16, "visual": "huge" }
+      ],
+      "evolution": null
+    }
+  ]
+}

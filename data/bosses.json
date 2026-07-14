@@ -1,0 +1,22 @@
+{
+  "bosses": [
+    {
+      "id": "flame_lord",
+      "name": "業炎の君主",
+      "hp": 3000,
+      "speed": 40,
+      "damage": 30,
+      "size": 48,
+      "xp": 100,
+      "color": "0xff5722",
+      "texture": "boss_flame_lord",
+      "summons": ["slime", "bat"],
+      "attacks": [
+        { "id": "charge", "type": "charge", "telegraphMs": 800, "speed": 260, "cooldownMs": 6000 },
+        { "id": "radial", "type": "radial_bullets", "bulletCount": 16, "bulletSpeed": 120, "cooldownMs": 4500 },
+        { "id": "summon", "type": "summon", "count": 4, "cooldownMs": 9000 }
+      ],
+      "enrage": { "hpThreshold": 0.5, "cooldownMultiplier": 0.6 }
+    }
+  ]
+}

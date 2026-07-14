@@ -1,0 +1,43 @@
+{
+  "saveVersion": 1,
+  "gameVersion": "0.1.0",
+  "player": {
+    "maxHp": 100,
+    "moveSpeed": 110,
+    "dashCount": 2,
+    "dashSpeed": 320,
+    "dashDurationMs": 160,
+    "dashInvulnMs": 250,
+    "dashRechargeMs": 4000,
+    "invulnMs": 600,
+    "pickupRadius": 40,
+    "attackRange": 220
+  },
+  "run": {
+    "baseDurationSec": 300,
+    "bossAtSec": 300,
+    "phases": [
+      { "fromSec": 0, "toSec": 60, "label": "少数の敵", "spawnIntervalMs": 900, "maxAlive": 40 },
+      { "fromSec": 60, "toSec": 180, "label": "敵数増加", "spawnIntervalMs": 550, "maxAlive": 90 },
+      { "fromSec": 180, "toSec": 300, "label": "高密度", "spawnIntervalMs": 320, "maxAlive": 160 }
+    ]
+  },
+  "leveling": {
+    "baseXpToLevel": 5,
+    "xpGrowth": 1.35,
+    "choicesPerLevel": 3
+  },
+  "difficulties": [
+    { "id": 1, "name": "難易度1", "enemyHp": 1.0, "enemyDamage": 1.0, "enemySpeed": 1.0, "spawnRate": 1.0, "eliteRate": 0.02, "bossHp": 1.0, "currency": 1.0, "reincarnationEfficiency": 1.0, "unlockAfter": null },
+    { "id": 2, "name": "難易度2", "enemyHp": 1.3, "enemyDamage": 1.2, "enemySpeed": 1.05, "spawnRate": 1.2, "eliteRate": 0.04, "bossHp": 1.4, "currency": 1.3, "reincarnationEfficiency": 1.1, "unlockAfter": 1 },
+    { "id": 3, "name": "難易度3", "enemyHp": 1.7, "enemyDamage": 1.45, "enemySpeed": 1.1, "spawnRate": 1.45, "eliteRate": 0.07, "bossHp": 1.9, "currency": 1.7, "reincarnationEfficiency": 1.25, "unlockAfter": 2 },
+    { "id": 4, "name": "難易度4", "enemyHp": 2.2, "enemyDamage": 1.75, "enemySpeed": 1.18, "spawnRate": 1.7, "eliteRate": 0.1, "bossHp": 2.6, "currency": 2.2, "reincarnationEfficiency": 1.45, "unlockAfter": 3 },
+    { "id": 5, "name": "難易度5", "enemyHp": 3.0, "enemyDamage": 2.1, "enemySpeed": 1.25, "spawnRate": 2.0, "eliteRate": 0.14, "bossHp": 3.5, "currency": 3.0, "reincarnationEfficiency": 1.7, "unlockAfter": 4 }
+  ],
+  "effectQuality": {
+    "low": { "particleScale": 0.25, "damageNumbers": false, "screenShake": false, "whiteFlash": false, "maxEnemies": 60, "maxProjectiles": 120 },
+    "medium": { "particleScale": 0.5, "damageNumbers": true, "screenShake": true, "whiteFlash": false, "maxEnemies": 120, "maxProjectiles": 250 },
+    "high": { "particleScale": 1.0, "damageNumbers": true, "screenShake": true, "whiteFlash": true, "maxEnemies": 200, "maxProjectiles": 400 },
+    "ultra": { "particleScale": 1.5, "damageNumbers": true, "screenShake": true, "whiteFlash": true, "maxEnemies": 320, "maxProjectiles": 700 }
+  }
+}

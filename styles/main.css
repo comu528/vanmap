@@ -1,0 +1,97 @@
+:root {
+  --bg: #0a0608;
+  --fg: #ffe0b2;
+  --accent: #ff5722;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+#app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#game-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Phaser が生成する canvas はスケール時もピクセルを保つ */
+#game-container canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+#overlay-ui {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+#overlay-ui button {
+  pointer-events: auto;
+}
+
+#fullscreen-btn {
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--fg);
+  border: 1px solid rgba(255, 224, 178, 0.4);
+  border-radius: 4px;
+  font-size: 18px;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+#fullscreen-btn:hover {
+  background: rgba(255, 87, 34, 0.5);
+}
+
+#boot-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  z-index: 5;
+  transition: opacity 0.4s ease;
+}
+
+#boot-fallback.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#boot-fallback h1 {
+  color: var(--accent);
+  font-size: 22px;
+  margin: 0 0 8px;
+}
+
+#boot-message {
+  font-size: 13px;
+  opacity: 0.8;
+}

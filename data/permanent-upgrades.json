@@ -1,0 +1,15 @@
+{
+  "currency": "ember",
+  "upgrades": [
+    { "id": "max_hp",          "name": "最大HP",         "stat": "maxHp",           "maxTier": 20, "baseCost": 10, "costGrowth": 1.35, "valuePerTier": 10,   "mode": "add" },
+    { "id": "base_damage",     "name": "基礎ダメージ",     "stat": "damageMult",      "maxTier": 25, "baseCost": 12, "costGrowth": 1.4,  "valuePerTier": 0.04, "mode": "add" },
+    { "id": "move_speed",      "name": "移動速度",         "stat": "moveSpeedMult",   "maxTier": 15, "baseCost": 12, "costGrowth": 1.4,  "valuePerTier": 0.03, "mode": "add" },
+    { "id": "xp_gain",         "name": "経験値獲得量",     "stat": "xpMult",          "maxTier": 20, "baseCost": 12, "costGrowth": 1.38, "valuePerTier": 0.05, "mode": "add" },
+    { "id": "pickup_radius",   "name": "経験値吸収範囲",   "stat": "pickupMult",      "maxTier": 15, "baseCost": 10, "costGrowth": 1.35, "valuePerTier": 0.06, "mode": "add" },
+    { "id": "dash_recharge",   "name": "ダッシュ回復速度", "stat": "dashRechargeMult", "maxTier": 12, "baseCost": 14, "costGrowth": 1.42, "valuePerTier": 0.05, "mode": "add" },
+    { "id": "start_skill_lv",  "name": "初期スキルレベル", "stat": "startSkillLevel", "maxTier": 4,  "baseCost": 40, "costGrowth": 2.0,  "valuePerTier": 1,    "mode": "add" },
+    { "id": "rare_rate",       "name": "レア候補出現率",   "stat": "rareRate",        "maxTier": 10, "baseCost": 20, "costGrowth": 1.6,  "valuePerTier": 0.03, "mode": "add" },
+    { "id": "currency_gain",   "name": "恒久通貨獲得量",   "stat": "currencyMult",    "maxTier": 20, "baseCost": 15, "costGrowth": 1.45, "valuePerTier": 0.05, "mode": "add" },
+    { "id": "auto_move_skill", "name": "オート移動性能",   "stat": "autoMoveSkill",   "maxTier": 10, "baseCost": 18, "costGrowth": 1.5,  "valuePerTier": 0.05, "mode": "add" }
+  ]
+}

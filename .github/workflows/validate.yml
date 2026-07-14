@@ -1,0 +1,21 @@
+name: Validate data
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # 外部ライブラリは使用しない（Node.js 標準機能のみ）。
+      - name: Validate game data
+        run: node tests/validate-data.mjs

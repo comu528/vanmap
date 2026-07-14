@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Reincarnation Flame Survivor</title>
+  <link rel="stylesheet" href="./styles/main.css" />
+  <!-- Phaser 3.90.0 は CDN を固定して使用（npm/ビルド不使用） -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
+</head>
+<body>
+  <div id="app">
+    <div id="game-container"></div>
+    <div id="overlay-ui">
+      <button id="fullscreen-btn" type="button" title="全画面表示">⛶</button>
+    </div>
+    <div id="boot-fallback">
+      <h1>Reincarnation Flame Survivor</h1>
+      <p id="boot-message">読み込み中…</p>
+    </div>
+  </div>
+  <!-- エントリポイントは相対パス。GitHub Pages のリポジトリ名付きURLでも動作する -->
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

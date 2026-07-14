@@ -1,0 +1,70 @@
+{
+  "enemies": [
+    {
+      "id": "slime",
+      "name": "スライム",
+      "behavior": "chase",
+      "hp": 14,
+      "speed": 34,
+      "damage": 8,
+      "size": 16,
+      "xp": 1,
+      "knockbackResist": 0.2,
+      "damageReduction": 0,
+      "elite": false,
+      "spawnFromSec": 0,
+      "color": "0x4caf50",
+      "texture": "enemy_slime"
+    },
+    {
+      "id": "bat",
+      "name": "コウモリ",
+      "behavior": "chase",
+      "hp": 6,
+      "speed": 78,
+      "damage": 6,
+      "size": 14,
+      "xp": 1,
+      "knockbackResist": 0.05,
+      "damageReduction": 0,
+      "elite": false,
+      "spawnFromSec": 30,
+      "color": "0x7e57c2",
+      "texture": "enemy_bat"
+    },
+    {
+      "id": "skeleton",
+      "name": "骸骨",
+      "behavior": "dasher",
+      "hp": 20,
+      "speed": 52,
+      "damage": 12,
+      "size": 18,
+      "xp": 2,
+      "knockbackResist": 0.3,
+      "damageReduction": 0,
+      "elite": false,
+      "spawnFromSec": 90,
+      "chargeTelegraphMs": 600,
+      "chargeSpeed": 200,
+      "color": "0xe0e0e0",
+      "texture": "enemy_skeleton"
+    },
+    {
+      "id": "flame_golem",
+      "name": "火炎耐性ゴーレム",
+      "behavior": "chase",
+      "hp": 120,
+      "speed": 26,
+      "damage": 20,
+      "size": 26,
+      "xp": 8,
+      "knockbackResist": 0.9,
+      "damageReduction": 0.4,
+      "elite": true,
+      "spawnFromSec": 120,
+      "color": "0xb0653a",
+      "texture": "enemy_golem"
+    }
+  ]
+}
