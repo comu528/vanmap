@@ -141,7 +141,44 @@ Milestone 1 は実装済み。以下は **Milestone 2 以降の設計と作業�
 
 ---
 
-## Milestone 5 — 保存・デバッグ・パフォーマンス
+## Milestone 5-A — 戦闘パフォーマンス最適化と計測【実装済み】
+
+### 空間グリッド
+- [x] `systems/SpatialGrid.js`（Phaser 非依存の純 JS・Nodeでテスト可）: セルサイズ可変・
+      insert/update/remove/clear・queryCircle/queryAABB/findNearest・フィルタ（エリート/ボス）・
+      重複なし・死亡/非アクティブ除外・差分更新（別セル移動時のみ付け替え）。設定は `data/balance.json` の `spatialGrid`。
+- [x] 近傍検索を空間グリッド経由へ: 火球の最寄り敵/弾の命中候補/爆発範囲/火柱/燃える軌跡/周回する炎/
+      隕石の着弾と密集地点/業火弾幕の追撃・連鎖/煉獄噴火の引き寄せ/永劫火界の範囲・炎上感染先/
+      敵死亡時の爆発/オート移動の危険敵/経験値ジェムの近傍。
+- [x] ボスは単一大型のため個別扱い（挙動同一）。プレイヤー↔敵接触・ボス弾↔プレイヤーは対象少で据え置き。
+- [x] 候補を出現順(_seq=Set順)で整列し、旧総当たりと**候補集合＋走査順が一致**（結果不変を保証）。
+- [x] プール返却/再利用/Scene終了/途中再開/転生・再挑戦で古い参照を残さない（Pool フックで登録・解除を一元化）。
+
+### オブジェクトプール整理
+- [x] `PoolManager` に onSpawn/onRelease フックと生成/再利用/返却カウンタ。返却処理を共通化
+      （非表示・body 無効化・velocity 停止・グリッド解除）。
+- [x] 再利用時の残留除去（skillId/hostile/tint/velocity/collision/timer/charge/knockback/炎上/`_gridCell`）。
+
+### 計測・デバッグ（`?debug=1` のみ）
+- [x] 性能パネル（F2）: FPS/平均/最低・フレーム時間・敵/ボス/味方弾/敵弾/ジェム数・AoE・演出tween・抑制数・
+      プール（使用/待機/新規/再利用/返却）・使用セル数・検索/候補/厳密判定数・旧総当り比較 vs 空間比較と削減率。
+      更新は 0.5 秒毎（毎フレームではない）。
+- [x] グリッド可視化（F3）、空間グリッド ON/OFF 切替（F1 メニュー・旧方式は比較用のみ）、
+      実行時セルフチェック `window.RFS_BATTLE.spatialSelfCheck(n)`、負荷テスト（敵+100体）。
+
+### エフェクト負荷・品質上限
+- [x] 品質別上限を `data/balance.json` に集約（maxEnemies/maxProjectiles/maxSparksPerBurst/particleScale・
+      combatCaps.particleBudget）。品質順の逆転を検証。低品質でも攻撃命中/進化/ボス予告/自機/敵弾は視認可能。
+
+### テスト・検証
+- [x] `tests/spatial-nonregression.mjs`（Node標準のみ）: 空間グリッドと総当たりの一致（円/矩形/最寄り/密集/
+      死亡・削除・移動後）・フィルタ・重複なし・負荷スケール（100/300/2000体）と削減率。
+- [x] `tests/validate-data.mjs` に spatialGrid（cellSize/maxRegistered/必須項目）・品質別上限の逆転・
+      combatCaps 整合・不正値（負・非整数）検証を追加。
+
+---
+
+## Milestone 5-B — 保存・本格デバッグ（未実装）
 
 ### 保存
 - [ ] `systems/FolderSaveManager.js`: `window.showDirectoryPicker()`、
@@ -155,13 +192,8 @@ Milestone 1 は実装済み。以下は **Milestone 2 以降の設計と作業�
 
 ### デバッグ（`?debug=1` 時のみ・`systems/DebugManager.js` + `ui/DebugPanel.js`）
 - [ ] 無敵/経験値追加/レベル追加/任意スキル取得・Lv変更・進化/残り火・魂炎追加/敵全滅/ボス即時/
-      速度0.5〜5倍/経過時間変更/転生条件達成
-- [ ] FPS/敵数/弾数/パーティクル数/プール使用数の表示
-
-### パフォーマンス
-- [ ] 最寄り敵検索の空間グリッド化、当たり判定の総当たり解消（M1 は総当たり）
-- [ ] 画面外エフェクト削減、パーティクル/敵/弾の安全上限、低負荷モード
-- [ ] タブ非表示中に処理を進めない（M1 実装済みの自動停止を保存と統合）
+      速度0.5〜5倍/経過時間変更/転生条件達成（現状は戦闘/拠点の最小メニュー＋性能パネルまで実装）
+- [ ] 上記を統合した常設パネル化（M5-A の性能パネルを取り込む）
 
 ---
 

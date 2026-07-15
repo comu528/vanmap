@@ -19,3 +19,7 @@ jobs:
       # 外部ライブラリは使用しない（Node.js 標準機能のみ）。
       - name: Validate game data
         run: node tests/validate-data.mjs
+
+      # 空間グリッドの決定論的な非回帰テスト（M5-A・Node.js 標準機能のみ）。
+      - name: Spatial grid non-regression
+        run: node tests/spatial-nonregression.mjs

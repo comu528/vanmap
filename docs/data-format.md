@@ -1,7 +1,8 @@
 # データフォーマット
 
 `data/*.json` の仕様。`tests/validate-data.mjs` が構文・必須項目・ID重複・参照整合・
-負のクールダウン・不正な最大レベル・難易度倍率・転生ノード参照・セーブバージョンを検証する。
+負のクールダウン・不正な最大レベル・難易度倍率・転生ノード参照・セーブバージョン・
+**空間グリッド設定（cellSize/maxRegistered）**・**品質別エフェクト上限の逆転（M5-A）**を検証する。
 
 ## balance.json
 ```jsonc
@@ -134,6 +135,40 @@
 "speedModes": [1, 1.5, 2]
 ```
 毎フレームの安全上限。上限到達でも戦闘ロジックは停止しない。
+
+## balance.spatialGrid（M5-A）
+```jsonc
+"spatialGrid": {
+  "cellSize": 64,            // グリッド1セルの一辺(px)。正の整数。
+  "maxRegistered": 4000,     // グリッド登録上限（同時出現しうる敵の最大数以上）。
+  "enabledByDefault": true   // リリース時の初期状態（空間グリッド ON）。真偽値。
+}
+```
+- 敵と経験値ジェムの近傍検索に使う空間ハッシュグリッドの設定（`src/systems/SpatialGrid.js`）。
+- 検証: `cellSize` は正の整数、`maxRegistered` は正の数かつ品質別 `maxEnemies` の最大以上、
+  `enabledByDefault` は真偽値、必須項目（cellSize/maxRegistered/enabledByDefault）の存在。
+- セルサイズは「敵の当たり半径 + よく使う検索半径」程度が目安。小さすぎると走査セルが増え、
+  大きすぎると1セルの候補が増える。既定 64px は火球爆発/軌跡/オーラ半径に対して概ね良好。
+
+## balance.effectQuality の上限（M5-A で明確化）
+```jsonc
+"effectQuality": {
+  "low":    { "particleScale": 0.25, ..., "maxEnemies": 60,  "maxProjectiles": 120, "maxSparksPerBurst": 3 },
+  "medium": { "particleScale": 0.5,  ..., "maxEnemies": 120, "maxProjectiles": 250, "maxSparksPerBurst": 6 },
+  "high":   { "particleScale": 1.0,  ..., "maxEnemies": 200, "maxProjectiles": 400, "maxSparksPerBurst": 10 },
+  "ultra":  { "particleScale": 1.5,  ..., "maxEnemies": 320, "maxProjectiles": 700, "maxSparksPerBurst": 16 }
+}
+```
+品質別の上限はすべて `balance.json` に集約する（コードへ散在させない）。役割:
+- `maxEnemies` / `maxProjectiles`: 敵プール・弾プールの上限（同時表示数）。
+- `maxSparksPerBurst`: 火の粉1回あたりの粒子数上限（`EffectManager.sparks`）。現行値以上のため見た目は不変。
+- `particleScale` / `damageNumbers` / `screenShake` / `whiteFlash`: 粒子量・数字・揺れ・白フラッシュの有効/倍率。
+- 1フレームの粒子総量は `combatCaps.particleBudget[quality]`、ダメージ数字は `combatCaps.maxDamageNumbersPerFrame`。
+- 爆発/衝撃波/残像/焼け跡は上記 particleBudget と particleScale の配下（個別上限は持たず、予算で制御）。
+- 検証: 各品質に `maxEnemies/maxProjectiles/maxSparksPerBurst/particleScale` が存在し正であること、
+  および品質順（low→ultra）で `maxEnemies`・`maxProjectiles`・`maxSparksPerBurst`・`particleBudget` が
+  **単調非減少**（low > medium などの逆転を検出）であること。低品質でも攻撃命中・進化・ボス予告・
+  プレイヤー位置・敵弾は必ず視認できる（これらは粒子予算に依らず描画される）。
 
 ## reincarnation.json（M4）
 ```jsonc

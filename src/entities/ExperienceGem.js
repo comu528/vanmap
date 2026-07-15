@@ -17,6 +17,7 @@ export class ExperienceGem extends Phaser.Physics.Arcade.Sprite {
     this.value = value;
     this.alive = true;
     this._attracting = false;
+    this._gridCell = null;             // 空間グリッド登録の残留防止
     this.setActive(true).setVisible(true).setAlpha(1);
     this.body.enable = true;
     this.setVelocity(0, 0);

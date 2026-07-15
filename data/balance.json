@@ -17,6 +17,11 @@
     "maxInfectGenerations": 3,
     "particleBudget": { "low": 40, "medium": 120, "high": 260, "ultra": 480 }
   },
+  "spatialGrid": {
+    "cellSize": 64,
+    "maxRegistered": 4000,
+    "enabledByDefault": true
+  },
   "speedModes": [1, 1.5, 2],
   "player": {
     "maxHp": 100,
@@ -52,9 +57,9 @@
     { "id": 5, "name": "難易度5", "enemyHp": 3.0, "enemyDamage": 2.1, "enemySpeed": 1.25, "spawnRate": 2.0, "eliteRate": 0.14, "bossHp": 3.5, "currency": 3.0, "reincarnationEfficiency": 1.7, "unlockAfter": 4 }
   ],
   "effectQuality": {
-    "low": { "particleScale": 0.25, "damageNumbers": false, "screenShake": false, "whiteFlash": false, "maxEnemies": 60, "maxProjectiles": 120 },
-    "medium": { "particleScale": 0.5, "damageNumbers": true, "screenShake": true, "whiteFlash": false, "maxEnemies": 120, "maxProjectiles": 250 },
-    "high": { "particleScale": 1.0, "damageNumbers": true, "screenShake": true, "whiteFlash": true, "maxEnemies": 200, "maxProjectiles": 400 },
-    "ultra": { "particleScale": 1.5, "damageNumbers": true, "screenShake": true, "whiteFlash": true, "maxEnemies": 320, "maxProjectiles": 700 }
+    "low": { "particleScale": 0.25, "damageNumbers": false, "screenShake": false, "whiteFlash": false, "maxEnemies": 60, "maxProjectiles": 120, "maxSparksPerBurst": 3 },
+    "medium": { "particleScale": 0.5, "damageNumbers": true, "screenShake": true, "whiteFlash": false, "maxEnemies": 120, "maxProjectiles": 250, "maxSparksPerBurst": 6 },
+    "high": { "particleScale": 1.0, "damageNumbers": true, "screenShake": true, "whiteFlash": true, "maxEnemies": 200, "maxProjectiles": 400, "maxSparksPerBurst": 10 },
+    "ultra": { "particleScale": 1.5, "damageNumbers": true, "screenShake": true, "whiteFlash": true, "maxEnemies": 320, "maxProjectiles": 700, "maxSparksPerBurst": 16 }
   }
 }

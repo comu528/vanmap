@@ -80,6 +80,73 @@ if (balance) {
       err('balance.json: emberReward.defeatMultiplier は winMultiplier 以下である必要がある（敗北時は少なく）');
     }
   }
+
+  // --- 空間グリッド設定（M5-A） ---
+  const QUALITIES = ['low', 'medium', 'high', 'ultra'];
+  const eq = balance.effectQuality || {};
+  const sg = balance.spatialGrid;
+  requireFields('balance.json', sg, ['cellSize', 'maxRegistered', 'enabledByDefault'], '(spatialGrid)');
+  if (sg) {
+    if (typeof sg.cellSize !== 'number' || sg.cellSize <= 0 || !Number.isInteger(sg.cellSize)) {
+      err(`balance.json: spatialGrid.cellSize は正の整数である必要がある (${sg.cellSize})`);
+    }
+    if (typeof sg.maxRegistered !== 'number' || sg.maxRegistered <= 0) {
+      err(`balance.json: spatialGrid.maxRegistered は正の数である必要がある (${sg.maxRegistered})`);
+    }
+    if (typeof sg.enabledByDefault !== 'boolean') {
+      err('balance.json: spatialGrid.enabledByDefault は真偽値である必要がある');
+    }
+    // 登録上限は同時出現しうる敵の最大数（品質別 maxEnemies の最大）以上であること。
+    const maxEnemyCap = Math.max(0, ...QUALITIES.map((q) => (eq[q] && eq[q].maxEnemies) || 0));
+    if (typeof sg.maxRegistered === 'number' && maxEnemyCap > 0 && sg.maxRegistered < maxEnemyCap) {
+      err(`balance.json: spatialGrid.maxRegistered (${sg.maxRegistered}) が最大同時敵数 (${maxEnemyCap}) を下回っている`);
+    }
+  }
+
+  // --- エフェクト品質の上限（M5-A: プール上限/品質別上限の整合） ---
+  // 各品質に必須の上限があり、正の数であること。負の検索距離につながる不正値を弾く。
+  for (const q of QUALITIES) {
+    const c = eq[q];
+    if (!c) { err(`balance.json: effectQuality.${q} が未定義`); continue; }
+    requireFields('balance.json', c, ['maxEnemies', 'maxProjectiles', 'maxSparksPerBurst', 'particleScale'], `(effectQuality.${q})`);
+    for (const k of ['maxEnemies', 'maxProjectiles', 'maxSparksPerBurst']) {
+      if (typeof c[k] !== 'number' || c[k] <= 0 || !Number.isInteger(c[k])) {
+        err(`balance.json: effectQuality.${q}.${k} は正の整数である必要がある (${c[k]})`);
+      }
+    }
+    if (typeof c.particleScale !== 'number' || c.particleScale < 0) {
+      err(`balance.json: effectQuality.${q}.particleScale が負 (${c.particleScale})`);
+    }
+  }
+  // 品質が上がるほど上限は同等以上であること（low > medium などの逆転を検出）。
+  const pb = (balance.combatCaps && balance.combatCaps.particleBudget) || {};
+  const ORDERED = ['low', 'medium', 'high', 'ultra'];
+  const monotonic = (getVal, label) => {
+    for (let i = 1; i < ORDERED.length; i++) {
+      const a = getVal(ORDERED[i - 1]), b = getVal(ORDERED[i]);
+      if (typeof a === 'number' && typeof b === 'number' && a > b) {
+        err(`balance.json: ${label} が品質順で逆転 (${ORDERED[i - 1]}=${a} > ${ORDERED[i]}=${b})`);
+      }
+    }
+  };
+  monotonic((q) => eq[q] && eq[q].maxEnemies, 'effectQuality.maxEnemies');
+  monotonic((q) => eq[q] && eq[q].maxProjectiles, 'effectQuality.maxProjectiles');
+  monotonic((q) => eq[q] && eq[q].maxSparksPerBurst, 'effectQuality.maxSparksPerBurst');
+  monotonic((q) => pb[q], 'combatCaps.particleBudget');
+
+  // --- combatCaps（毎フレーム安全上限）と particleBudget の整合 ---
+  const cc = balance.combatCaps;
+  if (cc) {
+    for (const k of ['maxAoePerFrame', 'maxDamageNumbersPerFrame', 'maxExtraFireballs', 'maxDeathExplosionChain', 'maxInfectGenerations']) {
+      if (k in cc && (typeof cc[k] !== 'number' || cc[k] < 0)) {
+        err(`balance.json: combatCaps.${k} が負または不正 (${cc[k]})`);
+      }
+    }
+    for (const q of QUALITIES) {
+      if (!(q in pb)) err(`balance.json: combatCaps.particleBudget.${q} が未定義`);
+      else if (typeof pb[q] !== 'number' || pb[q] < 0) err(`balance.json: combatCaps.particleBudget.${q} が負または不正 (${pb[q]})`);
+    }
+  }
 }
 
 // --- enemies.json ---

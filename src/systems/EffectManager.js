@@ -17,7 +17,7 @@ export class EffectManager {
     // 既定は「高」。setSettings で上書きされる。
     this.settings = {
       quality: 'high', particleScale: 1, damageNumbers: true,
-      screenShake: true, whiteFlash: true, hitStop: true,
+      screenShake: true, whiteFlash: true, hitStop: true, maxSparksPerBurst: 12,
     };
     this._dmgPool = []; // ダメージ数字テキストの簡易プール
     // 品質別の安全上限（毎フレーム beginFrame でリセット）。既定は無制限。
@@ -25,6 +25,9 @@ export class EffectManager {
     this._particleBudget = Infinity;
     this._particleUsed = 0;
   }
+
+  // 演出が安全上限で抑制されたことを戦闘シーンの計測へ通知する（性能パネル用）。
+  _bumpSuppressed() { const m = this.scene._m; if (m) m.suppressed++; }
 
   setSettings(s) { this.settings = { ...this.settings, ...s }; }
 
@@ -39,7 +42,7 @@ export class EffectManager {
 
   _canParticle(n = 1) {
     if (this.settings.particleScale <= 0) return false;
-    if (this._particleUsed + n > this._particleBudget) return false;
+    if (this._particleUsed + n > this._particleBudget) { this._bumpSuppressed(); return false; }
     this._particleUsed += n;
     return true;
   }
@@ -52,9 +55,10 @@ export class EffectManager {
     this.scene.tweens.add({ targets: g, scale: 2.5 * this.settings.particleScale, alpha: 0, duration: 160, onComplete: () => g.destroy() });
   }
 
-  // 火の粉
+  // 火の粉（品質別の1回あたり上限 maxSparksPerBurst でクランプ。上限は現行値以上のため見た目は不変）。
   sparks(x, y, count = 4, color = 0xff7043) {
-    const n = Math.round(count * this.settings.particleScale);
+    const cap = this.settings.maxSparksPerBurst ?? 12;
+    const n = Math.min(cap, Math.round(count * this.settings.particleScale));
     if (!this._canParticle(n)) return;
     for (let i = 0; i < n; i++) {
       const ang = Phaser.Math.FloatBetween(0, Math.PI * 2);
@@ -86,7 +90,7 @@ export class EffectManager {
   // ダメージ数字（クリティカルは大きく）。毎フレーム上限で暴走を防ぐ。
   damageNumber(x, y, amount, crit = false) {
     if (!this.settings.damageNumbers) return;
-    if (this._dmgNumBudget <= 0) return;
+    if (this._dmgNumBudget <= 0) { this._bumpSuppressed(); return; }
     this._dmgNumBudget--;
     const txt = this.scene.add.text(x, y - 6, String(amount), {
       fontSize: crit ? '16px' : '10px',

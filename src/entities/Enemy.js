@@ -57,8 +57,13 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this._igniteGen = 0;
     this._chargeState = 'idle';
     this._chargeCd = 1200;
+    this._chargeTimer = 0;
+    this._chargeDir.set(0, 0);
+    this._knockback.set(0, 0);
+    this._gridCell = null;              // 空間グリッド登録の残留防止（再利用時に再登録される）
     this.setActive(true).setVisible(true).setAlpha(1).clearTint();
     this.body.enable = true;
+    this.setVelocity(0, 0);            // velocity 残留の防止（初回 update までの誤爆防止）
     this.setScale(def.elite ? 1.15 : 1);
   }
 
