@@ -1,106 +1,159 @@
-// 拠点画面（Milestone 3）。タイトルと戦闘の間のハブ。
-// 残り火・恒久強化・難易度選択・スキル熟練度・累計統計を表示し、戦闘を開始する。
-// 将来（M4）に転生画面・実績画面を追加しやすいよう、上部メニュー + 差し替え式コンテンツで構成。
+// 拠点画面（Milestone 4）。概要 / 恒久強化 / 熟練度 / 難易度 / 転生 / 魂炎強化 のタブを持ち、
+// 内容はスクロール可能（ホイール / ドラッグ / スクロールバー / キーボード）。
+// 恒久強化=ProgressionManager、転生・魂炎=ReincarnationManager を使う。
 
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/game-config.js';
 import { SaveManager } from '../systems/SaveManager.js';
 import { ProgressionManager } from '../systems/ProgressionManager.js';
+import { ReincarnationManager } from '../systems/ReincarnationManager.js';
 import { DataManager } from '../systems/DataManager.js';
 import { formatTime } from '../utils/time.js';
 
+const VIEW_TOP = 50;
+const VIEW_BOTTOM = GAME_HEIGHT - 34;
+const VIEW_H = VIEW_BOTTOM - VIEW_TOP;
+
 export class BaseScene extends Phaser.Scene {
-  constructor() {
-    super('BaseScene');
-  }
+  constructor() { super('BaseScene'); }
 
   create() {
     this.profile = SaveManager.loadProfile();
     this._busy = false;
+    this._overlay = null;
     this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x0a0608);
 
-    this.add.text(12, 8, '拠点', { fontSize: '16px', color: '#ff5722', fontStyle: 'bold' });
-    this.emberText = this.add.text(GAME_WIDTH - 12, 8, '', { fontSize: '12px', color: '#ffab40' }).setOrigin(1, 0);
-    this.subText = this.add.text(GAME_WIDTH - 12, 24, '', { fontSize: '9px', color: '#8d6e63' }).setOrigin(1, 0);
+    this.add.text(12, 6, '拠点', { fontSize: '15px', color: '#ff5722', fontStyle: 'bold' });
+    this.emberText = this.add.text(GAME_WIDTH - 12, 5, '', { fontSize: '11px', color: '#ffab40' }).setOrigin(1, 0);
+    this.subText = this.add.text(GAME_WIDTH - 12, 20, '', { fontSize: '9px', color: '#8d6e63' }).setOrigin(1, 0);
 
-    // 上部メニュー（拡張しやすいよう配列駆動。M4 で 転生/実績 を追加予定）
     this.menu = [
       { key: 'home', label: '概要' },
       { key: 'upgrades', label: '恒久強化' },
-      { key: 'difficulty', label: '難易度' },
       { key: 'mastery', label: '熟練度' },
+      { key: 'difficulty', label: '難易度' },
+      { key: 'reincarnation', label: '転生' },
+      { key: 'soulflame', label: '魂炎強化' },
     ];
     this.menuTexts = {};
     let mx = 12;
     for (const m of this.menu) {
-      const t = this.add.text(mx, 30, m.label, { fontSize: '11px', color: '#ffe0b2', backgroundColor: '#2a1e2e', padding: { x: 6, y: 3 } })
+      const t = this.add.text(mx, 32, m.label, { fontSize: '10px', color: '#ffe0b2', backgroundColor: '#2a1e2e', padding: { x: 5, y: 2 } })
         .setInteractive({ useHandCursor: true });
       t.on('pointerdown', () => this.show(m.key));
       this.menuTexts[m.key] = t;
-      mx += t.width + 8;
+      mx += t.width + 6;
     }
 
     // 下部ボタン
-    this.startBtn = this.add.text(GAME_WIDTH / 2 - 90, GAME_HEIGHT - 22, '▶ 戦闘開始', {
-      fontSize: '13px', color: '#fff', backgroundColor: '#5d2e1a', padding: { x: 10, y: 5 },
+    this.startBtn = this.add.text(GAME_WIDTH / 2 - 90, GAME_HEIGHT - 16, '▶ 戦闘開始', {
+      fontSize: '12px', color: '#fff', backgroundColor: '#5d2e1a', padding: { x: 9, y: 4 },
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     this.startBtn.on('pointerdown', () => this.startBattle());
-    const titleBtn = this.add.text(GAME_WIDTH / 2 + 90, GAME_HEIGHT - 22, 'タイトルへ戻る', {
-      fontSize: '11px', color: '#bcaaa4', backgroundColor: '#2a1e2e', padding: { x: 8, y: 4 },
+    const titleBtn = this.add.text(GAME_WIDTH / 2 + 82, GAME_HEIGHT - 16, 'タイトルへ', {
+      fontSize: '10px', color: '#bcaaa4', backgroundColor: '#2a1e2e', padding: { x: 7, y: 3 },
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     titleBtn.on('pointerdown', () => this.scene.start('TitleScene'));
 
+    // スクロール領域
     this.content = this.add.container(0, 0);
+    const maskG = this.make.graphics();
+    maskG.fillRect(0, VIEW_TOP, GAME_WIDTH, VIEW_H);
+    this.content.setMask(maskG.createGeometryMask());
+    this.scrollY = 0; this._maxY = 0;
+    this.scrollbar = this.add.rectangle(GAME_WIDTH - 4, VIEW_TOP, 4, 20, 0x5d4037).setOrigin(0.5, 0).setDepth(500);
+
+    this._setupScrollInput();
     this.show('home');
     this.refreshHeader();
+
+    // デバッグ確認機能（?debug=1 のときのみ）
+    if (window.RFS_DEBUG) {
+      this._dbgBtn = this.add.text(GAME_WIDTH / 2 - 6, 6, '⚙debug', { fontSize: '9px', color: '#80deea', backgroundColor: '#1a2a2e', padding: { x: 4, y: 2 } })
+        .setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
+      this._dbgBtn.on('pointerdown', () => this.toggleDebug());
+      this.input.keyboard.on('keydown-F1', () => this.toggleDebug());
+    }
   }
 
-  refresh() {
-    this.profile = SaveManager.loadProfile();
-    this.refreshHeader();
-    this.show(this._panel);
+  _setupScrollInput() {
+    this.input.on('wheel', (p, o, dx, dy) => { if (!this._overlay) this.setScroll(this.scrollY + dy * 0.4); });
+    let dragging = false, lastY = 0;
+    this.input.on('pointerdown', (p) => { if (!this._overlay && p.y > VIEW_TOP && p.y < VIEW_BOTTOM) { dragging = true; lastY = p.y; } });
+    this.input.on('pointerup', () => { dragging = false; });
+    this.input.on('pointermove', (p) => { if (dragging && p.isDown) { this.setScroll(this.scrollY - (p.y - lastY)); lastY = p.y; } });
+    this.input.keyboard.on('keydown-DOWN', () => this.setScroll(this.scrollY + 20));
+    this.input.keyboard.on('keydown-UP', () => this.setScroll(this.scrollY - 20));
+    this.input.keyboard.on('keydown-PAGE_DOWN', () => this.setScroll(this.scrollY + VIEW_H));
+    this.input.keyboard.on('keydown-PAGE_UP', () => this.setScroll(this.scrollY - VIEW_H));
   }
+
+  contentHeight() { return Math.max(0, this._maxY - VIEW_TOP + 8); }
+  maxScroll() { return Math.max(0, this.contentHeight() - VIEW_H); }
+
+  setScroll(y) {
+    this.scrollY = Phaser.Math.Clamp(y, 0, this.maxScroll());
+    this.content.y = -this.scrollY;
+    this._updateScrollbar();
+  }
+
+  _updateScrollbar() {
+    const max = this.maxScroll();
+    if (max <= 0) { this.scrollbar.setVisible(false); return; }
+    this.scrollbar.setVisible(true);
+    const th = Math.max(16, VIEW_H * (VIEW_H / this.contentHeight()));
+    const t = this.scrollY / max;
+    this.scrollbar.height = th;
+    this.scrollbar.y = VIEW_TOP + t * (VIEW_H - th);
+  }
+
+  refresh() { this.profile = SaveManager.loadProfile(); this.refreshHeader(); this.show(this._panel); }
 
   refreshHeader() {
-    this.emberText.setText(`残り火: ${this.profile.embers}  （累計 ${this.profile.lifetimeEmbers}）`);
-    this.subText.setText(`選択難易度: ${this.profile.selectedDifficulty}  / 解放最高: ${Math.max(1, this.profile.highestClearedDifficulty + 1 <= this.difficultyCount() ? this.profile.highestClearedDifficulty + 1 : this.difficultyCount())}`);
+    const p = this.profile;
+    this.emberText.setText(`残り火 ${p.embers}（累計 ${p.lifetimeEmbers}）  魂炎 ${p.soulflame}`);
+    this.subText.setText(`転生 ${p.reincarnationCount}回 / 選択難易度 ${p.selectedDifficulty} / 解放 ${Math.max(...p.unlockedDifficulties)}`);
   }
-
-  difficultyCount() { return ProgressionManager.difficulties().length; }
 
   show(key) {
     this._panel = key;
     this.content.removeAll(true);
+    this._maxY = VIEW_TOP;
     for (const m of this.menu) this.menuTexts[m.key].setColor(m.key === key ? '#ff5722' : '#ffe0b2');
     if (key === 'home') this.buildHome();
     else if (key === 'upgrades') this.buildUpgrades();
-    else if (key === 'difficulty') this.buildDifficulty();
     else if (key === 'mastery') this.buildMastery();
+    else if (key === 'difficulty') this.buildDifficulty();
+    else if (key === 'reincarnation') this.buildReincarnation();
+    else if (key === 'soulflame') this.buildSoulflame();
+    this.setScroll(0);
   }
 
-  add2(obj) { this.content.add(obj); return obj; }
+  add2(obj) { this.content.add(obj); if (obj.y + 12 > this._maxY) this._maxY = obj.y + 12; return obj; }
   label(x, y, text, opts) { return this.add2(this.add.text(x, y, text, { fontSize: '10px', color: '#ffe0b2', ...opts })); }
 
   // ---------------- 概要 ----------------
   buildHome() {
     const p = this.profile;
     const up = ProgressionManager.getUpgradeStats(p);
+    const reinc = ReincarnationManager.getReincarnationStats(p);
     const bal = DataManager.balance.player;
     const diff = DataManager.getDifficulty(p.selectedDifficulty);
 
-    this.label(16, 52, '基礎能力', { color: '#ffab40' });
+    this.label(16, 54, '基礎能力', { color: '#ffab40' });
     const abilities = [
       `最大HP: ${bal.maxHp + up.maxHpAdd}`,
-      `基礎ダメージ: +${Math.round((up.damageMult - 1) * 100)}%`,
+      `基礎ダメージ: +${Math.round((up.damageMult * reinc.startDamageMult - 1) * 100)}%（転生 +${Math.round((reinc.startDamageMult - 1) * 100)}%含む）`,
       `移動速度: +${Math.round((up.moveSpeedMult - 1) * 100)}%`,
       `経験値獲得: +${Math.round((up.xpMult - 1) * 100)}%`,
       `吸収範囲: +${Math.round((up.pickupMult - 1) * 100)}%`,
       `ダッシュ回復: ${Math.round((1 - up.dashRechargeMult) * 100)}% 短縮`,
-      `無敵時間: +${Math.round((up.invulnMult - 1) * 100)}%`,
       `残り火獲得: +${Math.round((up.emberMult - 1) * 100)}%`,
+      `レベルアップ候補: ${3 + reinc.levelUpChoices}択  / 倍速上限: ${reinc.speedMax}倍`,
+      `オートダッシュ: ${reinc.autoDash ? 'ON' : '未解放'}`,
     ];
-    abilities.forEach((a, i) => this.label(20, 68 + i * 13, a, { fontSize: '9px' }));
+    abilities.forEach((a, i) => this.label(20, 70 + i * 13, a, { fontSize: '9px' }));
 
-    this.label(330, 52, '累計記録', { color: '#ffab40' });
+    this.label(330, 54, '累計記録', { color: '#ffab40' });
     const st = p.statistics;
     const stats = [
       `プレイ時間: ${formatTime(st.totalPlayTime)}`,
@@ -108,69 +161,42 @@ export class BaseScene extends Phaser.Scene {
       `累計討伐: ${st.totalKills}`,
       `累計ボス討伐: ${st.totalBossKills}`,
       `最高ダメージ: ${Math.round(st.highestDamage)}`,
-      `選択中の難易度: ${p.selectedDifficulty}`,
-      `解放済み最高難易度: ${Math.max(...p.unlockedDifficulties)}`,
-      `難易度倍率(概要): 敵HP×${diff?.enemyHp ?? 1} / 敵攻×${diff?.enemyDamage ?? 1}`,
+      `過去最高難易度: ${p.highestEverDifficulty}`,
+      `転生回数: ${p.reincarnationCount} / 魂炎累計 ${p.lifetimeSoulflame}`,
+      `難易度倍率: 敵HP×${diff?.enemyHp ?? 1} 敵攻×${diff?.enemyDamage ?? 1}`,
     ];
-    stats.forEach((a, i) => this.label(334, 68 + i * 13, a, { fontSize: '9px' }));
+    stats.forEach((a, i) => this.label(334, 70 + i * 13, a, { fontSize: '9px' }));
 
-    this.label(16, 190, '「恒久強化」で残り火を使って強くなり、勝利で次の難易度が解放されます。', { fontSize: '9px', color: '#bcaaa4' });
+    this.label(16, 196, '恒久強化で強くなり難易度を解放。条件を満たすと転生し、魂炎でゲーム規模を拡張します。', { fontSize: '9px', color: '#bcaaa4' });
   }
 
   // ---------------- 恒久強化 ----------------
   buildUpgrades() {
-    this.label(16, 52, '恒久強化（クリックで購入）', { color: '#ffab40' });
-    const defs = ProgressionManager.upgradeDefs();
-    let y = 68;
-    for (const def of defs) {
-      this.buildUpgradeRow(def, y);
-      y += 14;
-    }
+    this.label(16, 54, '恒久強化（残り火／クリックで購入）', { color: '#ffab40' });
+    let y = 70;
+    for (const def of ProgressionManager.upgradeDefs()) { this.buildUpgradeRow(def, y); y += 15; }
   }
 
   buildUpgradeRow(def, y) {
     const p = this.profile;
     const level = ProgressionManager.upgradeLevel(p, def.id);
-    const maxed = level >= def.maxLevel;
+    const maxLevel = ProgressionManager.effectiveMaxLevel(def, p);
+    const maxed = level >= maxLevel;
     const unlocked = ProgressionManager.isUpgradeUnlocked(p, def);
     const cost = ProgressionManager.upgradeCost(def, level);
-    const curEff = this.formatEffect(def, level);
-    const nextEff = maxed ? '—' : this.formatEffect(def, level + 1);
 
     this.label(20, y, def.displayName, { fontSize: '9px' });
-    this.label(150, y, `Lv ${level}/${def.maxLevel}`, { fontSize: '9px', color: '#80deea' });
-    this.label(215, y, `${curEff}→${nextEff}`, { fontSize: '9px', color: '#bcaaa4' });
-
-    if (!unlocked) {
-      this.label(360, y, `🔒 難易度${def.unlockCondition.value}クリアで解放`, { fontSize: '9px', color: '#8d6e63' });
-      return;
-    }
-    if (maxed) {
-      this.label(360, y, 'MAX', { fontSize: '9px', color: '#a5d6a7' });
-      return;
-    }
-    const canAfford = p.embers >= cost;
-    this.label(360, y, `残り火 ${cost}`, { fontSize: '9px', color: canAfford ? '#ffe0b2' : '#8d6e63' });
-    const btn = this.add2(this.add.text(445, y - 1, canAfford ? '購入' : '不足', {
-      fontSize: '9px', color: canAfford ? '#fff' : '#8d6e63',
-      backgroundColor: canAfford ? '#5d2e1a' : '#2a1e2e', padding: { x: 5, y: 1 },
-    }));
-    if (canAfford) {
-      btn.setInteractive({ useHandCursor: true });
-      btn.on('pointerdown', () => this.buyUpgrade(def.id));
-    }
+    this.label(150, y, `Lv ${level}/${maxLevel}`, { fontSize: '9px', color: '#80deea' });
+    this.label(215, y, `${this.formatUpEffect(def, level)}→${maxed ? '—' : this.formatUpEffect(def, level + 1)}`, { fontSize: '9px', color: '#bcaaa4' });
+    if (!unlocked) { this.label(360, y, `🔒 難易度${def.unlockCondition.value}クリアで解放`, { fontSize: '9px', color: '#8d6e63' }); return; }
+    if (maxed) { this.label(360, y, 'MAX', { fontSize: '9px', color: '#a5d6a7' }); return; }
+    const can = p.embers >= cost;
+    this.label(360, y, `残り火 ${cost}`, { fontSize: '9px', color: can ? '#ffe0b2' : '#8d6e63' });
+    const btn = this.add2(this.add.text(440, y - 1, can ? '購入' : '不足', { fontSize: '9px', color: can ? '#fff' : '#8d6e63', backgroundColor: can ? '#5d2e1a' : '#2a1e2e', padding: { x: 5, y: 1 } }));
+    if (can) { btn.setInteractive({ useHandCursor: true }); btn.on('pointerdown', () => this.buy(() => ProgressionManager.buy(def.id))); }
   }
 
-  buyUpgrade(id) {
-    if (this._busy) return;              // 連打による二重購入防止
-    this._busy = true;
-    const res = ProgressionManager.buy(id); // 内部で最新 profile を読み直して原子的に検証・保存
-    this._busy = false;
-    if (res.ok) this.effectFlash('#ffd54f');
-    this.refresh();
-  }
-
-  formatEffect(def, level) {
+  formatUpEffect(def, level) {
     const v = ProgressionManager.effectValue(def, level);
     switch (def.effectType) {
       case 'maxHpAdd': return `+${Math.round(v)}HP`;
@@ -180,54 +206,214 @@ export class BaseScene extends Phaser.Scene {
     }
   }
 
-  effectFlash(color) {
-    const f = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0xffffff, 0.12).setDepth(2000);
-    this.tweens.add({ targets: f, alpha: 0, duration: 200, onComplete: () => f.destroy() });
+  buy(fn) {
+    if (this._busy) return;
+    this._busy = true;
+    const res = fn();
+    this._busy = false;
+    if (res.ok) this.flash();
+    this.refresh();
+  }
+
+  flash() {
+    const f = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0xffffff, 0.1).setDepth(2000);
+    this.tweens.add({ targets: f, alpha: 0, duration: 180, onComplete: () => f.destroy() });
+  }
+
+  // ---------------- 熟練度 ----------------
+  buildMastery() {
+    this.label(16, 54, 'スキル熟練度（周回をまたいで蓄積 / 進化と連携）', { color: '#ffab40' });
+    let y = 70;
+    for (const m of ProgressionManager.masterySummary(this.profile)) {
+      this.label(20, y, m.name, { fontSize: '10px' });
+      this.label(120, y, `熟練 Lv${m.level}`, { fontSize: '9px', color: '#80deea' });
+      this.label(190, y, m.needExp ? `次 ${Math.round(m.curExp)}/${Math.round(m.needExp)}` : 'MAX', { fontSize: '9px', color: '#bcaaa4' });
+      this.label(300, y, `累計Dmg ${Math.round(m.entry.damage)}`, { fontSize: '9px', color: '#ff8a65' });
+      this.label(410, y, `進化 ${m.entry.evolutions || 0}回`, { fontSize: '9px', color: '#ffd54f' });
+      const b = m.bonus;
+      this.label(40, y + 11, `ボーナス Dmg+${Math.round((b.damageMult - 1) * 100)}% CD-${Math.round((1 - b.cooldownMult) * 100)}% 範囲+${Math.round((b.radiusMult - 1) * 100)}%${b.startLevel ? ` 初期Lv+${b.startLevel}` : ''}  Lv5:候補率↑ Lv10:初期Lv2 Lv15:進化条件緩和 Lv20:進化強化`, { fontSize: '7px', color: '#8d6e63' });
+      y += 27;
+    }
   }
 
   // ---------------- 難易度 ----------------
   buildDifficulty() {
-    this.label(16, 52, '難易度選択（クリアで次を解放）', { color: '#ffab40' });
-    const diffs = ProgressionManager.difficulties();
+    this.label(16, 54, '難易度選択（クリアで次を解放）', { color: '#ffab40' });
     let y = 70;
-    for (const d of diffs) {
+    for (const d of ProgressionManager.difficulties()) {
       const unlocked = ProgressionManager.isDifficultyUnlocked(this.profile, d.id);
       const selected = this.profile.selectedDifficulty === d.id;
-      const nameColor = selected ? '#ffd54f' : unlocked ? '#ffe0b2' : '#8d6e63';
-      const prefix = selected ? '▶ ' : '  ';
-      const t = this.label(20, y, `${prefix}${d.name}${unlocked ? '' : ' 🔒'}`, { fontSize: '10px', color: nameColor });
+      const t = this.label(20, y, `${selected ? '▶ ' : '  '}${d.name}${unlocked ? '' : ' 🔒'}`, { fontSize: '10px', color: selected ? '#ffd54f' : unlocked ? '#ffe0b2' : '#8d6e63' });
       this.label(150, y, `敵HP×${d.enemyHp} 敵攻×${d.enemyDamage} 速×${d.enemySpeed} 数×${d.spawnRate}`, { fontSize: '8px', color: '#bcaaa4' });
       this.label(420, y, `ボスHP×${d.bossHp} 残り火×${d.currency}`, { fontSize: '8px', color: '#bcaaa4' });
-      if (unlocked && !selected) {
-        t.setInteractive({ useHandCursor: true });
-        t.on('pointerdown', () => { ProgressionManager.selectDifficulty(d.id); this.refresh(); });
-      }
+      if (unlocked && !selected) { t.setInteractive({ useHandCursor: true }); t.on('pointerdown', () => { ProgressionManager.selectDifficulty(d.id); this.refresh(); }); }
       y += 16;
     }
     this.label(16, y + 6, '未解放の難易度は選択・開始できません。', { fontSize: '9px', color: '#8d6e63' });
   }
 
-  // ---------------- スキル熟練度 ----------------
-  buildMastery() {
-    this.label(16, 52, 'スキル熟練度（周回をまたいで蓄積）', { color: '#ffab40' });
-    const rows = ProgressionManager.masterySummary(this.profile);
-    let y = 70;
-    for (const m of rows) {
-      this.label(20, y, m.name, { fontSize: '10px' });
-      this.label(120, y, `熟練 Lv${m.level}`, { fontSize: '9px', color: '#80deea' });
-      const prog = m.needExp ? `${Math.round(m.curExp)}/${Math.round(m.needExp)}` : 'MAX';
-      this.label(195, y, `次まで ${prog}`, { fontSize: '9px', color: '#bcaaa4' });
-      this.label(320, y, `累計Dmg ${Math.round(m.entry.damage)}`, { fontSize: '9px', color: '#ff8a65' });
-      this.label(430, y, `討伐 ${m.entry.kills}`, { fontSize: '9px', color: '#a5d6a7' });
-      const b = m.bonus;
-      this.label(40, y + 11, `ボーナス: ダメージ+${Math.round((b.damageMult - 1) * 100)}% / CD-${Math.round((1 - b.cooldownMult) * 100)}% / 範囲+${Math.round((b.radiusMult - 1) * 100)}%${b.startLevel ? ` / 初期Lv+${b.startLevel}` : ''}`, { fontSize: '8px', color: '#8d6e63' });
-      y += 27;
+  // ---------------- 転生 ----------------
+  buildReincarnation() {
+    const p = this.profile;
+    const prev = ReincarnationManager.preview(p);
+    this.label(16, 54, '転生（周回をリセットして魂炎を得る長期成長）', { color: '#ffd54f' });
+    this.label(20, 70, `魂炎: ${p.soulflame}（累計 ${p.lifetimeSoulflame}）  転生回数: ${p.reincarnationCount}`, { fontSize: '10px', color: '#ffab40' });
+
+    const up = ReincarnationManager.unlockProgress(p);
+    if (!prev.canReincarnate) {
+      this.label(20, 88, '転生条件（いずれか）:', { fontSize: '9px', color: '#ff8a80' });
+      this.label(30, 100, `・難易度${up.clearDifficulty}クリア（現在 最高クリア ${up.curDifficulty}）${up.byDifficulty ? ' ✓' : ''}`, { fontSize: '9px' });
+      this.label(30, 112, `・累計残り火 ${up.totalEmber}（現在 ${up.curEmber}）${up.byEmber ? ' ✓' : ''}`, { fontSize: '9px' });
+    } else {
+      this.label(20, 88, `条件達成！今転生すると 魂炎 +${prev.soulflame.total} を獲得`, { fontSize: '10px', color: '#a5d6a7' });
+      const b = prev.soulflame;
+      this.label(30, 100, `内訳: 残り火 ${b.emberTerm} / 難易度 ${b.diffTerm} / ボス ${b.bossTerm} / 転生 ${b.reincTerm} / 熟練 ${b.masteryTerm}`, { fontSize: '8px', color: '#bcaaa4' });
     }
+
+    this.label(20, 130, 'リセットされるもの:', { fontSize: '9px', color: '#ff8a80' });
+    this.label(30, 142, '所持残り火 / 恒久強化 / 選択難易度 / 解放難易度(開始へ) / 今周回のクリア進捗', { fontSize: '8px', color: '#bcaaa4' });
+    this.label(20, 158, '維持されるもの:', { fontSize: '9px', color: '#a5d6a7' });
+    this.label(30, 170, '転生回数 / 魂炎 / 魂炎強化 / 熟練度累計 / 統計 / 過去最高難易度 / 設定', { fontSize: '8px', color: '#bcaaa4' });
+    if (prev.hasActiveRun) this.label(20, 186, '⚠ 途中戦闘データは転生時に削除されます。', { fontSize: '9px', color: '#ff8a80' });
+
+    const enabled = prev.canReincarnate;
+    const btn = this.add2(this.add.text(GAME_WIDTH / 2, 208, enabled ? '転生する…' : '転生（条件未達）', {
+      fontSize: '12px', color: enabled ? '#fff' : '#8d6e63', backgroundColor: enabled ? '#7a2e1a' : '#2a1e2e', padding: { x: 12, y: 5 },
+    }).setOrigin(0.5));
+    if (enabled) { btn.setInteractive({ useHandCursor: true }); btn.on('pointerdown', () => this.showReincarnationConfirm(prev)); }
+  }
+
+  showReincarnationConfirm(prev) {
+    if (this._overlay) return;
+    const cx = GAME_WIDTH / 2, cy = GAME_HEIGHT / 2;
+    const ui = this.add.container(0, 0).setDepth(3000);
+    ui.add(this.add.rectangle(cx, cy, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.85));
+    ui.add(this.add.text(cx, 40, '転生の確認', { fontSize: '18px', color: '#ffd54f', fontStyle: 'bold' }).setOrigin(0.5));
+    ui.add(this.add.text(cx, 74, `獲得魂炎: +${prev.soulflame.total}   （これが ${prev.reincarnationCount + 1} 回目の転生）`, { fontSize: '11px', color: '#ffab40' }).setOrigin(0.5));
+    ui.add(this.add.text(cx, 100, 'リセット: 残り火 / 恒久強化 / 選択難易度 / 解放難易度 / 今周回のクリア進捗', { fontSize: '9px', color: '#ff8a80', align: 'center', wordWrap: { width: 520 } }).setOrigin(0.5));
+    ui.add(this.add.text(cx, 122, '維持: 転生回数 / 魂炎 / 魂炎強化 / 熟練度累計 / 統計 / 過去最高難易度 / 設定', { fontSize: '9px', color: '#a5d6a7', align: 'center', wordWrap: { width: 520 } }).setOrigin(0.5));
+    ui.add(this.add.text(cx, 150, '⚠ この操作は取り消せません。途中戦闘データがある場合は削除されます。', { fontSize: '9px', color: '#ff8a80', align: 'center', wordWrap: { width: 520 } }).setOrigin(0.5));
+
+    const cancel = this.add.text(cx - 90, GAME_HEIGHT - 40, 'キャンセル', { fontSize: '12px', color: '#fff', backgroundColor: '#3e2723', padding: { x: 10, y: 5 } }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    const confirm = this.add.text(cx + 90, GAME_HEIGHT - 40, '最終確認：転生する', { fontSize: '12px', color: '#fff', backgroundColor: '#7a2e1a', padding: { x: 10, y: 5 } }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    cancel.on('pointerdown', () => this.closeOverlay());
+    confirm.on('pointerdown', () => this.doReincarnate());
+    ui.add([cancel, confirm]);
+    this._overlay = ui;
+  }
+
+  doReincarnate() {
+    if (this._busy) return;
+    this._busy = true;
+    const res = ReincarnationManager.reincarnate();
+    this._busy = false;
+    this.closeOverlay();
+    if (res.ok) {
+      this.flash();
+      this.showToast(`転生しました！ 魂炎 +${res.gained}`);
+    }
+    this.refresh();
+    this.show('soulflame');
+  }
+
+  showToast(msg) {
+    const t = this.add.text(GAME_WIDTH / 2, VIEW_TOP + 10, msg, { fontSize: '11px', color: '#fff', backgroundColor: '#5d2e1a', padding: { x: 8, y: 4 } }).setOrigin(0.5).setDepth(2500);
+    this.tweens.add({ targets: t, alpha: 0, delay: 2000, duration: 700, onComplete: () => t.destroy() });
+  }
+
+  closeOverlay() { if (this._overlay) { this._overlay.destroy(true); this._overlay = null; } }
+
+  // ---------------- 魂炎強化 ----------------
+  buildSoulflame() {
+    this.label(16, 54, '魂炎強化（魂炎／転生を重ねてゲーム規模を拡張）', { color: '#ffd54f' });
+    this.label(20, 70, `魂炎: ${this.profile.soulflame}`, { fontSize: '10px', color: '#ffab40' });
+    let y = 88;
+    for (const node of ReincarnationManager.nodes()) { this.buildSoulflameRow(node, y); y += 22; }
+  }
+
+  buildSoulflameRow(node, y) {
+    const p = this.profile;
+    const level = ReincarnationManager.upgradeLevel(p, node.id);
+    const maxed = level >= node.maxLevel;
+    const prereqOk = ReincarnationManager.prereqMet(p, node);
+    const cost = ReincarnationManager.cost(node, level);
+
+    this.label(20, y, node.displayName, { fontSize: '10px', color: '#ffe0b2' });
+    this.label(150, y, `Lv ${level}/${node.maxLevel}`, { fontSize: '9px', color: '#80deea' });
+    this.label(210, y, this.formatNodeEffect(node, level, maxed), { fontSize: '9px', color: '#bcaaa4' });
+    this.label(30, y + 11, node.description, { fontSize: '7px', color: '#8d6e63', wordWrap: { width: 420 } });
+
+    if (!prereqOk) { this.label(360, y, `🔒 前提「${this.nodeName(node.prerequisite)}」`, { fontSize: '9px', color: '#8d6e63' }); return; }
+    if (maxed) { this.label(360, y, 'MAX', { fontSize: '9px', color: '#a5d6a7' }); return; }
+    const can = p.soulflame >= cost;
+    this.label(360, y, `魂炎 ${cost}`, { fontSize: '9px', color: can ? '#ffe0b2' : '#8d6e63' });
+    const btn = this.add2(this.add.text(440, y - 1, can ? '購入' : '不足', { fontSize: '9px', color: can ? '#fff' : '#8d6e63', backgroundColor: can ? '#7a2e1a' : '#2a1e2e', padding: { x: 5, y: 1 } }));
+    if (can) { btn.setInteractive({ useHandCursor: true }); btn.on('pointerdown', () => this.buy(() => ReincarnationManager.buy(node.id))); }
+  }
+
+  nodeName(id) { return ReincarnationManager.getNode(id)?.displayName || id; }
+
+  formatNodeEffect(node, level, maxed) {
+    const cur = ReincarnationManager.effectValue(node, level);
+    const nxt = maxed ? null : ReincarnationManager.effectValue(node, level + 1);
+    const f = (v) => {
+      switch (node.effectType) {
+        case 'levelUpChoices': return `候補+${v}`;
+        case 'startDamageMult': return `火力+${Math.round(v * 100)}%`;
+        case 'startSkillLevel': return `初期Lv+${v}`;
+        case 'chainCount': return `連鎖+${v}`;
+        case 'enemyDensity': return `敵+${v}`;
+        case 'effectCap': return `弾+${v}`;
+        case 'permCap': return `上限+${v}`;
+        case 'speedMode': return `速度${DataManager.speedModes[Math.min(v, DataManager.speedModes.length - 1)]}倍`;
+        case 'autoDash': return v >= 1 ? '解放' : '—';
+        case 'startEmber': return `残り火${v}`;
+        default: return `${v}`;
+      }
+    };
+    return maxed ? f(cur) : `${f(cur)}→${f(nxt)}`;
+  }
+
+  // ---------------- デバッグ確認（?debug=1） ----------------
+  toggleDebug() {
+    if (this._dbg) { this._dbg.destroy(true); this._dbg = null; return; }
+    const ui = this.add.container(0, 0).setDepth(4000);
+    ui.add(this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 300, 210, 0x101820, 0.96).setStrokeStyle(1, 0x80deea));
+    ui.add(this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 96, 'DEBUG（拠点）', { fontSize: '11px', color: '#80deea' }).setOrigin(0.5));
+    const acts = [
+      ['残り火 +1000', () => this.dbgEdit((p) => { p.embers += 1000; p.lifetimeEmbers += 1000; })],
+      ['魂炎 +5', () => this.dbgEdit((p) => { p.soulflame += 5; p.lifetimeSoulflame += 5; })],
+      ['難易度 全解放', () => this.dbgEdit((p) => { p.unlockedDifficulties = ProgressionManager.difficulties().map((d) => d.id); })],
+      ['転生条件 達成', () => this.dbgEdit((p) => { p.highestClearedDifficulty = 3; p.highestEverDifficulty = Math.max(3, p.highestEverDifficulty); })],
+      ['profile v3→v4 移行テスト', () => this.dbgMigrateTest()],
+      ['profile 初期化', () => { localStorage.removeItem('rfs_profile'); location.reload(); }],
+    ];
+    let yy = GAME_HEIGHT / 2 - 74;
+    for (const [label, fn] of acts) {
+      const b = this.add.text(GAME_WIDTH / 2, yy, label, { fontSize: '10px', color: '#fff', backgroundColor: '#1a3a3e', padding: { x: 6, y: 2 } }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+      b.on('pointerdown', fn);
+      ui.add(b); yy += 22;
+    }
+    const close = this.add.text(GAME_WIDTH / 2, yy + 4, '閉じる (F1)', { fontSize: '9px', color: '#bcaaa4' }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    close.on('pointerdown', () => this.toggleDebug());
+    ui.add(close);
+    this._dbg = ui;
+  }
+
+  dbgEdit(fn) {
+    const p = SaveManager.loadProfile();
+    fn(p);
+    SaveManager.saveProfile(p);
+    this.toggleDebug();
+    this.refresh();
+  }
+
+  dbgMigrateTest() {
+    const v3 = { save_version: 3, game_version: '0.3.0', embers: 123, lifetimeEmbers: 6000, permanentUpgrades: { max_hp: 3 }, unlockedDifficulties: [1, 2, 3], highestClearedDifficulty: 3, skillMastery: { fireball: { casts: 1, hits: 2, kills: 1, damage: 500, maxLevel: 8, runsUsed: 2 } }, statistics: { totalPlayTime: 100, totalRuns: 3, totalWins: 2, totalDefeats: 1, totalKills: 300, totalBossKills: 2, highestDamage: 900 }, lastResultId: 'x' };
+    localStorage.setItem('rfs_profile', JSON.stringify(v3));
+    location.reload();
   }
 
   // ---------------- 戦闘開始 ----------------
-  startBattle() {
-    const diff = this.profile.selectedDifficulty || 1;
-    this.scene.start('BattleScene', { difficulty: diff, resume: null });
-  }
+  startBattle() { this.scene.start('BattleScene', { difficulty: this.profile.selectedDifficulty || 1, resume: null }); }
 }

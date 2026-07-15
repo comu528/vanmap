@@ -27,6 +27,7 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     this.explosionRadius = opts.explosionRadius || 0;
     this.hostile = !!opts.hostile;
     this.skillId = opts.skillId || null;
+    this.pierceFalloff = opts.pierceFalloff || 1; // 貫通ごとの威力減衰（1=減衰なし）
     this._hitSet.clear();
     this._lifeTimer = opts.lifeMs || 1600;
     this.alive = true;

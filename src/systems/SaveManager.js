@@ -19,11 +19,12 @@ const obj = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
 const arr = (v) => (Array.isArray(v) ? v : null);
 
 function defaultProfile(saveVersion, gameVersion) {
+  const nowIso = new Date().toISOString();
   return {
     save_version: saveVersion || 1,
     game_version: gameVersion || '0.0.0',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    created_at: nowIso,
+    updated_at: nowIso,
     embers: 0,
     lifetimeEmbers: 0,
     permanentUpgrades: {},
@@ -36,15 +37,25 @@ function defaultProfile(saveVersion, gameVersion) {
       totalKills: 0, totalBossKills: 0, highestDamage: 0,
     },
     lastResultId: null,
-    // Milestone 4 用の前方互換（現状未使用）
-    currencies: { soulflame: 0 },
+    // --- Milestone 4: 転生・魂炎 ---
     reincarnationCount: 0,
-    reincarnationNodes: [],
+    soulflame: 0,
+    lifetimeSoulflame: 0,
+    reincarnationUpgrades: {},
+    highestEverDifficulty: 0,
+    lastReincarnationId: null,
+    reincarnationHistory: [],
+    unlockedFeatures: {},
+    evolutionStatistics: {},
+    currentCycle: {
+      cycleNumber: 0, cycleEmbers: 0, cycleHighestDifficulty: 0,
+      cycleBossKills: 0, cycleStartTime: nowIso,
+    },
     achievements: [],
   };
 }
 
-// 旧版 profile を v3 スキーマへ明示マッピングで移行する（stale キーは持ち越さない）。
+// 旧版 profile（v1/v2/v3）を v4 スキーマへ明示マッピングで移行する（stale キーは持ち越さない）。
 function migrateProfile(stored, sv, gv) {
   const m = defaultProfile(sv, gv);
   m.created_at = stored.created_at || m.created_at;
@@ -68,9 +79,24 @@ function migrateProfile(stored, sv, gv) {
     highestDamage: num(os.highestDamage, 0),
   };
   m.lastResultId = stored.lastResultId ?? null;
-  m.currencies = { soulflame: num(stored.currencies?.soulflame, 0) };
+  // v4 の転生系（v3 以前は既定 0 / 空）。currencies.soulflame（v3前方互換）も拾う。
   m.reincarnationCount = num(stored.reincarnationCount, 0);
-  m.reincarnationNodes = arr(stored.reincarnationNodes) || [];
+  m.soulflame = num(stored.soulflame, num(stored.currencies?.soulflame, 0));
+  m.lifetimeSoulflame = num(stored.lifetimeSoulflame, m.soulflame);
+  m.reincarnationUpgrades = obj(stored.reincarnationUpgrades);
+  m.highestEverDifficulty = num(stored.highestEverDifficulty, m.highestClearedDifficulty);
+  m.lastReincarnationId = stored.lastReincarnationId ?? null;
+  m.reincarnationHistory = arr(stored.reincarnationHistory) || [];
+  m.unlockedFeatures = obj(stored.unlockedFeatures);
+  m.evolutionStatistics = obj(stored.evolutionStatistics);
+  const cc = obj(stored.currentCycle);
+  m.currentCycle = {
+    cycleNumber: num(cc.cycleNumber, m.reincarnationCount),
+    cycleEmbers: num(cc.cycleEmbers, 0),
+    cycleHighestDifficulty: num(cc.cycleHighestDifficulty, 0),
+    cycleBossKills: num(cc.cycleBossKills, 0),
+    cycleStartTime: cc.cycleStartTime || m.created_at,
+  };
   m.achievements = arr(stored.achievements) || [];
   return m;
 }
@@ -82,6 +108,7 @@ function defaultSettings() {
     screenShake: true,
     whiteFlash: true,
     autoMove: false,
+    speed: 1,
   };
 }
 
@@ -148,7 +175,12 @@ class SaveManagerClass {
         return migrated;
       }
       // 同版でも欠落フィールドを安全に補完（部分破損対策）。
-      return { ...defaultProfile(sv, gv), ...p, statistics: { ...defaultProfile(sv, gv).statistics, ...obj(p.statistics) } };
+      const d = defaultProfile(sv, gv);
+      return {
+        ...d, ...p,
+        statistics: { ...d.statistics, ...obj(p.statistics) },
+        currentCycle: { ...d.currentCycle, ...obj(p.currentCycle) },
+      };
     }
     const fresh = defaultProfile(sv, gv);
     this._write(KEY_PROFILE, fresh);
@@ -179,6 +211,10 @@ class SaveManagerClass {
     // 実行データは v2 以降でスキーマ互換のため、過古版のみ破棄する。
     if (typeof r.save_version === 'number' && r.save_version < 2) { this.clearActiveRun(); return null; }
     if (typeof r.elapsedSec !== 'number' || typeof r.difficulty !== 'number') { this.clearActiveRun(); return null; }
+    // 転生をまたいだ古い active_run を再開させない（cycleNumber 不一致は破棄）。
+    const prof = this._read(KEY_PROFILE, null);
+    const curCycle = num(prof?.reincarnationCount, 0);
+    if (num(r.cycleNumber, 0) !== curCycle) { this.clearActiveRun(); return null; }
     return r;
   }
 

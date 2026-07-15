@@ -35,12 +35,31 @@ class ProgressionManagerClass {
     return true;
   }
 
+  // 魂炎強化「恒久強化上限」による最大レベル拡張（ReincarnationManager を import せず算出）。
+  _reincPermCapAdd(profile) {
+    let add = 0;
+    for (const node of DataManager.reincarnationNodes) {
+      if (node.effectType === 'permCap') add += (node.effectPerLevel || 0) * (profile.reincarnationUpgrades?.[node.id] || 0);
+    }
+    return add;
+  }
+  effectiveMaxLevel(def, profile) { return def.maxLevel + this._reincPermCapAdd(profile); }
+
+  // 魂炎強化「敵密度拡張」による残り火報酬倍率。
+  _reincRewardMult(profile) {
+    let mult = 1;
+    for (const node of DataManager.reincarnationNodes) {
+      if (node.effectType === 'enemyDensity') mult += 0.03 * (profile.reincarnationUpgrades?.[node.id] || 0);
+    }
+    return mult;
+  }
+
   canBuy(profile, id) {
     const def = this.getUpgradeDef(id);
     if (!def) return { ok: false, reason: 'not_found' };
     if (!this.isUpgradeUnlocked(profile, def)) return { ok: false, reason: 'locked' };
     const level = this.upgradeLevel(profile, id);
-    if (level >= def.maxLevel) return { ok: false, reason: 'max' };
+    if (level >= this.effectiveMaxLevel(def, profile)) return { ok: false, reason: 'max' };
     const cost = this.upgradeCost(def, level);
     if ((profile.embers || 0) < cost) return { ok: false, reason: 'insufficient', cost };
     return { ok: true, cost };
@@ -111,10 +130,11 @@ class ProgressionManagerClass {
     const difficultyMult = diff?.currency ?? 1;
     const winLoseMult = result.win ? (c.winMultiplier ?? 1) : (c.defeatMultiplier ?? 0.5);
     const upgradeMult = this.getUpgradeStats(profile).emberMult;
-    const total = Math.max(0, Math.floor(base * difficultyMult * winLoseMult * upgradeMult));
+    const reincMult = this._reincRewardMult(profile);
+    const total = Math.max(0, Math.floor(base * difficultyMult * winLoseMult * upgradeMult * reincMult));
     return {
       survival: Math.floor(survival), kills: Math.floor(kills), boss: Math.floor(boss),
-      winBonus, base, difficultyMult, winLoseMult, upgradeMult, total, win: !!result.win,
+      winBonus, base, difficultyMult, winLoseMult, upgradeMult, reincMult, total, win: !!result.win,
     };
   }
 
@@ -140,14 +160,39 @@ class ProgressionManagerClass {
       st.totalBossKills += result.bossKills || 0;
       st.highestDamage = Math.max(st.highestDamage || 0, result.maxHit || 0);
 
+      // 現在の周回（cycle）進捗。転生条件は周回単位で判定して farming を防ぐ。
+      const cc = profile.currentCycle || (profile.currentCycle = { cycleNumber: profile.reincarnationCount || 0, cycleEmbers: 0, cycleHighestDifficulty: 0, cycleBossKills: 0 });
+      cc.cycleEmbers = (cc.cycleEmbers || 0) + breakdown.total;
+      cc.cycleBossKills = (cc.cycleBossKills || 0) + (result.bossKills || 0);
+      if (result.win) cc.cycleHighestDifficulty = Math.max(cc.cycleHighestDifficulty || 0, result.difficultyId);
+
+      // スキル統計を熟練度へ加算。進化後スキルは基礎スキルの熟練度へ寄せる（M4）。
+      profile.evolutionStatistics = profile.evolutionStatistics || {};
+      const runsCounted = new Set();
       for (const s of result.skills || []) {
-        const m = profile.skillMastery[s.id] || (profile.skillMastery[s.id] = emptyMastery());
+        const evo = DataManager.getEvolution(s.id);
+        const masteryId = evo ? evo.baseSkillId : s.id;
+        const m = profile.skillMastery[masteryId] || (profile.skillMastery[masteryId] = emptyMastery());
         m.casts += s.casts || 0;
         m.hits += s.hits || 0;
         m.kills += s.kills || 0;
         m.damage += s.damage || 0;
         m.maxLevel = Math.max(m.maxLevel || 0, s.level || 0);
-        m.runsUsed = (m.runsUsed || 0) + 1;
+        if (!runsCounted.has(masteryId)) { m.runsUsed = (m.runsUsed || 0) + 1; runsCounted.add(masteryId); }
+        if (evo) {
+          const es = profile.evolutionStatistics[s.id] || (profile.evolutionStatistics[s.id] = { casts: 0, hits: 0, kills: 0, damage: 0, times: 0 });
+          es.casts += s.casts || 0; es.hits += s.hits || 0; es.kills += s.kills || 0; es.damage += s.damage || 0;
+        }
+      }
+      // 当該周回で進化した基礎スキルの evolutions を加算。
+      for (const baseId of result.evolvedBaseIds || []) {
+        const m = profile.skillMastery[baseId] || (profile.skillMastery[baseId] = emptyMastery());
+        m.evolutions = (m.evolutions || 0) + 1;
+        const evo = DataManager.getEvolutionForBase(baseId);
+        if (evo) {
+          const es = profile.evolutionStatistics[evo.id] || (profile.evolutionStatistics[evo.id] = { casts: 0, hits: 0, kills: 0, damage: 0, times: 0 });
+          es.times += 1;
+        }
       }
 
       if (result.win) {

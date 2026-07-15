@@ -20,15 +20,33 @@ export class EffectManager {
       screenShake: true, whiteFlash: true, hitStop: true,
     };
     this._dmgPool = []; // ダメージ数字テキストの簡易プール
+    // 品質別の安全上限（毎フレーム beginFrame でリセット）。既定は無制限。
+    this._dmgNumBudget = Infinity;
+    this._particleBudget = Infinity;
+    this._particleUsed = 0;
   }
 
   setSettings(s) { this.settings = { ...this.settings, ...s }; }
 
   static scaleForVisual(v) { return VISUAL_SCALE[v] || 1; }
 
+  // 毎フレーム、ダメージ数字とパーティクルの安全上限をリセットする（判定には影響しない）。
+  beginFrame(maxDamageNumbers, particleBudget) {
+    this._dmgNumBudget = maxDamageNumbers ?? Infinity;
+    this._particleBudget = particleBudget ?? Infinity;
+    this._particleUsed = 0;
+  }
+
+  _canParticle(n = 1) {
+    if (this.settings.particleScale <= 0) return false;
+    if (this._particleUsed + n > this._particleBudget) return false;
+    this._particleUsed += n;
+    return true;
+  }
+
   // ---- 基本演出 ----
   hitBurst(x, y, color = 0xffe082) {
-    if (this.settings.particleScale <= 0) return;
+    if (!this._canParticle(1)) return;
     const g = this.scene.add.image(x, y, TEX.PARTICLE).setTint(color)
       .setBlendMode(Phaser.BlendModes.ADD).setDepth(60);
     this.scene.tweens.add({ targets: g, scale: 2.5 * this.settings.particleScale, alpha: 0, duration: 160, onComplete: () => g.destroy() });
@@ -37,6 +55,7 @@ export class EffectManager {
   // 火の粉
   sparks(x, y, count = 4, color = 0xff7043) {
     const n = Math.round(count * this.settings.particleScale);
+    if (!this._canParticle(n)) return;
     for (let i = 0; i < n; i++) {
       const ang = Phaser.Math.FloatBetween(0, Math.PI * 2);
       const g = this.scene.add.image(x, y, TEX.PARTICLE).setTint(color)
@@ -64,9 +83,11 @@ export class EffectManager {
     this.scene.time.delayedCall(55, () => { if (enemy.active) enemy.clearTint(); });
   }
 
-  // ダメージ数字（クリティカルは大きく）
+  // ダメージ数字（クリティカルは大きく）。毎フレーム上限で暴走を防ぐ。
   damageNumber(x, y, amount, crit = false) {
     if (!this.settings.damageNumbers) return;
+    if (this._dmgNumBudget <= 0) return;
+    this._dmgNumBudget--;
     const txt = this.scene.add.text(x, y - 6, String(amount), {
       fontSize: crit ? '16px' : '10px',
       color: crit ? '#fff176' : '#ffe0b2',

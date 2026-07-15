@@ -29,7 +29,9 @@ export class SpawnManager {
     if (this.scene.boss && this.scene.boss.alive) return; // ボス戦中は通常湧きを止める
     const phase = this.currentPhase();
     const pool = this.scene.enemyPool;
-    if (pool.activeCount >= Math.min(phase.maxAlive, pool.maxSize)) return;
+    // 魂炎「敵密度拡張」でフィールド上限を引き上げる（プール上限内）。
+    const cap = Math.min(phase.maxAlive + (this.scene.enemyCapAdd || 0), pool.maxSize);
+    if (pool.activeCount >= cap) return;
     this._spawnAccum += dt;
     const interval = phase.spawnIntervalMs / (this.difficulty.spawnRate || 1);
     while (this._spawnAccum >= interval) { this._spawnAccum -= interval; this.spawnEnemy(); }

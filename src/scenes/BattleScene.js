@@ -9,6 +9,8 @@ import { GAME_WIDTH, GAME_HEIGHT, TEX } from '../config/game-config.js';
 import { DataManager } from '../systems/DataManager.js';
 import { SaveManager } from '../systems/SaveManager.js';
 import { ProgressionManager } from '../systems/ProgressionManager.js';
+import { ReincarnationManager } from '../systems/ReincarnationManager.js';
+import { EvolutionManager } from '../systems/EvolutionManager.js';
 import { Player } from '../entities/Player.js';
 import { Enemy } from '../entities/Enemy.js';
 import { Boss } from '../entities/Boss.js';
@@ -68,11 +70,27 @@ export class BattleScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, WORLD_W, WORLD_H);
     this.add.tileSprite(0, 0, WORLD_W, WORLD_H, TEX.GROUND).setOrigin(0, 0).setDepth(-10);
 
-    // 恒久成長（残り火強化・スキル熟練度）を profile から取得して適用する。
+    // 恒久成長（残り火強化・スキル熟練度・転生/魂炎）を profile から取得して適用する。
     this.profile = SaveManager.loadProfile();
     this.upgradeStats = ProgressionManager.getUpgradeStats(this.profile);
     this.masteryBonus = ProgressionManager.masteryBonuses(this.profile);
+    this.reincStats = ReincarnationManager.getReincarnationStats(this.profile);
+    this.cycleNumber = this.profile.reincarnationCount || 0;
+    this.chainBonus = this.reincStats.chainCount || 0;         // 進化スキルの連鎖拡張
+    this._evolvedBonuses = this.computeEvolvedBonuses();       // 熟練度Lv20 の進化後追加効果
+    this.autoDashEnabled = !!this.reincStats.autoDash;
+    this.speedMax = this.reincStats.speedMax || 1;
     const up = this.upgradeStats;
+    const reinc = this.reincStats;
+
+    // 魂炎「敵密度/エフェクト限界突破」を上限へ反映（低設定では抑制）。
+    const quality = this.settings.effectQuality;
+    const enemyCapAdd = quality === 'low' ? 0 : (reinc.enemyCapAdd || 0);
+    const effectCapAdd = (quality === 'high' || quality === 'ultra') ? (reinc.effectCapAdd || 0) : 0;
+    this.enemyCapAdd = enemyCapAdd;
+    this.effSettings.maxEnemies += enemyCapAdd;
+    this.effSettings.maxProjectiles += effectCapAdd;
+    this.particleBudget = (DataManager.combatCaps.particleBudget?.[quality] || 200) + effectCapAdd;
 
     // プレイヤー（恒久強化を反映）
     const pcfg = { ...bal.player, baseXpToLevel: bal.leveling.baseXpToLevel };
@@ -114,10 +132,15 @@ export class BattleScene extends Phaser.Scene {
     this._nearestGem = null;
     this._autoSaveAccum = 0;
     this._hitStopMs = 0;
-    // 恒久強化倍率を初期ボーナスへ反映（damageMult は dealDamage で使用）。
+    // 恒久強化倍率＋転生倍率を初期ボーナスへ反映（damageMult は dealDamage で使用）。
     this.bonus = {
-      moveMult: up.moveSpeedMult, pickupMult: up.pickupMult, xpMult: up.xpMult, damageMult: up.damageMult,
+      moveMult: up.moveSpeedMult, pickupMult: up.pickupMult, xpMult: up.xpMult,
+      damageMult: up.damageMult * (reinc.startDamageMult || 1),
     };
+    // レベルアップ候補数（魂炎「選択肢拡張」で 3→4）。
+    this.choicesPerLevel = (DataManager.balance.leveling.choicesPerLevel || 3) + (reinc.levelUpChoices || 0);
+    // 倍速（設定値を speedMax でクランプ）。
+    this._perFrameReset();
 
     // 乱数シード（途中再開時は復元）
     this.rngSeed = (this.resumeData?.rngSeed) || ((Date.now() % 2147483647) >>> 0) || 12345;
@@ -128,9 +151,13 @@ export class BattleScene extends Phaser.Scene {
       this.restoreFromRun(this.resumeData, bal);
     } else {
       this.skills.acquireOrLevel('fireball');
-      if (up.startSkillLevel > 0) this.skills.setLevel('fireball', this.skills.getLevel('fireball') + up.startSkillLevel);
+      const startAdd = (up.startSkillLevel || 0) + (reinc.startSkillLevel || 0);
+      if (startAdd > 0) this.skills.setLevel('fireball', this.skills.getLevel('fireball') + startAdd);
     }
     this.player.moveSpeed = bal.player.moveSpeed * this.bonus.moveMult;
+
+    // 倍速モードの初期適用（設定値を speedMax でクランプ）。
+    this.applySpeed(Math.min(this.settings.speed || 1, this.speedMax));
 
     // 入力
     this.keys = this.input.keyboard.addKeys({
@@ -140,6 +167,7 @@ export class BattleScene extends Phaser.Scene {
     });
     this.input.keyboard.on('keydown-ESC', () => this.togglePause());
     this.input.keyboard.on('keydown-Q', () => this.toggleAuto());
+    if (window.RFS_DEBUG) this.input.keyboard.on('keydown-F1', () => this.toggleDebug());
 
     // HUD
     this.hud = new HUD(this);
@@ -176,6 +204,7 @@ export class BattleScene extends Phaser.Scene {
     this.player.xp = r.xp || 0;
     if (r.xpToNext) this.player.xpToNext = r.xpToNext;
     this.skills.loadFrom(r.skills);
+    this.skills.restoreEvolved(r.evolvedBase); // 進化済み基礎スキルを復元
     if (this.skills.count() === 0) this.skills.acquireOrLevel('fireball');
   }
 
@@ -196,6 +225,44 @@ export class BattleScene extends Phaser.Scene {
       damageArea: (x, y, r, amt, id, opts) => this.damageArea(x, y, r, amt, id, opts),
       spawnPlayerProjectile: (x, y, a, sp, o) => this.projPool.spawn(x, y, a, sp, o),
     };
+  }
+
+  // 進化後スキルの熟練度Lv20 追加効果を集める。
+  computeEvolvedBonuses() {
+    const out = {};
+    for (const ev of DataManager.evolutions) out[ev.id] = EvolutionManager.evolvedBonus(this.profile, ev.id);
+    return out;
+  }
+
+  // 各フレーム開始時に安全上限の予算をリセットする。
+  _perFrameReset() {
+    const caps = DataManager.combatCaps;
+    this._aoeBudget = caps.maxAoePerFrame ?? 8;
+    this._extraFbBudget = caps.maxExtraFireballs ?? 40;
+    this._deathExpBudget = caps.maxDeathExplosionChain ?? 3;
+    if (this.effects) this.effects.beginFrame(caps.maxDamageNumbersPerFrame ?? 24, this.particleBudget ?? 200);
+  }
+
+  // 安全上限付き AoE（進化スキルが使用）。上限に達しても戦闘を止めない。
+  aoe(x, y, radius, amount, skillId, opts = {}) {
+    if (this._aoeBudget <= 0) return;
+    this._aoeBudget--;
+    this.damageArea(x, y, radius, amount, skillId, opts);
+  }
+
+  ignitedCount() {
+    let n = 0;
+    this.enemyPool.forEachActive((e) => { if (e.ignited) n++; });
+    return n;
+  }
+
+  // 倍速の反映（物理/タイマー/Tween/ロジックdtを一貫してスケール）。
+  applySpeed(mult) {
+    const m = Math.max(1, Math.min(mult || 1, this.speedMax || 1));
+    this.speedMult = m;
+    this.time.timeScale = m;
+    this.tweens.timeScale = m;
+    this.physics.world.timeScale = 1 / m; // Arcade: 0.5 = 2倍速
   }
 
   targetsInRadius(x, y, r) {
@@ -268,7 +335,7 @@ export class BattleScene extends Phaser.Scene {
     if (died) {
       if (skillId) this.skills.recordKill(skillId);
       if (target.isBoss) this.onBossKilled(target);
-      else this.onEnemyKilled(target);
+      else this.onEnemyKilled(target, skillId);
     }
     return died;
   }
@@ -291,7 +358,8 @@ export class BattleScene extends Phaser.Scene {
       if (this._hitStopMs <= 0 && !this.paused && !this.gameOver) this.physics.world.resume();
       return;
     }
-    const dt = delta;
+    const dt = delta * (this.speedMult || 1); // 倍速はロジックdtへ反映（物理/タイマーは timeScale）
+    this._perFrameReset();                     // 安全上限の予算を毎フレーム初期化
     this.timeSec += dt / 1000;
 
     this.handleInput(dt);
@@ -341,10 +409,23 @@ export class BattleScene extends Phaser.Scene {
     if (k.downA.isDown || k.down.isDown) iy += 1;
 
     const manual = ix !== 0 || iy !== 0;
-    if (this.autoMove && !manual) { const v = this.computeAutoMove(); ix = v.x; iy = v.y; }
+    if (this.autoMove && !manual) {
+      const v = this.computeAutoMove(); ix = v.x; iy = v.y;
+      if (this.autoDashEnabled) this.tryAutoDash(dt, ix, iy); // 魂炎「オートダッシュ」
+    }
 
     if (Phaser.Input.Keyboard.JustDown(this.keys.dash)) this.player.tryDash(ix, iy);
     this.player.handleMovement(dt, ix, iy);
+  }
+
+  // オートダッシュ: 危険が近いとき自動でダッシュ回避（回数・無敵を正しく消費）。
+  tryAutoDash(dt, ix, iy) {
+    this._autoDashCd = (this._autoDashCd || 0) - dt;
+    if (this._autoDashCd > 0) return;
+    const d = this._nearestEnemy;
+    if (d && d.alive && this.player.dashCharges > 0 && distance(this.player.x, this.player.y, d.x, d.y) < 64) {
+      if (this.player.tryDash(ix, iy)) this._autoDashCd = 900;
+    }
   }
 
   // オート移動改善（M2）: 危険から離れる / ジェム回収 / 端回避 / ボス突進回避。
@@ -449,9 +530,11 @@ export class BattleScene extends Phaser.Scene {
           this.dealDamage(e, proj.damage, proj.skillId, { knockback: proj.knockback, from: { x: this.player.x, y: this.player.y } });
           if (proj.explosionRadius > 0) {
             this.effects.explosion(proj.x, proj.y, proj.explosionRadius);
-            this.damageArea(proj.x, proj.y, proj.explosionRadius, proj.damage * 0.5, proj.skillId, { exclude: e, quiet: true });
+            this.aoe(proj.x, proj.y, proj.explosionRadius, proj.damage * 0.5, proj.skillId, { exclude: e, quiet: true });
           }
           proj.consumePierce();
+          // 貫通後の威力減衰（進化弾は減衰が緩い）。
+          if (proj.alive && proj.pierceFalloff < 1) proj.damage *= proj.pierceFalloff;
         }
       }
     });
@@ -482,10 +565,34 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  onEnemyKilled(e) {
+  onEnemyKilled(e, skillId) {
     this.kills++;
+    // 永劫火界: 炎上中の敵の死亡で小爆発（安全上限内・連鎖暴走防止）。
+    // 死亡直後は alive=false のため .ignited ではなく点火タイマーで判定する。
+    const wasIgnited = e._igniteUntil && this.time.now < e._igniteUntil;
+    if (wasIgnited && this._deathExpBudget > 0) {
+      this._deathExpBudget--;
+      const evo = DataManager.getEvolution('eternal_pyre');
+      const r = evo?.area?.deathExplosionRadius || 46;
+      this.effects.explosion(e.x, e.y, r, 0xff7043);
+      this.aoe(e.x, e.y, r, evo?.damage?.deathExplosion || 34, 'eternal_pyre', { exclude: e, quiet: true });
+    }
     this.effects.deathBurst(e.x, e.y);
     this.gemPool.spawn(e.x, e.y, e.xpValue);
+    // 業火弾幕: 撃破で近くの別の敵へ追撃火球（安全上限内）。
+    if (skillId === 'infernal_barrage' && this._extraFbBudget > 0) {
+      const t = this.nearestTarget(e.x, e.y, 240);
+      if (t && t !== e && t.alive) {
+        this._extraFbBudget--;
+        const evo = DataManager.getEvolution('infernal_barrage');
+        const ang = Math.atan2(t.y - e.y, t.x - e.x);
+        this.projPool.spawn(e.x, e.y, ang, 300, {
+          skillId: 'infernal_barrage', damage: (evo?.damage?.base || 46) * 0.7,
+          pierce: 1, pierceFalloff: 0.9, explosionRadius: (evo?.area?.explosionRadius || 30) * 0.7,
+          scale: 1.1, lifeMs: 1200, tint: 0xffca28,
+        });
+      }
+    }
     this.enemyPool.release(e);
   }
 
@@ -502,15 +609,33 @@ export class BattleScene extends Phaser.Scene {
     this.scene.launch('LevelUpScene', {
       choices,
       onPick: (choice) => {
-        choice.apply();
+        const evoBase = choice.evolution ? choice.baseSkillId : null;
+        choice.apply();               // 進化の場合はここでスキル置換が完了（演出とは分離）
         this.updateHudSkills();
         this.autoSave();
-        this.resumeFromMenu();
+        if (evoBase) {
+          const ev = DataManager.getEvolutionForBase(evoBase);
+          const baseName = DataManager.getSkill(evoBase)?.name || evoBase;
+          this.scene.launch('EvolutionScene', {
+            evo: ev, baseName, lowFx: this.settings.effectQuality === 'low',
+            onDone: () => this.resumeFromMenu(),   // 演出終了で戦闘再開（演出中は停止したまま）
+          });
+        } else {
+          this.resumeFromMenu();
+        }
       },
     });
   }
 
   rollChoices() {
+    const need = this.choicesPerLevel || (DataManager.balance.leveling.choicesPerLevel || 3);
+    // 進化候補（条件成立 + 出現率）。通常強化と区別して優先的に提示する。
+    const evoChoices = EvolutionManager.candidates(this.skills, this.profile, this.rng).map((ev) => ({
+      id: `evo_${ev.id}`, evolution: true, baseSkillId: ev.baseSkillId,
+      title: ev.displayName, icon: ev.icon, description: ev.description,
+      apply: () => this.skills.evolve(ev.baseSkillId),
+    }));
+
     const pool = [];
     // 既存スキルの強化
     for (const s of this.skills.ownedList()) {
@@ -539,9 +664,10 @@ export class BattleScene extends Phaser.Scene {
       { id: 'xp', title: '経験値獲得 +15%', icon: 'icon_meteor', description: '得られる経験値が増える', apply: () => { this.bonus.xpMult *= 1.15; } },
     ];
 
-    const need = DataManager.balance.leveling.choicesPerLevel || 3;
     this.shuffleInPlace(pool);
-    const chosen = pool.slice(0, need);
+    // 進化候補を先頭に、残りを通常強化→補填で埋める。
+    const chosen = evoChoices.slice(0, need);
+    for (const c of pool) { if (chosen.length >= need) break; chosen.push(c); }
     let fi = 0;
     while (chosen.length < need && fi < fillers.length) chosen.push(fillers[fi++]);
     return chosen;
@@ -629,15 +755,21 @@ export class BattleScene extends Phaser.Scene {
     this.finishRun(false);
   }
 
+  _resetTimeScales() {
+    this.time.timeScale = 1; this.tweens.timeScale = 1; this.physics.world.timeScale = 1;
+  }
+
   returnToTitle() {
     this.physics.world.resume();
     this.time.paused = false;
+    this._resetTimeScales();
     this.scene.start('TitleScene');
   }
 
   returnToBase() {
     this.physics.world.resume();
     this.time.paused = false;
+    this._resetTimeScales();
     this.scene.start('BaseScene');
   }
 
@@ -645,5 +777,32 @@ export class BattleScene extends Phaser.Scene {
     this.autoMove = !this.autoMove;
     this.settings.autoMove = this.autoMove;
     SaveManager.saveSettings(this.settings);
+  }
+
+  // ---------------- デバッグ確認（?debug=1 のみ・F1） ----------------
+  toggleDebug() {
+    if (this._dbg) { this._dbg.destroy(true); this._dbg = null; return; }
+    const cx = GAME_WIDTH / 2;
+    const ui = this.add.container(0, 0).setScrollFactor(0).setDepth(4000);
+    ui.add(this.add.rectangle(cx, GAME_HEIGHT / 2, 300, 200, 0x101820, 0.96).setScrollFactor(0).setStrokeStyle(1, 0x80deea));
+    ui.add(this.add.text(cx, GAME_HEIGHT / 2 - 88, 'DEBUG（戦闘）', { fontSize: '11px', color: '#80deea' }).setScrollFactor(0).setOrigin(0.5));
+    const acts = [
+      ['この周回を勝利', () => this.finishRun(true)],
+      ['全スキル取得＆Lv8', () => { for (const d of DataManager.skills) { this.skills.acquireOrLevel(d.id); this.skills.setLevel(d.id, 8); } this.updateHudSkills(); }],
+      ['火球の進化条件を満たす', () => { this.skills.acquireOrLevel('fireball'); this.skills.setLevel('fireball', 8); this.skills.acquireOrLevel('orbiting_flame'); this.skills.setLevel('orbiting_flame', 4); this.updateHudSkills(); }],
+      ['レベルアップ候補を表示', () => { this.toggleDebug(); this.openLevelUp(); }],
+      ['経験値 +大量（Lv+）', () => this.grantXp(9999)],
+      ['敵を全滅', () => this.enemyPool.releaseAll()],
+    ];
+    let yy = GAME_HEIGHT / 2 - 64;
+    for (const [label, fn] of acts) {
+      const b = this.add.text(cx, yy, label, { fontSize: '10px', color: '#fff', backgroundColor: '#1a3a3e', padding: { x: 6, y: 2 } }).setScrollFactor(0).setOrigin(0.5).setInteractive({ useHandCursor: true });
+      b.on('pointerdown', () => { fn(); if (this._dbg) this.toggleDebug(); });
+      ui.add(b); yy += 22;
+    }
+    const close = this.add.text(cx, yy + 4, '閉じる (F1)', { fontSize: '9px', color: '#bcaaa4' }).setScrollFactor(0).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    close.on('pointerdown', () => this.toggleDebug());
+    ui.add(close);
+    this._dbg = ui;
   }
 }

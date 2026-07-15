@@ -10,6 +10,7 @@ const FILES = {
   bosses: './data/bosses.json',
   permanentUpgrades: './data/permanent-upgrades.json',
   skillMastery: './data/skill-mastery.json',
+  skillEvolutions: './data/skill-evolutions.json',
   reincarnation: './data/reincarnation.json',
 };
 
@@ -47,6 +48,14 @@ class DataManagerClass {
   get upgrades() { return asArray(this.data.permanentUpgrades?.upgrades); }
   get masteryConfig() { return this.data.skillMastery || {}; }
   get emberReward() { return this.balance.emberReward || {}; }
+  get evolutions() { return asArray(this.data.skillEvolutions?.evolutions); }
+  get reincarnation() { return this.data.reincarnation || {}; }
+  get reincarnationNodes() { return asArray(this.data.reincarnation?.nodes); }
+  get combatCaps() { return this.balance.combatCaps || {}; }
+  get speedModes() { return asArray(this.balance.speedModes).length ? this.balance.speedModes : [1]; }
+
+  getEvolution(id) { return this.evolutions.find((e) => e.id === id) || null; }
+  getEvolutionForBase(baseId) { return this.evolutions.find((e) => e.baseSkillId === baseId) || null; }
 
   getSkill(id) { return this._skillMap.get(id) || null; }
   getEnemy(id) { return this._enemyMap.get(id) || null; }

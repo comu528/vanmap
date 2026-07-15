@@ -4,18 +4,107 @@
     "clearDifficulty": 3,
     "totalEmber": 5000
   },
-  "resetOnReincarnate": ["ember", "permanentUpgrades", "difficultyUnlockAboveBase", "skillMasteryBonusPartial"],
-  "keepOnReincarnate": ["reincarnationCount", "soulflame", "achievements", "cumulativeStats", "unlockedFeatures"],
+  "startDifficulty": 1,
+  "perReincarnationDamage": 0.03,
+  "soulflame": {
+    "emberLogBase": 3.0,
+    "emberLogDiv": 2000,
+    "difficultyPerLevel": 1.0,
+    "bossSqrt": 0.5,
+    "reincarnationBonus": 0.5,
+    "masterySqrt": 0.4,
+    "minFirst": 1
+  },
+  "reset": [
+    "embers",
+    "permanentUpgrades",
+    "selectedDifficulty",
+    "unlockedDifficultiesAboveStart",
+    "highestClearedDifficultyCycle",
+    "skillMasteryStartLevelBonus"
+  ],
+  "keep": [
+    "reincarnationCount",
+    "soulflame",
+    "lifetimeSoulflame",
+    "reincarnationUpgrades",
+    "skillMasteryStatistics",
+    "statistics",
+    "highestEverDifficulty",
+    "settings",
+    "achievements",
+    "unlockedFeatures"
+  ],
   "nodes": [
-    { "id": "extra_choice",      "name": "候補+1",           "description": "レベルアップ候補を3つから4つへ増加", "cost": 3,  "requires": [],                 "effect": { "type": "levelUpChoices", "value": 1 } },
-    { "id": "extra_start_skill", "name": "初期スキル追加",     "description": "戦闘開始時に追加スキルを1つ所持",   "cost": 4,  "requires": ["extra_choice"],   "effect": { "type": "extraStartSkill", "value": 1 } },
-    { "id": "evo_relax",         "name": "進化条件緩和",       "description": "スキル進化の副条件レベルを1緩和",     "cost": 5,  "requires": ["extra_start_skill"], "effect": { "type": "evolutionRelax", "value": 1 } },
-    { "id": "enemy_cap_up",      "name": "敵上限増加",         "description": "敵最大表示数の上限を増加",           "cost": 3,  "requires": [],                 "effect": { "type": "enemyCap", "value": 40 } },
-    { "id": "effect_cap_up",     "name": "エフェクト上限増加", "description": "エフェクト・弾の上限を増加",         "cost": 3,  "requires": ["enemy_cap_up"],   "effect": { "type": "effectCap", "value": 100 } },
-    { "id": "chain_up",          "name": "連鎖回数増加",       "description": "スキルの連鎖回数を増加",             "cost": 4,  "requires": ["effect_cap_up"],  "effect": { "type": "chainCount", "value": 1 } },
-    { "id": "perm_cap_up",       "name": "恒久強化上限増加",   "description": "恒久強化の各上限を増加",             "cost": 5,  "requires": [],                 "effect": { "type": "permCap", "value": 5 } },
-    { "id": "double_speed",      "name": "倍速モード解放",     "description": "戦闘の倍速モードを解放",             "cost": 4,  "requires": ["perm_cap_up"],    "effect": { "type": "doubleSpeed", "value": 1 } },
-    { "id": "auto_dash",         "name": "オートダッシュ解放", "description": "途中からのオートダッシュを解放",     "cost": 4,  "requires": ["double_speed"],   "effect": { "type": "autoDash", "value": 1 } },
-    { "id": "base_damage_mult",  "name": "転生ダメージ倍率",   "description": "転生ごとの基礎ダメージ倍率を強化",   "cost": 6,  "requires": [],                 "effect": { "type": "reincarnationDamage", "value": 0.1 } }
+    {
+      "id": "extra_choice", "displayName": "選択肢拡張",
+      "description": "レベルアップ候補を3個から4個へ増加",
+      "maxLevel": 1, "baseCost": 6, "costGrowth": 1,
+      "effectType": "levelUpChoices", "effectPerLevel": 1,
+      "prerequisite": null, "displayOrder": 1
+    },
+    {
+      "id": "init_damage", "displayName": "初期火力",
+      "description": "転生後の基礎ダメージ倍率を上昇（1段階あたり小）",
+      "maxLevel": 5, "baseCost": 2, "costGrowth": 1.6,
+      "effectType": "startDamageMult", "effectPerLevel": 0.05,
+      "prerequisite": null, "displayOrder": 2
+    },
+    {
+      "id": "init_skill_level", "displayName": "初期スキルレベル",
+      "description": "初期火球レベルを上昇（熟練度効果と重複、最大Lvは超えない）",
+      "maxLevel": 3, "baseCost": 3, "costGrowth": 1.8,
+      "effectType": "startSkillLevel", "effectPerLevel": 1,
+      "prerequisite": null, "displayOrder": 3
+    },
+    {
+      "id": "chain_expand", "displayName": "連鎖拡張",
+      "description": "進化スキルの最大連鎖数を増加（安全上限内）",
+      "maxLevel": 3, "baseCost": 4, "costGrowth": 1.8,
+      "effectType": "chainCount", "effectPerLevel": 1,
+      "prerequisite": null, "displayOrder": 4
+    },
+    {
+      "id": "enemy_density", "displayName": "敵密度拡張",
+      "description": "敵の最大同時表示数を増加し、報酬倍率も少し上昇（低性能設定では上限抑制）",
+      "maxLevel": 3, "baseCost": 3, "costGrowth": 1.7,
+      "effectType": "enemyDensity", "effectPerLevel": 40,
+      "prerequisite": null, "displayOrder": 5
+    },
+    {
+      "id": "effect_limit", "displayName": "エフェクト限界突破",
+      "description": "高・極設定のパーティクル/弾上限を増加（戦闘判定には影響しない）",
+      "maxLevel": 3, "baseCost": 2, "costGrowth": 1.6,
+      "effectType": "effectCap", "effectPerLevel": 120,
+      "prerequisite": null, "displayOrder": 6
+    },
+    {
+      "id": "perm_cap", "displayName": "恒久強化上限",
+      "description": "残り火による恒久強化の最大レベルを増加",
+      "maxLevel": 3, "baseCost": 4, "costGrowth": 1.9,
+      "effectType": "permCap", "effectPerLevel": 5,
+      "prerequisite": null, "displayOrder": 7
+    },
+    {
+      "id": "double_speed", "displayName": "倍速モード",
+      "description": "1段階で1.5倍速、2段階で2倍速を解放（拠点・一時停止から選択）",
+      "maxLevel": 2, "baseCost": 4, "costGrowth": 2.0,
+      "effectType": "speedMode", "effectPerLevel": 1,
+      "prerequisite": null, "displayOrder": 8
+    },
+    {
+      "id": "auto_dash", "displayName": "オートダッシュ",
+      "description": "オート移動中に危険を検知すると自動ダッシュ（回数・無敵を正しく消費）",
+      "maxLevel": 1, "baseCost": 4, "costGrowth": 1,
+      "effectType": "autoDash", "effectPerLevel": 1,
+      "prerequisite": null, "displayOrder": 9
+    },
+    {
+      "id": "start_bonus", "displayName": "転生開始ボーナス",
+      "description": "転生後の開始時に残り火を少量保持する",
+      "maxLevel": 3, "baseCost": 3, "costGrowth": 1.8,
+      "effectType": "startEmber", "effectPerLevel": 150,
+      "prerequisite": null, "displayOrder": 10
+    }
   ]
 }

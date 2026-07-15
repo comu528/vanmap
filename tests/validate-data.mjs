@@ -181,17 +181,50 @@ if (masteryData) {
   }
 }
 
-// --- reincarnation.json ---
+// --- skill-evolutions.json（M4） ---
+const REINC_EFFECT_TYPES = new Set([
+  'levelUpChoices', 'startDamageMult', 'startSkillLevel', 'chainCount', 'enemyDensity',
+  'effectCap', 'permCap', 'speedMode', 'autoDash', 'startEmber',
+]);
+const evoData = loadJson('skill-evolutions.json');
+if (evoData) {
+  requireFields('skill-evolutions.json', evoData, ['evolutions']);
+  const evoIds = checkDuplicateIds('skill-evolutions.json', evoData.evolutions);
+  const baseIds = new Set();
+  for (const ev of evoData.evolutions || []) {
+    requireFields('skill-evolutions.json', ev, ['id', 'displayName', 'baseSkillId', 'requiredSkills', 'requiredMasteryLevel', 'replacementSkillId', 'safetyCaps', 'displayOrder'], `(evolution ${ev?.id})`);
+    if (ev.baseSkillId && !skillIds.has(ev.baseSkillId)) err(`skill-evolutions.json: 進化 ${ev.id} が存在しない基礎スキル "${ev.baseSkillId}" を参照`);
+    if (baseIds.has(ev.baseSkillId)) err(`skill-evolutions.json: 基礎スキル "${ev.baseSkillId}" に複数の進化が定義されている`);
+    baseIds.add(ev.baseSkillId);
+    if (typeof ev.requiredMasteryLevel !== 'number' || ev.requiredMasteryLevel < 0) err(`skill-evolutions.json: 進化 ${ev.id} の requiredMasteryLevel が不正`);
+    for (const req of ev.requiredSkills || []) {
+      if (!skillIds.has(req.skill)) err(`skill-evolutions.json: 進化 ${ev.id} が存在しない補助スキル "${req.skill}" を参照`);
+      if (typeof req.level !== 'number' || req.level < 1 || req.level > 8) err(`skill-evolutions.json: 進化 ${ev.id} の補助スキル要求レベルが不正 (${req.level})`);
+    }
+    // 循環参照: 進化先が別の進化の基礎スキルになっていない（進化の連鎖ループ防止）
+    if (ev.replacementSkillId && skillIds.has(ev.replacementSkillId)) {
+      err(`skill-evolutions.json: 進化 ${ev.id} の replacementSkillId "${ev.replacementSkillId}" が基礎スキルと衝突（循環参照の恐れ）`);
+    }
+    if (evoIds.has(ev.baseSkillId)) err(`skill-evolutions.json: 進化 ${ev.id} の基礎スキルが別の進化ID（循環参照）`);
+    // 安全上限の負値チェック
+    for (const [k, v] of Object.entries(ev.safetyCaps || {})) {
+      if (typeof v === 'number' && v < 0) err(`skill-evolutions.json: 進化 ${ev.id} の safetyCaps.${k} が負 (${v})`);
+    }
+  }
+}
+
+// --- reincarnation.json（M4） ---
 const reincData = loadJson('reincarnation.json');
 if (reincData) {
-  requireFields('reincarnation.json', reincData, ['nodes', 'unlock']);
+  requireFields('reincarnation.json', reincData, ['nodes', 'unlock', 'soulflame']);
+  requireFields('reincarnation.json', reincData.unlock, ['clearDifficulty', 'totalEmber'], '(unlock)');
   const nodeIds = checkDuplicateIds('reincarnation.json', reincData.nodes);
   for (const n of reincData.nodes || []) {
-    requireFields('reincarnation.json', n, ['id', 'name', 'cost', 'requires', 'effect'], `(node ${n?.id})`);
-    if (typeof n.cost === 'number' && n.cost < 0) err(`reincarnation.json: ノード ${n.id} の cost が負 (${n.cost})`);
-    for (const req of n.requires || []) {
-      if (!nodeIds.has(req)) err(`reincarnation.json: ノード ${n.id} が存在しない転生ノード "${req}" を参照`);
-    }
+    requireFields('reincarnation.json', n, ['id', 'displayName', 'maxLevel', 'baseCost', 'costGrowth', 'effectType', 'effectPerLevel', 'displayOrder'], `(node ${n?.id})`);
+    if (typeof n.maxLevel !== 'number' || n.maxLevel < 1) err(`reincarnation.json: ノード ${n.id} の maxLevel が不正 (${n.maxLevel})`);
+    if (typeof n.baseCost === 'number' && n.baseCost < 0) err(`reincarnation.json: ノード ${n.id} の baseCost が負 (${n.baseCost})`);
+    if (n.effectType && !REINC_EFFECT_TYPES.has(n.effectType)) err(`reincarnation.json: ノード ${n.id} の未知の effectType "${n.effectType}"`);
+    if (n.prerequisite != null && !nodeIds.has(n.prerequisite)) err(`reincarnation.json: ノード ${n.id} が存在しない前提ノード "${n.prerequisite}" を参照`);
   }
 }
 

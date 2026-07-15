@@ -15,5 +15,19 @@
     "cooldownMinMult": 0.7,
     "startLevelThresholds": [10, 20]
   },
-  "note": "熟練度報酬は小さめの基礎ボーナスに留める。M4 で分岐スキル/新候補/進化緩和/エフェクト変化を追加予定。"
+  "evolution": {
+    "baseCandidateChance": 0.55,
+    "candidateRateLevel": 5,
+    "candidateRateBonus": 0.25,
+    "startLevel2Level": 10,
+    "relaxLevel": 15,
+    "relaxAmount": 1,
+    "bonusLevel": 20,
+    "bonus": {
+      "infernal_barrage": { "chainDistanceMult": 0.15 },
+      "purgatory_eruption": { "finalRadiusMult": 0.12 },
+      "eternal_pyre": { "infectIntervalMult": -0.15 }
+    }
+  },
+  "note": "熟練度報酬は小さめの基礎ボーナスに留める。evolution ブロックが進化との連携（M4）。startLevelThresholds[0]=10 が『Lv10で対応基礎スキルをLv2開始』に相当。"
 }

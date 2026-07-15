@@ -7,6 +7,9 @@ import { FlamePillarSkill } from '../skills/FlamePillarSkill.js';
 import { BurningTrailSkill } from '../skills/BurningTrailSkill.js';
 import { OrbitingFlameSkill } from '../skills/OrbitingFlameSkill.js';
 import { MeteorSkill } from '../skills/MeteorSkill.js';
+import { InfernalBarrageSkill } from '../skills/InfernalBarrageSkill.js';
+import { PurgatoryEruptionSkill } from '../skills/PurgatoryEruptionSkill.js';
+import { EternalPyreSkill } from '../skills/EternalPyreSkill.js';
 
 const REGISTRY = {
   fireball: FireballSkill,
@@ -14,6 +17,10 @@ const REGISTRY = {
   burning_trail: BurningTrailSkill,
   orbiting_flame: OrbitingFlameSkill,
   meteor: MeteorSkill,
+  // 進化スキル
+  infernal_barrage: InfernalBarrageSkill,
+  purgatory_eruption: PurgatoryEruptionSkill,
+  eternal_pyre: EternalPyreSkill,
 };
 
 export class SkillManager {
@@ -22,7 +29,30 @@ export class SkillManager {
     this.skills = new Map();   // id -> instance
     this.stats = new Map();    // id -> { casts, hits, kills, damage, maxLevel }
     this._masteryBonus = null; // ProgressionManager.masteryBonuses(profile)
+    this._evolvedBase = new Set(); // 当該周回で進化済みの基礎スキルID
   }
+
+  // ---- 進化 ----
+  // 基礎スキルを進化スキルへ置換する（枠を消費しない）。当該周回で一度のみ。
+  evolve(baseId) {
+    const ev = DataManager.getEvolutionForBase(baseId);
+    if (!ev) return null;
+    if (this._evolvedBase.has(baseId)) return null;
+    const evoId = ev.replacementSkillId;
+    const Cls = REGISTRY[evoId];
+    if (!Cls) return null;
+    const old = this.skills.get(baseId);
+    if (old && old.destroy) old.destroy();
+    this.skills.delete(baseId);
+    const sk = new Cls(this.scene, evoId, 1);
+    this.skills.set(evoId, sk);
+    this._evolvedBase.add(baseId);
+    this._ensureStats(evoId);
+    return evoId;
+  }
+  hasEvolved(baseId) { return this._evolvedBase.has(baseId); }
+  get evolvedBaseIds() { return Array.from(this._evolvedBase); }
+  restoreEvolved(list) { for (const b of list || []) this._evolvedBase.add(b); }
 
   // スキル熟練度ボーナス（戦闘開始時に一度セット）。
   setMasteryBonuses(bonusMap) { this._masteryBonus = bonusMap || null; }
@@ -81,11 +111,15 @@ export class SkillManager {
   recordDamage(id, amount) { this._ensureStats(id).damage += amount; }
   recordKill(id) { this._ensureStats(id).kills++; }
 
+  // 統計は進化前後の両方を含める（進化で置換された基礎スキルの記録も残す）。
   statsList() {
-    return Array.from(this.stats.entries()).map(([id, st]) => ({
-      id, name: DataManager.getSkill(id)?.name || id,
-      level: this.getLevel(id), ...st,
-    })).filter((s) => this.has(s.id));
+    return Array.from(this.stats.entries())
+      .filter(([, st]) => (st.casts || st.damage || st.kills))
+      .map(([id, st]) => ({
+        id,
+        name: DataManager.getSkill(id)?.name || DataManager.getEvolution(id)?.displayName || id,
+        level: this.getLevel(id), ...st,
+      }));
   }
 
   // ---- セーブ/復元 ----

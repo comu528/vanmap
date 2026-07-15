@@ -1,0 +1,61 @@
+{
+  "evolutions": [
+    {
+      "id": "infernal_barrage",
+      "displayName": "業火弾幕",
+      "description": "多数の火球を扇状に連射。撃破で近くの敵へ追撃火球、着弾で連鎖爆発。貫通しても威力が落ちにくい。",
+      "baseSkillId": "fireball",
+      "requiredSkills": [{ "skill": "orbiting_flame", "level": 4 }],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "infernal_barrage",
+      "visualTier": "evolved",
+      "icon": "icon_fireball",
+      "damage": { "base": 46, "pierceFalloff": 0.92 },
+      "cooldown": 520,
+      "area": { "explosionRadius": 34 },
+      "projectileCount": { "base": 6, "spread": 0.55 },
+      "chain": { "onKillExtra": 1, "chainExplosion": 1 },
+      "safetyCaps": { "maxProjectilesPerCast": 14, "maxOnKillChain": 3, "maxChainExplosions": 2, "maxPierce": 6 },
+      "displayOrder": 1
+    },
+    {
+      "id": "purgatory_eruption",
+      "displayName": "煉獄噴火",
+      "description": "敵の密集地点で複数の火柱が連続噴火し、最後に大爆発。跡地に燃焼地帯を残す。通常敵を軽く引き寄せる（ボスは対象外）。",
+      "baseSkillId": "flame_pillar",
+      "requiredSkills": [{ "skill": "meteor", "level": 4 }],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "purgatory_eruption",
+      "visualTier": "evolved",
+      "icon": "icon_flame_pillar",
+      "damage": { "pillar": 70, "finalBlast": 170, "burnGround": 8 },
+      "cooldown": 2600,
+      "area": { "pillarRadius": 58, "finalRadius": 104, "burnGroundRadius": 44, "burnGroundDuration": 1600 },
+      "projectileCount": { "pillars": 5, "sequenceDelay": 130 },
+      "chain": {},
+      "pull": { "radius": 130, "strength": 70, "excludeBoss": true },
+      "safetyCaps": { "maxPillars": 8, "maxAoePerFrame": 6, "burnTickMs": 300 },
+      "displayOrder": 2
+    },
+    {
+      "id": "eternal_pyre",
+      "displayName": "永劫火界",
+      "description": "プレイヤー周囲に常時炎の領域を展開。領域内の敵へ継続ダメージ、炎上が近くの敵へ感染、炎上中の敵が死ぬと小爆発。",
+      "baseSkillId": "burning_trail",
+      "requiredSkills": [{ "skill": "orbiting_flame", "level": 4 }],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "eternal_pyre",
+      "visualTier": "evolved",
+      "icon": "icon_burning_trail",
+      "damage": { "aura": 12, "deathExplosion": 34 },
+      "cooldown": 200,
+      "area": { "auraRadius": 72, "infectRadius": 40, "deathExplosionRadius": 46 },
+      "projectileCount": {},
+      "chain": { "deathExplosion": 1 },
+      "tickMs": 300,
+      "infect": { "generations": 1, "durationMs": 1600 },
+      "safetyCaps": { "maxInfectGenerations": 2, "maxDeathExplosionsPerFrame": 4, "maxIgnited": 220, "infectTickMs": 300 },
+      "displayOrder": 3
+    }
+  ]
+}

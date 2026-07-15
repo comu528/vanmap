@@ -1,6 +1,6 @@
 {
-  "saveVersion": 3,
-  "gameVersion": "0.3.0",
+  "saveVersion": 4,
+  "gameVersion": "0.4.0",
   "emberReward": {
     "perSecond": 0.15,
     "perKill": 0.4,
@@ -9,6 +9,15 @@
     "winMultiplier": 1.0,
     "defeatMultiplier": 0.5
   },
+  "combatCaps": {
+    "maxAoePerFrame": 8,
+    "maxDamageNumbersPerFrame": 24,
+    "maxExtraFireballs": 40,
+    "maxDeathExplosionChain": 3,
+    "maxInfectGenerations": 3,
+    "particleBudget": { "low": 40, "medium": 120, "high": 260, "ultra": 480 }
+  },
+  "speedModes": [1, 1.5, 2],
   "player": {
     "maxHp": 100,
     "moveSpeed": 110,

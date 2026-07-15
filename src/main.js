@@ -8,10 +8,13 @@ import { TitleScene } from './scenes/TitleScene.js';
 import { BaseScene } from './scenes/BaseScene.js';
 import { BattleScene } from './scenes/BattleScene.js';
 import { LevelUpScene } from './scenes/LevelUpScene.js';
+import { EvolutionScene } from './scenes/EvolutionScene.js';
 import { ResultScene } from './scenes/ResultScene.js';
 import { DataManager } from './systems/DataManager.js';
 import { SaveManager } from './systems/SaveManager.js';
 import { ProgressionManager } from './systems/ProgressionManager.js';
+import { ReincarnationManager } from './systems/ReincarnationManager.js';
+import { EvolutionManager } from './systems/EvolutionManager.js';
 
 function boot() {
   const bootMsg = document.getElementById('boot-message');
@@ -25,12 +28,12 @@ function boot() {
   const params = new URLSearchParams(window.location.search);
   window.RFS_DEBUG = params.get('debug') === '1';
 
-  const scenes = [BootScene, TitleScene, BaseScene, BattleScene, LevelUpScene, ResultScene];
+  const scenes = [BootScene, TitleScene, BaseScene, BattleScene, LevelUpScene, EvolutionScene, ResultScene];
   const config = buildPhaserConfig(scenes, 'game-container');
   const game = new Phaser.Game(config);
   window.RFS_GAME = game;
   // ?debug=1 のときだけ、各マネージャを検査用に公開する（通常利用時は隠す）。
-  if (window.RFS_DEBUG) window.RFS = { DataManager, SaveManager, ProgressionManager };
+  if (window.RFS_DEBUG) window.RFS = { DataManager, SaveManager, ProgressionManager, ReincarnationManager, EvolutionManager };
   console.log(`Reincarnation Flame Survivor ${GAME_VERSION}${window.RFS_DEBUG ? ' [debug]' : ''}`);
 
   setupFullscreen(game);

@@ -17,9 +17,10 @@ export class BattleManager {
       difficulty: s.difficultyId, elapsedSec: s.timeSec,
       playerHp: s.player.hp, maxHp: s.player.maxHp,
       playerLevel: s.player.level, xp: s.player.xp, xpToNext: s.player.xpToNext,
-      skills: s.skills.serialize(), kills: s.kills,
+      skills: s.skills.serialize(), evolvedBase: s.skills.evolvedBaseIds, kills: s.kills,
       bossActive: !!(s.boss && s.boss.alive), bossHp: s.boss?.alive ? s.boss.hp : 0,
       rngSeed: s.rngSeed, pendingCurrency: 0, bonus: s.bonus,
+      cycleNumber: s.cycleNumber || 0,   // 転生をまたいだ再開防止
       updated_at: new Date().toISOString(),
     };
   }
@@ -40,7 +41,8 @@ export class BattleManager {
     return {
       win, timeSec: s.timeSec, kills: s.kills, bossKills: s.bossKills,
       maxHit: s.maxHit, difficultyId: s.difficultyId,
-      skills: s.skills.statsList(), resultId: this._resultId(win),
+      skills: s.skills.statsList(), evolvedBaseIds: s.skills.evolvedBaseIds,
+      resultId: this._resultId(win),
     };
   }
 
@@ -54,6 +56,7 @@ export class BattleManager {
     s.physics.world.resume();
     s.time.paused = false;
     s.tweens.resumeAll();
+    if (s._resetTimeScales) s._resetTimeScales(); // 倍速をリセットしてから遷移
 
     const result = this.buildResult(win);
     // 残り火加算・統計・熟練度・難易度解放（二重加算は lastResultId で防止）

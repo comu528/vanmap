@@ -26,6 +26,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this._knockbackTimer = 0;
     this._slowUntil = 0;
     this._slowFactor = 0;
+    this._igniteUntil = 0;   // 永劫火界の炎上状態
+    this._igniteGen = 0;
     // dasher 用
     this._chargeState = 'idle'; // idle | telegraph | dash
     this._chargeTimer = 0;
@@ -51,6 +53,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this._knockbackTimer = 0;
     this._slowUntil = 0;
     this._slowFactor = 0;
+    this._igniteUntil = 0;
+    this._igniteGen = 0;
     this._chargeState = 'idle';
     this._chargeCd = 1200;
     this.setActive(true).setVisible(true).setAlpha(1).clearTint();
@@ -62,6 +66,13 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     const now = this.scene.time.now;
     return now < this._slowUntil ? this.speed * (1 - this._slowFactor) : this.speed;
   }
+
+  // 炎上（永劫火界）。gen は感染世代。
+  ignite(ms, gen) {
+    this._igniteUntil = this.scene.time.now + ms;
+    this._igniteGen = gen || 0;
+  }
+  get ignited() { return this.alive && this.scene.time.now < this._igniteUntil; }
 
   update(px, py, dt) {
     if (!this.alive) return;

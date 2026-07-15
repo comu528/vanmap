@@ -103,14 +103,59 @@
 - 熟練度経験値 = `累計ダメージ×perDamage + 命中×perHit + 討伐×perKill + 使用周回×perRun`。
 - レベルnに必要な追加経験値 = `curveBase * curveGrowth^(n-1)`（累積で判定）。
 - 報酬は小さめの基礎補正。Lv1 は恒等（M2 の威力を変えない）。
+- `evolution` ブロック（M4）: `baseCandidateChance` と `candidateRateLevel/candidateRateBonus`（Lv5 候補率↑）、
+  `startLevel2Level`（Lv10 初期Lv2、`rewards.startLevelThresholds[0]` と対応）、`relaxLevel/relaxAmount`（Lv15 進化条件緩和）、
+  `bonusLevel` と `bonus`（Lv20 進化後スキルの追加効果）。
 
-## reincarnation.json
+## skill-evolutions.json（M4）
 ```jsonc
-{ "currency": "soulflame",
-  "unlock": { "clearDifficulty": 3, "totalEmber": 5000 },
-  "resetOnReincarnate": [...], "keepOnReincarnate": [...],
-  "nodes": [ { "id": "extra_choice", "name": "候補+1", "cost": 3,
-               "requires": [],                     // 既存ノード id のみ
-               "effect": { "type": "levelUpChoices", "value": 1 } }, ... ] }
+{ "evolutions": [ {
+  "id": "infernal_barrage", "displayName": "業火弾幕", "description": "...",
+  "baseSkillId": "fireball",                      // 既存スキル
+  "requiredSkills": [{ "skill": "orbiting_flame", "level": 4 }],  // 既存スキル・1..8
+  "requiredMasteryLevel": 0,
+  "replacementSkillId": "infernal_barrage",        // 基礎スキルと衝突不可（循環参照防止）
+  "visualTier": "evolved", "icon": "icon_fireball",
+  "damage": {...}, "cooldown": 520, "area": {...}, "projectileCount": {...}, "chain": {...},
+  "safetyCaps": { "maxProjectilesPerCast": 14, ... },  // 負値不可
+  "displayOrder": 1
+}, ... ] }
 ```
-必須: `nodes, unlock`。各ノード `id, name, cost, requires, effect`。`requires` は存在するノード id。
+検証: 存在しない基礎/補助スキル参照・不正な必要レベル(1..8)・ID重複・基礎スキルの重複進化・
+循環参照(replacementSkillId が基礎スキルと衝突)・安全上限の負値。
+
+## balance.combatCaps（M4）
+```jsonc
+"combatCaps": {
+  "maxAoePerFrame": 8, "maxDamageNumbersPerFrame": 24, "maxExtraFireballs": 40,
+  "maxDeathExplosionChain": 3, "maxInfectGenerations": 3,
+  "particleBudget": { "low": 40, "medium": 120, "high": 260, "ultra": 480 }
+}
+"speedModes": [1, 1.5, 2]
+```
+毎フレームの安全上限。上限到達でも戦闘ロジックは停止しない。
+
+## reincarnation.json（M4）
+```jsonc
+{
+  "currency": "soulflame",
+  "unlock": { "clearDifficulty": 3, "totalEmber": 5000 },   // 転生条件（今周回の進捗で判定）
+  "startDifficulty": 1,
+  "perReincarnationDamage": 0.03,                            // 転生回数あたりの基礎ダメージ倍率
+  "soulflame": { "emberLogBase": 3.0, "emberLogDiv": 2000, "difficultyPerLevel": 1.0,
+                 "bossSqrt": 0.5, "reincarnationBonus": 0.5, "masterySqrt": 0.4, "minFirst": 1 },
+  "reset": [...], "keep": [...],
+  "nodes": [ {
+    "id": "extra_choice", "displayName": "選択肢拡張", "description": "...",
+    "maxLevel": 1, "baseCost": 6, "costGrowth": 1,
+    "effectType": "levelUpChoices", "effectPerLevel": 1,
+    "prerequisite": null, "displayOrder": 1
+  }, ... ] }
+```
+必須: `nodes, unlock, soulflame`。unlock は `clearDifficulty, totalEmber`。各ノード
+`id, displayName, maxLevel, baseCost, costGrowth, effectType, effectPerLevel, displayOrder`。
+`effectType` は既知の値のみ（levelUpChoices/startDamageMult/startSkillLevel/chainCount/enemyDensity/
+effectCap/permCap/speedMode/autoDash/startEmber）。`prerequisite` は `null` か存在するノード id。
+- **魂炎計算**: `floor( emberLogBase·log2(1+累計残り火/emberLogDiv) + 過去最高難易度·difficultyPerLevel
+  + √ボス討伐·bossSqrt + 転生回数·reincarnationBonus + √熟練度合計·masterySqrt )`、条件達成時は最低 `minFirst`。
+- 転生条件は farming 防止のため**今周回(cycle)の進捗**（`currentCycle.cycleEmbers` と当周回の `highestClearedDifficulty`）で判定。

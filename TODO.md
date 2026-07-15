@@ -108,16 +108,36 @@ Milestone 1 は実装済み。以下は **Milestone 2 以降の設計と作業�
 
 ---
 
-## Milestone 4 — 進化・転生・魂炎
+## Milestone 4 — 進化・転生・魂炎【実装済み】
 
-- [ ] スキル進化3種（`data/skills.json` の `evolution`）:
-      火球→業火弾幕 / 火柱→煉獄噴火 / 燃える軌跡→永劫火界
-- [ ] 進化条件成立時にゲーム一時停止＋専用演出
-- [ ] `scenes/ReincarnationScene.js` と `systems/ReincarnationManager.js`
-- [ ] 転生条件（難易度3クリア or 累計残り火）、リセット/維持項目の処理（`data/reincarnation.json`）
-- [ ] 魂炎（soulflame）ノード解放: 候補3→4、初期スキル追加、進化条件緩和、敵/エフェクト上限増加、
-      連鎖回数増加、恒久上限増加、倍速モード、オートダッシュ、転生ダメージ倍率
-- [ ] 「ゲームルールが徐々に壊れる」成長の実装（敵数・範囲・連鎖・エフェクト量が転生で増加）
+### スキル進化
+- [x] 進化3種（`data/skill-evolutions.json` 駆動）: 火球→業火弾幕 / 火柱→煉獄噴火 / 燃える軌跡→永劫火界。
+      `skills/EvolvedSkillBase` + 3クラス、`systems/EvolutionManager`（条件判定・熟練度連携）。
+- [x] レベルアップ時に進化候補を専用色/枠/名称で提示（`LevelUpScene`）。枠を消費せず置換、一周一度のみ。
+- [x] `scenes/EvolutionScene`（演出）を進化処理から分離（演出無効でも置換は完了）。演出中は戦闘停止。
+- [x] 進化後ダメージ・討伐を統計記録し、基礎スキル熟練度へ加算＋`evolutions`＋`evolutionStatistics`。
+- [x] 安全上限（発射数/連鎖/爆発/感染/引き寄せ）を `data/skill-evolutions.json` と `balance.combatCaps` に分離。
+
+### 熟練度連携
+- [x] Lv5 候補率↑ / Lv10 初期Lv2 / Lv15 進化条件緩和 / Lv20 進化後追加効果（`data/skill-mastery.json` の evolution）。
+
+### 転生・魂炎
+- [x] `systems/ReincarnationManager`、拠点「転生」タブ（条件・進捗・リセット/維持・獲得魂炎・二段階確認）。
+- [x] 転生条件（難易度3クリア or 今周回累計残り火）を**周回単位**で判定（無限転生farming防止）。`data/reincarnation.json`。
+- [x] 魂炎計算（log/√で緩やか、初回≥1、`lastReincarnationId` で二重取得防止）。転生後 profile 即保存。
+- [x] 魂炎強化10種（選択肢拡張/初期火力/初期スキルLv/連鎖拡張/敵密度/エフェクト限界/恒久上限/倍速/オートダッシュ/開始ボーナス）。
+- [x] 転生後の反映: 転生回数の基礎ダメージ倍率・候補数・初期スキルLv・連鎖上限・敵/エフェクト上限・恒久上限・倍速・オートダッシュ。
+
+### 拠点/セーブ/デバッグ
+- [x] BaseScene に転生/魂炎強化タブ追加＋スクロール（ホイール/ドラッグ/スクロールバー/キーボード、640×360維持）。
+- [x] profile v4（reincarnationCount/soulflame/lifetimeSoulflame/reincarnationUpgrades/highestEverDifficulty/
+      lastReincarnationId/reincarnationHistory/unlockedFeatures/evolutionStatistics/currentCycle）＋v1-v3移行。
+      active_run に cycleNumber を保存し転生をまたいだ再開を破棄。
+- [x] `?debug=1` 時のみの最小デバッグ機能（拠点/戦闘、F1）。
+
+### M4 残タスク（将来）
+- [ ] `scenes/ReincarnationScene` としての独立（現状は BaseScene のタブに内包）
+- [ ] 進化後スキルの見た目のさらなる差別化、`evolutionStatistics` のリザルト表示
 
 ---
 
