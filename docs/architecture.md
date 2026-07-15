@@ -9,39 +9,53 @@
 ## Scene 構成
 | Scene | 役割 | 状態 |
 |-------|------|------|
-| `BootScene` | データ読み込み + 仮素材（テクスチャ）生成 → Title へ | M1 |
-| `TitleScene` | はじめから/続きから/拠点/データ管理/設定/全画面/バージョン/保存状態 | M1 |
-| `BattleScene` | 戦闘本体（移動/ダッシュ/敵/5種スキル/ボス/経験値/レベルアップ/一時停止/自動停止/途中再開） | M1→M2 |
+| `BootScene` | データ読み込み + 仮素材（テクスチャ）生成 + `SaveManager.init` → Title へ | M1 |
+| `TitleScene` | はじめから/拠点→拠点へ、続きから→戦闘復帰、データ管理/設定/全画面/保存状態 | M1→M3 |
+| `BaseScene` | 拠点。残り火/恒久強化/難易度選択/スキル熟練度/累計統計/戦闘開始。上部メニュー+差し替え式 | M3 |
+| `BattleScene` | 戦闘本体（移動/ダッシュ/敵/5種スキル/ボス/経験値/レベルアップ/一時停止/途中再開）。恒久強化・熟練度を開始時に適用 | M1→M3 |
 | `LevelUpScene` | レベルアップ3択（1〜3キー/クリック）。新規取得＋既存強化。Battle をポーズして重畳 | M1→M2 |
-| `ResultScene` | リザルト（勝敗/生存時間/討伐/ボス討伐/スキル別ダメージ・討伐/最高ダメージ/再挑戦/タイトル） | M2 |
-| `BaseScene` | 拠点（恒久強化/難易度/転生/データ管理） | M3 予定 |
+| `ResultScene` | リザルト（勝敗/統計/スキル別/残り火獲得内訳/難易度解放告知/再挑戦/拠点へ戻る） | M2→M3 |
 | `ReincarnationScene` | 転生・魂炎ノード | M4 予定 |
 
 シーン間はデータオブジェクトで受け渡し（例: `scene.start('BattleScene', { difficulty, resume })`）。
 LevelUpScene はコールバック `onPick` を受け取り、選択結果を BattleScene に反映して自身を停止する。
+拠点は M4 で転生画面・実績画面をメニューに足すだけで拡張できる（メニュー配列 + `show(key)`）。
 
 ## Manager 構成
 | Manager | 役割 | 状態 |
 |---------|------|------|
-| `DataManager` | JSON を相対パス fetch し保持。ID→定義のマップ、スキルLv取得 | M1 |
-| `SaveManager` | localStorage による軽量セーブ（profile/settings/active_run）＋版移行 | M1→M2（M5で拡張） |
+| `DataManager` | JSON を相対パス fetch し保持。skills/enemies/bosses/upgrades/masteryConfig/emberReward | M1→M3 |
+| `SaveManager` | localStorage セーブ（profile/settings/active_run）＋v3移行 | M1→M3（M5で拡張） |
+| `ProgressionManager` | 残り火計算/恒久強化(購入・集計)/スキル熟練度/難易度解放/統計。profile を唯一の真実として読み書き | M3 |
+| `SpawnManager` | 通常敵生成・難易度倍率・フェーズ・ボス弾/雑魚召喚（BattleScene から分離） | M3 |
+| `BattleManager` | 周回の開始/終了/勝敗/リザルト生成/途中セーブ（BattleScene から分離、ProgressionManager へ委譲） | M3 |
 | `PoolManager`（`Pool`） | 敵/弾/ボス弾/ジェムのオブジェクトプール（安全上限つき） | M1→M2 |
-| `SkillManager` | 所持スキルの取得/強化/発動/統計（5種スキルを統括、直列化で再開） | M2 |
+| `SkillManager` | 所持スキルの取得/強化/発動/統計/熟練度ボーナス適用（直列化で再開） | M2→M3 |
 | `EffectManager` | 演出の生成・品質制御。判定（combat.*）とは完全分離 | M2 |
-| `SpawnManager` | 出現ロジックの分離（現状 BattleScene 内包） | M3 予定 |
-| `BattleManager` | 戦闘進行・勝敗・タイマーの切り出し（現状 BattleScene 内包） | M3 予定 |
-| `UpgradeManager` | 恒久強化の購入・反映 | M3 予定 |
+| `ui/PauseMenu` | 一時停止オーバーレイ（再開/設定/拠点へ）（BattleScene から分離） | M3 |
 | `ReincarnationManager` | 転生・魂炎ノード | M4 予定 |
 | `FolderSaveManager` | showDirectoryPicker + IndexedDB ハンドル + バックアップ | M5 予定 |
-| `DebugManager` | `?debug=1` 時の各種デバッグ | M5 予定 |
+| `DebugManager` | `?debug=1` 時の各種デバッグ（現状はマネージャの検査公開のみ） | M5 予定 |
+
+## 恒久成長（M3）
+`ProgressionManager` が profile を介して恒久成長を統括する。
+- **残り火**: `computeEmberBreakdown()` が `balance.emberReward` から内訳を算出。`completeRun()` が
+  `lastResultId` で二重加算を防ぎつつ加算・統計更新・熟練度加算・難易度解放を行い保存する。
+- **恒久強化**: `getUpgradeStats(profile)` が effectType 別に集計。BattleScene 開始時に最大HP/ダッシュ回復/
+  無敵/移動/経験値/吸収/基礎ダメージ(dealDamage の damageMult)/初期スキルLv へ反映。購入は `buy()` が
+  最新 profile を読み直して原子的に検証・保存（連打二重購入は BaseScene 側の `_busy` でも防止）。
+- **難易度**: `unlockedDifficulties`/`highestClearedDifficulty` を勝利時のみ更新。倍率は SpawnManager と
+  残り火計算が difficulty から参照。
+- **スキル熟練度**: `masteryBonuses(profile)` が各スキルの `{damageMult,cooldownMult,radiusMult,startLevel}`
+  を返し、`SkillManager.setMasteryBonuses()` 経由で `SkillBase.stats`（キャッシュ）へ乗算。Lv1 は恒等。
 
 ## データ読み込み
 `DataManager.loadAll()` が `data/*.json` を並列 fetch（`cache: no-cache`）。
 `BootScene` が await し、失敗時はエラー表示のみでクラッシュさせない。
 ランタイム検証は `utils/validation.js`、CI 検証は `tests/validate-data.mjs`。
 
-## セーブ処理（M2）
-`SaveManager` が localStorage に `rfs_profile` / `rfs_settings` / `rfs_active_run` を保存。
+## セーブ処理（M3）
+`SaveManager` が localStorage に `rfs_profile`（恒久データ v3）/ `rfs_settings` / `rfs_active_run` を保存。
 `hasActiveRun()` は版数・必須項目を検証し、タイトルの「続きから」を有効化する。
 戦闘中の自動保存は 20秒毎 / レベルアップ選択後 / 一時停止時 / タブ非表示時。勝敗確定で `clearActiveRun()`。
 `BattleScene.restoreFromRun()` が時間・HP・レベル・経験値・所持スキル・討伐数・シードから戦闘を再構築する

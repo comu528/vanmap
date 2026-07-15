@@ -1,6 +1,14 @@
 {
-  "saveVersion": 2,
-  "gameVersion": "0.2.0",
+  "saveVersion": 3,
+  "gameVersion": "0.3.0",
+  "emberReward": {
+    "perSecond": 0.15,
+    "perKill": 0.4,
+    "perBossKill": 40,
+    "winBonus": 30,
+    "winMultiplier": 1.0,
+    "defeatMultiplier": 0.5
+  },
   "player": {
     "maxHp": 100,
     "moveSpeed": 110,

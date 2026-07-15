@@ -21,7 +21,12 @@ export class SkillManager {
     this.scene = scene;
     this.skills = new Map();   // id -> instance
     this.stats = new Map();    // id -> { casts, hits, kills, damage, maxLevel }
+    this._masteryBonus = null; // ProgressionManager.masteryBonuses(profile)
   }
+
+  // スキル熟練度ボーナス（戦闘開始時に一度セット）。
+  setMasteryBonuses(bonusMap) { this._masteryBonus = bonusMap || null; }
+  masteryBonusFor(id) { return this._masteryBonus ? this._masteryBonus[id] : null; }
 
   _ensureStats(id) {
     if (!this.stats.has(id)) this.stats.set(id, { casts: 0, hits: 0, kills: 0, damage: 0, maxLevel: 0 });
@@ -33,6 +38,7 @@ export class SkillManager {
   count() { return this.skills.size; }
 
   // 取得（新規）または強化（+1）。最大レベルで頭打ち。
+  // 新規取得時は熟練度の初期レベルボーナス（startLevel）を上乗せする。
   acquireOrLevel(id) {
     if (this.skills.has(id)) {
       const sk = this.skills.get(id);
@@ -42,10 +48,12 @@ export class SkillManager {
     }
     const Cls = REGISTRY[id];
     if (!Cls) return 0;
+    const startBonus = this.masteryBonusFor(id)?.startLevel || 0;
     const sk = new Cls(this.scene, id, 1);
+    if (startBonus > 0) sk.setLevel(1 + startBonus);
     this.skills.set(id, sk);
-    this._ensureStats(id).maxLevel = Math.max(this._ensureStats(id).maxLevel, 1);
-    return 1;
+    this._ensureStats(id).maxLevel = Math.max(this._ensureStats(id).maxLevel, sk.level);
+    return sk.level;
   }
 
   setLevel(id, level) {

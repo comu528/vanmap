@@ -8,6 +8,7 @@
 import { GAME_WIDTH, GAME_HEIGHT, TEX } from '../config/game-config.js';
 import { DataManager } from '../systems/DataManager.js';
 import { SaveManager } from '../systems/SaveManager.js';
+import { ProgressionManager } from '../systems/ProgressionManager.js';
 import { Player } from '../entities/Player.js';
 import { Enemy } from '../entities/Enemy.js';
 import { Boss } from '../entities/Boss.js';
@@ -16,7 +17,10 @@ import { ExperienceGem } from '../entities/ExperienceGem.js';
 import { Pool } from '../systems/PoolManager.js';
 import { SkillManager } from '../systems/SkillManager.js';
 import { EffectManager } from '../systems/EffectManager.js';
+import { SpawnManager } from '../systems/SpawnManager.js';
+import { BattleManager } from '../systems/BattleManager.js';
 import { HUD } from '../ui/HUD.js';
+import { PauseMenu } from '../ui/PauseMenu.js';
 import { distance, dist2, createRng } from '../utils/math.js';
 
 const WORLD_W = 1600;
@@ -58,13 +62,24 @@ export class BattleScene extends Phaser.Scene {
     this.settings = SaveManager.loadSettings();
     this.effSettings = resolveEffectSettings(bal, this.settings);
 
+    this.worldW = WORLD_W;
+    this.worldH = WORLD_H;
     this.physics.world.setBounds(0, 0, WORLD_W, WORLD_H);
     this.cameras.main.setBounds(0, 0, WORLD_W, WORLD_H);
     this.add.tileSprite(0, 0, WORLD_W, WORLD_H, TEX.GROUND).setOrigin(0, 0).setDepth(-10);
 
-    // プレイヤー
+    // 恒久成長（残り火強化・スキル熟練度）を profile から取得して適用する。
+    this.profile = SaveManager.loadProfile();
+    this.upgradeStats = ProgressionManager.getUpgradeStats(this.profile);
+    this.masteryBonus = ProgressionManager.masteryBonuses(this.profile);
+    const up = this.upgradeStats;
+
+    // プレイヤー（恒久強化を反映）
     const pcfg = { ...bal.player, baseXpToLevel: bal.leveling.baseXpToLevel };
+    pcfg.maxHp = bal.player.maxHp + up.maxHpAdd;
     this.player = new Player(this, WORLD_W / 2, WORLD_H / 2, pcfg);
+    this.player.dashRechargeMs = bal.player.dashRechargeMs * up.dashRechargeMult;
+    this.player.invulnMs = bal.player.invulnMs * up.invulnMult;
     this.player.setDepth(50);
     this.cameras.main.startFollow(this.player, true, 0.15, 0.15);
 
@@ -78,6 +93,10 @@ export class BattleScene extends Phaser.Scene {
     this.effects = new EffectManager(this);
     this.effects.setSettings(this.effSettings);
     this.skills = new SkillManager(this);
+    this.skills.setMasteryBonuses(this.masteryBonus);
+    this.spawn = new SpawnManager(this);
+    this.battle = new BattleManager(this);
+    this.pauseMenu = new PauseMenu(this);
     this.buildCombatApi();
 
     // 進行状態
@@ -90,21 +109,27 @@ export class BattleScene extends Phaser.Scene {
     this.gameOver = false;
     this.boss = null;
     this.bossSpawned = false;
-    this._spawnAccum = 0;
     this._recalc = 0;
     this._nearestEnemy = null;
     this._nearestGem = null;
     this._autoSaveAccum = 0;
     this._hitStopMs = 0;
-    this.bonus = { moveMult: 1, pickupMult: 1, xpMult: 1 };
+    // 恒久強化倍率を初期ボーナスへ反映（damageMult は dealDamage で使用）。
+    this.bonus = {
+      moveMult: up.moveSpeedMult, pickupMult: up.pickupMult, xpMult: up.xpMult, damageMult: up.damageMult,
+    };
 
     // 乱数シード（途中再開時は復元）
     this.rngSeed = (this.resumeData?.rngSeed) || ((Date.now() % 2147483647) >>> 0) || 12345;
     this.rng = createRng(this.rngSeed);
 
     // 途中再開 or 新規
-    if (this.resumeData) this.restoreFromRun(this.resumeData, bal);
-    else this.skills.acquireOrLevel('fireball');
+    if (this.resumeData) {
+      this.restoreFromRun(this.resumeData, bal);
+    } else {
+      this.skills.acquireOrLevel('fireball');
+      if (up.startSkillLevel > 0) this.skills.setLevel('fireball', this.skills.getLevel('fireball') + up.startSkillLevel);
+    }
     this.player.moveSpeed = bal.player.moveSpeed * this.bonus.moveMult;
 
     // 入力
@@ -143,7 +168,8 @@ export class BattleScene extends Phaser.Scene {
   restoreFromRun(r, bal) {
     this.timeSec = r.elapsedSec || 0;
     this.kills = r.kills || 0;
-    this.bonus = { moveMult: 1, pickupMult: 1, xpMult: 1, ...(r.bonus || {}) };
+    // 現在の恒久強化ボーナスを土台に、保存済みボーナスを上書きする。
+    this.bonus = { ...this.bonus, ...(r.bonus || {}) };
     if (r.maxHp) this.player.maxHp = r.maxHp;
     this.player.hp = (typeof r.playerHp === 'number') ? r.playerHp : this.player.maxHp;
     this.player.level = r.playerLevel || 1;
@@ -225,6 +251,8 @@ export class BattleScene extends Phaser.Scene {
 
   dealDamage(target, amount, skillId, opts = {}) {
     if (!target || !target.alive) return false;
+    // 基礎ダメージ恒久強化（damageMult）を全プレイヤーダメージへ適用。
+    amount = amount * (this.bonus.damageMult || 1);
     const died = target.takeDamage(amount);
     const dealt = target.lastDamage || amount;
     if (skillId) { this.skills.recordDamage(skillId, dealt); this.skills.recordHit(skillId); }
@@ -367,62 +395,11 @@ export class BattleScene extends Phaser.Scene {
     for (const g of collected) { this.grantXp(g.value); this.gemPool.release(g); }
   }
 
-  // ---------------- 出現 ----------------
-  handleSpawning(dt) {
-    if (this.boss && this.boss.alive) return; // ボス戦中は通常湧きを止める
-    const phase = this.currentPhase();
-    if (this.enemyPool.activeCount >= Math.min(phase.maxAlive, this.enemyPool.maxSize)) return;
-    this._spawnAccum += dt;
-    const interval = phase.spawnIntervalMs / (this.difficulty.spawnRate || 1);
-    while (this._spawnAccum >= interval) { this._spawnAccum -= interval; this.spawnEnemy(); }
-  }
-
-  currentPhase() {
-    const phases = DataManager.balance.run.phases;
-    for (const ph of phases) if (this.timeSec >= ph.fromSec && this.timeSec < ph.toSec) return ph;
-    return phases[phases.length - 1];
-  }
-
-  _rngPick(arr) { return arr[Math.floor(this.rng() * arr.length)]; }
-
-  spawnEnemy() {
-    const def = this.pickEnemyType();
-    if (!def) return;
-    const cam = this.cameras.main;
-    const ang = this.rng() * Math.PI * 2;
-    const r = Math.max(cam.width, cam.height) * 0.62;
-    let x = Phaser.Math.Clamp(this.player.x + Math.cos(ang) * r, 20, WORLD_W - 20);
-    let y = Phaser.Math.Clamp(this.player.y + Math.sin(ang) * r, 20, WORLD_H - 20);
-    this.enemyPool.spawn(def, x, y, {
-      hp: this.difficulty.enemyHp, speed: this.difficulty.enemySpeed, damage: this.difficulty.enemyDamage,
-    });
-  }
-
-  pickEnemyType() {
-    const pool = DataManager.enemies.filter((e) => this.timeSec >= (e.spawnFromSec || 0) && !e.elite);
-    if (pool.length === 0) return DataManager.getEnemy('slime');
-    if (this.rng() < (this.difficulty.eliteRate || 0)) {
-      const elites = DataManager.enemies.filter((e) => e.elite && this.timeSec >= (e.spawnFromSec || 0));
-      if (elites.length) return this._rngPick(elites);
-    }
-    return this._rngPick(pool);
-  }
-
-  spawnZakoNear(bx, by) {
-    const def = this._rngPick(DataManager.enemies.filter((e) => !e.elite)) || DataManager.getEnemy('slime');
-    const ang = this.rng() * Math.PI * 2;
-    const x = Phaser.Math.Clamp(bx + Math.cos(ang) * 60, 20, WORLD_W - 20);
-    const y = Phaser.Math.Clamp(by + Math.sin(ang) * 60, 20, WORLD_H - 20);
-    this.enemyPool.spawn(def, x, y, {
-      hp: this.difficulty.enemyHp, speed: this.difficulty.enemySpeed, damage: this.difficulty.enemyDamage,
-    });
-  }
-
-  spawnBossBullet(x, y, angle, speed) {
-    this.bossBulletPool.spawn(x, y, angle, speed, {
-      damage: (this.boss?.damage || 20) * 0.6, hostile: true, tint: 0xff5252, scale: 0.9, lifeMs: 5000,
-    });
-  }
+  // ---------------- 出現（SpawnManager へ委譲） ----------------
+  handleSpawning(dt) { this.spawn.update(dt); }
+  // Boss.js から呼ばれるフック（互換のため薄いラッパを維持）
+  spawnZakoNear(bx, by) { this.spawn.spawnZakoNear(bx, by); }
+  spawnBossBullet(x, y, angle, speed) { this.spawn.spawnBossBullet(x, y, angle, speed); }
 
   // ---------------- ボス ----------------
   checkBossTime() {
@@ -623,40 +600,13 @@ export class BattleScene extends Phaser.Scene {
     this.time.paused = true;      // タイマー停止
     this.tweens.pauseAll();       // 演出停止
     this.autoSave();              // 一時停止時に保存
-    if (showMenu) this.showPauseMenu();
+    if (showMenu) this.pauseMenu.open({ onResume: () => this.resumeFromMenu(), onTitle: () => this.returnToBase() });
   }
 
-  showPauseMenu() {
-    const cx = GAME_WIDTH / 2, cy = GAME_HEIGHT / 2;
-    const ui = this.add.container(0, 0).setScrollFactor(0).setDepth(1200);
-    const bg = this.add.rectangle(cx, cy, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.72).setScrollFactor(0);
-    const t = this.add.text(cx, cy - 60, '一時停止', { fontSize: '18px', color: '#ffab40' }).setOrigin(0.5).setScrollFactor(0);
-    const resume = this.add.text(cx, cy - 26, '▶ 再開', { fontSize: '13px', color: '#ffe0b2' }).setOrigin(0.5).setScrollFactor(0).setInteractive({ useHandCursor: true });
-    const qLabel = this.add.text(cx, cy + 2, '', { fontSize: '11px', color: '#80deea' }).setOrigin(0.5).setScrollFactor(0).setInteractive({ useHandCursor: true });
-    const dLabel = this.add.text(cx, cy + 22, '', { fontSize: '11px', color: '#80deea' }).setOrigin(0.5).setScrollFactor(0).setInteractive({ useHandCursor: true });
-    const sLabel = this.add.text(cx, cy + 42, '', { fontSize: '11px', color: '#80deea' }).setOrigin(0.5).setScrollFactor(0).setInteractive({ useHandCursor: true });
-    const title = this.add.text(cx, cy + 66, 'タイトルへ戻る', { fontSize: '11px', color: '#bcaaa4' }).setOrigin(0.5).setScrollFactor(0).setInteractive({ useHandCursor: true });
-
-    const quals = ['low', 'medium', 'high', 'ultra'];
-    const refresh = () => {
-      qLabel.setText(`エフェクト品質: ${this.settings.effectQuality}（クリックで変更）`);
-      dLabel.setText(`ダメージ数字: ${this.settings.damageNumbers ? 'ON' : 'OFF'}`);
-      sLabel.setText(`画面揺れ: ${this.settings.screenShake ? 'ON' : 'OFF'}`);
-    };
-    refresh();
-    const applySettings = () => {
-      this.effSettings = resolveEffectSettings(DataManager.balance, this.settings);
-      this.effects.setSettings(this.effSettings);
-      SaveManager.saveSettings(this.settings);
-      refresh();
-    };
-    qLabel.on('pointerdown', () => { const i = quals.indexOf(this.settings.effectQuality); this.settings.effectQuality = quals[(i + 1) % quals.length]; applySettings(); });
-    dLabel.on('pointerdown', () => { this.settings.damageNumbers = !this.settings.damageNumbers; applySettings(); });
-    sLabel.on('pointerdown', () => { this.settings.screenShake = !this.settings.screenShake; applySettings(); });
-    resume.on('pointerdown', () => this.resumeFromMenu());
-    title.on('pointerdown', () => this.returnToTitle());
-    ui.add([bg, t, resume, qLabel, dLabel, sLabel, title]);
-    this._pauseUi = ui;
+  // 一時停止メニューから設定を反映する（PauseMenu から呼ばれる）。
+  applyEffectSettings() {
+    this.effSettings = resolveEffectSettings(DataManager.balance, this.settings);
+    this.effects.setSettings(this.effSettings);
   }
 
   resumeFromMenu() {
@@ -665,50 +615,13 @@ export class BattleScene extends Phaser.Scene {
     this.physics.world.resume();
     this.time.paused = false;
     this.tweens.resumeAll();
-    if (this._pauseUi) { this._pauseUi.destroy(); this._pauseUi = null; }
+    this.pauseMenu.close();
   }
 
-  // ---------------- 終了 ----------------
-  computeEmber() {
-    return Math.floor((this.kills * 0.5 + this.bossKills * 50) * (this.difficulty.currency || 1));
-  }
+  // ---------------- 終了（BattleManager へ委譲） ----------------
+  autoSave() { this.battle.autoSave(); }
 
-  buildRunSnapshot() {
-    return {
-      inProgress: true, save_version: this.saveVersion, game_version: this.gameVersion,
-      difficulty: this.difficultyId, elapsedSec: this.timeSec,
-      playerHp: this.player.hp, maxHp: this.player.maxHp,
-      playerLevel: this.player.level, xp: this.player.xp, xpToNext: this.player.xpToNext,
-      skills: this.skills.serialize(), kills: this.kills,
-      bossActive: !!(this.boss && this.boss.alive), bossHp: this.boss?.alive ? this.boss.hp : 0,
-      rngSeed: this.rngSeed, pendingCurrency: this.computeEmber(), bonus: this.bonus,
-      updated_at: new Date().toISOString(),
-    };
-  }
-
-  autoSave() {
-    if (this.gameOver) return;
-    SaveManager.saveActiveRun(this.buildRunSnapshot());
-  }
-
-  buildResult(win) {
-    return {
-      win, timeSec: this.timeSec, kills: this.kills, bossKills: this.bossKills,
-      maxHit: this.maxHit, ember: this.computeEmber(), difficultyId: this.difficultyId,
-      skills: this.skills.statsList(),
-    };
-  }
-
-  finishRun(win) {
-    if (this.gameOver) return;
-    this.gameOver = true;
-    SaveManager.clearActiveRun(); // 勝敗確定で途中セーブ削除
-    this.physics.world.resume();
-    this.time.paused = false;
-    this.tweens.resumeAll();
-    const result = this.buildResult(win);
-    this.time.delayedCall(600, () => this.scene.start('ResultScene', result));
-  }
+  finishRun(win) { this.battle.finishRun(win); }
 
   onPlayerDeath() {
     if (this.gameOver) return;
@@ -720,6 +633,12 @@ export class BattleScene extends Phaser.Scene {
     this.physics.world.resume();
     this.time.paused = false;
     this.scene.start('TitleScene');
+  }
+
+  returnToBase() {
+    this.physics.world.resume();
+    this.time.paused = false;
+    this.scene.start('BaseScene');
   }
 
   toggleAuto() {

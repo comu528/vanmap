@@ -33,9 +33,9 @@ export class TitleScene extends Phaser.Scene {
     const hasRun = SaveManager.hasActiveRun();
 
     const items = [
-      { label: 'はじめから', enabled: true, onClick: () => this.startNewRun() },
+      { label: 'はじめから', enabled: true, onClick: () => this.goBase() },
       { label: '続きから', enabled: hasRun, onClick: () => this.continueRun() },
-      { label: '拠点', enabled: true, onClick: () => this.toast('拠点は Milestone 3 で実装予定') },
+      { label: '拠点', enabled: true, onClick: () => this.goBase() },
       { label: 'データ管理', enabled: true, onClick: () => this.toast('データ管理は Milestone 5 で実装予定') },
       { label: '設定', enabled: true, onClick: () => this.toast('エフェクト品質などは戦闘中の一時停止(Esc)から変更できます') },
     ];
@@ -53,8 +53,8 @@ export class TitleScene extends Phaser.Scene {
 
     this.add.text(GAME_WIDTH - 8, GAME_HEIGHT - 18, '⛶ 全画面（画面右上ボタン / F11）', { fontSize: '9px', color: '#8d6e63' }).setOrigin(1, 0);
 
-    // 数字キー等のショートカット（1: はじめから）。
-    this.input.keyboard.on('keydown-ENTER', () => this.startNewRun());
+    // Enter で拠点へ。
+    this.input.keyboard.on('keydown-ENTER', () => this.goBase());
   }
 
   updateSaveStatus() {
@@ -81,11 +81,10 @@ export class TitleScene extends Phaser.Scene {
     this.time.delayedCall(1800, () => { if (this._toast) { this._toast.destroy(); this._toast = null; } });
   }
 
-  startNewRun() {
-    // 新規開始時は途中セーブを破棄する。
-    SaveManager.clearActiveRun();
-    const difficulty = 1;
-    this.scene.start('BattleScene', { difficulty, resume: null });
+  // 「はじめから」「拠点」はいずれも拠点画面へ。戦闘開始は拠点から行う。
+  // 途中セーブは破棄しない（拠点から新規戦闘を始めた時点で自然に上書きされる）。
+  goBase() {
+    this.scene.start('BaseScene');
   }
 
   continueRun() {

@@ -73,6 +73,13 @@ if (balance) {
       err(`balance.json: 難易度 ${d.id} の unlockAfter "${d.unlockAfter}" が存在しない難易度を参照`);
     }
   }
+  // 残り火報酬設定（M3）
+  requireFields('balance.json', balance.emberReward, ['perSecond', 'perKill', 'perBossKill', 'winBonus', 'winMultiplier', 'defeatMultiplier'], '(emberReward)');
+  if (balance.emberReward) {
+    if (balance.emberReward.defeatMultiplier > balance.emberReward.winMultiplier) {
+      err('balance.json: emberReward.defeatMultiplier は winMultiplier 以下である必要がある（敗北時は少なく）');
+    }
+  }
 }
 
 // --- enemies.json ---
@@ -146,14 +153,31 @@ if (skillsData) {
 }
 
 // --- permanent-upgrades.json ---
+const KNOWN_EFFECT_TYPES = new Set([
+  'maxHpAdd', 'damageMult', 'moveSpeedMult', 'xpMult', 'pickupMult',
+  'dashRechargeMult', 'invulnMult', 'emberMult', 'autoMoveSkill', 'startSkillLevel',
+]);
 const upgradesData = loadJson('permanent-upgrades.json');
 if (upgradesData) {
   requireFields('permanent-upgrades.json', upgradesData, ['upgrades']);
   checkDuplicateIds('permanent-upgrades.json', upgradesData.upgrades);
   for (const u of upgradesData.upgrades || []) {
-    requireFields('permanent-upgrades.json', u, ['id', 'name', 'maxTier', 'baseCost', 'costGrowth'], `(upgrade ${u?.id})`);
-    if (typeof u.maxTier !== 'number' || u.maxTier < 1) err(`permanent-upgrades.json: ${u.id} の maxTier が不正 (${u.maxTier})`);
+    requireFields('permanent-upgrades.json', u, ['id', 'displayName', 'maxLevel', 'baseCost', 'costGrowth', 'effectType', 'effectPerLevel', 'displayOrder'], `(upgrade ${u?.id})`);
+    if (typeof u.maxLevel !== 'number' || u.maxLevel < 1 || u.maxLevel > 100) err(`permanent-upgrades.json: ${u.id} の maxLevel が不正 (${u.maxLevel})`);
     if (typeof u.baseCost === 'number' && u.baseCost < 0) err(`permanent-upgrades.json: ${u.id} の baseCost が負 (${u.baseCost})`);
+    if (typeof u.costGrowth === 'number' && u.costGrowth < 1) err(`permanent-upgrades.json: ${u.id} の costGrowth が 1 未満 (${u.costGrowth})`);
+    if (u.effectType && !KNOWN_EFFECT_TYPES.has(u.effectType)) err(`permanent-upgrades.json: ${u.id} の未知の effectType "${u.effectType}"`);
+  }
+}
+
+// --- skill-mastery.json ---
+const masteryData = loadJson('skill-mastery.json');
+if (masteryData) {
+  requireFields('skill-mastery.json', masteryData, ['maxLevel', 'exp', 'rewards']);
+  if (typeof masteryData.maxLevel !== 'number' || masteryData.maxLevel < 1) err('skill-mastery.json: maxLevel が不正');
+  requireFields('skill-mastery.json', masteryData.exp, ['perDamage', 'perHit', 'perKill', 'perRun', 'curveBase', 'curveGrowth'], '(exp)');
+  if (masteryData.exp && (typeof masteryData.exp.curveGrowth !== 'number' || masteryData.exp.curveGrowth <= 1)) {
+    err('skill-mastery.json: exp.curveGrowth は 1 より大きい必要がある');
   }
 }
 

@@ -1,0 +1,19 @@
+{
+  "maxLevel": 20,
+  "exp": {
+    "perDamage": 0.08,
+    "perHit": 0.5,
+    "perKill": 1.5,
+    "perRun": 40,
+    "curveBase": 120,
+    "curveGrowth": 1.22
+  },
+  "rewards": {
+    "damagePerLevel": 0.004,
+    "cooldownPerLevel": 0.002,
+    "radiusPerLevel": 0.003,
+    "cooldownMinMult": 0.7,
+    "startLevelThresholds": [10, 20]
+  },
+  "note": "熟練度報酬は小さめの基礎ボーナスに留める。M4 で分岐スキル/新候補/進化緩和/エフェクト変化を追加予定。"
+}

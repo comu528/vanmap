@@ -9,6 +9,7 @@ const FILES = {
   enemies: './data/enemies.json',
   bosses: './data/bosses.json',
   permanentUpgrades: './data/permanent-upgrades.json',
+  skillMastery: './data/skill-mastery.json',
   reincarnation: './data/reincarnation.json',
 };
 
@@ -43,6 +44,9 @@ class DataManagerClass {
   get skills() { return asArray(this.data.skills?.skills); }
   get enemies() { return asArray(this.data.enemies?.enemies); }
   get bosses() { return asArray(this.data.bosses?.bosses); }
+  get upgrades() { return asArray(this.data.permanentUpgrades?.upgrades); }
+  get masteryConfig() { return this.data.skillMastery || {}; }
+  get emberReward() { return this.balance.emberReward || {}; }
 
   getSkill(id) { return this._skillMap.get(id) || null; }
   getEnemy(id) { return this._enemyMap.get(id) || null; }

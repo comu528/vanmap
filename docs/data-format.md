@@ -6,8 +6,12 @@
 ## balance.json
 ```jsonc
 {
-  "saveVersion": 1,           // セーブバージョン（>=1、必須）
-  "gameVersion": "0.1.0",
+  "saveVersion": 3,           // セーブバージョン（>=1、必須）
+  "gameVersion": "0.3.0",
+  "emberReward": {            // 残り火（M3）の獲得計算（必須）
+    "perSecond": 0.15, "perKill": 0.4, "perBossKill": 40,
+    "winBonus": 30, "winMultiplier": 1.0, "defeatMultiplier": 0.5
+  },
   "player": { "maxHp": 100, "moveSpeed": 110, "dashCount": 2, "dashSpeed": 320,
               "dashDurationMs": 160, "dashInvulnMs": 250, "dashRechargeMs": 4000,
               "invulnMs": 600, "pickupRadius": 40, "attackRange": 220 },
@@ -23,8 +27,11 @@
   "effectQuality": { "low": {...}, "medium": {...}, "high": {...}, "ultra": {...} }
 }
 ```
-- 難易度倍率（enemyHp 等）はすべて **> 0**。
+- 難易度倍率（enemyHp 等）はすべて **> 0**。`currency` が残り火獲得倍率。
 - `unlockAfter` は `null` か既存 difficulty の `id`。
+- `emberReward.defeatMultiplier` は `winMultiplier` 以下（敗北時は少なく）。
+- 残り火の算出: `(生存×perSecond + 討伐×perKill + ボス×perBossKill + 勝利時winBonus)
+  × 難易度currency × (勝利winMultiplier / 敗北defeatMultiplier) × 残り火獲得強化倍率` を切り捨て。
 
 ## enemies.json
 ```jsonc
@@ -68,11 +75,34 @@
 ## permanent-upgrades.json
 ```jsonc
 { "currency": "ember",
-  "upgrades": [ { "id": "max_hp", "name": "最大HP", "stat": "maxHp",
-                  "maxTier": 20, "baseCost": 10, "costGrowth": 1.35,
-                  "valuePerTier": 10, "mode": "add" }, ... ] }
+  "upgrades": [ {
+    "id": "max_hp", "displayName": "最大HP", "description": "戦闘開始時の最大HPを増やす",
+    "maxLevel": 20, "baseCost": 10, "costGrowth": 1.28,
+    "effectType": "maxHpAdd", "effectPerLevel": 10,
+    "unlockCondition": null, "displayOrder": 1
+  }, ... ] }
 ```
-必須: `id, name, maxTier, baseCost, costGrowth`。`maxTier >= 1`。費用は `baseCost * costGrowth^tier` 目安。
+必須: `id, displayName, maxLevel, baseCost, costGrowth, effectType, effectPerLevel, displayOrder`。
+- `maxLevel >= 1`、`costGrowth >= 1`。費用は `floor(baseCost * costGrowth^currentLevel)`。
+- `effectType` は既知の値のみ: `maxHpAdd / damageMult / moveSpeedMult / xpMult / pickupMult /
+  dashRechargeMult / invulnMult / emberMult / autoMoveSkill / startSkillLevel`。
+- 累積効果は `effectPerLevel * level`。`dashRechargeMult` のみ回復“時間”を短縮（減算）。
+- `unlockCondition`: `null` または `{ "type": "highestCleared", "value": N }`（難易度Nクリアで解放）。
+
+## skill-mastery.json（M3）
+```jsonc
+{
+  "maxLevel": 20,
+  "exp": { "perDamage": 0.08, "perHit": 0.5, "perKill": 1.5, "perRun": 40,
+           "curveBase": 120, "curveGrowth": 1.22 },
+  "rewards": { "damagePerLevel": 0.004, "cooldownPerLevel": 0.002, "radiusPerLevel": 0.003,
+               "cooldownMinMult": 0.7, "startLevelThresholds": [10, 20] }
+}
+```
+必須: `maxLevel, exp, rewards`。`exp.curveGrowth > 1`。
+- 熟練度経験値 = `累計ダメージ×perDamage + 命中×perHit + 討伐×perKill + 使用周回×perRun`。
+- レベルnに必要な追加経験値 = `curveBase * curveGrowth^(n-1)`（累積で判定）。
+- 報酬は小さめの基礎補正。Lv1 は恒等（M2 の威力を変えない）。
 
 ## reincarnation.json
 ```jsonc

@@ -1,13 +1,14 @@
 # セーブフォーマット
 
-セーブは JSON。M2 時点で **localStorage のみ**。フォルダ保存/バックアップ/競合解決は **M5** で実装する。
+セーブは JSON。M3 時点で **localStorage のみ**。フォルダ保存/バックアップ/競合解決は **M5** で実装する。
 以下は最終形の完全仕様（各項目に実装済み範囲を明記）。
 
 ## save_version
-`data/balance.json` の `saveVersion`（現在 `2`）を各セーブに埋め込む。
-- **profile**: 版差があれば不足フィールドを既定値で補って移行し版数を更新する（追加専用スキーマ）。
-- **active_run**: 版不一致・破損・必須欠落なら破棄して「新規のみ可」に安全にフォールバックする
-  （途中再開できないだけで起動不能にはならない）。
+`data/balance.json` の `saveVersion`（現在 `3`）を各セーブに埋め込む。
+- **profile**: 版差があれば **明示マッピングで移行** し版数を更新する（旧 `currencies.ember`→`embers`、
+  `difficultyUnlocked`→`unlockedDifficulties`、`stats`→`statistics` 等。不足は安全な初期値）。
+- **active_run**: 実行データは v2/v3 でスキーマ互換のため `save_version>=2` を許容して再開する。
+  過古版・破損・必須欠落なら破棄して「新規のみ可」に安全にフォールバックする（起動不能にはならない）。
 - BootScene が `SaveManager.init(saveVersion, gameVersion)` で版数を注入する。
 
 ## 保存先の優先順位
@@ -29,28 +30,40 @@ ReincarnationFlameSurvivorData/
 `FileSystemDirectoryHandle` は IndexedDB に保存し、次回起動で再取得（権限が無ければ再許可を求め、
 失敗してもクラッシュしない）。`showDirectoryPicker` 非対応時は localStorage / JSON DL・インポートへ。
 
-## profile.json
+## profile.json（v3・M3 実装済み）
 ```jsonc
 {
-  "save_version": 1,
-  "game_version": "0.1.0",
+  "save_version": 3,
+  "game_version": "0.3.0",
   "created_at": "ISO8601",
   "updated_at": "ISO8601",
-  "currencies": { "ember": 0, "soulflame": 0 },   // 所持通貨/転生通貨
-  "permanentUpgrades": { "max_hp": 3, "base_damage": 5, ... },  // id -> tier
-  "difficultyUnlocked": [1, 2],                    // 難易度解放
-  "reincarnationCount": 0,                          // 転生回数
-  "reincarnationNodes": ["extra_choice"],           // 解放済み転生ノード（転生強化）
-  "skillMastery": {                                 // スキル熟練度
-    "fireball": { "casts": 0, "hits": 0, "kills": 0, "damage": 0, "evolutions": 0, "maxLevel": 1 }
+  "embers": 0,                                       // 所持残り火
+  "lifetimeEmbers": 0,                               // 累計獲得残り火
+  "permanentUpgrades": { "max_hp": 3, "base_damage": 5 },  // id -> level
+  "selectedDifficulty": 1,                           // 選択中の難易度
+  "unlockedDifficulties": [1, 2],                    // 解放済み難易度
+  "highestClearedDifficulty": 1,                     // クリア済み最高難易度（0=なし）
+  "skillMastery": {                                  // スキル熟練度（周回で加算）
+    "fireball": { "casts": 0, "hits": 0, "kills": 0, "damage": 0,
+                  "maxLevel": 1, "runsUsed": 0, "evolutions": 0 }
   },
-  "stats": { "runs": 0, "kills": 0, "bossKills": 0, "bestTime": 0 },  // 累計統計
+  "statistics": {                                    // 累計統計
+    "totalPlayTime": 0, "totalRuns": 0, "totalWins": 0, "totalDefeats": 0,
+    "totalKills": 0, "totalBossKills": 0, "highestDamage": 0
+  },
+  "lastResultId": null,                              // 残り火の二重加算防止
+
+  // Milestone 4 用の前方互換（現状未使用）
+  "currencies": { "soulflame": 0 },
+  "reincarnationCount": 0,
+  "reincarnationNodes": [],
   "achievements": []
 }
 ```
-**M1 実装済み**: `save_version, game_version, created_at, updated_at, currencies, permanentUpgrades,
-difficultyUnlocked, reincarnationCount, reincarnationNodes, skillMastery, stats, achievements` の
-スキーマを `SaveManager` が生成・保持（多くは既定値。実際の加算は M3/M4 で接続）。
+**M3 実装済み**: 周回終了時に `ProgressionManager.completeRun()` が `embers/lifetimeEmbers/statistics/
+skillMastery/highestClearedDifficulty/unlockedDifficulties/lastResultId` を更新して保存。
+恒久強化購入は `permanentUpgrades[id]` を増やし `embers` を減算して即保存。難易度選択は `selectedDifficulty`。
+熟練度レベルは `skillMastery` の累積値から `data/skill-mastery.json` の曲線で算出（保存はしない導出値）。
 
 ## active_run.json
 ```jsonc

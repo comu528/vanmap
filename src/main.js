@@ -1,13 +1,17 @@
 // エントリポイント。Phaser を起動し、シーンを登録する。
-// Milestone 1 のシーン: Boot / Title / Battle / LevelUp。
-// Base / Result / Reincarnation などは Milestone 2 以降で追加する（TODO.md 参照）。
+// シーン: Boot / Title / Base(拠点) / Battle / LevelUp / Result。
+// Reincarnation などは Milestone 4 以降で追加する（TODO.md 参照）。
 
 import { buildPhaserConfig, GAME_VERSION } from './config/game-config.js';
 import { BootScene } from './scenes/BootScene.js';
 import { TitleScene } from './scenes/TitleScene.js';
+import { BaseScene } from './scenes/BaseScene.js';
 import { BattleScene } from './scenes/BattleScene.js';
 import { LevelUpScene } from './scenes/LevelUpScene.js';
 import { ResultScene } from './scenes/ResultScene.js';
+import { DataManager } from './systems/DataManager.js';
+import { SaveManager } from './systems/SaveManager.js';
+import { ProgressionManager } from './systems/ProgressionManager.js';
 
 function boot() {
   const bootMsg = document.getElementById('boot-message');
@@ -21,10 +25,12 @@ function boot() {
   const params = new URLSearchParams(window.location.search);
   window.RFS_DEBUG = params.get('debug') === '1';
 
-  const scenes = [BootScene, TitleScene, BattleScene, LevelUpScene, ResultScene];
+  const scenes = [BootScene, TitleScene, BaseScene, BattleScene, LevelUpScene, ResultScene];
   const config = buildPhaserConfig(scenes, 'game-container');
   const game = new Phaser.Game(config);
   window.RFS_GAME = game;
+  // ?debug=1 のときだけ、各マネージャを検査用に公開する（通常利用時は隠す）。
+  if (window.RFS_DEBUG) window.RFS = { DataManager, SaveManager, ProgressionManager };
   console.log(`Reincarnation Flame Survivor ${GAME_VERSION}${window.RFS_DEBUG ? ' [debug]' : ''}`);
 
   setupFullscreen(game);
