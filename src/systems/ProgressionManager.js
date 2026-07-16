@@ -73,7 +73,7 @@ class ProgressionManagerClass {
     if (!check.ok) return { ok: false, reason: check.reason, profile };
     profile.permanentUpgrades[id] = (profile.permanentUpgrades[id] || 0) + 1;
     profile.embers = Math.max(0, (profile.embers || 0) - check.cost);
-    SaveManager.saveProfile(profile);
+    SaveManager.saveProfile(profile, 'upgrade_buy');
     return { ok: true, profile, spent: check.cost };
   }
 

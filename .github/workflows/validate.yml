@@ -23,3 +23,7 @@ jobs:
       # 空間グリッドの決定論的な非回帰テスト（M5-A・Node.js 標準機能のみ）。
       - name: Spatial grid non-regression
         run: node tests/spatial-nonregression.mjs
+
+      # 保存システムのテスト（M5-B・Node.js 標準機能のみ・MemoryStorageAdapter 使用）。
+      - name: Save system tests
+        run: node tests/save-system.mjs

@@ -3,7 +3,7 @@
 
 export const GAME_WIDTH = 640;
 export const GAME_HEIGHT = 360;
-export const GAME_VERSION = '0.1.0-m1';
+export const GAME_VERSION = '0.5.0';
 
 // テクスチャ生成用のキー一覧（BootScene で Graphics から生成）。
 export const TEX = {

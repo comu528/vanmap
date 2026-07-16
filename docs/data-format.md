@@ -2,7 +2,8 @@
 
 `data/*.json` の仕様。`tests/validate-data.mjs` が構文・必須項目・ID重複・参照整合・
 負のクールダウン・不正な最大レベル・難易度倍率・転生ノード参照・セーブバージョン・
-**空間グリッド設定（cellSize/maxRegistered）**・**品質別エフェクト上限の逆転（M5-A）**を検証する。
+**空間グリッド設定（cellSize/maxRegistered）**・**品質別エフェクト上限の逆転（M5-A）**・
+**保存設定（save: バックアップ世代/最小間隔/最大インポートサイズ/formatVersion, M5-B）**を検証する。
 
 ## balance.json
 ```jsonc
@@ -135,6 +136,23 @@
 "speedModes": [1, 1.5, 2]
 ```
 毎フレームの安全上限。上限到達でも戦闘ロジックは停止しない。
+
+## balance.save（M5-B）
+```jsonc
+"save": {
+  "formatVersion": 1,            // エンベロープ形式の版（正の整数）
+  "exportFormatVersion": 1,      // JSON 一式エクスポートの版（正の整数）
+  "folderName": "ReincarnationFlameSurvivorData",
+  "maxAutoBackups": 10,          // 自動バックアップ最大世代（>=1）
+  "maxManualBackups": 5,         // 手動バックアップ最大世代（>=1）
+  "autoBackupMinIntervalSec": 300, // 自動バックアップの最小間隔（秒・>=0）
+  "maxImportBytes": 2097152,     // インポート可能な最大バイト（>0）
+  "autosaveDebounceMs": 800      // 保存要求のデバウンス（ms・>=0）
+}
+```
+保存レイヤー（`src/storage/*`）の設定を集約する。検証: 必須項目・formatVersion/exportFormatVersion が正の整数・
+maxAutoBackups/maxManualBackups が 1 以上の整数・autoBackupMinIntervalSec が非負・maxImportBytes が正・
+autosaveDebounceMs が非負・folderName が非空。`saveVersion` は M5-B で `5`（v1〜v4 から移行）。
 
 ## balance.spatialGrid（M5-A）
 ```jsonc

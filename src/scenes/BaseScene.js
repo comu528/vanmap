@@ -54,6 +54,11 @@ export class BaseScene extends Phaser.Scene {
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     titleBtn.on('pointerdown', () => this.scene.start('TitleScene'));
 
+    const dataBtn = this.add.text(GAME_WIDTH - 8, GAME_HEIGHT - 16, '💾 データ管理', {
+      fontSize: '9px', color: '#80deea', backgroundColor: '#1a2a2e', padding: { x: 6, y: 3 },
+    }).setOrigin(1, 0.5).setInteractive({ useHandCursor: true });
+    dataBtn.on('pointerdown', () => this.scene.start('DataManagementScene', { from: 'BaseScene' }));
+
     // スクロール領域
     this.content = this.add.container(0, 0);
     const maskG = this.make.graphics();

@@ -36,7 +36,7 @@ export class TitleScene extends Phaser.Scene {
       { label: 'はじめから', enabled: true, onClick: () => this.goBase() },
       { label: '続きから', enabled: hasRun, onClick: () => this.continueRun() },
       { label: '拠点', enabled: true, onClick: () => this.goBase() },
-      { label: 'データ管理', enabled: true, onClick: () => this.toast('データ管理は Milestone 5 で実装予定') },
+      { label: 'データ管理', enabled: true, onClick: () => this.scene.start('DataManagementScene', { from: 'TitleScene' }) },
       { label: '設定', enabled: true, onClick: () => this.toast('エフェクト品質などは戦闘中の一時停止(Esc)から変更できます') },
     ];
 

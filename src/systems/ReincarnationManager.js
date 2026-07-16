@@ -121,7 +121,7 @@ class ReincarnationManagerClass {
 
     // 途中戦闘データ破棄（転生前へ戻れないように）
     SaveManager.clearActiveRun();
-    SaveManager.saveProfile(profile);
+    SaveManager.saveProfile(profile, 'reincarnate');
     return { ok: true, gained, breakdown: sf, profile, reincId, startEmber };
   }
 
@@ -152,7 +152,7 @@ class ReincarnationManagerClass {
     if (!check.ok) return { ok: false, reason: check.reason, profile };
     profile.reincarnationUpgrades[id] = (profile.reincarnationUpgrades[id] || 0) + 1;
     profile.soulflame = Math.max(0, (profile.soulflame || 0) - check.cost);
-    SaveManager.saveProfile(profile);
+    SaveManager.saveProfile(profile, 'soulflame_buy');
     return { ok: true, profile, spent: check.cost };
   }
 

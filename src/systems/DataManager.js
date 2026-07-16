@@ -52,6 +52,7 @@ class DataManagerClass {
   get reincarnation() { return this.data.reincarnation || {}; }
   get reincarnationNodes() { return asArray(this.data.reincarnation?.nodes); }
   get combatCaps() { return this.balance.combatCaps || {}; }
+  get saveConfig() { return this.balance.save || {}; }
   get speedModes() { return asArray(this.balance.speedModes).length ? this.balance.speedModes : [1]; }
 
   getEvolution(id) { return this.evolutions.find((e) => e.id === id) || null; }

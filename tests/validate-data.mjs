@@ -134,6 +134,26 @@ if (balance) {
   monotonic((q) => eq[q] && eq[q].maxSparksPerBurst, 'effectQuality.maxSparksPerBurst');
   monotonic((q) => pb[q], 'combatCaps.particleBudget');
 
+  // --- 保存設定（M5-B） ---
+  const save = balance.save;
+  requireFields('balance.json', save, ['formatVersion', 'exportFormatVersion', 'folderName', 'maxAutoBackups', 'maxManualBackups', 'autoBackupMinIntervalSec', 'maxImportBytes', 'autosaveDebounceMs'], '(save)');
+  if (save) {
+    for (const k of ['formatVersion', 'exportFormatVersion']) {
+      if (typeof save[k] !== 'number' || save[k] < 1 || !Number.isInteger(save[k])) err(`balance.json: save.${k} は正の整数である必要がある (${save[k]})`);
+    }
+    for (const k of ['maxAutoBackups', 'maxManualBackups']) {
+      if (typeof save[k] !== 'number' || save[k] < 1 || !Number.isInteger(save[k])) err(`balance.json: save.${k} は 1 以上の整数である必要がある (${save[k]})`);
+    }
+    if (typeof save.autoBackupMinIntervalSec !== 'number' || save.autoBackupMinIntervalSec < 0) err(`balance.json: save.autoBackupMinIntervalSec が負または不正 (${save.autoBackupMinIntervalSec})`);
+    if (typeof save.maxImportBytes !== 'number' || save.maxImportBytes <= 0) err(`balance.json: save.maxImportBytes は正の数である必要がある (${save.maxImportBytes})`);
+    if (typeof save.autosaveDebounceMs !== 'number' || save.autosaveDebounceMs < 0) err(`balance.json: save.autosaveDebounceMs が負または不正 (${save.autosaveDebounceMs})`);
+    if (typeof save.folderName !== 'string' || !save.folderName) err('balance.json: save.folderName が空');
+  }
+  // save_version は M5-B で 5（既存の >=1 検証に加え、後方互換で移行できる版であることを明示）。
+  if (typeof balance.saveVersion === 'number' && balance.saveVersion < 5) {
+    warn(`balance.json: saveVersion が ${balance.saveVersion}（M5-B は 5 を想定）`);
+  }
+
   // --- combatCaps（毎フレーム安全上限）と particleBudget の整合 ---
   const cc = balance.combatCaps;
   if (cc) {

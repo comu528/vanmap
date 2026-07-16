@@ -1,166 +1,84 @@
-// セーブ管理（Milestone 3 版）。
-// ブラウザ内 localStorage を扱う軽量実装。profile に恒久成長（残り火・恒久強化・難易度解放・
-// スキル熟練度・統計）を保存する。active_run（途中セーブ）は M2 から継続。
-// フォルダ保存 / IndexedDB / バックアップ / 競合解決は Milestone 5 で
-// FolderSaveManager と統合して拡張する（TODO.md 参照）。
+// セーブ管理（Milestone 5-B）。
+// localStorage を「同期のライブキャッシュ（唯一の即時読み書き先）」として維持しつつ、
+// SaveCoordinator を通じてフォルダ保存/ミラー/バックアップ/manifest へ非同期でミラーする。
+// これにより既存の同期呼び出し（ProgressionManager 等）を変えずにフォルダ保存を追加できる。
 //
-// save_version 移行方針:
-//  - profile: 旧版（v1/v2）は明示的にフィールドをマッピングして v3 スキーマへ移行する
-//    （不足フィールドは安全な初期値。起動不能を避ける）。
-//  - active_run: 実行データのスキーマは v2 と v3 で互換のため、save_version>=2 を許容して
-//    途中再開を維持する。破損・必須欠落・過古版は破棄して「新規のみ可」に安全フォールバック。
+// save_version 移行:
+//  - profile は旧版（v1〜v4）を profileSchema.migrateProfile で最新(v5)へ移行する。
+//    移行前に旧データを別キー（rfs_profile_backup_v{old}_{時刻}）へ退避し、即時削除はしない。
+//  - active_run は v2 以降スキーマ互換のため save_version>=2 を許容。cycleNumber 不一致は破棄。
+
+import {
+  defaultProfile, migrateProfile, fillProfileDefaults, defaultSettings, coerceSettings, num, obj,
+} from './profileSchema.js';
+import { newId } from '../storage/SaveValidator.js';
 
 const KEY_PROFILE = 'rfs_profile';
 const KEY_ACTIVE_RUN = 'rfs_active_run';
 const KEY_SETTINGS = 'rfs_settings';
-
-const num = (v, d = 0) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
-const obj = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
-const arr = (v) => (Array.isArray(v) ? v : null);
-
-function defaultProfile(saveVersion, gameVersion) {
-  const nowIso = new Date().toISOString();
-  return {
-    save_version: saveVersion || 1,
-    game_version: gameVersion || '0.0.0',
-    created_at: nowIso,
-    updated_at: nowIso,
-    embers: 0,
-    lifetimeEmbers: 0,
-    permanentUpgrades: {},
-    selectedDifficulty: 1,
-    unlockedDifficulties: [1],
-    highestClearedDifficulty: 0,
-    skillMastery: {},
-    statistics: {
-      totalPlayTime: 0, totalRuns: 0, totalWins: 0, totalDefeats: 0,
-      totalKills: 0, totalBossKills: 0, highestDamage: 0,
-    },
-    lastResultId: null,
-    // --- Milestone 4: 転生・魂炎 ---
-    reincarnationCount: 0,
-    soulflame: 0,
-    lifetimeSoulflame: 0,
-    reincarnationUpgrades: {},
-    highestEverDifficulty: 0,
-    lastReincarnationId: null,
-    reincarnationHistory: [],
-    unlockedFeatures: {},
-    evolutionStatistics: {},
-    currentCycle: {
-      cycleNumber: 0, cycleEmbers: 0, cycleHighestDifficulty: 0,
-      cycleBossKills: 0, cycleStartTime: nowIso,
-    },
-    achievements: [],
-  };
-}
-
-// 旧版 profile（v1/v2/v3）を v4 スキーマへ明示マッピングで移行する（stale キーは持ち越さない）。
-function migrateProfile(stored, sv, gv) {
-  const m = defaultProfile(sv, gv);
-  m.created_at = stored.created_at || m.created_at;
-  m.embers = num(stored.embers, num(stored.currencies?.ember, 0));
-  m.lifetimeEmbers = num(stored.lifetimeEmbers, m.embers);
-  m.permanentUpgrades = obj(stored.permanentUpgrades);
-  m.unlockedDifficulties = arr(stored.unlockedDifficulties) || arr(stored.difficultyUnlocked) || [1];
-  if (!m.unlockedDifficulties.includes(1)) m.unlockedDifficulties.unshift(1);
-  m.selectedDifficulty = num(stored.selectedDifficulty, 1);
-  m.highestClearedDifficulty = num(stored.highestClearedDifficulty, 0);
-  m.skillMastery = obj(stored.skillMastery);
-  const os = obj(stored.statistics);
-  const legacy = obj(stored.stats);
-  m.statistics = {
-    totalPlayTime: num(os.totalPlayTime, 0),
-    totalRuns: num(os.totalRuns, num(legacy.runs, 0)),
-    totalWins: num(os.totalWins, 0),
-    totalDefeats: num(os.totalDefeats, 0),
-    totalKills: num(os.totalKills, num(legacy.kills, 0)),
-    totalBossKills: num(os.totalBossKills, num(legacy.bossKills, 0)),
-    highestDamage: num(os.highestDamage, 0),
-  };
-  m.lastResultId = stored.lastResultId ?? null;
-  // v4 の転生系（v3 以前は既定 0 / 空）。currencies.soulflame（v3前方互換）も拾う。
-  m.reincarnationCount = num(stored.reincarnationCount, 0);
-  m.soulflame = num(stored.soulflame, num(stored.currencies?.soulflame, 0));
-  m.lifetimeSoulflame = num(stored.lifetimeSoulflame, m.soulflame);
-  m.reincarnationUpgrades = obj(stored.reincarnationUpgrades);
-  m.highestEverDifficulty = num(stored.highestEverDifficulty, m.highestClearedDifficulty);
-  m.lastReincarnationId = stored.lastReincarnationId ?? null;
-  m.reincarnationHistory = arr(stored.reincarnationHistory) || [];
-  m.unlockedFeatures = obj(stored.unlockedFeatures);
-  m.evolutionStatistics = obj(stored.evolutionStatistics);
-  const cc = obj(stored.currentCycle);
-  m.currentCycle = {
-    cycleNumber: num(cc.cycleNumber, m.reincarnationCount),
-    cycleEmbers: num(cc.cycleEmbers, 0),
-    cycleHighestDifficulty: num(cc.cycleHighestDifficulty, 0),
-    cycleBossKills: num(cc.cycleBossKills, 0),
-    cycleStartTime: cc.cycleStartTime || m.created_at,
-  };
-  m.achievements = arr(stored.achievements) || [];
-  return m;
-}
-
-function defaultSettings() {
-  return {
-    effectQuality: 'high',
-    damageNumbers: true,
-    screenShake: true,
-    whiteFlash: true,
-    autoMove: false,
-    speed: 1,
-  };
-}
+const KEY_WRITER = 'rfs_writer_id';
+const KEY_MIGRATIONS = 'rfs_migrations';
 
 class SaveManagerClass {
   constructor() {
-    this.mode = 'localStorage'; // 'folder' は M5 で追加
     this.folderConnected = false;
     this._available = this._checkStorage();
     this._saveVersion = 1;
     this._gameVersion = '0.0.0';
+    this._coordinator = null;
+    this.writerId = this._ensureWriterId();
+    this._migratedThisSession = false;
   }
 
-  // BootScene から balance の版数を注入する。
+  get mode() { return this.folderConnected ? 'folder' : (this._available ? 'localStorage' : 'memory'); }
+
   init(saveVersion, gameVersion) {
     this._saveVersion = saveVersion || 1;
     this._gameVersion = gameVersion || '0.0.0';
   }
 
-  _checkStorage() {
-    try {
-      const t = '__rfs_test__';
-      localStorage.setItem(t, '1');
-      localStorage.removeItem(t);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
+  // SaveCoordinator を後付けする（未接続でもゲームは localStorage で完全動作する）。
+  attachCoordinator(coordinator) { this._coordinator = coordinator; }
+  setFolderConnected(v) { this.folderConnected = !!v; }
 
+  _checkStorage() {
+    try { const t = '__rfs_test__'; localStorage.setItem(t, '1'); localStorage.removeItem(t); return true; }
+    catch (e) { return false; }
+  }
   get available() { return this._available; }
+
+  _ensureWriterId() {
+    try {
+      let id = (typeof sessionStorage !== 'undefined') ? sessionStorage.getItem(KEY_WRITER) : null;
+      if (!id) { id = newId('writer'); if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(KEY_WRITER, id); }
+      return id;
+    } catch (e) { return newId('writer'); }
+  }
 
   _read(key, fallback) {
     if (!this._available) return fallback;
-    try {
-      const raw = localStorage.getItem(key);
-      if (!raw) return fallback;
-      return JSON.parse(raw);
-    } catch (e) {
-      console.warn(`[SaveManager] ${key} の読み込みに失敗:`, e);
-      return fallback;
-    }
+    try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }
+    catch (e) { console.warn(`[SaveManager] ${key} の読み込みに失敗:`, e); return fallback; }
   }
-
   _write(key, value) {
     if (!this._available) return false;
+    try { localStorage.setItem(key, JSON.stringify(value)); return true; }
+    catch (e) { console.warn(`[SaveManager] ${key} の書き込みに失敗:`, e); return false; }
+  }
+
+  // 旧データを別キーへ退避し、移行記録を残す（即時削除しない＝将来の掃除用）。
+  _backupLegacyKeys(oldVersion) {
+    if (!this._available) return;
+    const ts = new Date().toISOString().replace(/[:.]/g, '-');
     try {
-      localStorage.setItem(key, JSON.stringify(value));
-      return true;
-    } catch (e) {
-      console.warn(`[SaveManager] ${key} の書き込みに失敗:`, e);
-      return false;
-    }
+      const prof = localStorage.getItem(KEY_PROFILE);
+      if (prof) localStorage.setItem(`rfs_profile_backup_v${oldVersion}_${ts}`, prof);
+      const run = localStorage.getItem(KEY_ACTIVE_RUN);
+      if (run) localStorage.setItem(`rfs_active_run_backup_v${oldVersion}_${ts}`, run);
+      const migs = this._read(KEY_MIGRATIONS, []) || [];
+      migs.push({ from: oldVersion, to: this._saveVersion, at: ts });
+      this._write(KEY_MIGRATIONS, migs);
+    } catch (e) { console.warn('[SaveManager] 旧データの退避に失敗:', e); }
   }
 
   loadProfile(saveVersion, gameVersion) {
@@ -169,66 +87,118 @@ class SaveManagerClass {
     const p = this._read(KEY_PROFILE, null);
     if (p && typeof p.save_version === 'number') {
       if (p.save_version !== sv) {
-        // 版差は明示マッピングで移行して保存する。
+        this._backupLegacyKeys(p.save_version);       // 移行前に退避
         const migrated = migrateProfile(p, sv, gv);
         this._write(KEY_PROFILE, migrated);
+        this._migratedThisSession = true;
+        this._notify('profile', migrated, 'migration');
         return migrated;
       }
-      // 同版でも欠落フィールドを安全に補完（部分破損対策）。
-      const d = defaultProfile(sv, gv);
-      return {
-        ...d, ...p,
-        statistics: { ...d.statistics, ...obj(p.statistics) },
-        currentCycle: { ...d.currentCycle, ...obj(p.currentCycle) },
-      };
+      return fillProfileDefaults(p, sv, gv);
     }
     const fresh = defaultProfile(sv, gv);
     this._write(KEY_PROFILE, fresh);
     return fresh;
   }
 
-  saveProfile(profile) {
+  saveProfile(profile, reason = 'auto') {
     profile.updated_at = new Date().toISOString();
-    return this._write(KEY_PROFILE, profile);
+    const ok = this._write(KEY_PROFILE, profile);
+    this._notify('profile', profile, reason);
+    return ok;
   }
 
-  loadSettings() {
-    return { ...defaultSettings(), ...(this._read(KEY_SETTINGS, {}) || {}) };
+  loadSettings() { return coerceSettings(this._read(KEY_SETTINGS, {}) || {}); }
+  saveSettings(settings, reason = 'settings') {
+    const ok = this._write(KEY_SETTINGS, settings);
+    this._notify('settings', settings, reason);
+    return ok;
   }
 
-  saveSettings(settings) {
-    return this._write(KEY_SETTINGS, settings);
-  }
-
-  // 途中セーブ関連。版不一致 / 破損 / 必須欠落は「途中セーブなし」として安全に扱う。
-  hasActiveRun() {
-    return !!this.loadActiveRun();
-  }
+  hasActiveRun() { return !!this.loadActiveRun(); }
 
   loadActiveRun() {
     const r = this._read(KEY_ACTIVE_RUN, null);
     if (!r || !r.inProgress) return null;
-    // 実行データは v2 以降でスキーマ互換のため、過古版のみ破棄する。
     if (typeof r.save_version === 'number' && r.save_version < 2) { this.clearActiveRun(); return null; }
     if (typeof r.elapsedSec !== 'number' || typeof r.difficulty !== 'number') { this.clearActiveRun(); return null; }
-    // 転生をまたいだ古い active_run を再開させない（cycleNumber 不一致は破棄）。
     const prof = this._read(KEY_PROFILE, null);
     const curCycle = num(prof?.reincarnationCount, 0);
     if (num(r.cycleNumber, 0) !== curCycle) { this.clearActiveRun(); return null; }
     return r;
   }
 
-  saveActiveRun(run) {
-    return this._write(KEY_ACTIVE_RUN, run);
+  saveActiveRun(run, reason = 'auto') {
+    const ok = this._write(KEY_ACTIVE_RUN, run);
+    this._notify('activeRun', run, reason);
+    return ok;
   }
 
   clearActiveRun() {
+    if (this._available) { try { localStorage.removeItem(KEY_ACTIVE_RUN); } catch (e) { /* noop */ } }
+    if (this._coordinator) { try { this._coordinator.removeNow('activeRun'); } catch (e) { /* noop */ } }
+  }
+
+  // ---- 一式のエクスポート/差し替え（データ管理画面が使用） ----
+  rawProfile() { return this._read(KEY_PROFILE, null); }
+  rawActiveRun() { return this._read(KEY_ACTIVE_RUN, null); }
+  rawSettings() { return this._read(KEY_SETTINGS, null); }
+
+  exportBundle() {
+    return {
+      exportFormatVersion: 1,
+      exportedAt: new Date().toISOString(),
+      gameVersion: this._gameVersion,
+      saveVersion: this._saveVersion,
+      profile: this.rawProfile(),
+      activeRun: this.rawActiveRun(),
+      settings: this.rawSettings() || defaultSettings(),
+      manifest: { formatVersion: 1, writerId: this.writerId, saveVersion: this._saveVersion, gameVersion: this._gameVersion },
+    };
+  }
+
+  // 検証済みバンドル/データを localStorage のライブキャッシュへ差し替える（移行処理を必ず通す）。
+  // profile は migrateProfile を通して既定スキーマへマッピングする（未知キーは採用しない）。
+  applyImported({ profile, settings, activeRun }, reason = 'import') {
+    if (profile) {
+      const migrated = migrateProfile(profile, this._saveVersion, this._gameVersion);
+      this._write(KEY_PROFILE, migrated);
+      if (this._coordinator) this._coordinator.resetLineage('profile');
+      this._notify('profile', migrated, reason);
+    }
+    if (settings) {
+      const s = coerceSettings(settings);
+      this._write(KEY_SETTINGS, s);
+      if (this._coordinator) this._coordinator.resetLineage('settings');
+      this._notify('settings', s, reason);
+    }
+    // active_run は現在の周回と一致する場合のみ採用（cycleNumber）。
+    const prof = this._read(KEY_PROFILE, null);
+    if (activeRun && activeRun.inProgress && num(activeRun.cycleNumber, 0) === num(prof?.reincarnationCount, 0)
+      && typeof activeRun.elapsedSec === 'number' && typeof activeRun.difficulty === 'number') {
+      this._write(KEY_ACTIVE_RUN, activeRun);
+      if (this._coordinator) this._coordinator.resetLineage('activeRun');
+      this._notify('activeRun', activeRun, reason);
+    } else {
+      this.clearActiveRun();
+    }
+    return this.loadProfile();
+  }
+
+  // ブラウザ内のセーブデータを初期化する（バックアップキーは残す）。
+  resetLocal() {
     if (!this._available) return;
-    try { localStorage.removeItem(KEY_ACTIVE_RUN); } catch (e) { /* noop */ }
+    for (const k of [KEY_PROFILE, KEY_ACTIVE_RUN, KEY_SETTINGS]) { try { localStorage.removeItem(k); } catch (e) { /* noop */ } }
+    if (this._coordinator) this._coordinator.resetAllLineage();
+  }
+
+  _notify(type, payload, reason) {
+    if (!this._coordinator) return;
+    try { this._coordinator.notify(type, payload, { reason }); } catch (e) { console.warn('[SaveManager] coordinator notify 失敗:', e); }
   }
 
   get statusText() {
-    if (!this._available) return 'ブラウザ保存: 利用不可';
+    if (!this._available) return 'ブラウザ保存: 利用不可（メモリのみ）';
     return this.folderConnected ? 'フォルダ保存: 接続済み' : 'ブラウザ保存: 有効';
   }
 }

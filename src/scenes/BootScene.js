@@ -4,6 +4,7 @@
 import { TEX } from '../config/game-config.js';
 import { DataManager } from '../systems/DataManager.js';
 import { SaveManager } from '../systems/SaveManager.js';
+import { SaveService } from '../storage/SaveService.js';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -33,6 +34,13 @@ export class BootScene extends Phaser.Scene {
 
     // セーブの版数を注入（移行/初期化判定に使用）。
     SaveManager.init(DataManager.balance.saveVersion, DataManager.balance.gameVersion);
+    // 保存レイヤー（ブラウザ保存＋フォルダ保存/バックアップ/競合）を初期化する。
+    // 失敗してもゲームは localStorage で完全動作するため、例外は握りつぶして続行する。
+    try {
+      await SaveService.init(DataManager.balance.saveVersion, DataManager.balance.gameVersion, DataManager.saveConfig);
+    } catch (e) {
+      console.warn('[BootScene] 保存レイヤーの初期化に失敗（ブラウザ保存で続行）:', e);
+    }
 
     this.scene.start('TitleScene');
   }

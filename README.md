@@ -7,9 +7,9 @@
 npm・ビルド処理・バックエンド・データベースは一切使いません。Phaser 3.90.0 を CDN から読み込み、
 すべての素材（プレイヤー・敵・弾・エフェクト等）は JavaScript 上で動的生成しています。
 
-> ⚠️ **開発状況**: 現在 **Milestone 5-A**（空間グリッド最適化・性能計測）まで実装済みです。
-> Milestone 5-B（フォルダ保存・バックアップ・JSON入出力・保存データ競合解決・本格デバッグパネル）は
-> 設計と `TODO.md` の記載のみです。
+> ⚠️ **開発状況**: 現在 **Milestone 5-B**（フォルダ保存・バックアップ・JSON入出力・保存データ競合解決）まで実装済みです。
+> 保存は localStorage を基本としつつ、対応ブラウザ（HTTPS＝GitHub Pages 前提）ではユーザーが選んだフォルダへも
+> ミラー保存できます。本格的な統合デバッグパネルやクラウド保存は今後の課題です。
 
 ---
 
@@ -22,7 +22,7 @@ npm・ビルド処理・バックエンド・データベースは一切使い�
 | **M3** | 拠点（BaseScene）/ 残り火の正式実装 / 恒久強化10種 / 難易度選択・解放 / スキル熟練度（Lv1-20）/ profile拡張＋移行 | ✅ 実装済み |
 | **M4** | スキル進化3種＋演出 / 熟練度と進化の連携 / 転生 / 転生通貨「魂炎」/ 魂炎強化10種 / 転生後のゲーム拡張 / 拠点タブ＋スクロール / profile v4 / 最小デバッグ機能 / 安全上限 | ✅ 実装済み |
 | **M5-A** | 空間グリッド（Spatial Hash Grid）による近傍検索 / 総当たり O(敵×弾) の解消 / 性能計測パネル・グリッド可視化・グリッドON/OFF比較（`?debug=1`）/ オブジェクトプール整理 / 品質別エフェクト上限の集約 / 決定論的な非回帰テスト | ✅ 実装済み |
-| M5-B | フォルダ保存・バックアップ・JSON入出力・保存データ競合解決・本格デバッグパネル | 📝 設計/TODOのみ |
+| **M5-B** | 保存アダプター分離 / フォルダ保存（File System Access API）＋ブラウザミラー / manifest＋安全書き込み / バックアップ（自動10・手動5世代）/ JSON エクスポート・インポート（検証・プロトタイプ汚染ガード）/ 競合検出・解決 / 複数タブ制御 / profile v5 移行 / データ管理画面 | ✅ 実装済み |
 
 ### 遊びの流れ（M4）
 タイトル →「はじめから / 拠点」→ **拠点**（恒久強化・難易度・熟練度・**転生**・**魂炎強化**）→「戦闘開始」→
@@ -139,27 +139,31 @@ npm・ビルド処理・バックエンド・データベースは一切使い�
   停止しない・安全上限を超えない・一時停止/リザルト/拠点へ戻れる・セーブ破損なし、を満たす設計です。
   プレイヤー↔敵接触・ボス弾↔プレイヤーの判定は対象が少ないため従来方式のままです。
 
-## セーブについて
+## セーブについて（M5-B）
 
-現在（M3）は **ブラウザの localStorage** による軽量セーブです。恒久データ（profile）と設定と
-**途中セーブ（active_run）** を保持します。profile には残り火・累計残り火・恒久強化・難易度解放・
-スキル熟練度・統計を保存し、周回終了時に自動で加算・保存されます（詳細は `docs/save-format.md`）。
-戦闘中は 20秒ごと / レベルアップ選択後 / 一時停止時 / タブ非表示時に active_run を自動保存し、
+基本は **ブラウザの localStorage**（恒久データ profile / 設定 settings / 途中セーブ active_run）です。
+戦闘中は 20秒ごと / レベルアップ・進化選択後 / 一時停止時 / タブ非表示時に active_run を自動保存し、
 ページを閉じても「続きから」で再開できます（時間・HP・レベル・経験値・所持スキル・討伐数・シードを復元。
-敵の個体位置は保存せず進行状況から再構築）。勝敗確定時に active_run は削除されます。
+敵の個体位置は保存せず進行状況から再構築）。勝敗確定で active_run は削除されます。
 
-> セーブ形式を拡張したため `save_version` を 4 に更新しました。旧版（v1/v2/v3）の profile は明示マッピングで
-> 移行し（残り火・強化・難易度解放・統計・熟練度を引き継ぎ、転生系フィールドは安全な初期値）、起動不能になりません。
+**M5-B でフォルダ保存を追加**しました（タイトル/拠点の「データ管理」画面）。localStorage を同期のライブ
+キャッシュとして維持したまま、対応ブラウザでは**ユーザーが選んだフォルダ**へ非同期でミラー保存します。
+- **保存方式の優先順位**: フォルダ接続時は フォルダ保存 → ブラウザ内ミラー。未接続時は ブラウザ内保存 → 手動 JSON。
+  フォルダ書き込みに失敗しても**ブラウザ内保存へフォールバック**し、ゲーム進行やリザルト確定は失敗しません。
+- **フォルダ構成**: `ReincarnationFlameSurvivorData/`（`profile.json`/`active_run.json`/`settings.json`/`manifest.json`/`backups/`）。
+  一時ファイル→検証→本ファイル→検証→manifest の順で**安全に書き込み**（原子的 rename が無い制約はバックアップ＋書込後検証で緩和）。
+- **バックアップ**: 上書き前に退避（自動最大10・手動最大5世代、自動は最小5分間隔。設定は `data/balance.json` の `save`）。復元は確認付き・復元前に自動バックアップ。
+- **JSON 入出力**: 一式/個別のエクスポート（Blob・外部送信なし）と、検証付きインポート（構文・版・型・負の通貨・
+  不正レベル・存在しない難易度/スキル/進化・巨大ファイル・**`__proto__`等の危険キー**を拒否。移行処理を通して安全に取り込む）。適用前に現在/インポートを比較表示。
+- **競合解決**: ブラウザ内とフォルダ内が食い違う場合に比較画面を出し、採用/両方エクスポート/読み取り専用開始をユーザーが選びます（自動決定なし）。
+- **複数タブ**: `BroadcastChannel`＋書き込みロック＋writerId で上書き事故を軽減（後発タブは読み取り専用、引き継ぎ可能）。
+- `window.showDirectoryPicker()` は**ユーザー操作からのみ**呼び、起動時に許可ダイアログは出しません。選択フォルダの専用サブフォルダ以外へは書き込みません。
+
+> `save_version` を **5** に更新。旧版（v1〜v4）の profile は明示マッピングで移行し（残り火・強化・難易度解放・統計・
+> 熟練度・転生系を引き継ぎ）、**移行前に旧データを別キー（`rfs_profile_backup_v4_*` 等）へ退避**します（即時削除しません）。
 > active_run は v2 以降でスキーマ互換のため既存の途中セーブも再開でき、`cycleNumber` により転生をまたいだ再開だけを破棄します。
 
-以下は **Milestone 5-B で実装予定** です（設計は `docs/save-format.md` 参照）:
-- 「保存フォルダを接続」ボタン（`window.showDirectoryPicker()`）による任意フォルダへの保存
-- `profile.json` / `active_run.json` / `settings.json` と `backups/`（最大10世代）
-- IndexedDB へのフォルダハンドル保存と再取得
-- 非対応ブラウザ向けの localStorage / JSON ダウンロード・インポートへのフォールバック
-- フォルダ内データとブラウザ内データの競合解決（`updated_at` 比較でユーザー選択）
-
-ブラウザから勝手にフォルダへ書き込むことはせず、ユーザーが明示的に選択したフォルダのみを使う設計です。
+> **非対応ブラウザ**（File System Access API 非対応）や権限拒否時も、ブラウザ内保存と JSON 入出力でゲームは完全に動作します。
 
 ---
 
@@ -169,7 +173,8 @@ URL に `?debug=1` を付けると、検査用に各マネージャ（`window.RF
 ProgressionManager, ... }`）と戦闘シーン（`window.RFS_BATTLE`）を公開します。戦闘中は
 **F2 で性能パネル**・**F3 でグリッド可視化**・F1 メニューで**空間グリッド ON/OFF** を切り替えられ、
 `window.RFS_BATTLE.spatialSelfCheck(300)` で空間グリッドと総当たりの一致・削減率をその場で確認できます（M5-A）。
-フル機能の統合デバッグパネルは **Milestone 5-B で実装予定** です。通常利用時（`?debug=1` なし）は公開しません。
+保存系は `window.RFS.SaveService` を公開し、データ管理画面の ⚙debug から書込失敗の模擬・破損注入・競合生成・
+v4生成→移行・バックアップ10世代生成などを試せます（M5-B）。通常利用時（`?debug=1` なし）は公開しません。
 
 ---
 
@@ -182,13 +187,16 @@ styles/main.css       全体スタイル（ピクセル拡大時のぼやけ防�
 src/
   main.js             起動・シーン登録・全画面ボタン（?debug=1 でマネージャを検査公開）
   config/             ゲーム設定・定数
-  scenes/             Boot / Title / Base(拠点) / Battle / LevelUp / Evolution(進化演出) / Result
+  scenes/             Boot / Title / Base(拠点) / Battle / LevelUp / Evolution(進化演出) / Result /
+                      DataManagement(データ管理・M5-B)
   entities/           Player / Enemy(炎上対応) / Boss / Projectile(貫通減衰) / ExperienceGem
   skills/             SkillBase / Fireball / FlamePillar / BurningTrail / OrbitingFlame / Meteor /
                       EvolvedSkillBase / InfernalBarrage / PurgatoryEruption / EternalPyre
-  systems/            DataManager / SaveManager / ProgressionManager / ReincarnationManager /
-                      EvolutionManager / SpawnManager / BattleManager / PoolManager / SkillManager /
-                      EffectManager / SpatialGrid(空間グリッド・M5-A)
+  systems/            DataManager / SaveManager / profileSchema(v5移行) / ProgressionManager /
+                      ReincarnationManager / EvolutionManager / SpawnManager / BattleManager /
+                      PoolManager / SkillManager / EffectManager / SpatialGrid(空間グリッド・M5-A)
+  storage/            StorageAdapter / BrowserStorageAdapter / FolderStorageAdapter / MemoryStorageAdapter /
+                      SaveCoordinator / SaveValidator / SaveConflictResolver / SaveService / idb（保存レイヤー・M5-B）
   ui/                 HUD / PauseMenu
   utils/              math / time / validation
 data/                 skills / enemies / bosses / permanent-upgrades / skill-mastery /
@@ -196,10 +204,11 @@ data/                 skills / enemies / bosses / permanent-upgrades / skill-mas
 docs/                 game-design / architecture / data-format / save-format / test-guide
 tests/validate-data.mjs        Node標準のみのデータ検証
 tests/spatial-nonregression.mjs 空間グリッドの決定論的非回帰＋負荷計測（Node標準のみ・M5-A）
-.github/workflows/    static.yml（公開） / validate.yml（データ検証）
+tests/save-system.mjs          保存システムのテスト（移行/検証/キュー/バックアップ/競合・Node標準のみ・M5-B）
+.github/workflows/    static.yml（公開） / validate.yml（データ検証＋各テスト）
 ```
 
-M5-B で追加予定のファイル（`FolderSaveManager`, `SaveDataPanel`, 本格 `DebugPanel` 等）は `TODO.md` に一覧があります。
+保存レイヤー（`src/storage/*`）とデータ管理画面（`DataManagementScene`）は M5-B で実装済みです。今後の候補は `TODO.md` を参照してください。
 
 ---
 
@@ -216,8 +225,12 @@ M5-B で追加予定のファイル（`FolderSaveManager`, `SaveDataPanel`, 本�
 - **当たり判定候補は空間グリッド化済み（M5-A）**: 近傍検索の候補取得を空間グリッドへ移行し、総当たり
   O(敵×弾) を解消しました。Node の非回帰テストで旧方式と結果一致・比較回数の大幅削減（局所検索で概ね 90%+）を
   確認しています。ただし極端負荷での 60FPS は保証しません（後述）。
-- **セーブはブラウザ内のみ**: フォルダ保存/バックアップ/競合解決は **M5-B**。localStorage のみのため、
-  ブラウザのデータ削除で消えます。
+- **フォルダ保存は対応ブラウザ限定**: File System Access API（Chromium 系・**HTTPS** 必須）が前提です。非対応ブラウザや
+  権限拒否時は localStorage + JSON 入出力にフォールバックします（ゲームは完全に動作）。ブラウザ内保存のみだと
+  ブラウザのデータ削除で消えるため、フォルダ保存または JSON エクスポートでの控えを推奨します。
+- **原子的な差し替え不可**: ブラウザ API に原子的 rename が無いため、フォルダ保存はバックアップ＋書込後検証で
+  破損リスクを下げますが、書き込み中の電源断等に対する完全な保証はありません（`docs/save-format.md`）。
+- **複数タブは事故軽減のみ**: 厳密な排他制御はブラウザ API の制約で不可能です。後発タブは読み取り専用にして上書きを避けます。
 - **設定は簡易版**: エフェクト品質・ダメージ数字・画面揺れの切替は一時停止メニューにあります。
   パーティクル数の個別スライダーや専用設定画面は M5 予定。
 - **戦闘バランス**: M4 でも戦闘バランスの全面調整は行っていません（転生由来の倍率・上限のみ追加）。
@@ -252,6 +265,14 @@ M5-B で追加予定のファイル（`FolderSaveManager`, `SaveDataPanel`, 本�
 `node tests/validate-data.mjs` も成功します。**戦闘の実挙動・FPS・倍速時のすり抜け有無・性能パネル表示は
 ヘッドレスでは未計測**のため、GitHub Pages の公開 URL を実ブラウザで開き（`?debug=1` で F2 性能パネル・
 `window.RFS_BATTLE.spatialSelfCheck(300)`）体感を含めて最終確認してください。
+
+**Milestone 5-B の検証**: 保存レイヤーはブラウザ非依存の部分（スキーマ移行 v1〜v5・checksum・エンベロープ検証・
+インポート検証/プロトタイプ汚染ガード・保存キューの順序と最新のみ保存・バックアップ世代管理・復元・
+フォールバック・競合検出/推奨・複数タブ判定・設定の安全取り込み）を `node tests/save-system.mjs`（42項目・
+`MemoryStorageAdapter` 使用）で検証済みです。**File System Access API の実挙動（フォルダ接続・許可の永続化・
+安全書き込み・実ファイル生成・複数タブ・容量不足時の挙動）はヘッドレスでは未検証**のため、GitHub Pages の
+公開 URL を対応ブラウザ（Chrome/Edge 等・HTTPS）で開き、「データ管理」画面で接続→保存→再読込→
+エクスポート/インポート→バックアップ→競合解決 を実機で確認してください。
 
 > ヘッドレス環境の制約: `requestAnimationFrame` が断続的に間引かれ、また headless では
 > ページが非フォーカス扱いになり自動一時停止が働くため、「リザルト→再挑戦後の実時間ループ継続」や

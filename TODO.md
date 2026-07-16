@@ -178,22 +178,38 @@ Milestone 1 は実装済み。以下は **Milestone 2 以降の設計と作業�
 
 ---
 
-## Milestone 5-B — 保存・本格デバッグ（未実装）
+## Milestone 5-B — 保存・データ管理【実装済み】
 
-### 保存
-- [ ] `systems/FolderSaveManager.js`: `window.showDirectoryPicker()`、
-      `ReincarnationFlameSurvivorData/`（profile/active_run/settings/backups）
-- [ ] 自動保存（20秒毎/候補選択後/一時停止/戦闘終了/恒久強化購入/転生/タブ非表示直前）
-- [ ] バックアップ（上書き前に複製、最大10世代、破損時に復元候補提示、自動復元しない）
-- [ ] `FileSystemDirectoryHandle` を IndexedDB へ保存し次回起動で再取得（権限不足でもクラッシュしない）
-- [ ] 非対応ブラウザ: IndexedDB/localStorage + JSON ダウンロード/インポート、理由の画面表示
-- [ ] 優先順位と競合解決（`updated_at` 比較でユーザー選択）
-- [ ] `ui/SaveDataPanel.js`（データ管理画面）
+### 保存アダプター / コーディネーター
+- [x] `storage/StorageAdapter.js`（共通IF）+ `BrowserStorageAdapter`(localStorage) / `FolderStorageAdapter`
+      (File System Access API) / `MemoryStorageAdapter`(テスト)。単位は checksum 付きエンベロープ。
+- [x] `storage/SaveCoordinator.js`: デバウンス+キューで同時書き込み回避・最新のみ保存（古い保存が新しい保存を上書きしない）・
+      フォルダ(primary)+ブラウザ(mirror)・失敗時フォールバック・バックアップ方針・manifest 更新・複数タブ制御。
+- [x] `storage/SaveValidator.js`（checksum/エンベロープ/インポート検証/プロトタイプ汚染ガード）・
+      `SaveConflictResolver.js`（競合検出/推奨）・`SaveService.js`（UI ファサード）・`idb.js`（ハンドル保存）。
+- [x] `SaveManager` を localStorage 同期ライブキャッシュ＋coordinator 通知へ移行（既存の同期呼び出しは不変）。
 
-### デバッグ（`?debug=1` 時のみ・`systems/DebugManager.js` + `ui/DebugPanel.js`）
-- [ ] 無敵/経験値追加/レベル追加/任意スキル取得・Lv変更・進化/残り火・魂炎追加/敵全滅/ボス即時/
-      速度0.5〜5倍/経過時間変更/転生条件達成（現状は戦闘/拠点の最小メニュー＋性能パネルまで実装）
-- [ ] 上記を統合した常設パネル化（M5-A の性能パネルを取り込む）
+### フォルダ保存 / バックアップ / 入出力 / 競合 / 複数タブ
+- [x] `window.showDirectoryPicker()`（ユーザー操作のみ）→ `ReincarnationFlameSurvivorData/`
+      （profile/active_run/settings/manifest/backups）。一時→検証→本→検証→manifest の安全書き込み。
+- [x] `FileSystemDirectoryHandle` を IndexedDB へ保存し次回起動で権限確認（自動でダイアログは出さない・再接続で許可）。
+- [x] 自動保存（20秒毎/候補・進化選択後/一時停止/戦闘終了/恒久・魂炎強化購入/転生/設定変更/タブ非表示直前/今すぐ保存）。
+- [x] バックアップ（上書き前に退避・自動10/手動5世代・自動最小5分・復元前に自動バックアップ・確認付き・自動復元しない）。
+- [x] JSON エクスポート（一式/個別・Blob・外部送信なし）/ インポート（構文・版・型・負通貨・不正レベル・
+      存在しない難易度/スキル/進化・巨大ファイル・危険キーを検証。比較表示→置換/維持/キャンセル・自動マージなし）。
+- [x] 競合検出/解決 UI（横並び比較・推奨表示・採用/両方エクスポート/読み取り専用・自動決定しない・非採用側をバックアップ）。
+- [x] 複数タブ（BroadcastChannel + 書き込みロック + writerId、後発は読み取り専用・引き継ぎ可能）。
+- [x] `scenes/DataManagementScene.js`（データ管理画面）+ タイトル/拠点導線。`?debug=1` の保存テストパネル。
+
+### profile v5 / テスト
+- [x] `systems/profileSchema.js` へ移行処理を分離（純粋関数）。save_version 5・v1〜v4→v5・移行前に旧キー退避（即時削除しない）。
+- [x] `tests/save-system.mjs`（Node標準のみ・MemoryStorageAdapter）で移行/checksum/インポート検証/キュー/
+      バックアップ/競合/複数タブを検証。`validate-data.mjs` に `save` 設定検証を追加。CI に組込み。
+
+### 今後の候補（未実装）
+- [ ] 戦闘/拠点/保存のデバッグを統合した常設パネル
+- [ ] クラウド保存・アカウント連携（サーバーレス構成の範囲で）
+- [ ] 実機での File System Access API 挙動の自動E2E（ヘッドレスでのフォルダ操作）
 
 ---
 
