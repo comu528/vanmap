@@ -80,7 +80,7 @@ export class PurgatoryEruptionSkill extends EvolvedSkillBase {
       if (patch.tick <= 0) {
         patch.tick = tickMs;
         this.scene.combat.forEachEnemyInRadius(patch.x, patch.y, patch.radius, (e) => {
-          this.scene.combat.dealDamage(e, patch.damage, this.id, { quiet: true, color: 0xd84315 });
+          this.scene.combat.dealDamage(e, patch.damage, this.id, { quiet: true, color: 0xd84315, tag: 'dot' });
         });
       }
       if (patch.expire <= 0) { if (patch.sprite) patch.sprite.destroy(); this.burnPatches.splice(i, 1); }

@@ -25,6 +25,7 @@
     "maxExtraFireballs": 40,
     "maxDeathExplosionChain": 3,
     "maxInfectGenerations": 3,
+    "maxEchoPerFrame": 4,
     "particleBudget": { "low": 40, "medium": 120, "high": 260, "ultra": 480 }
   },
   "spatialGrid": {

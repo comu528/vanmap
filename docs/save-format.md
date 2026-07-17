@@ -282,3 +282,49 @@ JSON エクスポート/インポート・バックアップ・競合比較は p
 - 敵に付いた起爆刻印（`Enemy._mark`）は敵個体を保存しないため復元しない（再開後の攻撃で付け直す）。
 - profile 側は M6-A の `skillMastery`（active）を新スキルにもそのまま使う（casts/hits/kills/damage/maxLevel/runsUsed/evolutions ＋
   防御系の追加統計は `recordExtra` で同オブジェクトに格納）。新しい報酬体系や新通貨は追加しない。
+
+## Milestone 6-C: 火の魔女ジョブ育成（save_version は 6 のまま）
+周回をまたぐジョブレベルを追加する。`profile.jobProgress`（M6-A で空 `{}` の拡張口）を**加算的に**埋め、`active_run` へ周回開始時の凍結値を足すだけで既存構造を変えない。
+そのため **`saveVersion` は 6 のまま**（jobProgress は既定値を安全に補える加算的追加なので、不要な v7 更新をしない）。v1〜v6 からの移行は M6-A/M6-B と同じ経路で既存データを保持し、**転生でもリセットしない**。
+
+### profile.jobProgress（v6・M6-A の空 `{}` を実データで埋める）
+`jobLevel` は保存せず `totalXp` から都度算出する。`jobId` キーで将来の複数ジョブへ拡張できる。
+```jsonc
+{
+  "jobProgress": {
+    "flame_witch": {
+      "totalXp": 63700,              // 唯一の正（Lv100超過分も保持）
+      "runs": 12, "wins": 3, "losses": 9,
+      "totalSurvivalSeconds": 4200, "totalKills": 51000,
+      "eliteKills": 120, "bossKills": 3,
+      "highestBattleLevel": 41, "highestDifficultyPlayed": 4, "highestDifficultyCleared": 3,
+      "totalEvolutions": 5, "lastPlayedAt": "2026-07-17T...", "lastXpGain": 5120,
+      "lastAwardedRunId": "run_abc", "awardedRunIds": ["...", "..."]  // 二重獲得防止（上限40件で保持）
+    }
+  }
+}
+```
+- 旧セーブ（`jobProgress` 無し・v1〜v5）は `flame_witch` を `totalXp=0` で開始（`emptyEntry`）。欠落フィールドは加算的に補完する。
+- 安全化: `profileSchema.js` の `safeJobProgress` が **プロトタイプ汚染キーを除外**し、負数/非有限を安全化（`totalXp` は有限非負へ丸める）。
+- 統計（runs/wins/losses/…/lastXpGain）は `JobProgressionManager.awardRun` が周回終了時に更新する。将来のジョブ実績/レガシー条件用の構造（現時点で転生レガシー判定には未使用）。
+
+### active_run 追加フィールド（v6・周回開始時のジョブレベル凍結）
+周回開始時にジョブレベルから解決した補正を凍結し、周回中は固定する。途中再開時はこの凍結値（`resolvedJobModifiers`）を使うため、
+周回中に profile 側レベルが変わっても進行中周回へは反映されない。ジョブXPはリザルト確定後に profile へ加算し、次の周回から新レベルが適用される。
+```jsonc
+{
+  "jobId": "flame_witch",
+  "jobLevelAtStart": 50,               // 周回開始時のジョブレベル（表示・演出用）
+  "jobTotalXpAtStart": 63700,          // 周回開始時の累計XP
+  "resolvedJobModifiers": { /* JobModifierManager.resolve の結果（凍結した全補正値） */ },
+  "jobProgressionVersion": 1,          // job-progression.json の version
+  "jobRuntime": { "echoCount": 3 }     // 残響カウンター（再開で巻き戻さない）
+}
+```
+- `resolvedJobModifiers` は `JobModifierManager.serialize()`／`restore()` で保存・復元する（`BattleScene.restoreFromRun` が適用）。
+- 火の魔女以外・未定義ジョブ・Lv1 では恒等（`identity`）が凍結されるため M6-B 以前と完全一致。
+
+### 保存システム統合（M5-B 非回帰）
+- ブラウザ保存/フォルダ保存/JSON 入出力/バックアップ/競合検出/複数タブ/保存キューを壊さない。付与と profile 保存は M5-B の `SaveCoordinator` 経由（`SaveManager.saveProfile`）。
+- 比較/競合/インポート表示に **選択ジョブ・火の魔女ジョブレベル・`jobTotalXp`** を追加（`StorageAdapter.summarize`／`SaveConflictResolver.extractMeta`）。
+- `jobProgress` はエクスポート/インポート/バックアップ/復元/競合解決で失われない（payload 全体を扱い、インポートは `migrateProfile` を通す）。

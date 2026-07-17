@@ -30,7 +30,7 @@ export class FlameVortexSkill extends SkillBase {
       if (v.tick <= 0) {
         v.tick = v.tickRate;
         this.scene.combat.forEachEnemyInRadius(v.x, v.y, v.radius, (e) => {
-          this.scene.combat.dealDamage(e, v.damage, this.id, { quiet: true, color: 0xff9800 });
+          this.scene.combat.dealDamage(e, v.damage, this.id, { quiet: true, color: 0xff9800, tag: 'dot' });
           if (e.applyKnockback) e.applyKnockback(2 * v.x - e.x, 2 * v.y - e.y, e.isBoss ? v.pull * BOSS_PULL : v.pull * 0.3);
         });
       }

@@ -5,6 +5,7 @@ import { TEX } from '../config/game-config.js';
 import { DataManager } from '../systems/DataManager.js';
 import { SaveManager } from '../systems/SaveManager.js';
 import { SaveService } from '../storage/SaveService.js';
+import { JobProgressionManager } from '../systems/JobProgressionManager.js';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -34,6 +35,8 @@ export class BootScene extends Phaser.Scene {
 
     // セーブの版数を注入（移行/初期化判定に使用）。
     SaveManager.init(DataManager.balance.saveVersion, DataManager.balance.gameVersion);
+    // ジョブ育成の設定（曲線・報酬・到達報酬）を JobProgressionManager へ注入（M6-C）。
+    JobProgressionManager.setConfig(DataManager.jobProgression);
     // 保存レイヤー（ブラウザ保存＋フォルダ保存/バックアップ/競合）を初期化する。
     // 失敗してもゲームは localStorage で完全動作するため、例外は握りつぶして続行する。
     try {

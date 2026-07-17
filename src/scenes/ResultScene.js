@@ -52,13 +52,34 @@ export class ResultScene extends Phaser.Scene {
     this.add.text(cx, 80, '内訳: ' + parts.join(' / '), { fontSize: '9px', color: '#bcaaa4', align: 'center', wordWrap: { width: GAME_WIDTH - 40 } }).setOrigin(0.5, 0);
 
     if (r.newlyUnlocked) {
-      this.add.text(cx, 100, `★ 難易度${r.newlyUnlocked} を解放しました！`, { fontSize: '11px', color: '#a5d6a7' }).setOrigin(0.5, 0);
+      this.add.text(cx, 98, `★ 難易度${r.newlyUnlocked} を解放しました！`, { fontSize: '10px', color: '#a5d6a7' }).setOrigin(0.5, 0);
+    }
+
+    // ジョブ経験値（M6-C）: 今回獲得 Job XP・ジョブレベル変化・XPバー・新規解放した到達報酬。
+    // 付与自体は BattleManager で確定済み（表示前に付与・演出待ちで失わない）。二重獲得済みなら安全表示。
+    let skillY = 122;
+    const job = r.job;
+    if (job && job.after && job.after.level) {
+      const jy = r.newlyUnlocked ? 112 : 100;
+      const jb = job.before || {}, ja = job.after || {};
+      const lvTxt = (jb.level !== ja.level) ? `Lv.${jb.level} → Lv.${ja.level}` : `Lv.${ja.level}`;
+      this.add.text(cx, jy, `${job.displayName || 'ジョブ'} Job ${lvTxt}`, { fontSize: '11px', color: '#ffd54f', fontStyle: 'bold' }).setOrigin(0.5, 0);
+      const dm = (job.xp && job.xp.difficultyMult) ? `（難易度 ×${job.xp.difficultyMult}）` : '';
+      const capTxt = ja.atCap ? '  ★最大Lv100到達' : `  次まで ${Math.round(ja.xpToNext || 0)}`;
+      this.add.text(cx, jy + 14, `獲得 Job XP: +${job.awarded ? job.xpGain : 0}${dm}${capTxt}`, { fontSize: '9px', color: '#ffab40' }).setOrigin(0.5, 0);
+      const bw = 220, bx = cx - bw / 2, by = jy + 27;
+      this.add.rectangle(bx, by, bw, 5, 0x3e2723).setOrigin(0, 0);
+      this.add.rectangle(bx + 1, by + 1, (bw - 2) * Math.max(0, Math.min(1, ja.ratio || 0)), 3, 0x29b6f6).setOrigin(0, 0);
+      const ms = job.milestonesUnlocked || [];
+      if (ms.length) this.add.text(cx, jy + 35, '新規解放: ' + ms.map((m) => `Lv${m.level} ${m.label}`).join(' / '), { fontSize: '8px', color: '#a5d6a7', align: 'center', wordWrap: { width: GAME_WIDTH - 40 } }).setOrigin(0.5, 0);
+      else if (!job.awarded) this.add.text(cx, jy + 35, '（このリザルトのJob XPは獲得済み）', { fontSize: '8px', color: '#8d6e63' }).setOrigin(0.5, 0);
+      skillY = jy + 46;
     }
 
     // スキル別内訳
-    this.add.text(40, 122, '使用スキル / 与ダメージ / 討伐数 / Lv', { fontSize: '9px', color: '#ffab40' });
+    this.add.text(40, skillY, '使用スキル / 与ダメージ / 討伐数 / Lv', { fontSize: '9px', color: '#ffab40' });
     const skills = (r.skills || []).slice().sort((a, b) => (b.damage || 0) - (a.damage || 0));
-    let y = 138;
+    let y = skillY + 15;
     if (skills.length === 0) { this.add.text(40, y, '（スキル未使用）', { fontSize: '9px', color: '#8d6e63' }); }
     for (const s of skills) {
       this.add.text(40, y, s.name, { fontSize: '9px', color: '#ffe0b2' });

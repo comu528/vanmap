@@ -9,7 +9,7 @@ export class HomingWispSkill extends SkillBase {
     const s = this.stats; const p = this.scene.player;
     const cap = this.scene.combat.skillCap('maxHomingWisps', 50);
     const room = Math.max(0, cap - this.scene.countProjBySkill(this.id));
-    const count = Math.min(s.count || 2, room);
+    const count = Math.min(this.fireProjectileCount(s.count || 2), room); // M6-C Lv80: 発射数+1（skillCaps=room を超えない）
     for (let i = 0; i < count; i++) {
       const ang = this.scene.rng() * Math.PI * 2;
       const target = this.scene.combat.nearestEnemy(p.x, p.y, 100000);

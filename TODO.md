@@ -253,9 +253,46 @@ Milestone 1 は実装済み。以下は **Milestone 2 以降の設計と作業�
 
 ### 今後の候補（未実装）
 - [ ] 拡散火弾/連鎖炎/火の精霊/不死鳥/炎の障壁 への進化追加（evolutionBranches は将来用に空）
-- [ ] ジョブレベル・ジョブ経験値・ジョブ育成特典（`profile.jobProgress` が拡張口）
-- [ ] 複数ジョブ・ジョブ選択画面・他ジョブ継承（`futureInheritanceSettings`/`extraAllowedIds` が拡張口）
 - [ ] passive 熟練度の具体的報酬・条件付き共通スキル・legendary の追加
+
+---
+
+## Milestone 6-C — 火の魔女ジョブ育成【実装済み】
+
+### 戦闘レベルとジョブレベルの分離
+- [x] battleLevel（周回ごとLv1・battleXp・周回終了でリセット）と jobLevel（profile 恒久・jobTotalXp・転生維持）を分離。
+- [x] jobLevel は保存せず `profile.jobProgress[jobId].totalXp` を唯一の正として算出（現在Lv/次まで/進行度は表示時計算）。
+
+### 共通データ・純ロジック（新ジョブ再利用可）
+- [x] `data/job-progression.json`（jobId/levelCap/xpCurve/xpReward/perLevelBonuses/milestones）。火の魔女をハードコードしない。
+- [x] `JobProgressionManager`（XP曲線・レベル算出・周回報酬・二重獲得防止・profile 更新）。
+- [x] `JobModifierManager`（jobLevel→補正解決・ダメージタグ適用・残響・抽選重み・リロール・serialize）。各スキルは profile を直接参照しない。
+
+### XP・周回報酬・二重獲得防止
+- [x] 累計XP `25(L-1)^2 + 75(L-1)`・Lv1-100・単調増加・Lv100頭打ち・超過分保持・負数/NaN/Infinity拒否。
+- [x] 周回終了時にまとめて付与（勝敗両方・戦闘中は付与しない）。生存/通常(上限2000)/エリート/ボス/勝利ボーナス×難易度倍率。
+- [x] `runId`(=resultId)＋`awardedRunIds`(上限40)で再表示/戻る/保存失敗復帰の二重獲得を防止。SaveCoordinator 経由で保存。
+
+### 基本成長・到達報酬（火の魔女使用中のみ・Lv1恒等）
+- [x] 火ダメージ+0.35%/Lv・DoT+0.50%/Lv・範囲+0.10%/Lv（dealDamage / stats・passiveAreaMult）。
+- [x] Lv5火力/Lv10弾速/Lv20CD/Lv30リロール/Lv40爆炎/Lv50残響/Lv60進化/Lv70抽選重み/Lv80発射数/Lv90CD/Lv100完全残響。
+- [x] 残響詠唱は共通発動イベント（recordCast→_onSkillCast→echoCast）。防御/反応/DoT/召喚射撃/連鎖/分裂/残響発は対象外。1フレーム上限＋一時停止で不進行。
+
+### 周回開始時のレベル固定・保存
+- [x] active_run に jobLevelAtStart/jobTotalXpAtStart/resolvedJobModifiers/jobProgressionVersion/jobRuntime を凍結。途中でprofile側が変わっても進行中周回へ非反映。
+- [x] `profile.jobProgress`（totalXp/runs/wins/losses/kills/elite/boss/highest.../evolutions/lastPlayedAt/lastXpGain/awardedRunIds）。save_version 6 維持・転生でリセットしない。
+- [x] 比較/競合/インポートサマリに 選択ジョブ・ジョブレベル・jobTotalXp を追加（StorageAdapter.summarize / SaveConflictResolver）。
+
+### UI・デバッグ・テスト
+- [x] 拠点「ジョブ育成」タブ（Lv/XPバー/統計/基本補正/次の報酬/Lv5-100一覧・解放区別）。
+- [x] リザルトに 今回獲得Job XP/難易度倍率/Lv変化/XPバー/複数レベルアップ/新規解放/Lv100到達/二重獲得済み安全表示。
+- [x] 戦闘HUDにジョブ名＋適用中ジョブLv。F5 個別スキル検証（単独化/Lv変更/単独進化/各補正の一時無効/Job Lv一時適用/残響表示・強制/計算内訳）。
+- [x] `tests/job-progression.mjs`／`tests/job-modifiers.mjs`＋validate-data（job-progression 検証）＋CI。
+
+### 今後の候補（未実装）
+- [ ] 転生レガシー（複数ジョブ実装後に設計）・他ジョブへの効果持ち越し
+- [ ] 複数ジョブ・ジョブ選択画面・他ジョブ継承（`futureInheritanceSettings`/`extraAllowedIds` が拡張口）
+- [ ] 火の魔女スキル限界突破（Lv8超）・ジョブ実績/レガシー条件（jobProgress 統計が拡張口）
 
 ---
 

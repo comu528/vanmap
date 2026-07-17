@@ -7,10 +7,11 @@
 npm・ビルド処理・バックエンド・データベースは一切使いません。Phaser 3.90.0 を CDN から読み込み、
 すべての素材（プレイヤー・敵・弾・エフェクト等）は JavaScript 上で動的生成しています。
 
-> ⚠️ **開発状況**: 現在 **Milestone 6-B**（火の魔女のビルド拡張: 新 active 10種・新進化5種）まで実装済みです。
-> M6-A のスキル抽選基盤（active/passive分類・所持枠・ジョブ別プール・レアリティ・決定論抽選・リロール/追放/スキップ）
-> の上に、抽選/枠処理を個別実装せずに新スキルを追加しました。防御スキル（不死鳥の羽・炎の障壁）、コンボ（起爆刻印/連鎖）、
-> 召喚（火の精霊）、設置（火炎渦）等を含みます。保存は localStorage＋（対応ブラウザで）フォルダ保存（M5-B）。
+> ⚠️ **開発状況**: 現在 **Milestone 6-C**（ジョブ育成: 火の魔女のジョブレベル Lv1-100・到達レベル報酬）まで実装済みです。
+> 戦闘レベル（周回ごとにLv1・経験値ジェムで上昇・周回でリセット）とは別に、**ジョブレベル**（profile へ恒久保存・周回/転生を
+> またいで維持・totalXp から算出）を追加しました。周回終了時に Job XP を獲得し、Lv に応じて火属性の火力/継続ダメージ/範囲が
+> 伸び、Lv5〜Lv100 で固有の到達報酬（残響詠唱・進化強化・抽選重み 等）を解放します。効果は火の魔女を使用中の周回のみ有効です。
+> 保存は localStorage＋（対応ブラウザで）フォルダ保存（M5-B）。
 
 ---
 
@@ -26,6 +27,7 @@ npm・ビルド処理・バックエンド・データベースは一切使い�
 | **M5-B** | 保存アダプター分離 / フォルダ保存（File System Access API）＋ブラウザミラー / manifest＋安全書き込み / バックアップ（自動10・手動5世代）/ JSON エクスポート・インポート（検証・プロトタイプ汚染ガード）/ 競合検出・解決 / 複数タブ制御 / profile v5 移行 / データ管理画面 | ✅ 実装済み |
 | **M6-A** | スキル抽選基盤: active/passive分類・所持枠(Active4→6→8/Passive4)・ジョブ別スキルプール(flame_witch)・レアリティ・重み付き**決定論**抽選・リロール/追放/スキップ・共通パッシブ4種(共通modifier集計)・既存5active移行・profile v6 | ✅ 実装済み |
 | **M6-B** | 新 active 10種（炎槍/拡散火弾/追尾鬼火/連鎖炎/溶岩爆弾/火炎渦/火の精霊/不死鳥の羽/炎の障壁/起爆刻印）＋新進化5種。防御パイプライン・ダメージタグ・起爆刻印コンボ・召喚/設置・品質別性能上限・空間グリッド/プール対応・runtimeState 保存 | ✅ 実装済み |
+| **M6-C** | ジョブ育成基盤: 戦闘レベルとジョブレベルの分離・火の魔女 Job Lv1-100（totalXp が正）・周回終了時 Job XP・レベル別 火火力/DoT/範囲 成長・到達報酬10種（Lv5〜100: 残響詠唱/爆炎/進化強化/抽選重み/発射数 等）・周回開始時レベル固定・拠点ジョブ育成タブ・リザルトXP表示・F5個別スキル検証・profile.jobProgress（save_version 6 維持・転生維持）・データ駆動（新ジョブ再利用可） | ✅ 実装済み |
 
 ### 遊びの流れ（M4）
 タイトル →「はじめから / 拠点」→ **拠点**（恒久強化・難易度・熟練度・**転生**・**魂炎強化**）→「戦闘開始」→
@@ -223,6 +225,72 @@ densestPoint/enemiesInRadius`）。弾は既存 `projPool` を再利用（追尾
 解放スキルを制御できます（M6-B では未実装）。新スキル追加は「skills.json＋jobs.json＋挙動クラス＋REGISTRY登録」のみで、
 抽選・枠・レアリティ・決定論コードは変更不要です。
 
+## Milestone 6-C の要素（ジョブ育成）
+
+各ジョブを長期育成する共通基盤を追加しました。今回は登録済みジョブ **火の魔女（flame_witch）** のみが対象で、
+効果は **そのジョブを使用中の周回のみ** 有効です（他ジョブへ自動継承しない）。転生レガシーは複数ジョブ実装後に設計します。
+
+### 戦闘レベル と ジョブレベル（明確に分離）
+| | 戦闘レベル(battleLevel) | ジョブレベル(jobLevel) |
+|---|---|---|
+| 保存 | active_run（周回終了でリセット） | profile.jobProgress（恒久・転生でも維持） |
+| 上昇 | 経験値ジェム(battleXp) | 周回終了時の Job XP(jobTotalXp) |
+| 用途 | スキル候補の取得 | 火属性の恒久強化・到達報酬の解放 |
+| 範囲 | 周回ごと Lv1〜 | 火の魔女は Lv1〜**100** |
+
+`jobLevel` は保存せず **`jobTotalXp` を唯一の正** として算出します（現在Lv/次まで/進行度は表示時に計算）。
+
+### ジョブ経験値と曲線（`data/job-progression.json`）
+- 累計必要XP: `totalXpForLevel(L) = 25·(L-1)² + 75·(L-1)`（Lv1=0 / Lv2=100 / Lv10=2,700 / Lv50=63,700 / Lv100=252,450）。
+- 周回終了時（勝敗両方・**戦闘中は付与せずリザルト確定時にまとめて付与**）:
+  `base = 生存秒×1.2 + min(通常撃破,2000)×0.08 + エリート×4 + ボス×60 + 勝利ボーナス(勝200/敗0)`、その後 難易度倍率
+  （1:1.00 / 2:1.25 / 3:1.55 / 4:1.90 / 5:2.30）を乗算して切り捨て。通常撃破は上限2000で頭打ち（撃破周回が無意味にならない緩やかさ）。
+- **二重獲得防止**: `runId`（残り火と同じ resultId）と `awardedRunIds`（上限40件保持）で、再表示/戻る/保存失敗復帰でも二重獲得しません。
+  付与と保存は M5-B の SaveCoordinator（`SaveManager.saveProfile`）経由。
+
+### 火の魔女の基本成長（Lv1 は M6-B 以前と完全一致＝恒等）
+- 炎属性ダメージ **+0.35%/Lv**（Lv100 で最大 +34.65%）… 火の全ダメージ（弾/召喚/DoT/爆発/刻印起爆/障壁反撃/不死鳥反撃）。
+- 炎上・火属性DoT **+0.50%/Lv**（最大 +49.5%）… `tag:'dot'` の継続ダメージへ追加。
+- 火属性範囲 **+0.10%/Lv**（最大 +9.9%）… 爆発/設置/渦/防御反撃/進化主要範囲（Projectile 当たり判定は巨大化しない）。
+- 二重適用の意図: `final = base × 火 × (DoT) × (爆発) × (進化)` の**乗算合成**。fire+DoT は両方が掛かる意図的仕様。fire 以外の属性には一切適用しません。
+
+### 到達レベル報酬（Lv に応じて自動有効化・claimed フラグを大量保存しない）
+| Lv | 報酬 | 効果 |
+|----|------|------|
+| 5 | 火力基礎強化 | 火ダメージ +5% |
+| 10 | 炎弾加速 | 火属性 projectile の投射速度 +10%（発射数/CD不変） |
+| 20 | 高速詠唱の素養 | 火 active の CD −5%（既存パッシブ/恒久と共存・安全下限クランプ） |
+| 30 | 選択の余地 | 周回開始時リロール +1（Lv30以上で基本2回） |
+| 40 | 爆炎強化 | 火属性爆発ダメージ +15% / 爆発範囲 +10% |
+| 50 | 残響詠唱 | 攻撃用火 active が **12回発動ごと**に直前の攻撃を1回追加発動（威力60%） |
+| 60 | 進化魔法強化 | 進化スキルの全ダメージ +20% |
+| 70 | 高位魔法適性 | 抽選で rare実効重み×1.15 / legendary×1.25（common/uncommon不変・**決定論維持**） |
+| 80 | 炎弾増殖 | 火 active の発射数 +1（発射数を持つスキルのみ・召喚物数/分裂は不変・skillCaps内） |
+| 90 | 炎帝の詠唱 | 火 active の CD を追加で −10%（Lv20と乗算合成 0.95×0.90・下限クランプ） |
+| 100 | 完全残響 | 残響を **8回ごと・威力100%** へ強化 |
+
+### 残響詠唱（共通発動イベント・各スキルに個別コードを足さない）
+`SkillManager.recordCast`（主発動の共通シグナル）→ `BattleScene._onSkillCast` が起点。閾値到達で `skill.echoCast(ctx)`（既定は
+`fire(ctx)` の再実行＝弾/設置/召喚などの**攻撃挙動を再発動**）を1回。対象は active・fire・攻撃目的・非防御・非反応。
+対象外は passive／障壁展開／不死鳥致死／刻印二次起爆／DoT各tick／連鎖各対象／分裂弾／召喚物の通常射撃／残響発の攻撃。
+追加発動はカウンターを進めず、残響から残響を発生させません（`_inEcho` ガード）。1フレーム上限 `balance.combatCaps.maxEchoPerFrame`（=4）、
+一時停止中は `update` 停止によりカウンター/遅延も進みません。1/1.5/2倍でも発動回数ベースのため破綻しません。
+
+### modifier 適用順（`docs/architecture.md`/`docs/game-design.md` に詳細）
+1. JSON基礎値 → 2. 固定値/整数補正（発射数）→ 3. 同カテゴリ加算倍率（熟練度・パッシブ）→ 4. カテゴリ間の乗算倍率（ジョブレベル・到達報酬）
+→ 5. 安全下限/上限（CD下限・skillCaps）→ 6. 品質別生成上限。**Lv1 かつ到達報酬なしで M6-B 以前と完全一致**。
+
+### 周回開始時のジョブレベル固定（凍結）
+`active_run` に `jobId/jobLevelAtStart/jobTotalXpAtStart/resolvedJobModifiers/jobProgressionVersion/jobRuntime(残響カウンター)`
+を保存。周回中に profile 側レベルが変わっても進行中周回へ反映せず、途中再開でも凍結値を使います。Job XP はリザルト確定後に
+profile へ加算し、**次の周回**から新レベルを適用します。
+
+### 拠点「ジョブ育成」タブ / リザルト / デバッグ
+- 拠点にタブ追加（ジョブ名・Lv・XPバー・累計XP・出撃/勝利・最高難易度・現在の基本補正・次の到達報酬・Lv5〜100一覧の解放/未解放）。
+- リザルトに 今回獲得Job XP・難易度倍率・Lv変化・XPバー・**複数レベルアップ対応**・新規解放報酬・Lv100到達・二重獲得済みの安全表示。
+- `?debug=1` の **F5** 個別スキル検証（単独化/Lv変更/単独進化/各補正の一時無効化/Job Lv 1〜100 一時適用/残響カウンター表示・強制/計算内訳）。
+  一時設定はランタイムのみで profile を破壊・保存しません（F1〜F4 と競合しません）。
+
 ## セーブについて（M5-B）
 
 基本は **ブラウザの localStorage**（恒久データ profile / 設定 settings / 途中セーブ active_run）です。
@@ -282,13 +350,14 @@ src/
   systems/            DataManager / SaveManager / profileSchema(v6移行) / ProgressionManager /
                       ReincarnationManager / EvolutionManager / SpawnManager / BattleManager /
                       PoolManager / SkillManager / EffectManager / SpatialGrid(空間グリッド・M5-A) /
-                      SeededRandom・SkillDraftManager・PassiveManager（スキル抽選基盤・M6-A）
+                      SeededRandom・SkillDraftManager・PassiveManager（スキル抽選基盤・M6-A）/
+                      JobProgressionManager・JobModifierManager（ジョブ育成・M6-C）
   storage/            StorageAdapter / BrowserStorageAdapter / FolderStorageAdapter / MemoryStorageAdapter /
                       SaveCoordinator / SaveValidator / SaveConflictResolver / SaveService / idb（保存レイヤー・M5-B）
   ui/                 HUD / PauseMenu
   utils/              math / time / validation
 data/                 skills / enemies / bosses / permanent-upgrades / skill-mastery /
-                      skill-evolutions / reincarnation / balance（JSON）
+                      skill-evolutions / reincarnation / balance / job-progression（JSON）
 docs/                 game-design / architecture / data-format / save-format / test-guide
 tests/validate-data.mjs        Node標準のみのデータ検証
 tests/spatial-nonregression.mjs 空間グリッドの決定論的非回帰＋負荷計測（Node標準のみ・M5-A）
@@ -296,8 +365,11 @@ tests/save-system.mjs          保存システムのテスト（移行/検証/�
 tests/skill-draft.mjs          スキル抽選のテスト（枠/決定論/リロール/追放/スキップ/進化/旧セーブ/パッシブ・Node標準のみ・M6-A）
 tests/new-fire-skills.mjs      新 active 10種のデータ整合＋抽選＋上限（Node標準のみ・M6-B）
 tests/new-evolutions.mjs       新進化5種のデータ整合＋進化条件（実ロジック）＋既存3進化の非回帰（Node標準のみ・M6-B）
+tests/job-progression.mjs      ジョブXP曲線/レベル算出/周回報酬/二重獲得防止/保存移行（Node標準のみ・M6-C）
+tests/job-modifiers.mjs        ジョブ補正の解決/ダメージタグ/到達報酬/残響詠唱/抽選重み決定論（Node標準のみ・M6-C）
 .github/workflows/    static.yml（公開） / validate.yml（データ検証＋各テスト）
-data/                 ... / jobs.json・passives.json・skill-config.json（M6-A）／skills.json・skill-evolutions.json 拡張・balance.skillCaps（M6-B）
+data/                 ... / jobs.json・passives.json・skill-config.json（M6-A）／skills.json・skill-evolutions.json 拡張・balance.skillCaps（M6-B）／
+                      job-progression.json・balance.combatCaps.maxEchoPerFrame（M6-C）
 ```
 
 保存レイヤー（`src/storage/*`）とデータ管理画面（`DataManagementScene`）は M5-B で実装済みです。今後の候補は `TODO.md` を参照してください。
@@ -382,6 +454,17 @@ data/                 ... / jobs.json・passives.json・skill-config.json（M6-A
 不死鳥の致死回避/障壁と不死鳥の処理順/倍速時のタイマー/再読込での不正回復防止/Scene終了後の残留なし/仮アイコン表示）は
 Phaser 依存のためヘッドレスでは未検証**です。GitHub Pages を実ブラウザ（`?debug=1` の F4 新スキルパネル）で開き、
 `docs/test-guide.md` の M6-B 項目を手動確認してください（実行していない項目は「確認済み」と報告していません）。
+
+**Milestone 6-C の検証**: ジョブ育成の純ロジック（`JobProgressionManager`/`JobModifierManager`）は Phaser 非依存のため
+`node tests/job-progression.mjs`（52項目）・`node tests/job-modifiers.mjs`（44項目）で検証済みです。XP曲線（Lv1=0/Lv2=100/
+Lv10=2700/Lv50=63700/Lv100=252450・単調増加・Lv100頭打ち・超過分保持・負数/NaN/Infinity拒否）・周回XP（難易度倍率・勝利ボーナス・
+敗北でも獲得・通常撃破上限）・**同一 runId の二重獲得防止**・複数レベルアップと途中報酬解放・保存移行（旧profileへ空初期化・
+totalXpから算出・プロトタイプ汚染除外）・**Lv1 恒等/Lv100 最大補正**・fire以外へ非適用・DoT/爆発/進化タグの正しい適用・
+到達報酬の解放境界・残響カウンター（11回で不発/12回目発動・Lv100は8回目・カウンターリセット）・Lv70抽選重みの決定論を確認。
+`profile v6 維持`・比較サマリのジョブ項目は `node tests/save-system.mjs`・`validate-data.mjs` で確認。**戦闘中の実挙動（ダメージ倍率の
+実数・残響の攻撃再発動・弾速/発射数の見た目・リザルト演出・拠点ジョブタブ描画・F5パネル・倍速での残響・周回開始時レベル固定・
+途中再開/転生後の維持）は Phaser 依存のためヘッドレスでは未検証**です。GitHub Pages を実ブラウザ（`?debug=1` の F5）で開き、
+`docs/test-guide.md` の M6-C 項目を手動確認してください（実行していない項目は「確認済み」と報告していません）。
 
 > ヘッドレス環境の制約: `requestAnimationFrame` が断続的に間引かれ、また headless では
 > ページが非フォーカス扱いになり自動一時停止が働くため、「リザルト→再挑戦後の実時間ループ継続」や

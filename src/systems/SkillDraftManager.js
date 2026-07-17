@@ -19,9 +19,15 @@ export class SkillDraftManager {
       baseRerolls: config.baseRerolls ?? 1,
       baseBanishes: config.baseBanishes ?? 1,
       baseSkips: config.baseSkips ?? 1,
+      // レアリティ別の実効抽選重み倍率（M6-C: 火の魔女 Lv70 で rare×1.15 / legendary×1.25）。
+      // 周回開始時に凍結し周回中は不変＝同 seed・同状態で同一候補（決定論を壊さない）。
+      rarityWeightMult: config.rarityWeightMult || null,
     };
     this.reset(1, {});
   }
+
+  // レアリティ別の実効重み倍率を設定する（ジョブ補正など・周回開始時に一度だけ）。
+  setRarityWeightMult(map) { this.config.rarityWeightMult = map || null; }
 
   reset(seed, counts = {}) {
     this.seed = (seed >>> 0) || 1;
@@ -191,7 +197,7 @@ export class SkillDraftManager {
     return {
       kind, id: m.id, category: m.category, rarity: m.rarity || 'common',
       fromLevel: from, toLevel: to, maxLevel: m.maxLevel || 1,
-      weight: (this.config.rarityWeights[m.rarity] || 1) * (m.weight || 1),
+      weight: (this.config.rarityWeights[m.rarity] || 1) * ((this.config.rarityWeightMult && this.config.rarityWeightMult[m.rarity]) || 1) * (m.weight || 1),
       conflicts: m.conflicts || [],
     };
   }

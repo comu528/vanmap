@@ -332,3 +332,68 @@ active に加え passive（`passives.json` の id）も指定できる**（例: 
 - 上限に達しても**戦闘ロジックは停止しない**（新規生成を抑えるだけ・命中判定は既存分に対して厳密に行う）。
 - 検証: 全キーが `low <= medium <= high <= ultra`（品質順で逆転しない）・非負整数。低品質でも命中/刻印/不死鳥/障壁/ボス予告/
   プレイヤー/敵/敵弾は視認できる（`skillCaps` は演出でなく生成数の上限であり、視認性は別途保証）。
+
+## Milestone 6-C: 火の魔女ジョブ育成（`data/job-progression.json` 新規）
+
+周回をまたいで維持されるジョブレベルの曲線・報酬・到達報酬を定義する新規データファイル。効果は火の魔女使用中の周回のみ有効で、
+数値はすべてこのファイルに集約する（コードへ散在させない）。`jobs.<id>` キーで将来の複数ジョブへ拡張できる。
+
+### job-progression.json（全体構造）
+```jsonc
+{
+  "version": 1,
+  "jobs": {
+    "flame_witch": {
+      "jobId": "flame_witch",           // jobs.json の id と一致
+      "displayName": "火の魔女", "description": "...", "enabled": true,
+      "levelCap": 100,                   // 火の魔女は最大 Lv100
+      "xpCurve": { "quad": 25, "lin": 75 },  // 累計必要XP = quad*(L-1)^2 + lin*(L-1)（Lv1=0）
+      "xpReward": {                      // 周回終了時のジョブXP（勝敗両方で獲得）
+        "perSurvivalSecond": 1.2, "perNormalKill": 0.08, "normalKillCap": 2000,
+        "perEliteKill": 4, "perBossKill": 60, "victoryBonus": 200,
+        "difficultyMult": { "1": 1.0, "2": 1.25, "3": 1.55, "4": 1.9, "5": 2.3 }  // base に乗算
+      },
+      "perLevelBonuses": {               // 毎レベルの基本成長（Lv1 は 0＝恒等）
+        "fireDamagePerLevel": 0.0035,    // 炎属性ダメージ +0.35%/Lv（Lv100で+34.65%）
+        "fireDotPerLevel": 0.005,        // 炎上・火属性DoT +0.50%/Lv（Lv100で+49.5%）
+        "fireAreaPerLevel": 0.001        // 火属性範囲 +0.10%/Lv（Lv100で+9.9%）
+      },
+      "milestones": [ /* 到達レベル報酬（下表・level 昇順） */ ]
+    }
+  }
+}
+```
+- **累計必要XP**: `totalXpForLevel(L) = quad*(L-1)^2 + lin*(L-1)`。例 Lv2=100 / Lv10=2700 / Lv50=63700 / Lv100=252450。`jobLevel` は保存せず `totalXp` から都度算出する。
+- **周回XP**: `survivalSec*perSurvivalSecond + min(normalKills,normalKillCap)*perNormalKill + eliteKills*perEliteKill + bossKills*perBossKill + (win?victoryBonus:0)` に `difficultyMult` を乗じて `floor`。通常敵は `normalKillCap`(2000) で頭打ち。
+
+### milestones（到達レベル報酬・`type` 別）
+各要素は `{ level, id, type, label, description, ...type固有の数値 }`。`type` ごとの数値フィールドは次の通り。
+| level | type | 固有フィールド | 効果 |
+|-------|------|----------------|------|
+| 5 | `fireDamageMult` | `value:0.05` | 火ダメージ +5%（基本成長へ加算） |
+| 10 | `projectileSpeedMult` | `value:0.10` | 火属性 projectile の投射速度 +10% |
+| 20 | `cooldownMult` | `value:0.05` | 火属性 active の CD −5%（`*(1-value)`・乗算合成） |
+| 30 | `rerollBonus` | `value:1` | 周回開始時リロール +1 |
+| 40 | `explosion` | `damage:0.15, area:0.10` | 火属性爆発ダメージ +15% ＆ 爆発範囲 +10% |
+| 50 | `echo` | `interval:12, power:0.6` | 残響詠唱: 12回発動ごとに直前の攻撃を追加発動（威力60%） |
+| 60 | `evolvedDamageMult` | `value:0.20` | 進化スキルの全ダメージ +20% |
+| 70 | `rarityWeight` | `rare:1.15, legendary:1.25` | 抽選重み rare ×1.15 / legendary ×1.25（common/uncommon 不変） |
+| 80 | `projectileCount` | `value:1` | 火属性 active の発射数 +1 |
+| 90 | `cooldownMult` | `value:0.10` | 火属性 active の CD を追加で −10%（Lv20 と乗算共存 0.95×0.90） |
+| 100 | `echoUpgrade` | `interval:8, power:1.0` | 残響を 8回発動ごと・威力100% へ強化 |
+
+### balance.json: combatCaps.maxEchoPerFrame
+```jsonc
+"combatCaps": { ..., "maxEchoPerFrame": 4 }
+```
+残響（Lv50/100）の追加発動が1フレームに走る上限（=4）。到達しても戦闘ロジックは停止しない。
+
+### 検証（`tests/validate-data.mjs`・`tests/job-progression.mjs`・`tests/job-modifiers.mjs`）
+`validate-data.mjs` が `job-progression.json` について次を確認する:
+- **必須項目**（`version`/`jobs`、各ジョブの `levelCap`/`xpCurve`/`xpReward`/`perLevelBonuses`/`milestones`）と `jobs.json` との **jobId 整合**（未知ジョブを弾く）。
+- `levelCap` は **正整数**。`xpCurve` 係数は **非負の有限数**（Lv1累計=0・XP曲線が単調増加であること）。
+- `xpReward` 係数は **非負**、`difficultyMult` は **正**、`perLevelBonuses` は **非負**。
+- `milestones` は **レベル昇順・重複なし・1..levelCap** の範囲・報酬 **id 重複なし**・**既知 type のみ**（未知 type を弾く）。
+- type 固有: `echo`/`echoUpgrade` の残響回数 `interval` は **正整数**・倍率 `power` は **非負**、`rarityWeight` の抽選重み(rare/legendary)は **正**、`projectileCount` の value は **整数**、`cooldownMult` の value は **0..1**。
+- 数値フィールドは **NaN 相当（非有限）を拒否**。
+- `job-progression.mjs` は XP曲線（累計XP・単調増加・Lv100頭打ち・巨大XP/負数/NaN の安全化）を、`job-modifiers.mjs` は補正解決（Lv1恒等・各 milestone の乗算合成・残響カウンター・凍結の直列化/復元）を検証する。

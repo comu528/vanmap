@@ -24,6 +24,10 @@ export const FILE_NAMES = { profile: 'profile.json', activeRun: 'active_run.json
 export function summarize(env) {
   const p = (env && env.payload) || {};
   const st = (p.statistics && typeof p.statistics === 'object') ? p.statistics : {};
+  // M6-C: 選択ジョブと火の魔女のジョブレベル/累計Job XP（totalXp が正・レベルは表示時に算出）。
+  const jobId = (typeof p.selectedJobId === 'string' && p.selectedJobId) || 'flame_witch';
+  const jp = (p.jobProgress && typeof p.jobProgress === 'object' && p.jobProgress[jobId]) || null;
+  const jobTotalXp = jp && typeof jp.totalXp === 'number' ? jp.totalXp : null;
   return {
     type: env?.type || null,
     saveId: env?.saveId || null,
@@ -35,9 +39,21 @@ export function summarize(env) {
     embers: typeof p.embers === 'number' ? p.embers : null,
     soulflame: typeof p.soulflame === 'number' ? p.soulflame : null,
     selectedDifficulty: typeof p.selectedDifficulty === 'number' ? p.selectedDifficulty : null,
+    selectedJobId: jobId,
+    jobTotalXp,
+    jobLevel: jobLevelFromTotalXp(jobTotalXp),
     hasActiveRun: !!p.inProgress,
     elapsedSec: typeof p.elapsedSec === 'number' ? p.elapsedSec : null,
   };
+}
+
+// 保存比較・競合・インポート表示用の軽量なジョブレベル算出（曲線は火の魔女の既定係数 quad=25/lin=75）。
+// 表示専用のため DataManager 非依存（比較UIは実データに厳密一致でなくても良い）。levelCap=100 で頭打ち。
+export function jobLevelFromTotalXp(totalXp, cap = 100, quad = 25, lin = 75) {
+  if (typeof totalXp !== 'number' || !Number.isFinite(totalXp) || totalXp < 0) return null;
+  let level = 1;
+  for (let L = 2; L <= cap; L++) { if (totalXp >= quad * (L - 1) * (L - 1) + lin * (L - 1)) level = L; else break; }
+  return level;
 }
 
 export class StorageAdapter {

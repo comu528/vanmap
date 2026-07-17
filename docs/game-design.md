@@ -133,3 +133,83 @@ M6-A の抽選基盤の上に、火の魔女専用のアクティブ10種と進�
 起爆自身のダメージは刻印を再進行させない。連鎖/分裂/感染/起爆は visited 集合＋世代/拡散上限＋毎フレーム予算で無限再帰を防ぐ。
 性能上限は `balance.json` の `skillCaps`（品質low/medium/high/ultra 別）に集約する。低品質でも命中判定・刻印・不死鳥・障壁・ボス予告・
 プレイヤー/敵/敵弾は必ず視認できる（演出だけを削る）。
+
+## 火の魔女ジョブ育成（Milestone 6-C 実装済み）
+周回をまたいで維持される「ジョブレベル」を追加し、火の魔女を使い込むほど火属性ビルドが恒久的に強化される。効果は**火の魔女を使用中の周回のみ**有効で、
+他ジョブ・未定義ジョブでは全て恒等（M6-B 以前と完全一致）。数値は `data/job-progression.json` に集約し、コードへ散在させない。
+
+### 戦闘レベル と ジョブレベル（別体系）
+| 体系 | 上昇源 | リセット | 用途 |
+|------|--------|----------|------|
+| 戦闘レベル `battleLevel` | 周回中の経験値ジェム（`battleXp`） | 周回終了でLv1へ | その周回のスキル候補取得（レベルアップ3択） |
+| ジョブレベル `jobLevel` | 周回終了時に付与される `jobXp`（累計 `jobTotalXp`） | しない（周回・**転生をまたいで維持**） | ジョブ固有の恒久強化（火の魔女は最大 **Lv100**） |
+
+- ジョブレベルは保存せず `profile.jobProgress[jobId].totalXp` を**唯一の正**として都度算出（現在レベル/次まで/進行度は表示時に計算）。単調増加・Lv100頭打ち・
+  Lv100超過分の totalXp も保持。負数/NaN/Infinity は 0 扱いで拒否し、巨大 XP でもループは `levelCap` で停止してフリーズしない。
+
+### XP曲線と周回XP
+- **累計必要XP**: `totalXpForLevel(L) = quad*(L-1)^2 + lin*(L-1)`（`quad=25 / lin=75`）。係数は `job-progression.json` の `xpCurve` に分離。
+  例: Lv1=0, Lv2=100, Lv10=2700, Lv50=63700, Lv100=252450。
+- **周回終了時のジョブXP**（リザルト確定時にまとめて付与・戦闘中は付与しない・勝敗両方で獲得）:
+  `baseJobXp = survivalSec*1.2 + min(normalKills,2000)*0.08 + eliteKills*4 + bossKills*60 + victoryBonus(勝利200/敗北0)`。
+  その後 難易度倍率（1:1.0 / 2:1.25 / 3:1.55 / 4:1.90 / 5:2.30）を乗じて `floor`。通常敵撃破は上限2000で頭打ち（撃破周回が無意味にならないよう緩やか）。係数は `xpReward` に分離。
+- **二重獲得防止**: `runId`（=残り火と同じ `resultId`）を鍵に、`JobProgressionManager` が `lastAwardedRunId` + `awardedRunIds`（上限40件で保持）でガード。
+  リザルト再表示/戻る/保存失敗復帰でも二重獲得しない。付与と profile 保存は M5-B の `SaveCoordinator` 経由（`SaveManager.saveProfile`）。
+
+### 周回開始時のジョブレベル固定（凍結）
+- 周回開始時にジョブレベルから補正を解決（`resolve`）して `active_run`（`jobId` / `jobLevelAtStart` / `jobTotalXpAtStart` / `resolvedJobModifiers` /
+  `jobProgressionVersion` / `jobRuntime`=残響カウンター）へ**凍結**する。周回中に別タブ/インポート/デバッグで profile 側レベルが変わっても進行中周回へは反映しない。
+  途中再開時は `active_run` の `resolvedJobModifiers` を使う。ジョブXPはリザルト確定後に profile へ加算し、**次の周回から**新レベルが適用される。
+
+### 火の魔女の基本成長（Lv1 は完全に M6-B 以前と同一＝恒等）
+| 成長 | 係数 | Lv100での上限 | 対象 |
+|------|------|---------------|------|
+| 炎属性ダメージ | +0.35%/Lv | +34.65% | element:fire のダメージ/召喚攻撃/継続ダメージ/爆発/刻印起爆/障壁反撃/不死鳥反撃（`dealDamage`） |
+| 炎上・火属性DoT | +0.50%/Lv | +49.5% | 炎上/DoT/燃焼地帯/溶岩地帯/火炎渦/煉獄大火輪の継続ダメージ（`tag:'dot'` に追加乗算） |
+| 火属性範囲 | +0.10%/Lv | +9.9% | 爆発/設置/渦/防御反撃/進化主要範囲（`SkillBase.stats` の radius/explosionRadius ＋ `passiveAreaMult`。Projectile 当たり判定は巨大化しない） |
+
+- **DoTと火ダメージの適用順**（乗算合成・二重適用は意図）: `final = base × fireDamageMult × (isDoT?dotDamageMult) × (isExplosion?explosionDamageMult) × (isEvolved?evolvedDamageMult)`。
+  fire+DoT の攻撃は `fireDamageMult × dotDamageMult` の両方が掛かる（＝意図した乗算）。**fire 以外の属性には一切適用しない**。
+
+### 到達レベル報酬（火の魔女使用中のみ・`jobLevel` から自動有効化・claimed フラグを大量保存しない）
+| Lv | 報酬 | 効果 |
+|----|------|------|
+| 5 | 火力基礎強化 | 火ダメージ +5%（基本成長へ加算） |
+| 10 | 炎弾加速 | projectile タグの火属性スキルの投射速度 +10%（`Projectile.reset` で非 hostile 火弾へ）。召喚数/発射数/CD は不変 |
+| 20 | 高速詠唱の素養 | 火属性 active の CD −5%。既存パッシブ「高速詠唱」/恒久強化と共存。CD 安全下限(0.5)でクランプ |
+| 30 | 選択の余地 | 周回開始時のリロール +1（M6-A の `draftState` に反映。追放/スキップ不変） |
+| 40 | 爆炎強化 | `isExplosion`/`isMarkDetonation` タグの火属性ダメージ +15% ＆ 火属性爆発範囲 +10%（`aoe()` の判定半径へ）。通常弾/炎上/召喚射撃へ誤適用しない |
+| 50 | 残響詠唱 | 攻撃用火属性 active が **12回発動ごと**に直前の攻撃を1回追加発動（威力60%） |
+| 60 | 進化魔法強化 | 進化スキルの全ダメージ +20%（skillId が進化IDのとき。進化前/パッシブ補助には非適用） |
+| 70 | 高位魔法適性 | 火の魔女の抽選でのみ rare 実効重み ×1.15 / legendary ×1.25（common/uncommon 不変・決定論維持） |
+| 80 | 炎弾増殖 | projectile タグの火属性 active の発射数 +1（fireball/scatter_flame/flame_lance/homing_wisp の count 系。防御/召喚物数/分裂世代へは非適用・`skillCaps` を超えない） |
+| 90 | 炎帝の詠唱 | 火属性 active の CD を追加で −10%（Lv20 と共存・乗算合成 0.95×0.90=0.855・安全下限クランプ） |
+| 100 | 完全残響 | 残響を **8回発動ごと・威力100%** へ強化 |
+
+### 残響詠唱の設計（共通発動イベント・各スキルへ個別コードを足さない）
+- 共通シグナル `SkillManager.recordCast` → `BattleScene._onSkillCast(id)` を起点に、`JobModifierManager.registerCast()` がカウントし、閾値到達で `BattleScene._triggerEcho`。
+  追加発動は `SkillManager.requestEchoCast` → `skill.echoCast(ctx)`（既定は `fire(ctx)` 再実行＝弾/設置/召喚などの攻撃挙動を再発動）。威力は `scene._echoScale` で弾 spawn と同期ダメージへ反映（60%/100%）。
+- **対象**: active・fire・攻撃目的・`isEcho=false`・`isDefensive=false`・`isReactive=false`。**対象外**: passive/障壁自動展開/不死鳥致死発動/刻印二次起爆/DoT各tick/連鎖各対象/分裂弾/召喚物の各通常射撃/残響から発生した攻撃。
+- 追加発動はカウンターを進めない（`echoCast` は `recordCast` を呼ばない）・残響から残響を発生させない（`_inEcho` ガード）。1フレーム上限 `balance.combatCaps.maxEchoPerFrame`(=4)。
+  一時停止中は update が止まるためカウンター/遅延処理も進まない。1/1.5/2倍でも発動回数ベースのため破綻しない。
+- **既知の制限**: 主発動が cooldown 由来の `recordCast` を行うスキルのみ残響対象。純粋に update ループのみで攻撃する常時型/遅延ダメージ型は威力倍率が完全反映されない場合があるが、
+  その場合は攻撃挙動の再発動＝実質フル威力になりうる（防御/`runtimeState` 依存スキルの二重展開を避けるため安全な対象除外を優先）。
+
+### modifier 適用順（`docs/architecture.md` と一致）
+1. JSON基礎値（`skills.json` の levels）→ 2. 固定値加算/整数補正（発射数など）→ 3. 同カテゴリ内の加算倍率（熟練度・パッシブ）→
+4. カテゴリ間の乗算倍率（ジョブレベル基本成長・到達報酬）→ 5. 安全下限/上限（CD下限・`skillCaps`）→ 6. 品質別生成上限。
+- 具体経路: 基礎値/熟練度/パッシブ area・duration → `SkillBase.stats`。ジョブ火範囲 → stats(radius/explosionRadius)＋`passiveAreaMult`。
+  ダメージ（恒久/魂炎 → パッシブ魔力増幅 → ジョブ火ダメージ → 残響）→ `dealDamage`。CD（基礎×熟練度 → パッシブ高速詠唱×ジョブLv20/90、下限クランプ）→ `SkillBase.update`/`passiveCooldownMult`。
+  発射数（パッシブ＋ジョブLv80）→ `fireProjectileCount`。投射速度（ジョブLv10）→ `Projectile.reset`。抽選重み（ジョブLv70）→ `SkillDraftManager`。
+  **Lv1 かつ到達報酬なしで M6-B 以前と完全一致（恒等）**。
+
+### 画面（拠点「ジョブ育成」タブ / リザルト）・デバッグ・将来拡張
+- **拠点ジョブ育成タブ**（640×360維持・火の魔女1ジョブのみ）: ジョブ名/仮アイコン（既存生成テクスチャ `icon_fireball`）/Job Lv/上限/現在XP/次まで/XP進行バー/累計totalXp/
+  出撃/勝利/最高難易度/現在の基本補正/次の到達報酬/Lv5〜Lv100報酬一覧（解放済み・未解放の区別）。多い場合スクロール。他ジョブ選択画面は未実装。
+- **リザルト画面**: 今回獲得 Job XP/難易度倍率/Job Lv 変化(before→after)/XPバー増加/複数レベルアップ対応/新しく解放された到達報酬/Lv100到達表示/二重獲得済みの安全表示。
+  報酬付与は `BattleManager` で確定済み（演出待ちで失わない・UIアニメ完了を待たず即付与）。
+- **デバッグ（`?debug=1` のみ）**: F5 個別スキル検証パネル（F1〜F4 と競合しない）。指定 active の単独化/Lv1〜8変更/単独進化/他 active 削除/パッシブ・残り火魂炎火力・熟練度・ジョブ補正の一時無効化/
+  Job Lv 1・10・20・30・40・50・60・70・80・90・100 の一時適用/敵HP弱体化/敵密集/残響カウンター表示/残響を次発動で強制/最終 modifier と damage・cooldown・area 計算内訳の表示/通常状態へ戻す。
+  一時無効化はランタイムのみ（profile の購入強化や熟練度を削除・保存しない）。
+- **将来拡張 / 未実装**: 転生レガシー未実装（複数ジョブ実装後に設計・他ジョブへ効果を持ち越さない）。ジョブ間継承/新ジョブ/ジョブ選択画面/他ジョブスキル/新 active/passive/進化 は今回対象外。
+  新ジョブ追加は `jobs.json` にジョブ定義＋`job-progression.json` に `jobs.<id>` を追加し、必要なら `JobModifierManager.resolve` に新 milestone type を足す（火の魔女以外・未定義ジョブは全て恒等）。

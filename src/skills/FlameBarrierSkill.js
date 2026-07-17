@@ -11,6 +11,7 @@ export class FlameBarrierSkill extends SkillBase {
     this.ring = this.scene.add.image(0, 0, TEX.PARTICLE).setTint(0x80d8ff).setBlendMode(Phaser.BlendModes.ADD).setDepth(49).setAlpha(0).setScale(6);
   }
   canFire() { return false; }
+  get isDefensive() { return true; }  // 残響詠唱の対象外（防御型）
 
   update(dt) {
     const s = this.stats; const st = this._state;

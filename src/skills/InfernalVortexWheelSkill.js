@@ -49,7 +49,7 @@ export class InfernalVortexWheelSkill extends EvolvedSkillBase {
       if (v.tick <= 0) {
         v.tick = v.tickRate;
         this.scene.combat.forEachEnemyInRadius(v.x, v.y, v.radius, (e) => {
-          this.scene.combat.dealDamage(e, v.tickDmg, this.id, { quiet: true, color: 0xff7043 });
+          this.scene.combat.dealDamage(e, v.tickDmg, this.id, { quiet: true, color: 0xff7043, tag: 'dot' });
           if (e.applyKnockback) e.applyKnockback(2 * v.x - e.x, 2 * v.y - e.y, e.isBoss ? v.pull * 0.15 : v.pull * 0.3);
           // 炎上感染（上限内・ボス除外）
           if (infectBudget > 0 && e.ignited && !e.isBoss) {
@@ -69,7 +69,7 @@ export class InfernalVortexWheelSkill extends EvolvedSkillBase {
     for (let i = this.patches.length - 1; i >= 0; i--) {
       const patch = this.patches[i]; patch.expire -= dt; patch.tick -= dt;
       if (patch.sprite) patch.sprite.setAlpha(0.4 * Math.max(0, patch.expire) / (patch.maxDuration || 1));
-      if (patch.tick <= 0) { patch.tick = 260; this.scene.combat.forEachEnemyInRadius(patch.x, patch.y, patch.radius, (e) => this.scene.combat.dealDamage(e, this.evoDef.damage?.burnGround || 8, this.id, { quiet: true, color: 0xff5722 })); }
+      if (patch.tick <= 0) { patch.tick = 260; this.scene.combat.forEachEnemyInRadius(patch.x, patch.y, patch.radius, (e) => this.scene.combat.dealDamage(e, this.evoDef.damage?.burnGround || 8, this.id, { quiet: true, color: 0xff5722, tag: 'dot' })); }
       if (patch.expire <= 0) { if (patch.sprite) patch.sprite.destroy(); this.patches.splice(i, 1); }
     }
   }

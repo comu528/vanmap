@@ -6,6 +6,8 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../config/game-config.js';
 import { SaveManager } from '../systems/SaveManager.js';
 import { ProgressionManager } from '../systems/ProgressionManager.js';
 import { ReincarnationManager } from '../systems/ReincarnationManager.js';
+import { JobProgressionManager } from '../systems/JobProgressionManager.js';
+import { JobModifierManager } from '../systems/JobModifierManager.js';
 import { DataManager } from '../systems/DataManager.js';
 import { formatTime } from '../utils/time.js';
 
@@ -30,6 +32,7 @@ export class BaseScene extends Phaser.Scene {
       { key: 'home', label: '概要' },
       { key: 'upgrades', label: '恒久強化' },
       { key: 'mastery', label: '熟練度' },
+      { key: 'job', label: 'ジョブ育成' },
       { key: 'difficulty', label: '難易度' },
       { key: 'reincarnation', label: '転生' },
       { key: 'soulflame', label: '魂炎強化' },
@@ -127,6 +130,7 @@ export class BaseScene extends Phaser.Scene {
     if (key === 'home') this.buildHome();
     else if (key === 'upgrades') this.buildUpgrades();
     else if (key === 'mastery') this.buildMastery();
+    else if (key === 'job') this.buildJob();
     else if (key === 'difficulty') this.buildDifficulty();
     else if (key === 'reincarnation') this.buildReincarnation();
     else if (key === 'soulflame') this.buildSoulflame();
@@ -239,6 +243,57 @@ export class BaseScene extends Phaser.Scene {
       this.label(40, y + 11, `ボーナス Dmg+${Math.round((b.damageMult - 1) * 100)}% CD-${Math.round((1 - b.cooldownMult) * 100)}% 範囲+${Math.round((b.radiusMult - 1) * 100)}%${b.startLevel ? ` 初期Lv+${b.startLevel}` : ''}  Lv5:候補率↑ Lv10:初期Lv2 Lv15:進化条件緩和 Lv20:進化強化`, { fontSize: '7px', color: '#8d6e63' });
       y += 27;
     }
+  }
+
+  // ---------------- ジョブ育成（M6-C） ----------------
+  // 戦闘レベル（周回ごとにLv1・経験値ジェムで上昇・周回終了でリセット）とは別の、恒久的なジョブレベルを表示する。
+  // 今回は火の魔女1ジョブのみ。他ジョブ選択画面は実装しない。
+  buildJob() {
+    const p = this.profile;
+    const jobId = p.selectedJobId || 'flame_witch';
+    const jdef = DataManager.getJob(jobId);
+    const jp = DataManager.getJobProgression(jobId);
+    const entry = (p.jobProgress && p.jobProgress[jobId]) || JobProgressionManager.emptyEntry();
+    const prog = JobProgressionManager.progress(jobId, entry.totalXp || 0);
+    const mods = JobModifierManager.resolve(jp, prog.level);
+
+    // ヘッダ: 仮アイコン（既存生成テクスチャ）＋ジョブ名＋Lv
+    this.add2(this.add.image(30, 68, 'icon_fireball').setScale(1.5));
+    this.label(46, 54, `${jdef?.displayName || jobId}`, { color: '#ffd54f', fontSize: '12px' });
+    this.label(46, 70, `Job Lv.${prog.level} / ${prog.cap}`, { fontSize: '10px', color: '#80deea' });
+
+    // XPバー（戦闘レベルとは別物）
+    this.label(210, 54, `Job XP（累計）: ${Math.round(prog.totalXp)}`, { fontSize: '9px', color: '#ffab40' });
+    this.label(210, 68, prog.atCap ? '最大Lv100 到達' : `次のLvまで ${Math.round(prog.xpToNext)}（${Math.round(prog.xpIntoLevel)}/${Math.round(prog.xpForNext)}）`, { fontSize: '9px', color: '#bcaaa4' });
+    const bx = 210, by = 82, bw = 250;
+    this.add2(this.add.rectangle(bx, by, bw, 6, 0x3e2723).setOrigin(0, 0));
+    this.add2(this.add.rectangle(bx + 1, by + 1, (bw - 2) * prog.ratio, 4, 0x29b6f6).setOrigin(0, 0));
+
+    // 統計
+    this.label(20, 96, `出撃 ${entry.runs || 0}（勝 ${entry.wins || 0} / 敗 ${entry.losses || 0}）  最高難易度クリア ${entry.highestDifficultyCleared || 0}  進化 ${entry.totalEvolutions || 0}回`, { fontSize: '9px', color: '#bcaaa4' });
+
+    // 現在の基本補正
+    this.label(16, 112, '現在の基本補正（火の魔女を使用している周回のみ有効）', { color: '#ffab40', fontSize: '10px' });
+    const pct = (m) => `${Math.round((m - 1) * 1000) / 10}%`;
+    const cd = Math.round((1 - mods.cooldownMult()) * 1000) / 10;
+    this.label(24, 126, `火ダメージ +${pct(mods.damageMultiplier({ element: 'fire' }))}  /  DoT追加 +${pct(mods.dotDamageMult)}  /  火範囲 +${pct(mods.fireAreaMult())}${cd ? `  /  CD -${cd}%` : ''}`, { fontSize: '8px' });
+
+    // 次の到達報酬
+    const next = JobProgressionManager.nextMilestone(jobId, prog.level);
+    this.label(16, 142, next ? `次の到達報酬: Lv${next.level} ${next.label} — ${next.description}` : '到達報酬: すべて解放済み', { color: '#a5d6a7', fontSize: '9px', wordWrap: { width: 470 } });
+
+    // 到達報酬一覧（解放済み／未解放）
+    this.label(16, 160, '到達報酬（Lv5〜Lv100）', { color: '#ffab40', fontSize: '10px' });
+    let y = 176;
+    for (const m of JobProgressionManager.milestones(jobId)) {
+      const unlocked = prog.level >= m.level;
+      this.label(24, y, `Lv${m.level}`, { fontSize: '9px', color: unlocked ? '#a5d6a7' : '#8d6e63' });
+      this.label(66, y, `${m.label}`, { fontSize: '9px', color: unlocked ? '#ffe0b2' : '#8d6e63' });
+      this.label(168, y, m.description, { fontSize: '8px', color: unlocked ? '#bcaaa4' : '#6d5b52', wordWrap: { width: 290 } });
+      this.label(474, y, unlocked ? '解放' : '🔒', { fontSize: '8px', color: unlocked ? '#a5d6a7' : '#8d6e63' });
+      y += 16;
+    }
+    this.label(16, y + 6, 'ジョブレベルは周回終了時の Job XP で上昇し、周回・転生をまたいで維持されます。効果は火の魔女を使用中の周回のみ有効です。', { fontSize: '8px', color: '#8d6e63', wordWrap: { width: 480 } });
   }
 
   // ---------------- 難易度 ----------------

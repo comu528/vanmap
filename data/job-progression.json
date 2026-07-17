@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "jobs": {
+    "flame_witch": {
+      "jobId": "flame_witch",
+      "displayName": "火の魔女",
+      "description": "炎を操る魔女。ジョブレベルを上げるほど火属性の火力・継続ダメージ・範囲が伸び、到達レベルで固有の技巧を解放する（効果は火の魔女を使用中の周回のみ有効）。",
+      "enabled": true,
+      "levelCap": 100,
+      "xpCurve": {
+        "quad": 25,
+        "lin": 75
+      },
+      "xpReward": {
+        "perSurvivalSecond": 1.2,
+        "perNormalKill": 0.08,
+        "normalKillCap": 2000,
+        "perEliteKill": 4,
+        "perBossKill": 60,
+        "victoryBonus": 200,
+        "difficultyMult": {
+          "1": 1.0,
+          "2": 1.25,
+          "3": 1.55,
+          "4": 1.9,
+          "5": 2.3
+        }
+      },
+      "perLevelBonuses": {
+        "fireDamagePerLevel": 0.0035,
+        "fireDotPerLevel": 0.005,
+        "fireAreaPerLevel": 0.001
+      },
+      "milestones": [
+        { "level": 5, "id": "fw_power_base", "type": "fireDamageMult", "value": 0.05, "label": "火力基礎強化", "description": "火属性ダメージ+5%" },
+        { "level": 10, "id": "fw_projectile_speed", "type": "projectileSpeedMult", "value": 0.10, "label": "炎弾加速", "description": "火属性projectileの投射速度+10%" },
+        { "level": 20, "id": "fw_haste", "type": "cooldownMult", "value": 0.05, "label": "高速詠唱の素養", "description": "火属性activeのクールダウン-5%" },
+        { "level": 30, "id": "fw_reroll", "type": "rerollBonus", "value": 1, "label": "選択の余地", "description": "周回開始時のリロール+1" },
+        { "level": 40, "id": "fw_blast", "type": "explosion", "damage": 0.15, "area": 0.10, "label": "爆炎強化", "description": "火属性爆発ダメージ+15%・爆発範囲+10%" },
+        { "level": 50, "id": "fw_echo", "type": "echo", "interval": 12, "power": 0.6, "label": "残響詠唱", "description": "攻撃用火属性activeが12回発動ごとに直前の攻撃を1回追加発動（威力60%）" },
+        { "level": 60, "id": "fw_evolved", "type": "evolvedDamageMult", "value": 0.20, "label": "進化魔法強化", "description": "進化スキルの全ダメージ+20%" },
+        { "level": 70, "id": "fw_rarity", "type": "rarityWeight", "rare": 1.15, "legendary": 1.25, "label": "高位魔法適性", "description": "rare抽選重み×1.15・legendary×1.25" },
+        { "level": 80, "id": "fw_extra_projectile", "type": "projectileCount", "value": 1, "label": "炎弾増殖", "description": "火属性activeの発射数+1" },
+        { "level": 90, "id": "fw_haste2", "type": "cooldownMult", "value": 0.10, "label": "炎帝の詠唱", "description": "火属性activeのクールダウンを追加で-10%" },
+        { "level": 100, "id": "fw_echo_full", "type": "echoUpgrade", "interval": 8, "power": 1.0, "label": "完全残響", "description": "残響詠唱を強化（8回発動ごと・威力100%）" }
+      ]
+    }
+  }
+}

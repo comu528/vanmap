@@ -135,10 +135,42 @@ export function migrateProfile(stored, sv, gv) {
   m.selectedJobId = (typeof s.selectedJobId === 'string' && s.selectedJobId) || 'flame_witch';
   m.unlockedJobs = (arr(s.unlockedJobs) || ['flame_witch']).filter((x) => typeof x === 'string');
   if (!m.unlockedJobs.includes('flame_witch')) m.unlockedJobs.unshift('flame_witch');
-  m.jobProgress = obj(s.jobProgress);
+  m.jobProgress = safeJobProgress(s.jobProgress);
   m.passiveMastery = safePassiveMastery(s.passiveMastery);
   m.futureInheritanceSettings = obj(s.futureInheritanceSettings);
   return m;
+}
+
+// jobProgress を型安全に取り込む（Milestone 6-C）。ジョブごとの育成データ（totalXp が唯一の正）。
+// 表示レベルは totalXp から都度算出するため保存しない。旧セーブ（jobProgress 無し）は空 → 各ジョブ totalXp=0 開始。
+// 転生でリセットしない（維持）。プロトタイプ汚染キーを除外し、有限数のみ通す。
+function safeJobProgress(src) {
+  const out = {};
+  const s = obj(src);
+  for (const k of Object.keys(s)) {
+    if (k === '__proto__' || k === 'prototype' || k === 'constructor') continue;
+    const e = obj(s[k]);
+    const ids = arr(e.awardedRunIds) || [];
+    out[k] = {
+      totalXp: Math.max(0, num(e.totalXp, 0)),
+      runs: Math.max(0, num(e.runs, 0)),
+      wins: Math.max(0, num(e.wins, 0)),
+      losses: Math.max(0, num(e.losses, 0)),
+      totalSurvivalSeconds: Math.max(0, num(e.totalSurvivalSeconds, 0)),
+      totalKills: Math.max(0, num(e.totalKills, 0)),
+      eliteKills: Math.max(0, num(e.eliteKills, 0)),
+      bossKills: Math.max(0, num(e.bossKills, 0)),
+      highestBattleLevel: Math.max(0, num(e.highestBattleLevel, 0)),
+      highestDifficultyPlayed: Math.max(0, num(e.highestDifficultyPlayed, 0)),
+      highestDifficultyCleared: Math.max(0, num(e.highestDifficultyCleared, 0)),
+      totalEvolutions: Math.max(0, num(e.totalEvolutions, 0)),
+      lastPlayedAt: (typeof e.lastPlayedAt === 'string') ? e.lastPlayedAt : null,
+      lastXpGain: Math.max(0, num(e.lastXpGain, 0)),
+      lastAwardedRunId: (typeof e.lastAwardedRunId === 'string') ? e.lastAwardedRunId : null,
+      awardedRunIds: ids.filter((x) => typeof x === 'string').slice(-40),
+    };
+  }
+  return out;
 }
 
 // passiveMastery を型安全に取り込む（ダメージ統計は持たせない）。

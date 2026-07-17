@@ -15,6 +15,7 @@ const FILES = {
   jobs: './data/jobs.json',
   passives: './data/passives.json',
   skillConfig: './data/skill-config.json',
+  jobProgression: './data/job-progression.json',
 };
 
 class DataManagerClass {
@@ -98,6 +99,10 @@ class DataManagerClass {
     return out;
   }
   get speedModes() { return asArray(this.balance.speedModes).length ? this.balance.speedModes : [1]; }
+
+  // ---- Milestone 6-C: ジョブ育成（ジョブレベル・経験値・到達報酬） ----
+  get jobProgression() { return this.data.jobProgression || {}; }
+  getJobProgression(id) { return (this.jobProgression.jobs && this.jobProgression.jobs[id]) || null; }
 
   getEvolution(id) { return this.evolutions.find((e) => e.id === id) || null; }
   getEvolutionForBase(baseId) { return this.evolutions.find((e) => e.baseSkillId === baseId) || null; }

@@ -11,7 +11,7 @@ export class FireballSkill extends SkillBase {
     if (!target) return;
 
     const baseAng = Math.atan2(target.y - p.y, target.x - p.x);
-    const count = s.count || 1;
+    const count = this.fireProjectileCount(s.count || 1); // M6-C Lv80: 発射数+1（未解放/Lv1 では恒等）
     const spread = 0.16;
     const scale = this.visualScale();
     for (let i = 0; i < count; i++) {

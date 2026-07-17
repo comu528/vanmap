@@ -150,7 +150,15 @@ export class SkillManager {
   }
 
   update(dt, ctx) {
+    this._ctx = ctx; // 残響詠唱の再発動に使う直近の発動コンテキスト（M6-C）
     for (const sk of this.skills.values()) sk.update(dt, ctx);
+  }
+
+  // 残響詠唱（M6-C）: スキル id の攻撃挙動を威力倍率つきで安全に再実行する。
+  // カウンターは進めない・残響から残響を発生させない（scene 側の _inEcho ガードと併用）。
+  requestEchoCast(id) {
+    const sk = this.skills.get(id);
+    if (sk && sk.echoCast) sk.echoCast(this._ctx || { hasEnemies: this.scene.hasTargets?.() });
   }
 
   // 撃破フック（M6-B: 百鬼燎乱の分裂など）。スキルが onEnemyKilled を実装していれば呼ぶ。
@@ -178,7 +186,8 @@ export class SkillManager {
   }
 
   // ---- 統計 ----
-  recordCast(id) { this._ensureStats(id).casts++; }
+  // 本発動（cooldown 由来の主発動）ごとに呼ばれる共通シグナル。残響詠唱（M6-C）の起点にもなる。
+  recordCast(id) { this._ensureStats(id).casts++; if (this.scene._onSkillCast) this.scene._onSkillCast(id); }
   recordHit(id) { this._ensureStats(id).hits++; }
   recordDamage(id, amount) { this._ensureStats(id).damage += amount; }
   recordKill(id) { this._ensureStats(id).kills++; }

@@ -21,6 +21,9 @@ export function extractMeta(profilePayload, activeRunPayload, envelope) {
     reincarnationCount: num(p.reincarnationCount, 0),
     lifetimeSoulflame: num(p.lifetimeSoulflame, 0),
     lifetimeEmbers: num(p.lifetimeEmbers, 0),
+    // M6-C: 競合比較にジョブ育成（選択ジョブ・火の魔女 totalXp/レベル）を含める。
+    selectedJobId: (typeof p.selectedJobId === 'string' && p.selectedJobId) || 'flame_witch',
+    jobTotalXp: num(obj(p.jobProgress)[(typeof p.selectedJobId === 'string' && p.selectedJobId) || 'flame_witch']?.totalXp, 0),
     totalPlayTime: num(st.totalPlayTime, 0),
     highestEverDifficulty: num(p.highestEverDifficulty, 0),
     cycleNumber: num(cc.cycleNumber, 0),

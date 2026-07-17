@@ -23,6 +23,8 @@ import { SkillDraftManager } from '../systems/SkillDraftManager.js';
 import { EffectManager } from '../systems/EffectManager.js';
 import { SpawnManager } from '../systems/SpawnManager.js';
 import { BattleManager } from '../systems/BattleManager.js';
+import { JobProgressionManager } from '../systems/JobProgressionManager.js';
+import { JobModifierManager } from '../systems/JobModifierManager.js';
 import { HUD } from '../ui/HUD.js';
 import { PauseMenu } from '../ui/PauseMenu.js';
 import { distance, dist2, createRng } from '../utils/math.js';
@@ -140,6 +142,16 @@ export class BattleScene extends Phaser.Scene {
     this.activeSlotsMax = (this.job.baseActiveSlots ?? slotCfg.baseActiveSlots ?? 4) + (this.reincStats.activeSlotBonus || 0);
     this.passiveSlotsMax = (this.job.basePassiveSlots ?? slotCfg.basePassiveSlots ?? 4);
 
+    // ジョブ育成（M6-C）: 周回開始時のジョブレベルを解決し、補正を「凍結」する（周回中は不変）。
+    // 効果は「そのジョブを使用中の周回のみ」有効。途中再開時は restoreFromRun で保存済み凍結値を使う。
+    this.jobId = this.job.id || 'flame_witch';
+    // 火の魔女は全 active ダメージを fire として扱う（ジョブ火属性補正の既定属性）。将来の非火ジョブは null。
+    this._defaultElement = (this.jobId === 'flame_witch') ? 'fire' : null;
+    this._echoScale = 1;
+    this._inEcho = false;
+    this.jobMods = new JobModifierManager();
+    this._resolveJobModsFromProfile();
+
     // マネージャ
     this.effects = new EffectManager(this);
     this.effects.setSettings(this.effSettings);
@@ -149,7 +161,12 @@ export class BattleScene extends Phaser.Scene {
     this.passives = new PassiveManager(this);
     this.passives.setDefs(DataManager.passives, DataManager.skillConfig);
     const dcfg = DataManager.skillConfig.draft || {};
-    this.draft = new SkillDraftManager({ rarityWeights: DataManager.rarityWeights, baseRerolls: dcfg.baseRerolls, baseBanishes: dcfg.baseBanishes, baseSkips: dcfg.baseSkips });
+    this._baseRerolls = dcfg.baseRerolls ?? 1;
+    // ジョブ Lv70「高位魔法適性」: rare/legendary の実効抽選重み倍率（周回開始時に凍結）。common/uncommon は不変。
+    this.draft = new SkillDraftManager({
+      rarityWeights: DataManager.rarityWeights, baseRerolls: dcfg.baseRerolls, baseBanishes: dcfg.baseBanishes, baseSkips: dcfg.baseSkips,
+      rarityWeightMult: { rare: this.jobMods.rarityWeightMult('rare'), legendary: this.jobMods.rarityWeightMult('legendary') },
+    });
     this.spawn = new SpawnManager(this);
     this.battle = new BattleManager(this);
     this.pauseMenu = new PauseMenu(this);
@@ -158,6 +175,7 @@ export class BattleScene extends Phaser.Scene {
     // 進行状態
     this.timeSec = 0;
     this.kills = 0;
+    this.eliteKills = 0; // M6-C: エリート撃破数（ジョブXP計算に使用）
     this.bossKills = 0;
     this.maxHit = 0;
     this.autoMove = !!this.settings.autoMove;
@@ -191,7 +209,8 @@ export class BattleScene extends Phaser.Scene {
     if (this.resumeData) {
       this.restoreFromRun(this.resumeData, bal);
     } else {
-      this.draft.reset(this._draftSeed, {});
+      // ジョブ Lv30「選択の余地」: 周回開始時のリロール+1（初期1回に加算＝Lv30以上で基本2回）。追放・スキップは不変。
+      this.draft.reset(this._draftSeed, { rerolls: this._baseRerolls + this.jobMods.extraRerolls() });
       // ジョブの初期スキル（active/passive）。
       for (const id of (this.job.initialActiveSkills && this.job.initialActiveSkills.length ? this.job.initialActiveSkills : ['fireball'])) this.skills.acquireOrLevel(id);
       for (const id of (this.job.initialPassiveSkills || [])) this.passives.acquireOrLevel(id);
@@ -217,6 +236,7 @@ export class BattleScene extends Phaser.Scene {
       this.input.keyboard.on('keydown-F2', () => this.togglePerfOverlay()); // 性能パネル（M5-A）
       this.input.keyboard.on('keydown-F3', () => this.toggleGridViz());      // グリッド可視化（M5-A）
       this.input.keyboard.on('keydown-F4', () => this.toggleSkillDebug());   // 新スキル確認（M6-B）
+      this.input.keyboard.on('keydown-F5', () => this.toggleSkillTuner());    // 個別スキル検証（M6-C）
       // ヘッドレス/実ブラウザからの検査・比較用に戦闘シーンを公開する。
       window.RFS_BATTLE = this;
       this.togglePerfOverlay(); // debug 時は性能パネルを既定表示
@@ -226,6 +246,7 @@ export class BattleScene extends Phaser.Scene {
     this.hud = new HUD(this);
     this.hud.onPause(() => this.togglePause());
     this.hud.onToggleAuto(() => this.toggleAuto());
+    this.hud.setJob(this.job.displayName || this.jobId, this.jobLevelAtStart); // M6-C: ジョブ名＋適用中ジョブLv
     this.updateHudSkills();
 
     // 中断対応
@@ -255,6 +276,7 @@ export class BattleScene extends Phaser.Scene {
   restoreFromRun(r, bal) {
     this.timeSec = r.elapsedSec || 0;
     this.kills = r.kills || 0;
+    this.eliteKills = r.eliteKills || 0;
     // 現在の恒久強化ボーナスを土台に、保存済みボーナスを上書きする。
     this.bonus = { ...this.bonus, ...(r.bonus || {}) };
     if (r.maxHp) this.player.maxHp = r.maxHp;
@@ -276,6 +298,54 @@ export class BattleScene extends Phaser.Scene {
     else this.draft.reset(this._draftSeed, {});
     // M6-B: スキル固有 runtimeState（不死鳥CD・障壁再使用 等）を復元（再読込での不正回復を防ぐ）。
     if (r.skillRuntime) this.skills.restoreRuntime(r.skillRuntime);
+    // M6-C: ジョブ補正の凍結値・残響カウンターを復元（周回途中に profile 側レベルが変わっても反映しない）。
+    this._restoreJobMods(r);
+  }
+
+  // 現在の profile からジョブレベル補正を解決して凍結する（新規周回）。
+  _resolveJobModsFromProfile() {
+    const jp = DataManager.getJobProgression(this.jobId);
+    const entry = JobProgressionManager.entry(this.profile, this.jobId);
+    this.jobTotalXpAtStart = entry.totalXp;
+    this.jobLevelAtStart = JobProgressionManager.levelForTotalXp(this.jobId, entry.totalXp);
+    this.resolvedJobModifiers = JobModifierManager.resolve(jp, this.jobLevelAtStart);
+    this.jobProgressionVersion = DataManager.jobProgression.version || 1;
+    this.jobMods.setResolved(this.resolvedJobModifiers);
+  }
+
+  // 途中再開: active_run に凍結された補正・残響カウンターを使う（profile 側の変更を持ち込まない）。
+  _restoreJobMods(r) {
+    if (r.resolvedJobModifiers) {
+      this.jobId = r.jobId || this.jobId;
+      this.resolvedJobModifiers = r.resolvedJobModifiers;
+      this.jobLevelAtStart = (typeof r.jobLevelAtStart === 'number') ? r.jobLevelAtStart : (this.resolvedJobModifiers.jobLevel || 1);
+      if (typeof r.jobTotalXpAtStart === 'number') this.jobTotalXpAtStart = r.jobTotalXpAtStart;
+      this.jobProgressionVersion = r.jobProgressionVersion || this.jobProgressionVersion;
+      this.jobMods.setResolved(this.resolvedJobModifiers);
+    }
+    if (r.jobRuntime) this.jobMods.restore(r.jobRuntime); // 残響カウンター
+    this.draft.setRarityWeightMult({ rare: this.jobMods.rarityWeightMult('rare'), legendary: this.jobMods.rarityWeightMult('legendary') });
+  }
+
+  // ---------------- 残響詠唱（M6-C・Lv50/Lv100） ----------------
+  // recordCast（本発動の共通シグナル）から呼ばれる。攻撃用 fire active のみカウントし、
+  // 閾値到達で直前の攻撃を1回だけ追加発動する。防御/反応/DoT/召喚射撃/連鎖/分裂/残響発は対象外。
+  _onSkillCast(id) {
+    if (this._inEcho) return;                       // 残響発動からは残響を発生させない
+    if (!this.jobMods || !this.jobMods.echoEnabled()) return;
+    const sk = this.skills.skills.get(id);
+    if (!sk || sk.isDefensive || sk.isReactive) return;
+    if (this.jobMods.registerCast()) this._triggerEcho(sk);
+  }
+
+  _triggerEcho(sk) {
+    if (this._echoBudget <= 0) { this._m.suppressed++; return; } // 1フレーム上限（無限発動防止）
+    this._echoBudget--;
+    this._inEcho = true;
+    this._echoScale = this.jobMods.echoPower(); // 弾生成/同期ダメージへ威力倍率を反映
+    try { this.skills.requestEchoCast(sk.id); }
+    finally { this._echoScale = 1; this._inEcho = false; }
+    this.skills.recordExtra(sk.id, 'echoCasts', 1, 'add');
   }
 
   cleanup() {
@@ -288,6 +358,7 @@ export class BattleScene extends Phaser.Scene {
     if (this._perfText) { this._perfText.destroy(); this._perfText = null; }
     if (this._gridGfx) { this._gridGfx.destroy(); this._gridGfx = null; }
     if (this._skdbg) { this._skdbg.destroy(true); this._skdbg = null; }
+    if (this._sktuner) { this._sktuner.destroy(true); this._sktuner = null; }
     if (window.RFS_BATTLE === this) window.RFS_BATTLE = null;
   }
 
@@ -419,7 +490,7 @@ export class BattleScene extends Phaser.Scene {
       this.effects.whiteFlash();
       this.effects.screenShake(300, 0.012);
     }
-    this.aoe(this.player.x, this.player.y, ph.explosionRadius || 100, ph.explosionDamage || 0, 'phoenix_feather', { crit: true });
+    this.aoe(this.player.x, this.player.y, ph.explosionRadius || 100, ph.explosionDamage || 0, 'phoenix_feather', { crit: true, isExplosion: true });
     this.showBanner('不死鳥の羽が発動！');
   }
 
@@ -469,6 +540,8 @@ export class BattleScene extends Phaser.Scene {
     this._deathExpBudget = caps.maxDeathExplosionChain ?? 3;
     // M6-B: 同時起爆の毎フレーム予算（品質別）。上限到達でも戦闘ロジックは停止しない。
     this._explosionBudget = DataManager.skillCap('maxSimultaneousExplosions', this.settings?.effectQuality || 'high', 8);
+    // M6-C: 残響詠唱の1フレーム内発動上限（無限発動・処理停止の防止）。
+    this._echoBudget = caps.maxEchoPerFrame ?? 4;
     if (this.effects) this.effects.beginFrame(caps.maxDamageNumbersPerFrame ?? 24, this.particleBudget ?? 200);
     this._resetMetrics();
   }
@@ -497,11 +570,13 @@ export class BattleScene extends Phaser.Scene {
   }
 
   // 安全上限付き AoE（進化スキルが使用）。上限に達しても戦闘を止めない。
+  // M6-C: 爆発タグ付き AoE は Lv40「爆炎強化」の爆発範囲+10% を判定半径へ反映する。
   aoe(x, y, radius, amount, skillId, opts = {}) {
     if (this._aoeBudget <= 0) { this._m.suppressed++; return; }
     this._aoeBudget--;
     this._m.aoe++;
-    this.damageArea(x, y, radius, amount, skillId, opts);
+    const r = (opts.isExplosion || opts.isMarkDetonation) ? radius * this.jobMods.explosionAreaMult() : radius;
+    this.damageArea(x, y, r, amount, skillId, opts);
   }
 
   ignitedCount() {
@@ -616,6 +691,11 @@ export class BattleScene extends Phaser.Scene {
     // 基礎ダメージ恒久強化（damageMult）＋パッシブ「魔力増幅」を全プレイヤーダメージへ適用。
     // パッシブ未取得なら getDamageMultiplier()=1（＝M5-B 以前と同じ）。
     amount = amount * (this.bonus.damageMult || 1) * (this.passives ? this.passives.getDamageMultiplier() : 1);
+    // ジョブレベル（M6-C）: 火属性ダメージ補正（基本成長＋Lv5/Lv40爆発/Lv60進化）をタグに応じて適用。
+    // fire 以外・Lv1・非対象ジョブでは 1（恒等＝M6-B と一致）。適用順は最後（カテゴリ間の乗算）。
+    amount *= this.jobMods.damageMultiplier(this._damageTags(skillId, opts));
+    // 残響の追加発動ぶんの威力（同期ダメージ用・弾は spawn 時に反映済み）。
+    if (this._echoScale && this._echoScale !== 1) amount *= this._echoScale;
     const died = target.takeDamage(amount);
     const dealt = target.lastDamage || amount;
     if (skillId) { this.skills.recordDamage(skillId, dealt); this.skills.recordHit(skillId); }
@@ -648,8 +728,20 @@ export class BattleScene extends Phaser.Scene {
         knockback: opts.knockback || 0, from: { x, y },
         crit: opts.crit, quiet: opts.quiet, color: opts.color,
         isMarkDetonation: opts.isMarkDetonation, element: opts.element, tag: opts.tag,
+        isDoT: opts.isDoT, isExplosion: opts.isExplosion,
       });
     }
+  }
+
+  // ダメージタグを解決する（M6-C: ジョブ火属性補正の適用判定）。
+  // 火の魔女の全 active ダメージは fire として扱う（他ジョブは opts.element で明示・未指定は非火＝補正なし）。
+  _damageTags(skillId, opts) {
+    return {
+      element: opts.element || this._defaultElement || 'fire',
+      isDoT: !!(opts.isDoT || opts.tag === 'dot' || opts.tag === 'burn'),
+      isExplosion: !!(opts.isExplosion || opts.tag === 'explosion' || opts.isMarkDetonation),
+      isEvolved: !!(skillId && DataManager.getEvolution(skillId)),
+    };
   }
 
   // ---------------- メインループ ----------------
@@ -855,7 +947,7 @@ export class BattleScene extends Phaser.Scene {
           this.dealDamage(e, proj.damage, proj.skillId, { knockback: proj.knockback, from: { x: this.player.x, y: this.player.y }, element: proj.element });
           if (proj.explosionRadius > 0) {
             this.effects.explosion(proj.x, proj.y, proj.explosionRadius);
-            this.aoe(proj.x, proj.y, proj.explosionRadius, proj.damage * 0.5, proj.skillId, { exclude: e, quiet: true });
+            this.aoe(proj.x, proj.y, proj.explosionRadius, proj.damage * 0.5, proj.skillId, { exclude: e, quiet: true, isExplosion: true, element: proj.element });
           }
           // M6-B: ラム威力上昇（千条炎槍）・連鎖（連鎖炎）。
           if (proj.ramp > 0) proj.damage = Math.min(proj.damage * (1 + proj.ramp), (proj._rampBase || proj.damage) * 1.6);
@@ -897,6 +989,7 @@ export class BattleScene extends Phaser.Scene {
 
   onEnemyKilled(e, skillId) {
     this.kills++;
+    if (e.isElite) this.eliteKills++; // M6-C: エリート撃破数（ジョブXP）
     // 永劫火界: 炎上中の敵の死亡で小爆発（安全上限内・連鎖暴走防止）。
     // 死亡直後は alive=false のため .ignited ではなく点火タイマーで判定する。
     const wasIgnited = e._igniteUntil && this.time.now < e._igniteUntil;
@@ -905,7 +998,7 @@ export class BattleScene extends Phaser.Scene {
       const evo = DataManager.getEvolution('eternal_pyre');
       const r = evo?.area?.deathExplosionRadius || 46;
       this.effects.explosion(e.x, e.y, r, 0xff7043);
-      this.aoe(e.x, e.y, r, evo?.damage?.deathExplosion || 34, 'eternal_pyre', { exclude: e, quiet: true });
+      this.aoe(e.x, e.y, r, evo?.damage?.deathExplosion || 34, 'eternal_pyre', { exclude: e, quiet: true, isExplosion: true });
     } else if (wasIgnited) {
       this._m.suppressed++; // 死亡爆発連鎖の安全上限で抑制
     }
@@ -1278,6 +1371,129 @@ export class BattleScene extends Phaser.Scene {
     close.on('pointerdown', () => this.toggleSkillDebug());
     ui.add(close);
     this._skdbg = ui;
+  }
+
+  // ---------------- 個別スキル検証ツール（M6-C・?debug=1・F5） ----------------
+  // 複数スキルが同時強化されると挙動が見づらいため、1スキルを単独化し、各補正を一時無効化して検証する。
+  // すべてデバッグ中のランタイムにのみ適用し、profile の購入済み強化・熟練度は削除・保存しない。
+  toggleSkillTuner() {
+    if (this._sktuner) { this._sktuner.destroy(true); this._sktuner = null; return; }
+    this._tuner = this._tuner || { skill: 'fireball', jobLevel: null, noPassive: false, noPerm: false, noMastery: false, noJob: false };
+    const JOB_LEVELS = [1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+    const cx = GAME_WIDTH / 2;
+    const ui = this.add.container(0, 0).setScrollFactor(0).setDepth(4000);
+    ui.add(this.add.rectangle(cx, GAME_HEIGHT / 2, 460, 350, 0x0d1017, 0.97).setScrollFactor(0).setStrokeStyle(1, 0x80deea));
+    ui.add(this.add.text(cx, 8, 'DEBUG（M6-C 個別スキル検証・F5）', { fontSize: '11px', color: '#80deea' }).setScrollFactor(0).setOrigin(0.5, 0));
+
+    const cycleSkill = () => {
+      const ids = DataManager.skills.map((s) => s.id);
+      const i = ids.indexOf(this._tuner.skill);
+      this._tuner.skill = ids[(i + 1) % ids.length];
+    };
+    const acts = [
+      [() => `検証スキル: ${this._tuner.skill}（切替）`, () => { cycleSkill(); }],
+      ['このスキルだけ残す(他active削除)', () => this._tunerIsolate()],
+      ['このスキルを取得', () => { this.skills.acquireOrLevel(this._tuner.skill); this.updateHudSkills(); }],
+      ['Lv +1', () => { const s = this.skills.skills.get(this._tuner.skill); if (s) this.skills.setLevel(this._tuner.skill, Math.min(8, s.level + 1)); this.updateHudSkills(); }],
+      ['Lv -1', () => { const s = this.skills.skills.get(this._tuner.skill); if (s) this.skills.setLevel(this._tuner.skill, Math.max(1, s.level - 1)); this.updateHudSkills(); }],
+      ['Lv8にする', () => { this.skills.acquireOrLevel(this._tuner.skill); this.skills.setLevel(this._tuner.skill, 8); this.updateHudSkills(); }],
+      ['このスキルを単独進化', () => this._tunerEvolve()],
+      [() => `Job Lv一時適用: ${this._tuner.jobLevel ?? '実際'}（切替）`, () => { const i = JOB_LEVELS.indexOf(this._tuner.jobLevel); this._tuner.jobLevel = JOB_LEVELS[(i + 1) % JOB_LEVELS.length]; this._tuner.noJob = false; this._applyTuner(); }],
+      [() => `ジョブ補正: ${this._tuner.noJob ? '無効' : '有効'}`, () => { this._tuner.noJob = !this._tuner.noJob; this._applyTuner(); }],
+      [() => `熟練度補正: ${this._tuner.noMastery ? '無効' : '有効'}`, () => { this._tuner.noMastery = !this._tuner.noMastery; this._applyTuner(); }],
+      [() => `パッシブ: ${this._tuner.noPassive ? '無効' : '有効'}`, () => { this._tuner.noPassive = !this._tuner.noPassive; this._applyTuner(); }],
+      [() => `残り火/魂炎の火力: ${this._tuner.noPerm ? '無効' : '有効'}`, () => { this._tuner.noPerm = !this._tuner.noPerm; this._applyTuner(); }],
+      ['敵をHP弱体化(即確認)', () => this.enemyPool.forEachActive((e) => { if (e.alive) e.hp = Math.max(1, e.hp * 0.1); })],
+      ['敵+40密集 / 敵全滅', () => { this.debugClusterEnemies(40); }],
+      ['残響を次発動で強制', () => this._tunerForceEcho()],
+      ['通常状態へ戻す', () => { this._tuner = { skill: this._tuner.skill, jobLevel: null, noPassive: false, noPerm: false, noMastery: false, noJob: false }; this._applyTuner(); }],
+    ];
+    let yy = 26;
+    for (const [label, fn] of acts) {
+      const text = typeof label === 'function' ? label() : label;
+      const b = this.add.text(cx - 218, yy, text, { fontSize: '9px', color: '#fff', backgroundColor: '#1a3a3e', padding: { x: 5, y: 1 } }).setScrollFactor(0).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+      b.on('pointerdown', () => { fn(); this.toggleSkillTuner(); this.toggleSkillTuner(); }); // 再描画
+      ui.add(b); yy += 15;
+    }
+    // 最終 modifier / 計算内訳の表示
+    ui.add(this.add.text(cx + 6, 26, this._tunerReport(), { fontSize: '8px', color: '#b2ff59', lineSpacing: 2, wordWrap: { width: 214 } }).setScrollFactor(0).setOrigin(0, 0));
+    const close = this.add.text(cx, GAME_HEIGHT - 12, '閉じる (F5)', { fontSize: '9px', color: '#bcaaa4' }).setScrollFactor(0).setOrigin(0.5, 1).setInteractive({ useHandCursor: true });
+    close.on('pointerdown', () => this.toggleSkillTuner());
+    ui.add(close);
+    this._sktuner = ui;
+  }
+
+  _tunerIsolate() {
+    const keep = this._tuner.skill;
+    for (const id of Array.from(this.skills.skills.keys())) if (id !== keep) { const sk = this.skills.skills.get(id); if (sk && sk.destroy) sk.destroy(); this.skills.skills.delete(id); }
+    this.skills.acquireOrLevel(keep);
+    this.updateHudSkills();
+  }
+
+  _tunerEvolve() {
+    const base = this.skills.baseActiveIds().find((b) => b === this._tuner.skill) || this._tuner.skill;
+    this.skills.acquireOrLevel(base); this.skills.setLevel(base, 8);
+    const evoId = this.skills.evolve(base);
+    if (evoId) this._tuner.skill = evoId;
+    this.updateHudSkills();
+  }
+
+  _tunerForceEcho() {
+    if (!this.jobMods.echoEnabled()) return;
+    const sk = this.skills.skills.get(this._tuner.skill) || this.skills.skills.values().next().value;
+    if (sk) this._triggerEcho(sk);
+  }
+
+  // デバッグ用の一時無効化/一時ジョブLvを適用する（profile は変更しない）。
+  _applyTuner() {
+    const t = this._tuner;
+    // ジョブ補正: 無効 or 一時Lv or 実際の凍結値。
+    if (t.noJob) this.jobMods.setResolved(JobModifierManager.identity());
+    else if (t.jobLevel != null) this.jobMods.setResolved(JobModifierManager.resolve(DataManager.getJobProgression(this.jobId), t.jobLevel));
+    else this.jobMods.setResolved(this.resolvedJobModifiers);
+    this.draft.setRarityWeightMult({ rare: this.jobMods.rarityWeightMult('rare'), legendary: this.jobMods.rarityWeightMult('legendary') });
+    // 熟練度補正。
+    this.skills.setMasteryBonuses(t.noMastery ? null : this.masteryBonus);
+    // 残り火/魂炎の火力（bonus.damageMult）。
+    if (this._realDamageMult == null) this._realDamageMult = this.bonus.damageMult;
+    this.bonus.damageMult = t.noPerm ? 1 : this._realDamageMult;
+    // パッシブ（レベルを退避/復元。profile は不変）。
+    if (t.noPassive) {
+      if (!this._passiveBackup) { this._passiveBackup = this.passives.serialize(); for (const id of Object.keys(this._passiveBackup)) this.passives.setLevel(id, 0); }
+    } else if (this._passiveBackup) {
+      this.passives.loadFrom(this._passiveBackup); this._passiveBackup = null;
+    }
+    // スキルの stats キャッシュを破棄（補正変更を即反映）。
+    for (const sk of this.skills.skills.values()) sk._cache = null;
+  }
+
+  _tunerReport() {
+    const t = this._tuner;
+    const id = t.skill;
+    const sk = this.skills.skills.get(id);
+    const jm = this.jobMods.resolved;
+    const L = [`Job Lv(適用): ${this.jobMods.jobLevel}`];
+    L.push(`火Dmg×${jm.fireDamageMult.toFixed(3)} DoT×${jm.dotDamageMult.toFixed(3)}`);
+    L.push(`爆発Dmg×${jm.explosionDamageMult.toFixed(2)} 進化×${jm.evolvedDamageMult.toFixed(2)}`);
+    L.push(`範囲×${jm.fireAreaMult.toFixed(3)} 爆範×${jm.explosionAreaMult.toFixed(2)}`);
+    L.push(`CD×${jm.cooldownMult.toFixed(3)} 弾速×${jm.projectileSpeedMult.toFixed(2)}`);
+    L.push(`発射数+${jm.projectileCountBonus} rare×${jm.rareWeightMult} leg×${jm.legendaryWeightMult}`);
+    L.push(`残響: ${this.jobMods.echoEnabled() ? `${this.jobMods.echoInterval()}回/威力${this.jobMods.echoPower()}` : '無効'} 現${this.jobMods.echoCount()}`);
+    L.push(`—— ${id} ——`);
+    if (sk && sk.stats) {
+      const s = sk.stats;
+      const dtags = { element: 'fire', isEvolved: !!DataManager.getEvolution(id) };
+      const jmul = this.jobMods.damageMultiplier(dtags);
+      const pmul = this.passives ? this.passives.getDamageMultiplier() : 1;
+      if (s.damage != null) L.push(`Dmg 基礎${(sk.rawStats?.damage ?? s.damage).toFixed?.(0) || s.damage}→実効${(s.damage * (this.bonus.damageMult || 1) * pmul * jmul).toFixed(1)}`);
+      if (s.cooldown != null) L.push(`CD ${Math.round(s.cooldown * sk.passiveCooldownMult())}ms`);
+      if (s.radius != null) L.push(`範囲 ${Math.round(s.radius)}`);
+      if (s.explosionRadius != null) L.push(`爆発範囲 ${Math.round(s.explosionRadius)}`);
+    } else if (sk) {
+      L.push('(進化/常時型: 内訳は挙動で確認)');
+    } else L.push('(未取得)');
+    L.push(`無効: ${[t.noJob && 'ジョブ', t.noMastery && '熟練', t.noPassive && 'passive', t.noPerm && '恒久火力'].filter(Boolean).join('/') || 'なし'}`);
+    return L.join('\n');
   }
 
   // 進化条件（基礎Lv8＋補助スキル/パッシブLv4）を満たす状態を作る（?debug=1）。

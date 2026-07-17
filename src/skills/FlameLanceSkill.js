@@ -11,7 +11,7 @@ export class FlameLanceSkill extends SkillBase {
     const cap = this.scene.combat.skillCap('maxFlameLances', 80);
     if (this.scene.countProjBySkill(this.id) >= cap) return; // 上限で新規発射のみ抑制
     const base = Math.atan2(t.y - p.y, t.x - p.x);
-    const count = s.count || 1; const spread = s.spread || 0;
+    const count = this.fireProjectileCount(s.count || 1); const spread = s.spread || 0; // M6-C Lv80: 発射数+1
     for (let i = 0; i < count; i++) {
       const off = count > 1 ? (i - (count - 1) / 2) * spread : 0;
       this.scene.combat.spawnPlayerProjectile(p.x, p.y, base + off, s.speed || 460, {

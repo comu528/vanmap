@@ -439,6 +439,74 @@ if (balance && balance.skillCaps) {
   }
 }
 
+// --- job-progression.json（M6-C）: ジョブ育成（曲線・報酬・到達報酬）の検証 ---
+const jobProgData = loadJson('job-progression.json');
+if (jobProgData) {
+  requireFields('job-progression.json', jobProgData, ['version', 'jobs']);
+  const jobIds = new Set((jobsData?.jobs || []).map((j) => j.id));
+  const KNOWN_TYPES = new Set(['fireDamageMult', 'projectileSpeedMult', 'cooldownMult', 'rerollBonus', 'explosion', 'echo', 'evolvedDamageMult', 'rarityWeight', 'projectileCount', 'echoUpgrade']);
+  for (const [jid, jc] of Object.entries(jobProgData.jobs || {})) {
+    const c = `(job ${jid})`;
+    if (jobIds.size && !jobIds.has(jid)) err(`job-progression.json: ${jid} は jobs.json に存在しないジョブ`);
+    requireFields('job-progression.json', jc, ['levelCap', 'xpCurve', 'xpReward', 'perLevelBonuses', 'milestones'], c);
+    if (typeof jc.levelCap !== 'number' || jc.levelCap < 1 || !Number.isInteger(jc.levelCap)) err(`job-progression.json: ${jid} の levelCap が不正 (${jc.levelCap})`);
+    // XP曲線係数（非負・有限）
+    for (const k of ['quad', 'lin']) {
+      const v = jc.xpCurve?.[k];
+      if (typeof v !== 'number' || !Number.isFinite(v) || v < 0) err(`job-progression.json: ${jid} の xpCurve.${k} が非負の有限数でない (${v})`);
+    }
+    // 曲線が単調増加（Lv1=0 かつ Lv上昇で必要XPが減少しない）
+    {
+      const q = jc.xpCurve?.quad || 0, l = jc.xpCurve?.lin || 0;
+      const tot = (L) => q * (L - 1) * (L - 1) + l * (L - 1);
+      if (tot(1) !== 0) err(`job-progression.json: ${jid} の Lv1 累計必要XPが0でない`);
+      let prev = -1, mono = true;
+      for (let L = 1; L <= (jc.levelCap || 100); L++) { const t = tot(L); if (t < prev) mono = false; prev = t; }
+      if (!mono) err(`job-progression.json: ${jid} の XP曲線が単調増加でない`);
+    }
+    // XP報酬係数（非負）
+    const rw = jc.xpReward || {};
+    for (const k of ['perSurvivalSecond', 'perNormalKill', 'normalKillCap', 'perEliteKill', 'perBossKill', 'victoryBonus']) {
+      if (rw[k] != null && (typeof rw[k] !== 'number' || rw[k] < 0 || !Number.isFinite(rw[k]))) err(`job-progression.json: ${jid} の xpReward.${k} が非負の有限数でない (${rw[k]})`);
+    }
+    for (const [dk, dv] of Object.entries(rw.difficultyMult || {})) {
+      if (typeof dv !== 'number' || dv <= 0 || !Number.isFinite(dv)) err(`job-progression.json: ${jid} の difficultyMult.${dk} が正の有限数でない (${dv})`);
+    }
+    // perLevelBonuses（非負）
+    for (const [bk, bv] of Object.entries(jc.perLevelBonuses || {})) {
+      if (typeof bv !== 'number' || bv < 0 || !Number.isFinite(bv)) err(`job-progression.json: ${jid} の perLevelBonuses.${bk} が非負の有限数でない (${bv})`);
+    }
+    // milestones（レベル昇順・重複なし・1..levelCap・既知type・報酬ID重複なし・数値健全）
+    const mIds = new Set();
+    let prevLv = 0;
+    for (const m of jc.milestones || []) {
+      requireFields('job-progression.json', m, ['level', 'id', 'type'], `${c} milestone`);
+      if (typeof m.level !== 'number' || m.level < 1 || m.level > (jc.levelCap || 100) || !Number.isInteger(m.level)) err(`job-progression.json: ${jid} の到達報酬レベルが不正 (${m.level})`);
+      if (m.level < prevLv) err(`job-progression.json: ${jid} の到達報酬レベルが昇順でない (${m.level} < ${prevLv})`);
+      if (m.level === prevLv) err(`job-progression.json: ${jid} の到達報酬レベル重複 (${m.level})`);
+      prevLv = m.level;
+      if (mIds.has(m.id)) err(`job-progression.json: ${jid} の到達報酬ID重複 "${m.id}"`);
+      mIds.add(m.id);
+      if (!KNOWN_TYPES.has(m.type)) err(`job-progression.json: ${jid} の到達報酬 ${m.id} が未知の type "${m.type}"`);
+      // 残響回数（正整数）・残響倍率（0以上）
+      if ((m.type === 'echo' || m.type === 'echoUpgrade')) {
+        if (typeof m.interval !== 'number' || m.interval < 1 || !Number.isInteger(m.interval)) err(`job-progression.json: ${jid} の ${m.id} の残響回数(interval)が正整数でない (${m.interval})`);
+        if (typeof m.power !== 'number' || m.power < 0 || !Number.isFinite(m.power)) err(`job-progression.json: ${jid} の ${m.id} の残響倍率(power)が非負でない (${m.power})`);
+      }
+      // 抽選重み倍率（正）
+      if (m.type === 'rarityWeight') {
+        for (const rk of ['rare', 'legendary']) if (m[rk] != null && (typeof m[rk] !== 'number' || m[rk] <= 0)) err(`job-progression.json: ${jid} の ${m.id} の抽選重み ${rk} が正でない (${m[rk]})`);
+      }
+      // projectileCount は整数
+      if (m.type === 'projectileCount' && (typeof m.value !== 'number' || !Number.isInteger(m.value))) err(`job-progression.json: ${jid} の ${m.id} の projectileCount value が整数でない (${m.value})`);
+      // cooldownMult は 0..1 の短縮率（安全下限を超えて短縮しない前提）
+      if (m.type === 'cooldownMult' && (typeof m.value !== 'number' || m.value < 0 || m.value >= 1)) err(`job-progression.json: ${jid} の ${m.id} の cooldownMult value が 0..1 でない (${m.value})`);
+      // NaN 相当の混入チェック（数値フィールド）
+      for (const [mk, mv] of Object.entries(m)) if (typeof mv === 'number' && !Number.isFinite(mv)) err(`job-progression.json: ${jid} の ${m.id}.${mk} が有限数でない`);
+    }
+  }
+}
+
 // --- report ---
 if (warnings.length) {
   console.log('--- 警告 ---');

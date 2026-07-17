@@ -20,6 +20,8 @@ export class HUD {
     this.xpBar = scene.add.rectangle(9, 23, 0, 4, 0x29b6f6).setOrigin(0, 0).setScrollFactor(0);
 
     this.levelText = scene.add.text(176, 8, 'Lv.1', { fontSize: '11px', color: '#ffe0b2' }).setScrollFactor(0);
+    // ジョブ名＋今回適用中のジョブレベル（M6-C）。戦闘レベル(Lv.n)とは別物として区別して表示する。
+    this.jobText = scene.add.text(176, 22, '', { fontSize: '8px', color: '#ffab40' }).setScrollFactor(0);
 
     // 中央上：時間 / 討伐数 / 難易度
     this.timeText = scene.add.text(GAME_WIDTH / 2, 8, '0:00', { fontSize: '14px', color: '#fff' }).setOrigin(0.5, 0).setScrollFactor(0);
@@ -59,6 +61,8 @@ export class HUD {
     this.bossBg.setVisible(false);
     this.bossBar.setVisible(false);
   }
+
+  setJob(name, level) { this.jobText.setText(`${name} Job Lv.${level}`); }
 
   onPause(fn) { this.pauseBtn.on('pointerdown', fn); }
   onToggleAuto(fn) { this.autoBtn.on('pointerdown', fn); }

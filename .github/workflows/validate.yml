@@ -37,3 +37,9 @@ jobs:
         run: node tests/new-fire-skills.mjs
       - name: New evolutions tests
         run: node tests/new-evolutions.mjs
+
+      # ジョブ育成（ジョブレベル・経験値・到達報酬・残響詠唱）のテスト（M6-C・Node.js 標準機能のみ）。
+      - name: Job progression tests
+        run: node tests/job-progression.mjs
+      - name: Job modifiers tests
+        run: node tests/job-modifiers.mjs

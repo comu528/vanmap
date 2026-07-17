@@ -8,7 +8,7 @@ export class ScatterFlameSkill extends SkillBase {
     if (!t) return;
     if (this.scene.projPool.activeCount >= this.scene.projPool.maxSize) return;
     const base = Math.atan2(t.y - p.y, t.x - p.x);
-    const count = s.count || 3; const spread = Math.min(s.spread || 0.5, 1.4); // 後方まで撃たないよう制限
+    const count = this.fireProjectileCount(s.count || 3); const spread = Math.min(s.spread || 0.5, 1.4); // M6-C Lv80: 発射数+1・後方まで撃たない
     for (let i = 0; i < count; i++) {
       const off = count > 1 ? (i / (count - 1) - 0.5) * spread : 0;
       this.scene.combat.spawnPlayerProjectile(p.x, p.y, base + off, s.speed || 300, {

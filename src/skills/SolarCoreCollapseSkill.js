@@ -54,7 +54,7 @@ export class SolarCoreCollapseSkill extends EvolvedSkillBase {
       if (patch.tick <= 0) {
         patch.tick = tickMs;
         this.scene.combat.forEachEnemyInRadius(patch.x, patch.y, patch.radius, (e) => {
-          this.scene.combat.dealDamage(e, patch.damage, this.id, { quiet: true, color: 0xff5722 });
+          this.scene.combat.dealDamage(e, patch.damage, this.id, { quiet: true, color: 0xff5722, tag: 'dot' });
           if (!e.isBoss && e.ignite && !e.ignited) e.ignite(900, 0);
         });
       }

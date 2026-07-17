@@ -33,7 +33,7 @@ export class EternalPyreSkill extends EvolvedSkillBase {
       let ignitedCount = this.scene.ignitedCount ? this.scene.ignitedCount() : 0;
       const maxIgnited = this.cap('maxIgnited', 220);
       this.scene.combat.forEachEnemyInRadius(p.x, p.y, auraR, (e) => {
-        this.scene.combat.dealDamage(e, d.damage?.aura || 12, this.id, { quiet: true, color: 0xff7043 });
+        this.scene.combat.dealDamage(e, d.damage?.aura || 12, this.id, { quiet: true, color: 0xff7043, tag: 'dot' });
         if (!e.isBoss && e.ignite && ignitedCount < maxIgnited) {
           if (!e.ignited) ignitedCount++;
           e.ignite(igniteMs, 0);

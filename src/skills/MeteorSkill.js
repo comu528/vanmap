@@ -19,7 +19,7 @@ export class MeteorSkill extends SkillBase {
         this.scene.effects.meteorImpact(x, y, s.radius);
         this.scene.effects.screenShake(200, 0.004 + s.shake * 0.0004);
         this.scene.effects.hitStop(45); // 強攻撃のみヒットストップ
-        this.scene.combat.damageArea(x, y, s.radius, s.damage, this.id, { crit: true });
+        this.scene.combat.damageArea(x, y, s.radius, s.damage, this.id, { crit: true, isExplosion: true });
       });
     }
   }

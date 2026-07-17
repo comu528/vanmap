@@ -10,13 +10,16 @@ export class PhoenixFeatherSkill extends SkillBase {
     this._state = { ready: true, cdLeft: 0, cooldownMs: 60000, triggers: 0, healedTotal: 0 };
   }
   canFire() { return false; } // update で管理
+  get isDefensive() { return true; }  // 残響詠唱の対象外（致死反応型）
+  get isReactive() { return true; }
 
   update(dt) {
     const s = this.stats; const st = this._state;
     if (!st.ready) { st.cdLeft -= dt; if (st.cdLeft <= 0) { st.ready = true; st.cdLeft = 0; } }
     // データ項目を最新のレベル値へ更新（ready/cdLeft は保持）。
     st.cooldownMs = s.cooldown; st.healPercent = s.healPercent;
-    st.explosionDamage = s.explosionDamage; st.explosionRadius = (s.explosionRadius || 100) * this.passiveAreaMult();
+    // explosionRadius は stats 側で範囲補正（パッシブ焦熱拡張＋ジョブ火範囲）を適用済みのため、ここで再度掛けない（二重適用防止・M6-C）。
+    st.explosionDamage = s.explosionDamage; st.explosionRadius = s.explosionRadius || 100;
     st.invulnMs = s.invulnMs;
     this.scene.player._phoenix = st; // Player.takeDamage が同じオブジェクトを参照
     // 統計（防いだ死亡回数・回復量）を最大値で反映。

@@ -39,7 +39,7 @@ export class BurningTrailSkill extends SkillBase {
       if (patch.tick <= 0) {
         patch.tick = TICK_MS;
         this.scene.combat.forEachEnemyInRadius(patch.x, patch.y, patch.radius, (e) => {
-          this.scene.combat.dealDamage(e, patch.damage, this.id, { quiet: true, color: 0xff7043 });
+          this.scene.combat.dealDamage(e, patch.damage, this.id, { quiet: true, color: 0xff7043, tag: 'dot' });
           if (patch.slow > 0 && e.applySlow) e.applySlow(patch.slow, TICK_MS + 60);
         });
       }

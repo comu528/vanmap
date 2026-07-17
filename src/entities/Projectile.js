@@ -52,21 +52,28 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
   reset(x, y, angle, speed, opts = {}) {
     this._clearState();
     this.setPosition(x, y);
-    this.damage = opts.damage;
+    this.hostile = !!opts.hostile;
+    this.element = opts.element || 'fire';
+    // ジョブレベル（M6-C）: プレイヤーの火属性弾のみ、投射速度(Lv10)＋残響の威力倍率を反映する。
+    // 敵弾(hostile)・非火属性へは適用しない。連鎖/分裂の子弾は親 damage を引き継ぐため自然に伝播する。
+    const jm = this.scene.jobMods;
+    const isFirePlayer = !this.hostile && this.element === 'fire';
+    const spdMul = (isFirePlayer && jm) ? jm.projectileSpeedMult() : 1;
+    const echoMul = (isFirePlayer && this.scene._echoScale && this.scene._echoScale !== 1) ? this.scene._echoScale : 1;
+    speed = speed * spdMul;
+    this.damage = opts.damage * echoMul;
     this.pierce = opts.pierce || 0;
     this.pierceFalloff = opts.pierceFalloff || 1;
     this.knockback = opts.knockback || 0;
     this.explosionRadius = opts.explosionRadius || 0;
-    this.hostile = !!opts.hostile;
     this.skillId = opts.skillId || null;
     this.behavior = opts.behavior || null;
     this.owner = opts.owner || null;
-    this.element = opts.element || 'fire';
     this.tag = opts.tag || null;
     this.speed = speed;
     // 追尾
     this.homingRate = opts.homingRate || 0;
-    this.homingSpeed = opts.homingSpeed || speed;
+    this.homingSpeed = (opts.homingSpeed || speed) * spdMul;
     this.homingTarget = opts.homingTarget || null;
     this.wanderMs = opts.wanderMs || 0;
     this.retargets = opts.retargets || 0;
@@ -78,7 +85,7 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     this.chainFalloff = opts.chainFalloff || 0.85;
     this.chainVisited = opts.chainVisited || null;
     this.ramp = opts.ramp || 0;
-    this._rampBase = this.ramp > 0 ? opts.damage : 0;
+    this._rampBase = this.ramp > 0 ? this.damage : 0;
     this.splitGen = opts.splitGen || 0;
     this.splitCount = opts.splitCount || 0;
     this.splitFactor = opts.splitFactor || 0.55;

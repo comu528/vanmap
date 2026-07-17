@@ -23,7 +23,7 @@ export class LavaBombSkill extends SkillBase {
         this.scene.combat.forEachEnemyInRadius(x, y, r, (e) => {
           const d = Math.hypot(e.x - x, e.y - y);
           const f = 1 - 0.4 * Math.min(1, d / r);
-          this.scene.combat.dealDamage(e, s.damage * f, this.id, { from: { x, y }, knockback: 20 });
+          this.scene.combat.dealDamage(e, s.damage * f, this.id, { from: { x, y }, knockback: 20, isExplosion: true });
         });
         this._spawnBurn(x, y, r * 0.7, s.burnDamage || 4, (s.burnDuration || 1000) * durMul);
       });
@@ -45,7 +45,7 @@ export class LavaBombSkill extends SkillBase {
       if (patch.tick <= 0) {
         patch.tick = 260;
         this.scene.combat.forEachEnemyInRadius(patch.x, patch.y, patch.radius, (e) => {
-          this.scene.combat.dealDamage(e, patch.damage, this.id, { quiet: true, color: 0xff5722 });
+          this.scene.combat.dealDamage(e, patch.damage, this.id, { quiet: true, color: 0xff5722, tag: 'dot' });
         });
       }
       if (patch.expire <= 0) { if (patch.sprite) patch.sprite.destroy(); this.patches.splice(i, 1); }

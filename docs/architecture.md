@@ -186,3 +186,38 @@ queryAABB / findNearest / size / usedCells`。セルサイズは `balance.spatia
 - **性能上限**: `balance.skillCaps`（`maxHomingWisps`/`maxFlameLances`/`maxSummons`/`maxActiveVortices`/`maxMarks`/`maxChainTargets`/`maxChainDepth`/… を品質別に）を毎フレーム予算化。到達しても戦闘ロジックは停止しない。低品質でも命中/刻印/不死鳥/障壁/ボス予告/プレイヤー/敵/敵弾は視認できる。
 - **保存**: 新スキル/レベル/進化/枠/候補/追放/不死鳥CD/障壁CD/ランタイム/統計は `active_run.skillRuntime`（`SkillManager.serializeRuntime`）で保持。追加フィールドのため **save_version は 6 のまま**（構造変更が無いので不要な版上げをしない）。
 - **拡張口（次のジョブレベル成長）**: ジョブごとの活性/受動プール・初期スキル・枠は `jobs.json` で拡張でき、`skillCaps` は品質別に増減できる。将来のジョブ育成特典は `profile.jobProgress`（M6-A 拡張口）に載せる想定。
+
+## 火の魔女ジョブ育成（M6-B の拡張口 `profile.jobProgress` を実装）
+周回をまたぐジョブレベルを追加する。効果は火の魔女使用中の周回のみ有効で、他ジョブ・未定義ジョブでは全て恒等（M6-B 以前と一致）。数値は `data/job-progression.json` に集約する。
+戦闘レベル（`battleLevel`: 周回ごとにLv1・経験値ジェムで上昇・周回終了でリセット・スキル候補用）とジョブレベル（`jobLevel`: `profile.jobProgress[jobId].totalXp` から算出・周回/転生をまたいで維持・恒久強化）は**別体系**。
+
+| 追加/変更 | 役割 | 状態 |
+|-----------|------|------|
+| `JobProgressionManager` | ジョブXP・ジョブレベル・周回報酬・二重獲得防止を統括（DOM/Phaser 非依存の純粋ロジック）。`totalXpForLevel`(累計XP曲線)/`levelForTotalXp`/`progress`/`computeRunXp`/`awardRun`/`milestonesBetween`。`jobLevel` は保存せず `totalXp` から都度算出 | M6-C |
+| `JobModifierManager` | ジョブレベルから補正を **`resolve`** して凍結し周回中固定。ダメージ/範囲/CD/投射/抽選/リロール/残響の各アクセサ。`serialize`/`restore`（`active_run` へ）。火の魔女以外・Lv1 は恒等 | M6-C |
+| `BattleScene`（拡張） | 周回開始/再開で `resolvedJobModifiers` を適用。`dealDamage` にジョブ火ダメージ乗算、`aoe()` に火範囲、共通シグナル `_onSkillCast`/`_triggerEcho`（残響） | M6-C |
+| `BattleManager` | リザルト確定時に `JobProgressionManager.awardRun` で **まとめて**ジョブXPを付与（戦闘中は付与しない）。`runId` で二重獲得防止。付与→`SaveCoordinator` 経由で profile 保存 | M6-C |
+| `BaseScene.buildJob()` | 拠点「ジョブ育成」タブ（Job Lv/XPバー/統計/到達報酬一覧）。周回開始時に補正を解決して `active_run` へ凍結 | M6-C |
+| `ResultScene` | 今回獲得 Job XP/難易度倍率/Job Lv 変化/XPバー増加/複数レベルアップ/新解放報酬/Lv100到達/二重獲得済みの安全表示 | M6-C |
+| `SkillBase` / `Projectile` | `passiveCooldownMult`/`passiveAreaMult` にジョブ補正を合流、`fireProjectileCount`（Lv80 発射数+1）、`echoCast`（残響の追加発動＝既定 `fire` 再実行）、`Projectile.reset` に投射速度（Lv10）と echo 威力同期 | M6-C |
+
+- **XP曲線**: `totalXpForLevel(L) = quad*(L-1)^2 + lin*(L-1)`（quad=25/lin=75）。単調増加・Lv1=0・Lv100頭打ち・超過 totalXp は保持・負数/NaN/Infinity は 0 扱い・巨大 XP でもループは `levelCap` で停止。
+- **周回XP**: `survivalSec*1.2 + min(normalKills,2000)*0.08 + eliteKills*4 + bossKills*60 + victoryBonus(200/0)` に難易度倍率(1.0/1.25/1.55/1.90/2.30)を乗じ `floor`。全て `xpReward` に分離。
+- **凍結（周回開始時のレベル固定）**: 補正は周回開始時のジョブレベルから解決して `active_run`（`jobId`/`jobLevelAtStart`/`jobTotalXpAtStart`/`resolvedJobModifiers`/`jobProgressionVersion`/`jobRuntime`=残響カウンター）へ保存。
+  周回中に profile 側レベルが変わっても進行中周回へは反映せず、途中再開は `active_run` の凍結値を使う。ジョブXPはリザルト確定後に profile へ加算し、次の周回から新レベル適用。
+
+### modifier 適用順（`docs/game-design.md` と一致）
+1. JSON基礎値（`skills.json` levels）→ 2. 固定値加算/整数補正（発射数など）→ 3. 同カテゴリ内の加算倍率（熟練度・パッシブ）→
+4. カテゴリ間の乗算倍率（ジョブレベル基本成長・到達報酬）← `JobModifierManager` → 5. 安全下限/上限（CD下限・`skillCaps`）→ 6. 品質別生成上限。
+- ダメージ乗算はすべて乗算合成: `base × fireDamageMult × (isDoT?dotDamageMult) × (isExplosion?explosionDamageMult) × (isEvolved?evolvedDamageMult)`。fire 以外の属性には一切適用しない。fire+DoT は両方が掛かる（意図した乗算）。
+- 具体経路: 基礎値/熟練度/パッシブ area・duration → `SkillBase.stats`。ジョブ火範囲 → stats(radius/explosionRadius)＋`passiveAreaMult`。ダメージ（恒久/魂炎→パッシブ魔力増幅→ジョブ火ダメージ→残響）→ `dealDamage`。
+  CD（基礎×熟練度→パッシブ高速詠唱×ジョブLv20/90、下限クランプ）→ `SkillBase.update`/`passiveCooldownMult`。発射数（パッシブ＋ジョブLv80）→ `fireProjectileCount`。投射速度（ジョブLv10）→ `Projectile.reset`。抽選重み（ジョブLv70）→ `SkillDraftManager`。
+  **Lv1 かつ到達報酬なしで M6-B 以前と完全一致（恒等）**。
+
+### 残響詠唱（共通発動イベント）
+- 共通シグナル `SkillManager.recordCast` → `BattleScene._onSkillCast(id)` を起点に `JobModifierManager.registerCast()` がカウント、閾値到達で `BattleScene._triggerEcho`。追加発動は `SkillManager.requestEchoCast` → `skill.echoCast(ctx)`（既定は `fire` 再実行）。威力は `scene._echoScale`（60%/100%）。
+- 対象: active・fire・攻撃目的・`isEcho=false`・`isDefensive=false`・`isReactive=false`。対象外: passive/障壁/不死鳥/刻印二次起爆/DoT各tick/連鎖/分裂/召喚物の各射撃/残響発生分。追加発動はカウンターを進めず（`echoCast` は `recordCast` を呼ばない）、`_inEcho` ガードで残響から残響を出さない。1フレーム上限 `balance.combatCaps.maxEchoPerFrame`(=4)。一時停止中は update 停止で進まない。
+
+### 保存システム統合（M5-B 非回帰）
+- ブラウザ保存/フォルダ保存/JSON 入出力/バックアップ/競合検出/複数タブ/保存キューを壊さない。比較/競合/インポート表示に 選択ジョブ・火の魔女ジョブレベル・`jobTotalXp` を追加（`StorageAdapter.summarize`/`SaveConflictResolver.extractMeta`）。`jobProgress` はエクスポート/インポート/バックアップ/復元/競合解決で失われない。
+- `profile.jobProgress` は M6-A の空 `{}` を加算的に拡張（`jobId` キーで将来の複数ジョブへ）。`profileSchema.js` の `safeJobProgress` がプロトタイプ汚染キー除外・負数/非有限を安全化。`totalXp` は保存し `jobLevel` は保存しない。**`save_version` は 6 のまま**（加算的追加で既存移行が安全に既定を補える）。転生でリセットしない。

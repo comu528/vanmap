@@ -3,6 +3,7 @@
 
 import { SaveManager } from './SaveManager.js';
 import { ProgressionManager } from './ProgressionManager.js';
+import { JobProgressionManager } from './JobProgressionManager.js';
 
 export class BattleManager {
   constructor(scene) {
@@ -17,7 +18,7 @@ export class BattleManager {
       difficulty: s.difficultyId, elapsedSec: s.timeSec,
       playerHp: s.player.hp, maxHp: s.player.maxHp,
       playerLevel: s.player.level, xp: s.player.xp, xpToNext: s.player.xpToNext,
-      skills: s.skills.serialize(), evolvedBase: s.skills.evolvedBaseIds, kills: s.kills,
+      skills: s.skills.serialize(), evolvedBase: s.skills.evolvedBaseIds, kills: s.kills, eliteKills: s.eliteKills || 0,
       bossActive: !!(s.boss && s.boss.alive), bossHp: s.boss?.alive ? s.boss.hp : 0,
       rngSeed: s.rngSeed, pendingCurrency: 0, bonus: s.bonus,
       cycleNumber: s.cycleNumber || 0,   // 転生をまたいだ再開防止
@@ -29,6 +30,12 @@ export class BattleManager {
       draftState: s.draft ? s.draft.serialize() : null,
       // M6-B: スキル固有 runtimeState（不死鳥CD・障壁再使用 等）。再読込での不正回復を防ぐ。
       skillRuntime: s.skills ? s.skills.serializeRuntime() : {},
+      // M6-C: 周回開始時に凍結したジョブレベル補正（途中で profile 側レベルが変わっても持ち込まない）。jobId は上で保存済み。
+      jobLevelAtStart: s.jobLevelAtStart || 1,
+      jobTotalXpAtStart: s.jobTotalXpAtStart || 0,
+      resolvedJobModifiers: s.resolvedJobModifiers || null,
+      jobProgressionVersion: s.jobProgressionVersion || 1,
+      jobRuntime: s.jobMods ? s.jobMods.serialize() : null, // 残響カウンター
       updated_at: new Date().toISOString(),
     };
   }
@@ -47,12 +54,29 @@ export class BattleManager {
   buildResult(win) {
     const s = this.scene;
     return {
-      win, timeSec: s.timeSec, kills: s.kills, bossKills: s.bossKills,
-      maxHit: s.maxHit, difficultyId: s.difficultyId,
+      win, timeSec: s.timeSec, kills: s.kills, eliteKills: s.eliteKills || 0, bossKills: s.bossKills,
+      maxHit: s.maxHit, difficultyId: s.difficultyId, battleLevel: s.player.level,
       skills: s.skills.statsList(), evolvedBaseIds: s.skills.evolvedBaseIds,
-      passives: s.passives ? s.passives.statsList() : [], jobId: s.job?.id || 'flame_witch',
+      passives: s.passives ? s.passives.statsList() : [], jobId: s.jobId || 'flame_witch',
       resultId: this._resultId(win),
     };
+  }
+
+  // ジョブ経験値（M6-C）: リザルト確定時にまとめて付与する（勝敗両方・二重獲得防止・SaveCoordinator 経由で保存）。
+  // 戦闘中には付与しない。runId=resultId で再表示/戻る/保存失敗復帰による二重獲得を防ぐ。
+  _awardJobXp(result) {
+    const jobId = this.scene.jobId || 'flame_witch';
+    const profile = SaveManager.loadProfile();
+    const jobResult = {
+      win: result.win, timeSec: result.timeSec,
+      normalKills: Math.max(0, (result.kills || 0) - (result.eliteKills || 0)),
+      eliteKills: result.eliteKills || 0, bossKills: result.bossKills || 0,
+      difficultyId: result.difficultyId, battleLevel: result.battleLevel || 0,
+      evolutions: (result.evolvedBaseIds || []).length, runId: result.resultId,
+    };
+    const out = JobProgressionManager.awardRun(profile, jobId, jobResult, { nowIso: new Date().toISOString(), maxAwardedRunIds: 40 });
+    if (out.awarded) SaveManager.saveProfile(profile, 'job_xp_award');
+    return { jobId, displayName: this.scene.job?.displayName || jobId, ...out };
   }
 
   // 勝敗確定。恒久成長へ反映し、リザルトへ遷移する。
@@ -70,6 +94,8 @@ export class BattleManager {
     const result = this.buildResult(win);
     // 残り火加算・統計・熟練度・難易度解放（二重加算は lastResultId で防止）
     const outcome = ProgressionManager.completeRun(result);
+    // ジョブ経験値付与（M6-C・二重獲得防止は awardRun 側の runId ガード）。UIアニメを待たず即付与・保存する。
+    const jobOutcome = this._awardJobXp(result);
 
     const payload = {
       ...result,
@@ -77,6 +103,7 @@ export class BattleManager {
       embersTotal: outcome.profile.embers,
       newlyUnlocked: outcome.newlyUnlocked,
       awarded: outcome.awarded,
+      job: jobOutcome, // { jobId, displayName, awarded, xpGain, before, after, xp, milestonesUnlocked }
     };
     s.time.delayedCall(600, () => s.scene.start('ResultScene', payload));
   }
