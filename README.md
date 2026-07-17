@@ -7,11 +7,12 @@
 npm・ビルド処理・バックエンド・データベースは一切使いません。Phaser 3.90.0 を CDN から読み込み、
 すべての素材（プレイヤー・敵・弾・エフェクト等）は JavaScript 上で動的生成しています。
 
-> ⚠️ **開発状況**: 現在 **Milestone 6-D**（火の魔女ビルド拡張・第2波: 新 active 10種・新進化5種）まで実装済みです。
-> 継続レーザー（灼熱光線）・地雷（火種地雷）・近接斬撃（炎月斬）・反射弾（跳炎弾）・分身（灰燼分身）・HP消費高火力（血炎契約）・
-> 敵弾吸収（弾喰い炉）・画面端攻撃（四方炎獄）・拘束（熔火鎖）・ダッシュ強化（爆炎歩法）を追加し、既存の弾/爆発/召喚/設置と
-> 戦い方を差別化しました。残響詠唱（M6-C）と分身複製の再帰は共通の castContext（origin/generation）で1世代に制限します。
-> 火の魔女は active **25種**・進化 **13種**・passive 4種に。保存は localStorage＋（対応ブラウザで）フォルダ保存（M5-B）。
+> ⚠️ **開発状況**: 現在 **Milestone 6-E**（火の魔女ビルド完成・第3波: 新 active 5種・新進化5種＋全スキル監査）まで実装済みです。
+> 火葬の墓標・炎脈走破・三角焔陣・灼熱共鳴・炉心暴走を追加し、**火の魔女を active 30種・進化 18種・passive 4種・Job Lv1〜100 に完成**させました。
+> あわせて全 active30種・進化18種を監査し、主発動イベント（残響/分身の起点）・残響（echo）/分身（clone）ポリシー・
+> ダメージタグ・Job Lv80発射数+1対象を各スキル定義へ明示し、`SkillAudit` で一元管理します。敵死亡イベント履歴（墓標）・
+> 炎上中敵の索引（共鳴）を新設し、全敵走査を避けます。残響詠唱（M6-C）と分身複製の再帰は共通の castContext（origin/generation）で1世代に制限します。
+> 保存は localStorage＋（対応ブラウザで）フォルダ保存（M5-B）。**save_version は v6 のまま**（加算的追加）。
 
 ---
 
@@ -29,6 +30,7 @@ npm・ビルド処理・バックエンド・データベースは一切使い�
 | **M6-B** | 新 active 10種（炎槍/拡散火弾/追尾鬼火/連鎖炎/溶岩爆弾/火炎渦/火の精霊/不死鳥の羽/炎の障壁/起爆刻印）＋新進化5種。防御パイプライン・ダメージタグ・起爆刻印コンボ・召喚/設置・品質別性能上限・空間グリッド/プール対応・runtimeState 保存 | ✅ 実装済み |
 | **M6-C** | ジョブ育成基盤: 戦闘レベルとジョブレベルの分離・火の魔女 Job Lv1-100（totalXp が正）・周回終了時 Job XP・レベル別 火火力/DoT/範囲 成長・到達報酬10種（Lv5〜100: 残響詠唱/爆炎/進化強化/抽選重み/発射数 等）・周回開始時レベル固定・拠点ジョブ育成タブ・リザルトXP表示・F5個別スキル検証・profile.jobProgress（save_version 6 維持・転生維持）・データ駆動（新ジョブ再利用可） | ✅ 実装済み |
 | **M6-D** | 火の魔女ビルド拡張・第2波: 新 active 10種（灼熱光線/火種地雷/炎月斬/跳炎弾/灰燼分身/血炎契約/弾喰い炉/四方炎獄/熔火鎖/爆炎歩法）＋新進化5種。継続レーザー・罠・近接・反射・分身複製・HP消費・敵弾吸収・画面端波・拘束・ダッシュ強化。castContext による残響/複製の再帰1世代制限・HP消費API・敵弾吸収・ダッシュフック・品質別性能上限・F6検証。active25種/進化13種 | ✅ 実装済み |
+| **M6-E** | 火の魔女ビルド完成・第3波: 新 active 5種（火葬の墓標/炎脈走破/三角焔陣/灼熱共鳴/炉心暴走）＋新進化5種（冥炎大霊廟/大地灼断/六芒煉獄陣/万象炎鳴/終末炉心）。**active 30種・進化 18種・passive 4種・Job Lv1〜100 に完成**。全 active30/進化18の監査（castMode・echo/clonePolicy・主発動イベント統一・ダメージタグ・Lv80発射数+1対象を明示、`SkillAudit` で一元管理）・敵死亡イベント履歴・炎上中敵の索引・共鳴段階/炉心熱量/オーバーヒート/終末状態・品質別 skillCaps 追加・F7検証。orbiting_flame/fire_spirit の主発動イベント監査修正（挙動不変） | ✅ 実装済み |
 
 ### 遊びの流れ（M4）
 タイトル →「はじめから / 拠点」→ **拠点**（恒久強化・難易度・熟練度・**転生**・**魂炎強化**）→「戦闘開始」→
@@ -332,6 +334,57 @@ forbidden（灰燼分身・爆炎歩法）は複製・残響の対象外。**残
 runtimeState（各CD・チャージ・分身数・強化時間 等）は `active_run` に加算的保存（**save_version は v6 維持**）。再読込で CD 回復/チャージ複製/二重生成を悪用できません。
 `?debug=1` の **F6** 新スキル検証（単独取得/Lv/単独進化/Job Lv一時適用/吸収可能・不能弾生成/複製強制/チャージ最大化/状態表示）。
 
+## Milestone 6-E の要素（火の魔女ビルド完成・第3波）
+
+M6-A〜M6-D の基盤（抽選/枠/パッシブ/進化・戦闘挙動・ジョブ育成・残響/分身の再帰防止）を**現在の正**として再利用し、火の魔女専用の
+active を **さらに5種**・進化を **さらに5種** 追加しました。あわせて**全 active30種・進化18種を監査**し、残響（echo）/分身（clone）・
+主発動イベント・ダメージタグ・Job Lv80発射数+1 の扱いを各スキル定義へ明示しました。結果として**火の魔女は active 30種・進化 18種・
+passive 4種・Job Lv1〜100 に完成**します。**save_version は v6 のまま**（加算的追加）。
+
+### 新アクティブ5種（すべて火の魔女専用・最大Lv8）
+| スキル | 役割（既存との差別化） | レア | 進化 |
+|--------|------|------|------|
+| 火葬の墓標 funeral_pyres | 直近の敵死亡位置へ墓標→フューズ後に噴火（範囲＋燃焼地帯）。周囲の死亡で噴火が早まる（同一死亡は1墓標のみ消費） | uncommon | 冥炎大霊廟 |
+| 炎脈走破 magma_vein | 蛇行しつつ敵群を横断する炎の亀裂（複数区間・区間が一定時間残り DoT・方向は決定論的） | common | 大地灼断 |
+| 三角焔陣 tri_flame_array | 3支点で三角形を形成し内部の敵へ DoT・辺接触で追加ダメージ＋軽減速（ボスは減速無効）・高Lvで内部小爆発 | rare | 六芒煉獄陣 |
+| 灼熱共鳴 scorching_resonance | 一定間隔で炎上中の敵数を数え共鳴段階（閾値 [0,5,15,30,60]）に応じたパルス攻撃。炎上が多いほど威力/範囲/追加爆発/炎上延長が強化 | rare | 万象炎鳴 |
+| 炉心暴走 core_overdrive | 火炎弾を発射。発動ごとに熱量上昇→発動速度/発射数/威力/弾速が上昇、最大でオーバーヒート（短時間停止）→熱量リセットして再開。未発動時は冷却 | legendary | 終末炉心 |
+
+### 新進化5種（枠を消費せず基礎 active を置換・補助条件スキルは消費しない）
+- 冥炎大霊廟 necroflame_mausoleum（火葬の墓標Lv8＋不死鳥の羽Lv4）: 大型霊廟・周期小噴火・保存死亡数で追加火柱の大噴火。不死鳥の致死回避で大噴火待機を短縮（同一致死1回）。
+- 大地灼断 world_scorching_rift（炎脈走破Lv8＋燃える軌跡Lv4）: 複数巨大亀裂が交差、交差点で追加噴火。移動経路へ短時間の小亀裂。
+- 六芒煉獄陣 hexagram_inferno_array（三角焔陣Lv8＋火炎渦Lv4）: 二重三角形＝六芒星。外周/内部/中央核で異なる判定、中央核が敵吸引（ボス無効）、頂点→中央の炎波、終了時全体爆発。
+- 万象炎鳴 universal_flame_resonance（灼熱共鳴Lv8＋連鎖炎Lv4）: 炎上敵を共鳴点として連鎖、一定数以上炎上で画面規模の共鳴爆発（1発動最大1回・visited集合で無限往復防止）。
+- 終末炉心 doomsday_core（炉心暴走Lv8＋血炎契約Lv4）: 熱量で攻撃形態が段階変化（低/中/高/終末状態）、終末終了で強制オーバーヒート。低HPで終末威力がわずかに上昇（上限あり・HPは自動消費しない）。
+
+### 全スキル監査（active30種・進化18種）
+各スキル定義に `castMode`（periodic/cooldown/continuous/reactive/defensive/movement/resource）・`echoPolicy`/`clonePolicy`（standard/custom/forbidden）・
+`canTriggerEcho`/`canBeCopiedByClone`・`echoDescription`/`cloneDescription`・`mainCastEvent`・`lv80ProjectileTarget` を明示しました。
+- **主発動イベント（recordCast）は攻撃サイクル単位のみ**。DoTの各tick・連鎖の各対象・分裂弾・爆発の各対象・個別起爆・召喚の通常射撃・共鳴の各連鎖・オーバーヒート開始終了では recordCast しません。
+- 監査で修正した既存挙動（**挙動そのものは不変**）: (a) 周回する炎 orbiting_flame は接触ごとの recordCast をやめ、主発動を一定間隔にスロットル（ダメージは接触ごとのまま）。echo/clone は炎輪パルスの再現（custom）。(b) 火の精霊 fire_spirit は召喚の一斉射撃サイクルを主発動として記録（個々の通常射撃では記録しない）。echo/clone は各精霊の追加一斉射撃（custom・精霊は増えない）。(c) 不死鳥の羽/炎の障壁は防御専用として echoPolicy/clonePolicy=forbidden を明示（従来も recordCast していないため挙動変更なし）。
+- **Job Lv80「発射数+1」対象は独立弾を撃つ通常 active のみ**: fireball / flame_lance / scatter_flame / homing_wisp / ricochet_ember / core_overdrive。地雷/墓標/分身/光線/陣/亀裂/波/召喚/鎖/共鳴段階/熱量段階/進化は対象外。対象一覧は `src/systems/SkillAudit.js` の `appliesLv80ProjectileCount`（データ `lv80ProjectileTarget`）で一元管理します。
+
+### 新規インフラ
+- `src/systems/SkillAudit.js`（純ロジック・Node テスト可能）: castMode/echo/clone/Lv80/タグの対応状況を def から解決（castSummary/echoStatus/cloneStatus/appliesLv80ProjectileCount/primaryTags/castBadge）。
+- **敵死亡イベント履歴**（BattleScene）: 墓標系所持時のみ記録（retain/releaseDeathEvents）。recentDeathEvents/consumeDeathEvent（同一死亡は1回だけ消費）。上限 maxDeathEventsTracked / maxDeathEventsPerFrame。既存の撃破統計/残り火/Job XP/経験値ジェムは不変。
+- **炎上中敵の索引**（BattleScene._burningIndex）: Enemy.ignite で登録、消火/死亡/プール返却/Scene終了で解除。burningCount()/burningEnemies()（ボス炎上も1体）。combat.ignite(e,ms,gen) で付与＋登録。全敵走査を避ける軽量索引。Boss にも ignite/ignited を追加。
+- combat API 追加: retainDeathEvents/releaseDeathEvents/recentDeathEvents/consumeDeathEvent/burningCount/burningEnemies/ignite/registerBurning/worldBounds。
+- UI: LevelUpScene のスキルカードへ「残響○/◑/× 分身○/◑/× Lv80+ ·主要タグ」の短い記号行を追加（プレイヤーが残響/分身対応を判断できる）。
+- デバッグ: `?debug=1` の **F7** パネル（既存 F1〜F6 と非競合）。新 active5種の単独取得/Lv切替・進化条件達成・死亡位置生成・炎上一括付与/解除・炉心熱量0/25/50/75/100%・オーバーヒート開始/解除・終末状態開始・echoPolicy/clonePolicy/Lv80対象の一覧・最後のダメージタグ・echo/clone origin/generation/倍率・性能上限到達数。デバッグ設定は profile へ保存しない。
+
+### 品質別 skillCaps 追加（`data/balance.json`）
+maxDeathEventsTracked / maxDeathEventsPerFrame / maxFuneralPyres / maxPyreEruptionsPerFrame / maxMagmaVeins / maxMagmaSegments / maxMagmaIntersections /
+maxTriArrays / maxArrayTicksPerFrame / maxResonanceTargets / maxResonanceChains / maxResonanceExplosions / maxOverdriveProjectiles / maxOverdriveCastsPerFrame /
+maxMausoleums / maxHexagramArrays / maxHexagramBeams / maxDoomsdayProjectiles / maxDoomsdayExplosions / maxBurningEnemyIndex / maxMainCastEventsPerFrame
+（すべて low≤medium≤high≤ultra）。上限到達でも攻撃判定は消さず、装飾を先に削ります。
+
+### 記録すべき設計判断
+1. **Job Lv80発射数+1は独立弾の通常 active6種のみ・進化は対象外**（単一形態）。対象は `SkillAudit` で一元管理。
+2. **orbiting_flame** は接触tick毎の recordCast を廃し主発動を一定間隔にスロットル（残響の一貫性のための監査修正・ダメージ量は不変）。**fire_spirit** は召喚一斉射撃サイクルを主発動として記録。
+3. スキル説明の残響/分身対応は LevelUpScene のカード（短い記号）＋ F7 デバッグ一覧で確認できる（BaseScene 熟練度タブは従来どおり熟練度Lvのみ）。
+4. 灼熱共鳴の段階は**炎上数のみで決まり area 補正で増えない**。墓標数/陣頂点数は projectileCount 補正で増えない。炉心熱量上昇率/最大熱量は damage/cooldown 補正で変動しない。
+5. **save_version は v6 維持**（加算的 runtimeState）。
+
 ## セーブについて（M5-B）
 
 基本は **ブラウザの localStorage**（恒久データ profile / 設定 settings / 途中セーブ active_run）です。
@@ -390,12 +443,15 @@ src/
                       HundredWispParade / SolarCoreCollapse / InfernalVortexWheel / ApocalypseChain /
                       （M6-D）ScorchingRay / EmberMinefield / FlameCrescent / RicochetEmber / AshDoppelganger /
                       BloodfirePact / BulletFurnace / FourSidedInferno / MoltenChains / BlazingStep ＋進化
-                      SolarAnnihilationArray / HellfireMineNetwork / InfernoBladeDomain / AshLegion / StarDevouringFurnace
+                      SolarAnnihilationArray / HellfireMineNetwork / InfernoBladeDomain / AshLegion / StarDevouringFurnace /
+                      （M6-E）FuneralPyres / MagmaVein / TriFlameArray / ScorchingResonance / CoreOverdrive ＋進化
+                      NecroflameMausoleum / WorldScorchingRift / HexagramInfernoArray / UniversalFlameResonance / DoomsdayCore
   systems/            DataManager / SaveManager / profileSchema(v6移行) / ProgressionManager /
                       ReincarnationManager / EvolutionManager / SpawnManager / BattleManager /
                       PoolManager / SkillManager / EffectManager / SpatialGrid(空間グリッド・M5-A) /
                       SeededRandom・SkillDraftManager・PassiveManager（スキル抽選基盤・M6-A）/
-                      JobProgressionManager・JobModifierManager（ジョブ育成・M6-C）/ CastPolicy（残響/複製の再帰防止・M6-D）
+                      JobProgressionManager・JobModifierManager（ジョブ育成・M6-C）/ CastPolicy（残響/複製の再帰防止・M6-D）/
+                      SkillAudit（castMode/echo・clone/Lv80/タグの一元解決・M6-E）
   storage/            StorageAdapter / BrowserStorageAdapter / FolderStorageAdapter / MemoryStorageAdapter /
                       SaveCoordinator / SaveValidator / SaveConflictResolver / SaveService / idb（保存レイヤー・M5-B）
   ui/                 HUD / PauseMenu
@@ -414,9 +470,14 @@ tests/job-modifiers.mjs        ジョブ補正の解決/ダメージタグ/到�
 tests/fire-skills-wave2.mjs    新 active 10種のデータ整合＋抽選＋cast メタ＋上限（Node標準のみ・M6-D）
 tests/fire-evolutions-wave2.mjs 新進化5種のデータ整合＋進化条件＋既存8進化の非回帰（Node標準のみ・M6-D）
 tests/cast-copy-safety.mjs     残響/分身複製の再帰防止（origin/generation 1世代停止）（Node標準のみ・M6-D）
-.github/workflows/    static.yml（公開） / validate.yml（データ検証＋各テスト）
+tests/fire-skills-wave3.mjs    新 active 5種のデータ整合＋抽選＋cast メタ＋新skillCaps（Node標準のみ・M6-E）
+tests/fire-evolutions-wave3.mjs 新進化5種のデータ整合＋進化条件＋既存13進化の非回帰（Node標準のみ・M6-E）
+tests/skill-tag-audit.mjs      全 active30/進化18の castMode/echo・clone/Lv80/タグ監査（SkillAudit・Node標準のみ・M6-E）
+tests/cast-event-audit.mjs     主発動イベントの統一（攻撃サイクル単位のみ recordCast）（Node標準のみ・M6-E）
+.github/workflows/    static.yml（公開） / validate.yml（データ検証＋各テスト・全15スイート）
 data/                 ... / jobs.json・passives.json・skill-config.json（M6-A）／skills.json・skill-evolutions.json 拡張・balance.skillCaps（M6-B）／
-                      job-progression.json・balance.combatCaps.maxEchoPerFrame（M6-C）／skills/evolutions 各10・5追加・cast メタ・skillCaps 26種追加（M6-D）
+                      job-progression.json・balance.combatCaps.maxEchoPerFrame（M6-C）／skills/evolutions 各10・5追加・cast メタ・skillCaps 26種追加（M6-D）／
+                      skills/evolutions 各5追加・castMode/mainCastEvent/lv80ProjectileTarget メタ・balance.skillCaps 20種追加（M6-E）
 ```
 
 保存レイヤー（`src/storage/*`）とデータ管理画面（`DataManagementScene`）は M5-B で実装済みです。今後の候補は `TODO.md` を参照してください。
@@ -521,6 +582,16 @@ echo→*・clone→* が発生しない・maxCopyGeneration=1）を `node tests/
 四方炎獄の画面端表示・鎖の接続/再接続・爆炎歩法の実ダッシュ・残響/分身の無限増殖しないこと・大量敵＋2倍速・品質別の視認性・
 途中再開/戦闘後の残留なし・F6）は Phaser 依存のためヘッドレスでは未検証**です。GitHub Pages を実ブラウザ（`?debug=1` の F6）で開き、
 `docs/test-guide.md` の M6-D 項目を手動確認してください（実行していない項目は「確認済み」と報告していません）。
+
+**Milestone 6-E の検証**: 新 active 5種・新進化5種のデータ整合・抽選出現・cast メタ・新 skillCaps の品質順、進化条件（既存13進化の非回帰含む）、
+**全 active30種・進化18種の監査**（`SkillAudit` による castMode/echoPolicy/clonePolicy/canTriggerEcho/canBeCopiedByClone/mainCastEvent/lv80ProjectileTarget の解決と整合）、
+**主発動イベントの統一**（recordCast が攻撃サイクル単位のみ・DoTtick/連鎖/分裂/召喚通常射撃/共鳴連鎖/オーバーヒート開始終了では記録しない）、
+共鳴閾値の昇順・炉心熱量段階・未知タグ検証を `node tests/fire-skills-wave3.mjs`・`node tests/fire-evolutions-wave3.mjs`・
+`node tests/skill-tag-audit.mjs`・`node tests/cast-event-audit.mjs` で検証済みです（既存11スイートも維持し**全15スイートが通過**）。
+**戦闘ランタイム（墓標の死亡位置生成と一度きり噴火・炎脈の蛇行・三角焔陣の内部判定・六芒煉獄陣の表示・炎上数に応じた共鳴変化・万象炎鳴の連鎖・
+炉心暴走の加速/過熱/停止/再開・終末炉心の状態変化・echo/cloneで熱量が変わらないこと・Job Lv80が対象弾だけ増やすこと・敵死亡履歴/炎上索引の実挙動・
+途中再開/戦闘後の残留なし・F7）は Phaser 依存のためヘッドレスでは未検証**です。GitHub Pages を実ブラウザ（`?debug=1` の F7）で開き、
+`docs/test-guide.md` の M6-E 項目を手動確認してください（実行していない項目は「確認済み」と報告していません）。
 
 > ヘッドレス環境の制約: `requestAnimationFrame` が断続的に間引かれ、また headless では
 > ページが非フォーカス扱いになり自動一時停止が働くため、「リザルト→再挑戦後の実時間ループ継続」や

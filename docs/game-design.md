@@ -266,3 +266,62 @@ M6-A の抽選/枠/パッシブ/進化基盤・M6-B の戦闘挙動・M6-C の�
 - 全新スキルへ 火ダメージ/DoT/範囲/Lv5・10 投射速度/Lv20・90 CD/Lv40 爆発/Lv50・100 残響/Lv60 進化/Lv70 抽選重み/Lv80 発射数 が共通経路で反映される。ダメージはスキル側で pre-multiply せず `dealDamage` が適用する。
 - **Lv80 の発射数+1 の対象**: 跳炎弾/弾喰い炉の放出弾/星喰い炉の放出弾/明確な projectile。**対象外**: 地雷数/分身数/鎖接続数/光線数/ダッシュチャージ数/敵弾吸収数/灰燼軍勢ユニット数。
 - パッシブ（魔力増幅=damage/高速詠唱=cooldown/焦熱拡張=area/残火持続=duration）を共通集計する。**血炎契約のHP消費量は damage 補正で増えない**・**弾喰い炉の吸収数/チャージ上限は area/damage 補正で増えない**。
+
+## 火の魔女ビルド完成・第3波（Milestone 6-E 実装済み）
+M6-A（抽選/枠/パッシブ/進化）・M6-B（戦闘挙動）・M6-C（ジョブ育成・残響）・M6-D（残響/分身の再帰防止）を再利用し、火の魔女専用の active を **さらに5種**・進化を **さらに5種** 追加する。
+あわせて**全 active30種・進化18種を監査**して残響（echo）/分身（clone）・主発動イベント・ダメージタグ・Job Lv80発射数+1 の扱いを各定義へ明示する。既存25 active・13進化・4 passive の性能は変更しない。
+結果として火の魔女は **active 30種（既存25＋新5）・進化18種（既存13＋新5）・passive 4種・Job Lv1〜100** に完成する（`jobs.json` の `activeSkillPool` は30種）。
+
+### 新アクティブ5種（すべて火の魔女専用・最大Lv8・毎レベル成長）
+| スキル | id | レア | 役割（既存との差別化） |
+|--------|----|------|------|
+| 火葬の墓標 | `funeral_pyres` | uncommon | 直近の敵**死亡位置**へ墓標を生成→フューズ後に噴火（範囲＋燃焼地帯）。周囲の敵死亡で噴火が早まる。同じ死亡イベントを複数の墓標へ使わない（`consumeDeathEvent`） |
+| 炎脈走破 | `magma_vein` | common | 蛇行しながら敵群を横断する炎の亀裂（複数の短い区間）。区間が一定時間残り DoT。方向決定は決定論的 |
+| 三角焔陣 | `tri_flame_array` | rare | 3支点で三角形を形成、**内部の敵**へ DoT、辺接触で追加ダメージ＋軽減速（ボスは減速無効）。高Lvで内部小爆発。点in三角形判定は厳密 |
+| 灼熱共鳴 | `scorching_resonance` | rare | 一定間隔で**炎上中の敵数**を数え、共鳴段階（`tierThresholds [0,5,15,30,60]`）に応じたパルス攻撃。炎上が多いほど威力/範囲/追加爆発/炎上延長が強化。段階は上限化 |
+| 炉心暴走 | `core_overdrive` | legendary | 火炎弾を発射。発動ごと**熱量**上昇→発動速度/発射数/威力/弾速が上昇、最大で**オーバーヒート**（短時間停止）→熱量リセットして再開。未発動時は冷却 |
+
+### 新進化5種（枠を消費せず基礎 active を置換・補助条件スキルは消費しない）
+補助条件には passive も指定できる（M6-B/M6-D と同じく `EvolutionManager.canEvolve(...,levelOf)` が active∪passive を解決）。
+| 進化 | 基礎スキル(Lv8) | 補助条件(Lv4) | 特徴 |
+|------|-----------------|---------------|------|
+| 冥炎大霊廟 `necroflame_mausoleum` | 火葬の墓標 | 不死鳥の羽 | 大型霊廟・周期小噴火・保存死亡数で追加火柱の大噴火。不死鳥の致死回避で大噴火待機を短縮（同一致死1回） |
+| 大地灼断 `world_scorching_rift` | 炎脈走破 | 燃える軌跡 | 複数巨大亀裂が交差、交差点で追加噴火。移動経路へ短時間の小亀裂 |
+| 六芒煉獄陣 `hexagram_inferno_array` | 三角焔陣 | 火炎渦 | 二重三角形＝六芒星。外周/内部/中央核で異なる判定、中央核が敵吸引（ボス無効）、頂点→中央の炎波、終了時全体爆発 |
+| 万象炎鳴 `universal_flame_resonance` | 灼熱共鳴 | 連鎖炎 | 炎上敵を共鳴点として連鎖、一定数以上炎上で画面規模の共鳴爆発（1発動最大1回・`visited` 集合で無限往復防止） |
+| 終末炉心 `doomsday_core` | 炉心暴走 | 血炎契約 | 熱量で攻撃形態が段階変化（低/中/高/終末状態）、終末終了で強制オーバーヒート。低HPで終末威力がわずかに上昇（上限あり・HPは自動消費しない） |
+
+- 進化は基礎 active を置換し、枠を追加消費しない。補助条件スキルは消費しない。進化は Job Lv80発射数+1 の対象外（単一形態）。
+
+### 共鳴段階・炉心熱量・墓標の死亡履歴利用
+- **共鳴段階（灼熱共鳴/万象炎鳴）**: 一定間隔で炎上中の敵数を数え、`tierThresholds [0,5,15,30,60]` の段階に応じてパルスの威力/範囲/追加爆発/炎上延長が強化される。**段階は炎上数のみで決まり、area 補正では上がらない**（上限化）。
+- **炉心熱量・オーバーヒート（炉心暴走/終末炉心）**: 発動ごとに熱量が上昇し、発動速度/発射数/威力/弾速が上がる。最大でオーバーヒート（短時間の発動停止）→熱量をリセットして再開。未発動時は冷却する。終末炉心は熱量で攻撃形態（低/中/高/終末）が変わり、終末終了で強制オーバーヒートする。**熱量上昇率/最大熱量は damage/cooldown 補正で変動しない**。低HPで終末威力がわずかに上がるが HP は自動消費しない。
+- **墓標の死亡履歴利用（火葬の墓標/冥炎大霊廟）**: BattleScene が保持する**敵死亡イベント履歴**（墓標系所持時のみ記録）から直近の死亡位置を取り、墓標を生成する。同じ死亡イベントは1墓標だけが消費する（`consumeDeathEvent`）。周囲の敵死亡で噴火が早まる。
+
+### 全スキル監査（残響/分身/タグ/Lv80 を各定義へ明示）
+- **cast メタ**: 各 active/進化に `castMode`（periodic/cooldown/continuous/reactive/defensive/movement/resource）・`echoPolicy`/`clonePolicy`（standard/custom/forbidden）・`canTriggerEcho`/`canBeCopiedByClone`・`echoDescription`/`cloneDescription`・`mainCastEvent`・`lv80ProjectileTarget` を持たせる。`SkillAudit` が def から一元解決する。
+- **主発動イベント（recordCast）は攻撃サイクル単位のみ**。DoTの各tick・連鎖の各対象・分裂弾・爆発の各対象・個別起爆・召喚の通常射撃・共鳴の各連鎖・オーバーヒート開始終了では recordCast しない（残響/分身の起点を「1回の攻撃サイクル」に統一）。
+- **監査で修正した既存挙動（挙動そのものは不変）**: (a) 周回する炎 `orbiting_flame` は接触ごとの recordCast をやめ、主発動を一定間隔にスロットル（ダメージは接触ごとのまま）。echo/clone は炎輪パルスの再現（custom）。(b) 火の精霊 `fire_spirit` は召喚の一斉射撃サイクルを主発動として記録（個々の通常射撃では記録しない）。echo/clone は各精霊の追加一斉射撃（custom・精霊は増えない）。(c) 不死鳥の羽/炎の障壁は防御専用として echoPolicy/clonePolicy=forbidden を明示（従来も recordCast していないため挙動変更なし）。
+- **ダメージタグ**: 火属性補正は全 fire へ、DoT補正は DoT のみ、爆発補正は爆発のみ、進化補正は進化のみ、弾速/数補正は対象スキルのみに適用する。echo/clone 倍率は `dealDamage` で1回だけ適用する（二重適用しない）。
+
+### Job Lv80「発射数+1」の対象（`SkillAudit` で一元管理）
+- **対象は独立弾を撃つ通常 active のみ**: `fireball` / `flame_lance` / `scatter_flame` / `homing_wisp` / `ricochet_ember` / `core_overdrive`。
+- **対象外**: 地雷/墓標/分身/光線/陣/亀裂/波/召喚/鎖/共鳴段階/熱量段階/**進化**（単一形態）。対象一覧は `src/systems/SkillAudit.js` の `appliesLv80ProjectileCount`（データ `lv80ProjectileTarget`）で管理し、コードへ散在させない。
+
+### 新規インフラ（敵死亡履歴・炎上索引・combat API）
+- **敵死亡イベント履歴**（BattleScene）: `retainDeathEvents`/`releaseDeathEvents` で墓標系所持時のみ記録。`recentDeathEvents`/`consumeDeathEvent`（同一死亡は1回だけ消費）。上限 `maxDeathEventsTracked`/`maxDeathEventsPerFrame`。死亡情報 `{id,x,y,enemyType,isElite,isBoss,killedBySkillId,timestamp,frameId,consumed}`。既存の撃破統計/残り火/Job XP/経験値ジェムは不変。
+- **炎上中敵の索引**（`BattleScene._burningIndex`）: `Enemy.ignite` で登録、消火/死亡/プール返却/Scene終了で解除。`burningCount()`/`burningEnemies()`（ボス炎上も1体）。`combat.ignite(e,ms,gen)` で付与＋登録。全敵走査を避ける軽量索引。Boss にも `ignite/ignited` を追加。
+- **combat API 追加**: `retainDeathEvents`/`releaseDeathEvents`/`recentDeathEvents`/`consumeDeathEvent`/`burningCount`/`burningEnemies`/`ignite`/`registerBurning`/`worldBounds`。
+
+### UI・性能上限・デバッグ・保存
+- **UI**: LevelUpScene のスキルカードへ「残響○/◑/× 分身○/◑/× Lv80+ ·主要タグ」の短い記号行を追加（プレイヤーが残響/分身対応を判断できる）。BaseScene 熟練度タブは従来どおり熟練度Lvのみ。
+- **性能上限**: `balance.skillCaps` へ品質別20種を追加（墓標/噴火/亀裂区間/交差/陣/共鳴対象/共鳴連鎖/共鳴爆発/炉心弾/放出/霊廟/六芒陣/炎波/終末弾/終末爆発/炎上索引/主発動 の毎フレーム上限 ほか）。**上限到達でも攻撃判定は消さず、装飾を先に削る**。
+- **デバッグ**: `?debug=1` の **F7** パネル（既存 F1〜F6 と非競合）。新 active5種の単独取得/Lv切替・進化条件達成・死亡位置生成・炎上一括付与/解除・炉心熱量0/25/50/75/100%・オーバーヒート開始/解除・終末状態開始・echoPolicy/clonePolicy/Lv80対象の一覧・最後のダメージタグ・echo/clone origin/generation/倍率・性能上限到達数。デバッグ設定は profile へ保存しない。
+- **保存**: 各スキルの runtimeState を `active_run.skillRuntime` へ加算保存（墓標=CD、炎脈=CD、三角=CD、共鳴=CD〈段階は再開時に再計算〉、炉心=heat/overheatLeft/cdLeft、終末=heat/overheatLeft/doomLeft/cdLeft）。個々の墓標/亀裂/陣/弾の位置は保存しない。**`save_version` は v6 のまま**（加算的追加）。再読込で熱量初期化/オーバーヒート解除/終末再開始/CD全回復/墓標二重生成 などの悪用ができないよう heat/overheat/doom/CD を保存・復元する。
+
+### 記録すべき設計判断（M6-E）
+1. **Job Lv80発射数+1は独立弾の通常 active6種のみ・進化は対象外**（単一形態）。対象は `SkillAudit` で一元管理。
+2. **orbiting_flame** は接触tick毎の recordCast を廃し主発動を一定間隔にスロットル（残響の一貫性のための監査修正・ダメージ量は不変）。**fire_spirit** は召喚一斉射撃サイクルを主発動として記録。
+3. スキル説明の残響/分身対応は LevelUpScene のカード（短い記号）＋ F7 デバッグ一覧で確認できる。
+4. 灼熱共鳴の段階は**炎上数のみ**で決まり area 補正で増えない。墓標数/陣頂点数は projectileCount 補正で増えない。炉心熱量上昇率/最大熱量は damage/cooldown 補正で変動しない。
+5. **save_version は v6 維持**（加算的 runtimeState）。

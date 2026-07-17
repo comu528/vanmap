@@ -356,3 +356,27 @@ M6-B の `skillRuntime`（不死鳥/障壁CD・召喚数など）に、第2波�
 - **保存しない**: 個々の弾/地雷/分身/鎖の位置。これらはレベル＋ runtimeState から自然に再構築する。
 - **再読込での悪用防止**: remaining 値（CD/チャージ/時間/分身数）を保存・復元することで、血炎契約の CD 回復・弾喰い炉のチャージ複製・爆炎歩法のチャージ全回復・地雷/分身の二重生成・星喰い炉の再放出・太陽滅却陣の多重生成 を防ぐ。一時停止中は update が止まるため CD/チャージも進まない。
 - `SkillManager.serializeRuntime()`／`restoreRuntime()` が各スキルの `serializeState/restoreState` を集約し、`BattleScene.restoreFromRun()` が復元する。加算的追加のため **`save_version` は 6 のまま**（構造変更が無いので明確な移行は不要）。転生でもリセットしない。
+
+## Milestone 6-E: 火の魔女ビルド完成・第3波（save_version は 6 のまま）
+新 active 5種・進化5種の追加は、M6-B/M6-D の `active_run.skillRuntime`（`SkillManager.serializeRuntime`）へ **各スキルの実行時状態を加算的に足すだけ** で、profile/active_run の既存構造を変えない。
+そのため **`saveVersion` は 6 のまま**（不要な版上げをしない）。v1〜v6 からの移行は M6-A/M6-B/M6-C/M6-D と同じ経路で、既存データを保持する。全スキル監査で追加した `castMode`/`mainCastEvent`/`lv80ProjectileTarget` は `data/skills.json`・`data/skill-evolutions.json` 側のメタで、セーブ payload には含めない（保存フォーマットに影響しない）。
+
+### active_run.skillRuntime（第3波スキルの追加フィールド・任意）
+M6-B/M6-D の `skillRuntime` に、第3波スキルの再開に必要な最小限を加算する。無い（旧セーブ・新スキル未所持）場合は空として安全に再開する。
+```jsonc
+{
+  "skillRuntime": {
+    "funeral_pyres":        { "cdLeft": 0 },                          // 火葬の墓標: 残りCD（個々の墓標位置は保存しない）
+    "magma_vein":           { "cdLeft": 0 },                          // 炎脈走破: 残りCD（亀裂区間は再構築）
+    "tri_flame_array":      { "cdLeft": 0 },                          // 三角焔陣: 残りCD（陣は再構築）
+    "scorching_resonance":  { "cdLeft": 0 },                          // 灼熱共鳴: 残りCD（共鳴段階は再開時に炎上数から再計算）
+    "core_overdrive":       { "heat": 0.5, "overheatLeft": 0, "cdLeft": 0 },            // 炉心暴走: 熱量・オーバーヒート残・残りCD
+    "doomsday_core":        { "heat": 0.75, "overheatLeft": 0, "doomLeft": 0, "cdLeft": 0 } // 終末炉心: 熱量・過熱残・終末残・残りCD
+    // 個々の墓標/亀裂/陣/弾の位置は保存せず、レベル＋runtimeState から再構築する
+  }
+}
+```
+- **保存対象**: 火葬の墓標/炎脈走破/三角焔陣/灼熱共鳴の CD、炉心暴走の熱量/オーバーヒート残/CD、終末炉心の熱量/オーバーヒート残/終末残/CD、新進化の必要 runtime。**灼熱共鳴の共鳴段階は保存せず、再開時に炎上中の敵数から再計算する**。統計は profile 側 `skillMastery`（新スキル分も同形式・`recordExtra`）で保持する（個別統計例: 火葬の墓標=pyresCreated/pyreEruptions/deathsUsed/eruptionKills、炎脈走破=veinsCreated/segmentsCreated/intersections/totalGroundDamage、三角焔陣=arraysCreated/enemiesInside/edgeHits/maxEnemiesInsideOneArray、灼熱共鳴=resonancePulses/maxResonanceLevel/burningEnemiesCounted/resonanceExplosions、炉心暴走=overdriveCasts/maxHeatReached/overheats/timeAtHighHeat/doomsdayStates）。新しい熟練度報酬や新通貨は追加しない。
+- **保存しない**: 個々の墓標/亀裂/陣/弾の位置、敵死亡イベント履歴（`recentDeathEvents`）、炎上索引（`_burningIndex`）。これらはランタイムの一時状態で、レベル＋ runtimeState と再開後の戦闘から自然に再構築する。
+- **再読込での悪用防止**: remaining 値（CD/熱量/オーバーヒート/終末/分身）を保存・復元することで、**炉心熱量の初期化・オーバーヒート解除・終末の再開始・CD全回復・墓標の二重生成** を防ぐ。一時停止中は update が止まるため CD/熱量も進まない。
+- `SkillManager.serializeRuntime()`／`restoreRuntime()` が各スキルの `serializeState/restoreState` を集約し、`BattleScene.restoreFromRun()` が復元する。加算的追加のため **`save_version` は 6 のまま**（構造変更が無いので明確な移行は不要）。転生でもリセットしない。

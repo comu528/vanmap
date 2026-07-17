@@ -17,6 +17,7 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
     this.speed = def.speed;
     this.alive = true;
     this.lastDamage = 0;
+    this._igniteUntil = 0; // M6-E: 炎上（灼熱共鳴・万象炎鳴の共鳴点として1体で数える）
 
     this.state = 'chase';
     this._chargeDir = new Phaser.Math.Vector2();
@@ -32,6 +33,10 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
   }
 
   cdMult() { return this.enraged ? this.enrageMult : 1; }
+
+  // 炎上（M6-E）。ボスは索引に載せず、burningCount/burningEnemies が boss.ignited を直接参照する。
+  ignite(ms, gen) { this._igniteUntil = this.scene.time.now + ms; this._igniteGen = gen || 0; }
+  get ignited() { return this.alive && this.scene.time.now < this._igniteUntil; }
 
   update(dt, player) {
     if (!this.alive) return;

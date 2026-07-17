@@ -125,7 +125,19 @@
             "level": 4
           }
         ]
-      }
+      },
+      "castMode": "cooldown",
+      "mainCastEvent": "fire",
+      "echoDescription": "火球を追加発射",
+      "cloneDescription": "火球を複製発射",
+      "lv80ProjectileTarget": true,
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
     },
     {
       "id": "flame_pillar",
@@ -260,7 +272,19 @@
             "level": 4
           }
         ]
-      }
+      },
+      "castMode": "cooldown",
+      "mainCastEvent": "fire",
+      "echoDescription": "火柱を追加生成",
+      "cloneDescription": "火柱を複製生成",
+      "lv80ProjectileTarget": false,
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
     },
     {
       "id": "burning_trail",
@@ -299,7 +323,7 @@
           "cooldown": 220,
           "duration": 1200,
           "radius": 12,
-          "slow": 0.0,
+          "slow": 0,
           "visual": "small"
         },
         {
@@ -380,7 +404,19 @@
             "level": 4
           }
         ]
-      }
+      },
+      "castMode": "periodic",
+      "mainCastEvent": "emitStart",
+      "echoDescription": "燃焼地帯を追加設置",
+      "cloneDescription": "燃焼地帯を複製設置",
+      "lv80ProjectileTarget": false,
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
     },
     {
       "id": "orbiting_flame",
@@ -417,7 +453,7 @@
           "cooldown": 300,
           "count": 1,
           "radius": 36,
-          "rotationSpeed": 2.0,
+          "rotationSpeed": 2,
           "visual": "small"
         },
         {
@@ -462,7 +498,7 @@
           "cooldown": 300,
           "count": 3,
           "radius": 56,
-          "rotationSpeed": 3.0,
+          "rotationSpeed": 3,
           "visual": "large"
         },
         {
@@ -484,7 +520,19 @@
           "visual": "huge"
         }
       ],
-      "evolution": null
+      "evolution": null,
+      "castMode": "continuous",
+      "mainCastEvent": "pulse",
+      "echoDescription": "炎輪パルスを追加（周回状態は不変）",
+      "cloneDescription": "炎輪パルスを複製",
+      "lv80ProjectileTarget": false,
+      "echoPolicy": "custom",
+      "clonePolicy": "custom",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
     },
     {
       "id": "meteor",
@@ -596,7 +644,19 @@
           "visual": "huge"
         }
       ],
-      "evolution": null
+      "evolution": null,
+      "castMode": "cooldown",
+      "mainCastEvent": "fire",
+      "echoDescription": "メテオを追加落下",
+      "cloneDescription": "メテオを複製落下",
+      "lv80ProjectileTarget": false,
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
     },
     {
       "id": "flame_lance",
@@ -636,7 +696,7 @@
           "count": 1,
           "pierce": 3,
           "speed": 430,
-          "spread": 0.0,
+          "spread": 0,
           "visual": "small"
         },
         {
@@ -646,7 +706,7 @@
           "count": 1,
           "pierce": 3,
           "speed": 450,
-          "spread": 0.0,
+          "spread": 0,
           "visual": "small"
         },
         {
@@ -709,7 +769,19 @@
           "spread": 0.12,
           "visual": "huge"
         }
-      ]
+      ],
+      "castMode": "cooldown",
+      "mainCastEvent": "fire",
+      "echoDescription": "炎槍を追加発射",
+      "cloneDescription": "炎槍を複製発射",
+      "lv80ProjectileTarget": true,
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
     },
     {
       "id": "scatter_flame",
@@ -795,7 +867,7 @@
           "damage": 15,
           "cooldown": 860,
           "count": 8,
-          "spread": 1.0,
+          "spread": 1,
           "pierce": 1,
           "speed": 325,
           "visual": "large"
@@ -820,7 +892,19 @@
           "speed": 340,
           "visual": "huge"
         }
-      ]
+      ],
+      "castMode": "cooldown",
+      "mainCastEvent": "fire",
+      "echoDescription": "拡散弾を追加発射",
+      "cloneDescription": "拡散弾を複製発射",
+      "lv80ProjectileTarget": true,
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
     },
     {
       "id": "homing_wisp",
@@ -941,7 +1025,19 @@
           "wanderMs": 280,
           "visual": "huge"
         }
-      ]
+      ],
+      "castMode": "cooldown",
+      "mainCastEvent": "fire",
+      "echoDescription": "追尾鬼火を追加発射",
+      "cloneDescription": "追尾鬼火を複製発射",
+      "lv80ProjectileTarget": true,
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
     },
     {
       "id": "chain_flame",
@@ -1051,7 +1147,19 @@
           "speed": 380,
           "visual": "huge"
         }
-      ]
+      ],
+      "castMode": "cooldown",
+      "mainCastEvent": "fire",
+      "echoDescription": "連鎖の初撃を追加（各連鎖対象は対象外）",
+      "cloneDescription": "連鎖初撃を複製",
+      "lv80ProjectileTarget": false,
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
     },
     {
       "id": "lava_bomb",
@@ -1172,7 +1280,19 @@
           "burnDamage": 16,
           "visual": "huge"
         }
-      ]
+      ],
+      "castMode": "cooldown",
+      "mainCastEvent": "fire",
+      "echoDescription": "溶岩弾を追加投擲",
+      "cloneDescription": "溶岩弾を複製投擲",
+      "lv80ProjectileTarget": false,
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
     },
     {
       "id": "flame_vortex",
@@ -1302,7 +1422,19 @@
           "endBurst": 80,
           "visual": "huge"
         }
-      ]
+      ],
+      "castMode": "periodic",
+      "mainCastEvent": "deployStart",
+      "echoDescription": "火炎渦を追加展開",
+      "cloneDescription": "火炎渦を複製展開",
+      "lv80ProjectileTarget": false,
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
     },
     {
       "id": "fire_spirit",
@@ -1413,7 +1545,19 @@
           "pierce": 2,
           "visual": "huge"
         }
-      ]
+      ],
+      "castMode": "continuous",
+      "mainCastEvent": "summonVolley",
+      "echoDescription": "召喚した精霊が追加一斉射撃（精霊は増えない）",
+      "cloneDescription": "精霊が複製一斉射撃",
+      "lv80ProjectileTarget": false,
+      "echoPolicy": "custom",
+      "clonePolicy": "custom",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
     },
     {
       "id": "phoenix_feather",
@@ -1516,7 +1660,19 @@
           "invulnMs": 1800,
           "visual": "huge"
         }
-      ]
+      ],
+      "castMode": "defensive",
+      "mainCastEvent": "revive",
+      "echoDescription": "防御専用のため残響対象外",
+      "cloneDescription": "防御専用のため複製対象外",
+      "lv80ProjectileTarget": false,
+      "echoPolicy": "forbidden",
+      "clonePolicy": "forbidden",
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "isDefensive": true,
+      "isReactive": false,
+      "usesResourceCost": false
     },
     {
       "id": "flame_barrier",
@@ -1623,12 +1779,24 @@
           "cooldown": 5200,
           "duration": 3600,
           "hits": 5,
-          "reduction": 1.0,
+          "reduction": 1,
           "retaliateDamage": 94,
           "retaliateRadius": 78,
           "visual": "huge"
         }
-      ]
+      ],
+      "castMode": "defensive",
+      "mainCastEvent": "barrier",
+      "echoDescription": "防御専用のため残響対象外",
+      "cloneDescription": "防御専用のため複製対象外",
+      "lv80ProjectileTarget": false,
+      "echoPolicy": "forbidden",
+      "clonePolicy": "forbidden",
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "isDefensive": true,
+      "isReactive": false,
+      "usesResourceCost": false
     },
     {
       "id": "detonation_mark",
@@ -1750,7 +1918,19 @@
           "deathDamage": 48,
           "visual": "huge"
         }
-      ]
+      ],
+      "castMode": "cooldown",
+      "mainCastEvent": "markApply",
+      "echoDescription": "刻印付与を追加（起爆自体は対象外）",
+      "cloneDescription": "刻印付与を複製",
+      "lv80ProjectileTarget": false,
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
     },
     {
       "id": "scorching_ray",
@@ -1795,7 +1975,7 @@
           "level": 1,
           "damage": 9,
           "cooldown": 3400,
-          "width": 10.0,
+          "width": 10,
           "duration": 1400,
           "followSpeed": 2.2,
           "tickRate": 180,
@@ -1845,7 +2025,7 @@
           "level": 6,
           "damage": 17,
           "cooldown": 2800,
-          "width": 16.0,
+          "width": 16,
           "duration": 1800,
           "followSpeed": 2.944,
           "tickRate": 150,
@@ -1871,7 +2051,12 @@
           "tickRate": 138,
           "beams": 2
         }
-      ]
+      ],
+      "castMode": "continuous",
+      "mainCastEvent": "beamStart",
+      "echoDescription": "照射を追加（各tickは対象外）",
+      "cloneDescription": "照射を複製",
+      "lv80ProjectileTarget": false
     },
     {
       "id": "ember_minefield",
@@ -2001,7 +2186,12 @@
           "warnMs": 262,
           "visual": "large"
         }
-      ]
+      ],
+      "castMode": "periodic",
+      "mainCastEvent": "deployStart",
+      "echoDescription": "地雷設置を追加（個別起爆は対象外）",
+      "cloneDescription": "地雷設置を複製",
+      "lv80ProjectileTarget": false
     },
     {
       "id": "flame_crescent",
@@ -2122,7 +2312,12 @@
           "knockback": 51,
           "visual": "large"
         }
-      ]
+      ],
+      "castMode": "cooldown",
+      "mainCastEvent": "slash",
+      "echoDescription": "斬撃を追加",
+      "cloneDescription": "斬撃を複製",
+      "lv80ProjectileTarget": false
     },
     {
       "id": "ricochet_ember",
@@ -2169,7 +2364,7 @@
           "bounces": 2,
           "speed": 300,
           "retriggerMs": 320,
-          "bounceDamageFactor": 1.0
+          "bounceDamageFactor": 1
         },
         {
           "level": 2,
@@ -2241,7 +2436,12 @@
           "retriggerMs": 264,
           "bounceDamageFactor": 1.149
         }
-      ]
+      ],
+      "castMode": "cooldown",
+      "mainCastEvent": "fire",
+      "echoDescription": "反射弾を追加発射",
+      "cloneDescription": "反射弾を複製発射",
+      "lv80ProjectileTarget": true
     },
     {
       "id": "ash_doppelganger",
@@ -2346,7 +2546,12 @@
           "followDist": 44,
           "duration": 8100
         }
-      ]
+      ],
+      "castMode": "cooldown",
+      "mainCastEvent": "cloneDeploy",
+      "echoDescription": "複製系のため残響対象外（複製から複製を作らない）",
+      "cloneDescription": "複製系のため複製対象外",
+      "lv80ProjectileTarget": false
     },
     {
       "id": "bloodfire_pact",
@@ -2474,7 +2679,12 @@
           "hpCostPercent": 0.15,
           "safeHpPercent": 0.25
         }
-      ]
+      ],
+      "castMode": "resource",
+      "mainCastEvent": "resourceBurst",
+      "echoDescription": "攻撃部分のみ再現（HP消費なし）",
+      "cloneDescription": "攻撃部分のみ複製（HP消費なし）",
+      "lv80ProjectileTarget": false
     },
     {
       "id": "bullet_furnace",
@@ -2522,7 +2732,7 @@
           "maxCharge": 8,
           "releaseProjectiles": 8,
           "releaseDamage": 14,
-          "absorbPerSec": 6.0,
+          "absorbPerSec": 6,
           "maxAbsorbConcurrent": 3,
           "redeployMs": 1400
         },
@@ -2572,7 +2782,7 @@
           "maxCharge": 13,
           "releaseProjectiles": 16,
           "releaseDamage": 24,
-          "absorbPerSec": 9.0,
+          "absorbPerSec": 9,
           "maxAbsorbConcurrent": 5,
           "redeployMs": 1250
         },
@@ -2596,7 +2806,12 @@
           "maxAbsorbConcurrent": 6,
           "redeployMs": 1190
         }
-      ]
+      ],
+      "castMode": "reactive",
+      "mainCastEvent": "absorbRelease",
+      "echoDescription": "放出弾幕のみ再現（チャージ消費なし・防御反応のため起点にならない）",
+      "cloneDescription": "放出弾幕のみ複製（チャージ不変）",
+      "lv80ProjectileTarget": false
     },
     {
       "id": "four_sided_inferno",
@@ -2715,7 +2930,12 @@
           "burnMs": 1760,
           "staggerMs": 204
         }
-      ]
+      ],
+      "castMode": "periodic",
+      "mainCastEvent": "waveStart",
+      "echoDescription": "画面端波を追加",
+      "cloneDescription": "画面端波を複製",
+      "lv80ProjectileTarget": false
     },
     {
       "id": "molten_chains",
@@ -2756,7 +2976,7 @@
       "levels": [
         {
           "level": 1,
-          "dotDamage": 7.0,
+          "dotDamage": 7,
           "cooldown": 3000,
           "tethers": 2,
           "range": 120,
@@ -2842,7 +3062,12 @@
           "retargets": 3,
           "pull": 51
         }
-      ]
+      ],
+      "castMode": "periodic",
+      "mainCastEvent": "tetherStart",
+      "echoDescription": "鎖接続を追加（各tickは対象外）",
+      "cloneDescription": "鎖接続を複製",
+      "lv80ProjectileTarget": false
     },
     {
       "id": "blazing_step",
@@ -2890,7 +3115,7 @@
           "explosionRadius": 40,
           "trailMs": 500,
           "invulnBonusMs": 120,
-          "trailDamage": 8.0
+          "trailDamage": 8
         },
         {
           "level": 2,
@@ -2940,7 +3165,7 @@
           "explosionRadius": 55,
           "trailMs": 650,
           "invulnBonusMs": 170,
-          "trailDamage": 14.0
+          "trailDamage": 14
         },
         {
           "level": 7,
@@ -2962,7 +3187,752 @@
           "invulnBonusMs": 190,
           "trailDamage": 16.4
         }
-      ]
+      ],
+      "castMode": "movement",
+      "mainCastEvent": "dashEnhance",
+      "echoDescription": "移動強化のため残響対象外",
+      "cloneDescription": "移動強化のため複製対象外",
+      "lv80ProjectileTarget": false
+    },
+    {
+      "id": "funeral_pyres",
+      "name": "火葬の墓標",
+      "description": "一定間隔で直近の敵死亡位置へ火葬の墓標を生成。少し後に噴火して範囲ダメージ＋燃焼地帯を残す。周囲での敵死亡で噴火が早まる。",
+      "icon": "icon_funeral_pyres",
+      "iconKey": "icon_funeral_pyres",
+      "category": "active",
+      "tags": [
+        "active",
+        "fire",
+        "deathTriggered",
+        "delayed",
+        "area",
+        "explosion"
+      ],
+      "rarity": "uncommon",
+      "weight": 1,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [
+        "necroflame_mausoleum"
+      ],
+      "displayOrder": 26,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "initial": false,
+      "config": {
+        "deathMaxAgeMs": 4000
+      },
+      "levels": [
+        {
+          "level": 1,
+          "cooldown": 2600,
+          "pyreCount": 1,
+          "damage": 30,
+          "explosionRadius": 46,
+          "burnDamage": 8,
+          "burnDuration": 1500,
+          "fuseMs": 900,
+          "deathShortenMs": 120
+        },
+        {
+          "level": 2,
+          "cooldown": 2500,
+          "pyreCount": 1,
+          "damage": 34,
+          "explosionRadius": 48,
+          "burnDamage": 9,
+          "burnDuration": 1600,
+          "fuseMs": 900,
+          "deathShortenMs": 140
+        },
+        {
+          "level": 3,
+          "cooldown": 2400,
+          "pyreCount": 2,
+          "damage": 38,
+          "explosionRadius": 50,
+          "burnDamage": 10,
+          "burnDuration": 1700,
+          "fuseMs": 880,
+          "deathShortenMs": 160
+        },
+        {
+          "level": 4,
+          "cooldown": 2300,
+          "pyreCount": 2,
+          "damage": 43,
+          "explosionRadius": 52,
+          "burnDamage": 11,
+          "burnDuration": 1800,
+          "fuseMs": 880,
+          "deathShortenMs": 180
+        },
+        {
+          "level": 5,
+          "cooldown": 2200,
+          "pyreCount": 2,
+          "damage": 48,
+          "explosionRadius": 55,
+          "burnDamage": 12,
+          "burnDuration": 2000,
+          "fuseMs": 860,
+          "deathShortenMs": 210
+        },
+        {
+          "level": 6,
+          "cooldown": 2100,
+          "pyreCount": 3,
+          "damage": 54,
+          "explosionRadius": 58,
+          "burnDamage": 14,
+          "burnDuration": 2200,
+          "fuseMs": 860,
+          "deathShortenMs": 240
+        },
+        {
+          "level": 7,
+          "cooldown": 2050,
+          "pyreCount": 3,
+          "damage": 60,
+          "explosionRadius": 61,
+          "burnDamage": 16,
+          "burnDuration": 2400,
+          "fuseMs": 840,
+          "deathShortenMs": 270
+        },
+        {
+          "level": 8,
+          "cooldown": 2000,
+          "pyreCount": 3,
+          "damage": 68,
+          "explosionRadius": 64,
+          "burnDamage": 18,
+          "burnDuration": 2600,
+          "fuseMs": 820,
+          "deathShortenMs": 300
+        }
+      ],
+      "castMode": "periodic",
+      "mainCastEvent": "deployStart",
+      "echoDescription": "墓標生成サイクルを追加（死亡履歴は使い切らない）",
+      "cloneDescription": "墓標生成を複製",
+      "lv80ProjectileTarget": false,
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
+    },
+    {
+      "id": "magma_vein",
+      "name": "炎脈走破",
+      "description": "プレイヤー付近または敵密集地点から、蛇行しながら敵群を横断する炎の亀裂を地面へ生成。区間が一定時間残り継続ダメージ。",
+      "icon": "icon_magma_vein",
+      "iconKey": "icon_magma_vein",
+      "category": "active",
+      "tags": [
+        "active",
+        "fire",
+        "ground",
+        "fissure",
+        "movingArea",
+        "damageOverTime"
+      ],
+      "rarity": "common",
+      "weight": 1,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [
+        "world_scorching_rift"
+      ],
+      "displayOrder": 27,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "initial": false,
+      "levels": [
+        {
+          "level": 1,
+          "cooldown": 2400,
+          "segments": 4,
+          "segLength": 30,
+          "width": 16,
+          "damage": 5,
+          "segLifetime": 1200,
+          "meander": 0.4,
+          "veinCount": 1,
+          "tickMs": 300
+        },
+        {
+          "level": 2,
+          "cooldown": 2300,
+          "segments": 4,
+          "segLength": 31,
+          "width": 17,
+          "damage": 5.5,
+          "segLifetime": 1300,
+          "meander": 0.42,
+          "veinCount": 1,
+          "tickMs": 300
+        },
+        {
+          "level": 3,
+          "cooldown": 2200,
+          "segments": 5,
+          "segLength": 32,
+          "width": 18,
+          "damage": 6,
+          "segLifetime": 1400,
+          "meander": 0.44,
+          "veinCount": 1,
+          "tickMs": 300
+        },
+        {
+          "level": 4,
+          "cooldown": 2100,
+          "segments": 5,
+          "segLength": 33,
+          "width": 19,
+          "damage": 6.5,
+          "segLifetime": 1500,
+          "meander": 0.46,
+          "veinCount": 2,
+          "tickMs": 300
+        },
+        {
+          "level": 5,
+          "cooldown": 2000,
+          "segments": 6,
+          "segLength": 34,
+          "width": 20,
+          "damage": 7,
+          "segLifetime": 1600,
+          "meander": 0.5,
+          "veinCount": 2,
+          "tickMs": 290
+        },
+        {
+          "level": 6,
+          "cooldown": 1900,
+          "segments": 6,
+          "segLength": 36,
+          "width": 22,
+          "damage": 8,
+          "segLifetime": 1800,
+          "meander": 0.55,
+          "veinCount": 2,
+          "tickMs": 290
+        },
+        {
+          "level": 7,
+          "cooldown": 1800,
+          "segments": 7,
+          "segLength": 38,
+          "width": 24,
+          "damage": 9,
+          "segLifetime": 2000,
+          "meander": 0.6,
+          "veinCount": 3,
+          "tickMs": 280
+        },
+        {
+          "level": 8,
+          "cooldown": 1700,
+          "segments": 8,
+          "segLength": 40,
+          "width": 26,
+          "damage": 10,
+          "segLifetime": 2200,
+          "meander": 0.7,
+          "veinCount": 3,
+          "tickMs": 280
+        }
+      ],
+      "castMode": "periodic",
+      "mainCastEvent": "fissureStart",
+      "echoDescription": "亀裂生成を追加（区間の各tickは対象外）",
+      "cloneDescription": "亀裂生成を複製",
+      "lv80ProjectileTarget": false,
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
+    },
+    {
+      "id": "tri_flame_array",
+      "name": "三角焔陣",
+      "description": "敵の密集地点へ3個の支点を配置し三角形を形成。内部の敵へ継続ダメージ、辺へ触れた敵へ追加ダメージ＋軽減速。高Lvで内部に小爆発。",
+      "icon": "icon_tri_flame_array",
+      "iconKey": "icon_tri_flame_array",
+      "category": "active",
+      "tags": [
+        "active",
+        "fire",
+        "formation",
+        "zone",
+        "area",
+        "damageOverTime"
+      ],
+      "rarity": "rare",
+      "weight": 1,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [
+        "hexagram_inferno_array"
+      ],
+      "displayOrder": 28,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "initial": false,
+      "levels": [
+        {
+          "level": 1,
+          "cooldown": 4200,
+          "insideDamage": 10,
+          "edgeDamage": 14,
+          "edgeSlow": 0.1,
+          "area": 70,
+          "duration": 2600,
+          "tickMs": 340,
+          "arrayCount": 1,
+          "innerBlastDamage": 0,
+          "innerBlastMs": 0
+        },
+        {
+          "level": 2,
+          "cooldown": 4050,
+          "insideDamage": 11,
+          "edgeDamage": 15,
+          "edgeSlow": 0.11,
+          "area": 74,
+          "duration": 2800,
+          "tickMs": 340,
+          "arrayCount": 1,
+          "innerBlastDamage": 0,
+          "innerBlastMs": 0
+        },
+        {
+          "level": 3,
+          "cooldown": 3900,
+          "insideDamage": 12,
+          "edgeDamage": 16,
+          "edgeSlow": 0.12,
+          "area": 78,
+          "duration": 3000,
+          "tickMs": 340,
+          "arrayCount": 1,
+          "innerBlastDamage": 0,
+          "innerBlastMs": 0
+        },
+        {
+          "level": 4,
+          "cooldown": 3750,
+          "insideDamage": 13,
+          "edgeDamage": 18,
+          "edgeSlow": 0.14,
+          "area": 82,
+          "duration": 3200,
+          "tickMs": 340,
+          "arrayCount": 1,
+          "innerBlastDamage": 0,
+          "innerBlastMs": 0
+        },
+        {
+          "level": 5,
+          "cooldown": 3600,
+          "insideDamage": 15,
+          "edgeDamage": 20,
+          "edgeSlow": 0.16,
+          "area": 88,
+          "duration": 3500,
+          "tickMs": 330,
+          "arrayCount": 2,
+          "innerBlastDamage": 18,
+          "innerBlastMs": 900
+        },
+        {
+          "level": 6,
+          "cooldown": 3450,
+          "insideDamage": 17,
+          "edgeDamage": 22,
+          "edgeSlow": 0.18,
+          "area": 94,
+          "duration": 3800,
+          "tickMs": 330,
+          "arrayCount": 2,
+          "innerBlastDamage": 22,
+          "innerBlastMs": 900
+        },
+        {
+          "level": 7,
+          "cooldown": 3300,
+          "insideDamage": 19,
+          "edgeDamage": 25,
+          "edgeSlow": 0.21,
+          "area": 100,
+          "duration": 4100,
+          "tickMs": 320,
+          "arrayCount": 2,
+          "innerBlastDamage": 26,
+          "innerBlastMs": 850
+        },
+        {
+          "level": 8,
+          "cooldown": 3200,
+          "insideDamage": 22,
+          "edgeDamage": 28,
+          "edgeSlow": 0.24,
+          "area": 108,
+          "duration": 4500,
+          "tickMs": 320,
+          "arrayCount": 2,
+          "innerBlastDamage": 32,
+          "innerBlastMs": 800
+        }
+      ],
+      "castMode": "periodic",
+      "mainCastEvent": "arrayDeploy",
+      "echoDescription": "三角陣設置を追加（内部tickは対象外）",
+      "cloneDescription": "三角陣設置を複製",
+      "lv80ProjectileTarget": false,
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
+    },
+    {
+      "id": "scorching_resonance",
+      "name": "灼熱共鳴",
+      "description": "一定間隔で範囲内の炎上中の敵数を数え、共鳴段階に応じた周期パルス攻撃。炎上敵が多いほど威力・範囲・追加爆発・炎上延長が強化。",
+      "icon": "icon_scorching_resonance",
+      "iconKey": "icon_scorching_resonance",
+      "category": "active",
+      "tags": [
+        "active",
+        "fire",
+        "resonance",
+        "statusScaling",
+        "pulse",
+        "area"
+      ],
+      "rarity": "rare",
+      "weight": 1,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [
+        "universal_flame_resonance"
+      ],
+      "displayOrder": 29,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "initial": false,
+      "config": {
+        "tierThresholds": [
+          0,
+          5,
+          15,
+          30,
+          60
+        ],
+        "countRadius": 260
+      },
+      "levels": [
+        {
+          "level": 1,
+          "cooldown": 2200,
+          "baseDamage": 12,
+          "radius": 60,
+          "maxTier": 2,
+          "resonanceMult": 0.12,
+          "extraBlasts": 0,
+          "igniteExtendMs": 400,
+          "hitCapPerPulse": 3
+        },
+        {
+          "level": 2,
+          "cooldown": 2100,
+          "baseDamage": 13,
+          "radius": 63,
+          "maxTier": 2,
+          "resonanceMult": 0.13,
+          "extraBlasts": 0,
+          "igniteExtendMs": 450,
+          "hitCapPerPulse": 3
+        },
+        {
+          "level": 3,
+          "cooldown": 2000,
+          "baseDamage": 14,
+          "radius": 66,
+          "maxTier": 3,
+          "resonanceMult": 0.14,
+          "extraBlasts": 1,
+          "igniteExtendMs": 500,
+          "hitCapPerPulse": 3
+        },
+        {
+          "level": 4,
+          "cooldown": 1900,
+          "baseDamage": 16,
+          "radius": 70,
+          "maxTier": 3,
+          "resonanceMult": 0.15,
+          "extraBlasts": 1,
+          "igniteExtendMs": 550,
+          "hitCapPerPulse": 3
+        },
+        {
+          "level": 5,
+          "cooldown": 1800,
+          "baseDamage": 18,
+          "radius": 75,
+          "maxTier": 4,
+          "resonanceMult": 0.17,
+          "extraBlasts": 2,
+          "igniteExtendMs": 600,
+          "hitCapPerPulse": 4
+        },
+        {
+          "level": 6,
+          "cooldown": 1750,
+          "baseDamage": 20,
+          "radius": 80,
+          "maxTier": 4,
+          "resonanceMult": 0.19,
+          "extraBlasts": 2,
+          "igniteExtendMs": 700,
+          "hitCapPerPulse": 4
+        },
+        {
+          "level": 7,
+          "cooldown": 1680,
+          "baseDamage": 23,
+          "radius": 85,
+          "maxTier": 4,
+          "resonanceMult": 0.21,
+          "extraBlasts": 3,
+          "igniteExtendMs": 800,
+          "hitCapPerPulse": 4
+        },
+        {
+          "level": 8,
+          "cooldown": 1600,
+          "baseDamage": 26,
+          "radius": 92,
+          "maxTier": 4,
+          "resonanceMult": 0.24,
+          "extraBlasts": 3,
+          "igniteExtendMs": 900,
+          "hitCapPerPulse": 5
+        }
+      ],
+      "castMode": "periodic",
+      "mainCastEvent": "resonancePulse",
+      "echoDescription": "共鳴パルスを追加（段階は炎上数で再計算）",
+      "cloneDescription": "共鳴パルスを複製",
+      "lv80ProjectileTarget": false,
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
+    },
+    {
+      "id": "core_overdrive",
+      "name": "炉心暴走",
+      "description": "一定間隔で火炎弾を放つ。発動のたび熱量が上昇し発動速度・発射数・威力・弾速が強化、最大でオーバーヒートし短時間停止。未発動時は徐々に冷却。",
+      "icon": "icon_core_overdrive",
+      "iconKey": "icon_core_overdrive",
+      "category": "active",
+      "tags": [
+        "active",
+        "fire",
+        "overheat",
+        "escalating",
+        "burst",
+        "highRisk"
+      ],
+      "rarity": "legendary",
+      "weight": 1,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [
+        "doomsday_core"
+      ],
+      "displayOrder": 30,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "initial": false,
+      "config": {
+        "heatPerCast": 8,
+        "overheatResetHeat": 30
+      },
+      "levels": [
+        {
+          "level": 1,
+          "cooldown": 900,
+          "baseDamage": 14,
+          "baseProjectiles": 1,
+          "maxHeat": 100,
+          "heatAccelPct": 0.4,
+          "heatDamageMult": 0.5,
+          "heatSpeedMult": 0.4,
+          "cooldownRate": 12,
+          "overheatMs": 2600,
+          "minCooldownMs": 140,
+          "overheatBlastDamage": 40
+        },
+        {
+          "level": 2,
+          "cooldown": 860,
+          "baseDamage": 16,
+          "baseProjectiles": 1,
+          "maxHeat": 105,
+          "heatAccelPct": 0.42,
+          "heatDamageMult": 0.55,
+          "heatSpeedMult": 0.44,
+          "cooldownRate": 12,
+          "overheatMs": 2500,
+          "minCooldownMs": 140,
+          "overheatBlastDamage": 44
+        },
+        {
+          "level": 3,
+          "cooldown": 820,
+          "baseDamage": 18,
+          "baseProjectiles": 2,
+          "maxHeat": 110,
+          "heatAccelPct": 0.44,
+          "heatDamageMult": 0.6,
+          "heatSpeedMult": 0.48,
+          "cooldownRate": 13,
+          "overheatMs": 2400,
+          "minCooldownMs": 140,
+          "overheatBlastDamage": 48
+        },
+        {
+          "level": 4,
+          "cooldown": 780,
+          "baseDamage": 20,
+          "baseProjectiles": 2,
+          "maxHeat": 115,
+          "heatAccelPct": 0.46,
+          "heatDamageMult": 0.65,
+          "heatSpeedMult": 0.52,
+          "cooldownRate": 13,
+          "overheatMs": 2300,
+          "minCooldownMs": 140,
+          "overheatBlastDamage": 54
+        },
+        {
+          "level": 5,
+          "cooldown": 740,
+          "baseDamage": 23,
+          "baseProjectiles": 2,
+          "maxHeat": 120,
+          "heatAccelPct": 0.5,
+          "heatDamageMult": 0.7,
+          "heatSpeedMult": 0.56,
+          "cooldownRate": 14,
+          "overheatMs": 2200,
+          "minCooldownMs": 135,
+          "overheatBlastDamage": 60
+        },
+        {
+          "level": 6,
+          "cooldown": 710,
+          "baseDamage": 26,
+          "baseProjectiles": 3,
+          "maxHeat": 130,
+          "heatAccelPct": 0.54,
+          "heatDamageMult": 0.8,
+          "heatSpeedMult": 0.6,
+          "cooldownRate": 15,
+          "overheatMs": 2000,
+          "minCooldownMs": 135,
+          "overheatBlastDamage": 68
+        },
+        {
+          "level": 7,
+          "cooldown": 680,
+          "baseDamage": 30,
+          "baseProjectiles": 3,
+          "maxHeat": 140,
+          "heatAccelPct": 0.58,
+          "heatDamageMult": 0.9,
+          "heatSpeedMult": 0.65,
+          "cooldownRate": 16,
+          "overheatMs": 1800,
+          "minCooldownMs": 130,
+          "overheatBlastDamage": 78
+        },
+        {
+          "level": 8,
+          "cooldown": 650,
+          "baseDamage": 34,
+          "baseProjectiles": 3,
+          "maxHeat": 150,
+          "heatAccelPct": 0.64,
+          "heatDamageMult": 1,
+          "heatSpeedMult": 0.7,
+          "cooldownRate": 18,
+          "overheatMs": 1600,
+          "minCooldownMs": 130,
+          "overheatBlastDamage": 90
+        }
+      ],
+      "castMode": "cooldown",
+      "mainCastEvent": "fire",
+      "echoDescription": "攻撃弾のみ再現（熱量・オーバーヒートを変更しない）",
+      "cloneDescription": "攻撃弾のみ複製（熱量不変）",
+      "lv80ProjectileTarget": true,
+      "echoPolicy": "custom",
+      "clonePolicy": "custom",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
     }
   ]
 }

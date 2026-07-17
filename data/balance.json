@@ -16,7 +16,7 @@
     "perKill": 0.4,
     "perBossKill": 40,
     "winBonus": 30,
-    "winMultiplier": 1.0,
+    "winMultiplier": 1,
     "defeatMultiplier": 0.5
   },
   "combatCaps": {
@@ -272,6 +272,132 @@
       "medium": 1,
       "high": 1,
       "ultra": 1
+    },
+    "maxDeathEventsTracked": {
+      "low": 24,
+      "medium": 32,
+      "high": 40,
+      "ultra": 48
+    },
+    "maxDeathEventsPerFrame": {
+      "low": 4,
+      "medium": 6,
+      "high": 8,
+      "ultra": 10
+    },
+    "maxFuneralPyres": {
+      "low": 4,
+      "medium": 6,
+      "high": 8,
+      "ultra": 12
+    },
+    "maxPyreEruptionsPerFrame": {
+      "low": 3,
+      "medium": 4,
+      "high": 6,
+      "ultra": 8
+    },
+    "maxMagmaVeins": {
+      "low": 2,
+      "medium": 3,
+      "high": 4,
+      "ultra": 6
+    },
+    "maxMagmaSegments": {
+      "low": 16,
+      "medium": 24,
+      "high": 36,
+      "ultra": 52
+    },
+    "maxMagmaIntersections": {
+      "low": 4,
+      "medium": 6,
+      "high": 10,
+      "ultra": 14
+    },
+    "maxTriArrays": {
+      "low": 2,
+      "medium": 3,
+      "high": 4,
+      "ultra": 5
+    },
+    "maxArrayTicksPerFrame": {
+      "low": 4,
+      "medium": 6,
+      "high": 8,
+      "ultra": 12
+    },
+    "maxResonanceTargets": {
+      "low": 20,
+      "medium": 40,
+      "high": 60,
+      "ultra": 90
+    },
+    "maxResonanceChains": {
+      "low": 8,
+      "medium": 14,
+      "high": 24,
+      "ultra": 36
+    },
+    "maxResonanceExplosions": {
+      "low": 2,
+      "medium": 3,
+      "high": 3,
+      "ultra": 4
+    },
+    "maxOverdriveProjectiles": {
+      "low": 24,
+      "medium": 40,
+      "high": 64,
+      "ultra": 96
+    },
+    "maxOverdriveCastsPerFrame": {
+      "low": 3,
+      "medium": 4,
+      "high": 6,
+      "ultra": 8
+    },
+    "maxMausoleums": {
+      "low": 2,
+      "medium": 2,
+      "high": 3,
+      "ultra": 4
+    },
+    "maxHexagramArrays": {
+      "low": 1,
+      "medium": 2,
+      "high": 2,
+      "ultra": 3
+    },
+    "maxHexagramBeams": {
+      "low": 4,
+      "medium": 6,
+      "high": 6,
+      "ultra": 8
+    },
+    "maxDoomsdayProjectiles": {
+      "low": 32,
+      "medium": 48,
+      "high": 60,
+      "ultra": 90
+    },
+    "maxDoomsdayExplosions": {
+      "low": 4,
+      "medium": 6,
+      "high": 8,
+      "ultra": 10
+    },
+    "maxBurningEnemyIndex": {
+      "low": 120,
+      "medium": 200,
+      "high": 320,
+      "ultra": 480
+    },
+    "maxMainCastEventsPerFrame": {
+      "low": 8,
+      "medium": 12,
+      "high": 16,
+      "ultra": 24
     }
   },
   "speedModes": [
@@ -327,14 +453,14 @@
     {
       "id": 1,
       "name": "難易度1",
-      "enemyHp": 1.0,
-      "enemyDamage": 1.0,
-      "enemySpeed": 1.0,
-      "spawnRate": 1.0,
+      "enemyHp": 1,
+      "enemyDamage": 1,
+      "enemySpeed": 1,
+      "spawnRate": 1,
       "eliteRate": 0.02,
-      "bossHp": 1.0,
-      "currency": 1.0,
-      "reincarnationEfficiency": 1.0,
+      "bossHp": 1,
+      "currency": 1,
+      "reincarnationEfficiency": 1,
       "unlockAfter": null
     },
     {
@@ -379,13 +505,13 @@
     {
       "id": 5,
       "name": "難易度5",
-      "enemyHp": 3.0,
+      "enemyHp": 3,
       "enemyDamage": 2.1,
       "enemySpeed": 1.25,
-      "spawnRate": 2.0,
+      "spawnRate": 2,
       "eliteRate": 0.14,
       "bossHp": 3.5,
-      "currency": 3.0,
+      "currency": 3,
       "reincarnationEfficiency": 1.7,
       "unlockAfter": 4
     }
@@ -410,7 +536,7 @@
       "maxSparksPerBurst": 6
     },
     "high": {
-      "particleScale": 1.0,
+      "particleScale": 1,
       "damageNumbers": true,
       "screenShake": true,
       "whiteFlash": true,

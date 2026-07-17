@@ -40,7 +40,7 @@ const COND = {
 section('1. 新進化5種のデータ整合');
 {
   ok(new Set(NEW_EVOS).size === 5, '新進化は5種で一意');
-  ok(evolutions.length === 13, '進化は合計13種（既存8＋新5）');
+  ok(evolutions.length >= 13, '進化は13種以上（M6-D で13種・M6-E で18種へ拡張）');
   const ids = new Set();
   for (const id of NEW_EVOS) {
     const ev = evolutions.find((e) => e.id === id);

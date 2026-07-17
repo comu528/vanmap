@@ -483,3 +483,86 @@ M6-B の `skillCaps` へ品質別の新キーを加算的に追加する。全�
 - **世代上限**: `maxCopyGeneration`/`maxEchoCloneGeneration` が全品質で **1以上**（再帰不可を保証・逆に無限世代を許さない）。
 - 新 active10種・進化5種の `id`/`rarity`/`levels`(1..8)/`evolutionBranches`・`baseSkillId`/`replacementSkillId`/`requiredSkills`(active∪passive に実在・Lv1..8)/`safetyCaps`(非負) の整合、既存 skillCaps と同様の品質順(`low<=medium<=high<=ultra`)・非負整数。
 - `fire-skills-wave2.mjs` は新 active のデータ整合・抽選出現/満枠/最大Lv/追放/決定論・skillCaps 品質順を、`fire-evolutions-wave2.mjs` は新進化の `canEvolve`（パッシブ補助含む・基礎Lv8＋補助Lv4で可能・未達で不可）と既存進化の非回帰を、`cast-copy-safety.mjs` は `CastPolicy` の「normal 由来のみ1世代・echo→*/clone→* 不発・custom は再消費なし・forbidden は複製不可・循環禁止」を純ロジックで検証する。
+
+## Milestone 6-E: 火の魔女ビルド完成・第3波＋全スキル監査（`skills.json`/`skill-evolutions.json`/`balance.json` を加算的に拡張）
+
+新 active 5種・進化5種を追加し、**全 active30種・進化18種**へ監査用フィールド（`castMode`/`mainCastEvent`/`lv80ProjectileTarget`）を明示する。既存25 active・13進化・4 passive・データ形式は変更しない。結果は active 30種・進化18種・passive 4種で、`jobs.json` の `activeSkillPool` は30種。**`saveVersion` は 6 のまま**。
+
+### skills.json の新 active5種（cast＋監査フィールド）
+各スキルは従来どおり `id`/`name`/`rarity`/`element`/`maxLevel:8`/`levels`（Lv1〜8・毎レベルで最低1項目成長）/`evolutionBranches` と M6-D の cast フィールド（`echoPolicy`/`clonePolicy`/`isDefensive`/`isReactive`/`usesResourceCost`/`canTriggerEcho`/`canBeCopiedByClone`）を持ち、加えて **監査フィールド** を持つ。
+```jsonc
+{
+  "id": "core_overdrive", "name": "炉心暴走", "rarity": "legendary", "element": "fire",
+  "castMode": "cooldown",          // periodic|cooldown|continuous|reactive|defensive|movement|resource
+  "mainCastEvent": "onFireVolley", // recordCast する主発動イベント（攻撃サイクル単位）
+  "lv80ProjectileTarget": true,    // Job Lv80 発射数+1 の対象か（独立弾の通常 active のみ true）
+  "echoPolicy": "standard", "clonePolicy": "custom",  // 攻撃弾のみ再現・熱量/オーバーヒートを変更しない
+  "echoDescription": "...", "cloneDescription": "...",
+  "canTriggerEcho": true, "canBeCopiedByClone": true,
+  "evolutionBranches": ["doomsday_core"],
+  "config": { "heatPerCast": 0.12, "maxHeat": 1.0, "overheatMs": 1500 },  // スキル固有の非levels定数
+  "levels": [ /* Lv1〜8 */ ]
+}
+```
+- **5種の cast/監査設定**（実装値）:
+  - `funeral_pyres`(uncommon)/`magma_vein`(common)/`tri_flame_array`(rare)/`scorching_resonance`(rare): `castMode=periodic`・`echoPolicy=clonePolicy=standard`・`canTriggerEcho=canBeCopiedByClone=true`・`lv80ProjectileTarget=false`（独立弾を撃たない）。
+  - `core_overdrive`(legendary): `castMode=cooldown`・`echoPolicy=standard`・`clonePolicy=custom`（攻撃弾のみ再現・**熱量/オーバーヒートを変更しない**）・`lv80ProjectileTarget=true`（唯一の Lv80 対象）。
+- 役割別の主な `levels` フィールド: funeral_pyres(fuseMs/eruptionDamage/eruptionRadius/burnDuration/burnDamage/…) / magma_vein(segments/segmentLength/dotDamage/dotDuration/…) / tri_flame_array(radius/dotDamage/edgeDamage/slow/innerBurst/…) / scorching_resonance(interval/pulseDamage/pulseRadius/tierThresholds/burnExtend/…) / core_overdrive(damage/cooldown/count/speed/heatPerCast/maxHeat/overheatMs)。値は JSON にのみ持ち、コードへ重複させない。
+- `evolutionBranches` は5種すべて非空（各 active→対応進化1種）。`jobs.json` の `flame_witch.activeSkillPool` へ5種を追加し **30種** にする。
+- **既存25 active・13進化へも監査フィールドを追記**（`castMode`/`mainCastEvent`/`lv80ProjectileTarget`）。Lv80対象は fireball/flame_lance/scatter_flame/homing_wisp/ricochet_ember/core_overdrive のみ true・他は全て false。
+- 検証（`tests/fire-skills-wave3.mjs`）: 5種の存在/一意/active/maxLevel8/Lv連番/rarity一致/専用(isCommon:false)/プール所属/負ダメージ・CD無し/毎レベル成長/`evolutionBranches` が実在進化のみ、および抽選出現（決定論・満枠/最大Lv除外・追放非再出現・legendary も出現しうる）。
+
+### skill-evolutions.json の新進化5種（同じ cast＋監査フィールド）
+進化エントリも基礎 active と同じ cast/監査フィールドを持ち、`requiredSkills` の補助条件に passive を含められる（`auxSkillIds = skillIds ∪ passiveIds`）。**進化は `lv80ProjectileTarget=false`**（単一形態）。
+```jsonc
+{ "id": "doomsday_core", "baseSkillId": "core_overdrive", "replacementSkillId": "doomsday_core",
+  "requiredSkills": [ { "skill": "bloodfire_pact", "level": 4 } ],
+  "castMode": "cooldown", "mainCastEvent": "onFireVolley", "lv80ProjectileTarget": false,
+  "echoPolicy": "standard", "clonePolicy": "custom",
+  "canTriggerEcho": true, "canBeCopiedByClone": true,
+  "safetyCaps": { "maxDoomsdayProjectiles": 220, "maxDoomsdayExplosions": 6 },
+  "displayOrder": 18 }
+```
+- 5種: `necroflame_mausoleum`(火葬の墓標+不死鳥の羽) / `world_scorching_rift`(炎脈走破+燃える軌跡) / `hexagram_inferno_array`(三角焔陣+火炎渦) / `universal_flame_resonance`(灼熱共鳴+連鎖炎) / `doomsday_core`(炉心暴走+血炎契約)。いずれも基礎Lv8＋補助Lv4。`replacementSkillId` は自身＝基礎スキルと衝突しない。
+- 検証（`validate-data.mjs`・`tests/fire-evolutions-wave3.mjs`）: 補助 `requiredSkills[].skill` は active∪passive に実在・必要Lv1..8・`safetyCaps` 非負・`canEvolve`（基礎Lv8＋補助Lv4で可能・未達で不可）・既存13進化の非回帰。
+
+### balance.skillCaps（第3波の新キー・品質別）
+M6-B/M6-D の `skillCaps` へ品質別の新キーを加算的に追加する。全キーが `low <= medium <= high <= ultra`・非負整数。
+```jsonc
+"skillCaps": {
+  /* …M6-B/M6-D の既存キー… */
+  "maxDeathEventsTracked":     { "low": 12, "medium": 20, "high": 32,  "ultra": 48  },
+  "maxDeathEventsPerFrame":    { "low": 4,  "medium": 6,  "high": 8,   "ultra": 12  },
+  "maxFuneralPyres":           { "low": 6,  "medium": 10, "high": 16,  "ultra": 24  },
+  "maxPyreEruptionsPerFrame":  { "low": 2,  "medium": 3,  "high": 4,   "ultra": 6   },
+  "maxMagmaVeins":             { "low": 4,  "medium": 6,  "high": 10,  "ultra": 14  },
+  "maxMagmaSegments":          { "low": 24, "medium": 40, "high": 64,  "ultra": 96  },
+  "maxMagmaIntersections":     { "low": 6,  "medium": 10, "high": 16,  "ultra": 24  },
+  "maxTriArrays":              { "low": 3,  "medium": 4,  "high": 6,   "ultra": 8   },
+  "maxArrayTicksPerFrame":     { "low": 12, "medium": 24, "high": 40,  "ultra": 60  },
+  "maxResonanceTargets":       { "low": 20, "medium": 40, "high": 70,  "ultra": 100 },
+  "maxResonanceChains":        { "low": 8,  "medium": 14, "high": 24,  "ultra": 32  },
+  "maxResonanceExplosions":    { "low": 3,  "medium": 5,  "high": 8,   "ultra": 10  },
+  "maxOverdriveProjectiles":   { "low": 24, "medium": 48, "high": 90,  "ultra": 160 },
+  "maxOverdriveCastsPerFrame": { "low": 2,  "medium": 3,  "high": 4,   "ultra": 6   },
+  "maxMausoleums":             { "low": 2,  "medium": 3,  "high": 4,   "ultra": 6   },
+  "maxHexagramArrays":         { "low": 2,  "medium": 3,  "high": 4,   "ultra": 6   },
+  "maxHexagramBeams":          { "low": 6,  "medium": 10, "high": 16,  "ultra": 24  },
+  "maxDoomsdayProjectiles":    { "low": 40, "medium": 80, "high": 140, "ultra": 220 },
+  "maxDoomsdayExplosions":     { "low": 3,  "medium": 4,  "high": 6,   "ultra": 8   },
+  "maxBurningEnemyIndex":      { "low": 60, "medium": 120,"high": 200, "ultra": 320 },
+  "maxMainCastEventsPerFrame": { "low": 8,  "medium": 12, "high": 20,  "ultra": 32  }
+}
+```
+- スキル挙動（墓標/噴火/亀裂区間/交差/陣/共鳴/炉心弾/放出/霊廟/六芒陣/炎波/終末弾）の同時数・毎フレーム処理数を品質別に制限する予算。`DataManager.skillCap(name, quality, fallback)` で取得。**上限に達しても攻撃判定は消さず、装飾を先に削る**。
+- `maxBurningEnemyIndex` は炎上索引の登録上限、`maxMainCastEventsPerFrame` は主発動イベントの毎フレーム処理上限（残響/分身の起点をまとめて制限）。
+
+### 検証（`tests/validate-data.mjs`・wave3・監査テスト）
+`validate-data.mjs` が第3波について次を追加確認する:
+- **監査フィールドの妥当性**: `castMode` は既知の enum（periodic/cooldown/continuous/reactive/defensive/movement/resource）、`mainCastEvent` は非空文字列、`lv80ProjectileTarget` は真偽値。`echoDescription`/`cloneDescription` は非空文字列。
+- **Lv80対象の整合**: `lv80ProjectileTarget=true` は独立弾を撃つ通常 active のみ（進化・防御・召喚・設置系は false）。
+- **共鳴閾値**: `scorching_resonance`/`universal_flame_resonance` の `tierThresholds` が **昇順**（先頭0）であること。
+- **炉心熱量**: `core_overdrive`/`doomsday_core` の `heatPerCast`>0・`maxHeat`>0・`overheatMs`>=0。
+- **未知タグ検証**: ダメージタグ/`castMode`/`echoPolicy`/`clonePolicy` に未知値が無いこと。
+- 新 active5種・進化5種の `id`/`rarity`/`levels`(1..8)/`evolutionBranches`・`baseSkillId`/`replacementSkillId`/`requiredSkills`(active∪passive に実在・Lv1..8)/`safetyCaps`(非負) の整合、新 skillCaps の品質順(`low<=medium<=high<=ultra`)・非負整数。
+- `fire-skills-wave3.mjs` は新 active のデータ整合・抽選出現・skillCaps 品質順を、`fire-evolutions-wave3.mjs` は新進化の `canEvolve`（パッシブ補助含む）と既存進化の非回帰を、`skill-tag-audit.mjs` は **全 active30/進化18** の `SkillAudit` 解決（castMode/echo/clone/Lv80/タグの整合・forbidden と canTrigger の整合）を、`cast-event-audit.mjs` は **主発動イベントが攻撃サイクル単位のみ**（DoTtick/連鎖/分裂/召喚通常射撃/共鳴連鎖/オーバーヒート開始終了では recordCast しない）を純ロジックで検証する。既存11スイートも維持し**全15スイートが通過**する。

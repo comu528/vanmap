@@ -282,5 +282,19 @@ export class BootScene extends Phaser.Scene {
     g = evo(0xffd54f); g.lineStyle(2, 0xffd54f, 1); g.beginPath(); g.arc(8, 8, 6, -1.2, 1.2, false); g.strokePath(); g.beginPath(); g.arc(8, 8, 4, 2.0, 4.2, false); g.strokePath(); done(g, 'icon_inferno_blade_domain'); // 複数刃
     g = evo(0xbcaaa4); g.fillRect(3, 4, 2, 9); g.fillRect(7, 3, 2, 10); g.fillRect(11, 4, 2, 9); done(g, 'icon_ash_legion'); // 複数人型
     g = evo(0xff9800); g.fillRect(4, 7, 8, 6); g.fillStyle(0xffee58, 1); g.fillTriangle(8, 2, 6, 6, 10, 6); g.fillTriangle(8, 6, 6, 2, 10, 2); done(g, 'icon_star_devouring_furnace'); // 星＋炉
+
+    // --- M6-E: 新 active 5種 ---
+    g = base(0x9e9e9e); g.fillRect(6, 5, 4, 9); g.fillRect(4, 5, 8, 2); g.fillStyle(0xff7043, 1); g.fillTriangle(8, 1, 6, 5, 10, 5); done(g, 'icon_funeral_pyres');      // 墓標＋炎
+    g = base(0xff5722); g.lineStyle(2, 0xff5722, 1); g.strokePoints([{ x: 2, y: 11 }, { x: 5, y: 6 }, { x: 9, y: 10 }, { x: 12, y: 5 }, { x: 14, y: 9 }], false); done(g, 'icon_magma_vein'); // 蛇行亀裂
+    g = base(0xffca28); g.lineStyle(2, 0xffca28, 1); g.strokeTriangle(8, 3, 3, 13, 13, 13); done(g, 'icon_tri_flame_array');                                            // 三角形
+    g = base(0xffab40); g.lineStyle(2, 0xffab40, 1); g.strokeCircle(8, 8, 3); g.lineStyle(1, 0xffab40, 0.7); g.strokeCircle(8, 8, 6); done(g, 'icon_scorching_resonance'); // 波紋
+    g = base(0xff5252); g.fillCircle(8, 8, 5); g.fillStyle(0x1a1420, 1); g.fillCircle(8, 8, 3); g.fillStyle(0xffee58, 1); g.fillRect(7, 3, 2, 4); done(g, 'icon_core_overdrive'); // 炉心メーター
+
+    // --- M6-E: 新進化5種 ---
+    g = evo(0x9e9e9e); g.fillRect(5, 4, 6, 10); g.fillRect(3, 4, 10, 2); g.fillStyle(0xff7043, 1); g.fillTriangle(8, 1, 5, 4, 11, 4); done(g, 'icon_necroflame_mausoleum'); // 大型墓標
+    g = evo(0xff5722); g.lineStyle(2, 0xff5722, 1); g.strokePoints([{ x: 2, y: 10 }, { x: 7, y: 5 }, { x: 13, y: 11 }], false); g.strokePoints([{ x: 3, y: 4 }, { x: 8, y: 9 }, { x: 14, y: 5 }], false); done(g, 'icon_world_scorching_rift'); // 交差亀裂
+    g = evo(0xffca28); g.lineStyle(2, 0xffca28, 1); g.strokeTriangle(8, 2, 3, 11, 13, 11); g.strokeTriangle(8, 14, 3, 5, 13, 5); done(g, 'icon_hexagram_inferno_array'); // 六芒星
+    g = evo(0xffab40); g.lineStyle(1, 0xffab40, 1); g.strokeCircle(5, 8, 2); g.strokeCircle(11, 8, 2); g.strokeCircle(8, 8, 5); done(g, 'icon_universal_flame_resonance'); // 複数波紋
+    g = evo(0xff5252); g.fillStyle(0xffee58, 1); for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; g.fillTriangle(8, 8, 8 + Math.cos(a) * 6, 8 + Math.sin(a) * 6, 8 + Math.cos(a + 0.4) * 5, 8 + Math.sin(a + 0.4) * 5); } g.fillStyle(0x1a1420, 1); g.fillCircle(8, 8, 2); done(g, 'icon_doomsday_core'); // 破裂した炉心
   }
 }

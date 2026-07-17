@@ -51,3 +51,13 @@ jobs:
         run: node tests/fire-evolutions-wave2.mjs
       - name: Cast copy safety tests
         run: node tests/cast-copy-safety.mjs
+
+      # 新スキル/新進化 第3波・残響/分身/タグ/主発動監査（M6-E・Node.js 標準機能のみ）。
+      - name: Fire skills wave3 tests
+        run: node tests/fire-skills-wave3.mjs
+      - name: Fire evolutions wave3 tests
+        run: node tests/fire-evolutions-wave3.mjs
+      - name: Skill tag audit tests
+        run: node tests/skill-tag-audit.mjs
+      - name: Cast event audit tests
+        run: node tests/cast-event-audit.mjs

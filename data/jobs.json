@@ -34,7 +34,12 @@
         "bullet_furnace",
         "four_sided_inferno",
         "molten_chains",
-        "blazing_step"
+        "blazing_step",
+        "funeral_pyres",
+        "magma_vein",
+        "tri_flame_array",
+        "scorching_resonance",
+        "core_overdrive"
       ],
       "passiveSkillPool": [],
       "baseActiveSlots": 4,

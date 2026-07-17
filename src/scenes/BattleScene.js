@@ -26,6 +26,7 @@ import { BattleManager } from '../systems/BattleManager.js';
 import { JobProgressionManager } from '../systems/JobProgressionManager.js';
 import { JobModifierManager } from '../systems/JobModifierManager.js';
 import { defaultCastContext, replayContext, canCastTriggerEcho, canCloneCopy } from '../systems/CastPolicy.js';
+import { echoStatus, cloneStatus, appliesLv80ProjectileCount, castSummary } from '../systems/SkillAudit.js';
 import { HUD } from '../ui/HUD.js';
 import { PauseMenu } from '../ui/PauseMenu.js';
 import { distance, dist2, createRng } from '../utils/math.js';
@@ -128,7 +129,8 @@ export class BattleScene extends Phaser.Scene {
     // プール（onSpawn/onRelease でグリッド登録・解除を共通化する）
     this.enemyPool = new Pool(this, () => new Enemy(this), (e, def, x, y, m) => e.reset(def, x, y, m), this.effSettings.maxEnemies, {
       onSpawn: (e) => { e._seq = this._enemySeq++; if (this._useSpatial) this.enemyGrid.insert(e); },
-      onRelease: (e) => this.enemyGrid.remove(e),
+      onRelease: (e) => { this.enemyGrid.remove(e); this.unregisterBurning(e); }, // M6-E: 炎上索引の残留防止
+
     });
     this.projPool = new Pool(this, () => new Projectile(this), (p, x, y, a, s, o) => p.reset(x, y, a, s, o), this.effSettings.maxProjectiles);
     this.bossBulletPool = new Pool(this, () => new Projectile(this), (p, x, y, a, s, o) => p.reset(x, y, a, s, o), 300);
@@ -154,6 +156,14 @@ export class BattleScene extends Phaser.Scene {
     this._castCtx = null;
     this._lastClonableCast = null;
     this._frameBudgets = {};
+    // M6-E: 敵死亡イベント履歴（火葬の墓標・冥炎大霊廟）と炎上中敵の索引（灼熱共鳴・万象炎鳴）。
+    // 履歴は「墓標系スキルを所持している間のみ」記録する軽量リングバッファ（未取得時は追記しない）。
+    this._deathEvents = [];      // { id, x, y, enemyType, isElite, isBoss, killedBySkillId, timestamp, frameId, consumed }
+    this._deathEventSeq = 0;
+    this._deathEmitsThisFrame = 0;
+    this._frameId = 0;
+    this._deathTrackers = 0;     // 死亡履歴を必要とするスキルの参照カウント（>0 のときだけ記録）
+    this._burningIndex = new Set(); // 炎上中の敵（ignite で登録・消火/死亡/返却で解除）
     this.jobMods = new JobModifierManager();
     this._resolveJobModsFromProfile();
 
@@ -243,6 +253,7 @@ export class BattleScene extends Phaser.Scene {
       this.input.keyboard.on('keydown-F4', () => this.toggleSkillDebug());   // 新スキル確認（M6-B）
       this.input.keyboard.on('keydown-F5', () => this.toggleSkillTuner());    // 個別スキル検証（M6-C）
       this.input.keyboard.on('keydown-F6', () => this.toggleWave2Debug());    // 新スキル検証（M6-D）
+      this.input.keyboard.on('keydown-F7', () => this.toggleWave3Debug());    // 新スキル検証（M6-E）
       // ヘッドレス/実ブラウザからの検査・比較用に戦闘シーンを公開する。
       window.RFS_BATTLE = this;
       this.togglePerfOverlay(); // debug 時は性能パネルを既定表示
@@ -412,10 +423,93 @@ export class BattleScene extends Phaser.Scene {
     return { absorbed, value };
   }
 
+  // ---------------- 敵死亡イベント履歴（M6-E 火葬の墓標・冥炎大霊廟） ----------------
+  // 墓標系スキルが retainDeathEvents() で参照を取っている間だけ履歴を記録する（未取得時は無処理）。
+  retainDeathEvents() { this._deathTrackers++; }
+  releaseDeathEvents() { this._deathTrackers = Math.max(0, this._deathTrackers - 1); if (this._deathTrackers === 0) this._deathEvents.length = 0; }
+
+  // 敵/ボス撃破時に共通で呼ぶ（onEnemyKilled/onBossKilled）。上限件数・毎フレーム件数を厳守。
+  _recordDeathEvent(e, skillId) {
+    if (this._deathTrackers <= 0) return;
+    const cap = DataManager.skillCap('maxDeathEventsTracked', this.settings?.effectQuality || 'high', 40);
+    const perFrame = DataManager.skillCap('maxDeathEventsPerFrame', this.settings?.effectQuality || 'high', 8);
+    if (this._deathEmitsThisFrame >= perFrame) { this._m.suppressed++; return; }
+    this._deathEmitsThisFrame++;
+    this._deathEvents.push({
+      id: ++this._deathEventSeq, x: e.x, y: e.y,
+      enemyType: (e.def && e.def.id) || (e.isBoss ? 'boss' : 'enemy'),
+      isElite: !!e.isElite, isBoss: !!e.isBoss,
+      killedBySkillId: skillId || null, timestamp: this.time.now, frameId: this._frameId, consumed: false,
+    });
+    while (this._deathEvents.length > cap) this._deathEvents.shift(); // 古い順に破棄（無制限保持しない）
+  }
+
+  // 未消費かつ maxAgeMs 以内の死亡イベントを新しい順で返す（画面内座標のみ）。読み取り専用。
+  recentDeathEvents(maxAgeMs = 4000, limit = 8) {
+    const now = this.time.now;
+    const out = [];
+    for (let i = this._deathEvents.length - 1; i >= 0 && out.length < limit; i--) {
+      const d = this._deathEvents[i];
+      if (d.consumed) continue;
+      if (now - d.timestamp > maxAgeMs) continue;
+      if (!this._inWorld(d.x, d.y)) continue;
+      out.push(d);
+    }
+    return out;
+  }
+
+  // 死亡イベントを1回だけ消費する（同一イベントの複数利用を防ぐ）。成功なら true。
+  consumeDeathEvent(id) {
+    const d = this._deathEvents.find((v) => v.id === id);
+    if (!d || d.consumed) return false;
+    d.consumed = true;
+    return true;
+  }
+
+  _inWorld(x, y) { return x >= 0 && y >= 0 && x <= this.worldW && y <= this.worldH; }
+
+  // ---------------- 炎上中敵の索引（M6-E 灼熱共鳴・万象炎鳴） ----------------
+  // Enemy.ignite / 敵死亡 / プール返却 で登録・解除する軽量インデックス（毎フレーム全走査を避ける）。
+  registerBurning(e) { if (e && e.alive) this._burningIndex.add(e); }
+  unregisterBurning(e) { if (e) this._burningIndex.delete(e); }
+
+  // 炎上中の敵数（消火済み・死亡済みは索引から取り除きつつ数える）。ボスも炎上中なら 1 として数える。
+  burningCount() {
+    let n = 0;
+    for (const e of this._burningIndex) {
+      if (e.alive && e.ignited) n++; else this._burningIndex.delete(e);
+    }
+    if (this.boss && this.boss.alive && this.boss.ignited) n++;
+    return n;
+  }
+
+  // 炎上中の敵一覧（上限つき・共鳴の連鎖起点用）。索引の掃除も兼ねる。
+  burningEnemies(limit = 60) {
+    const out = [];
+    for (const e of this._burningIndex) {
+      if (e.alive && e.ignited) { if (out.length < limit) out.push(e); }
+      else this._burningIndex.delete(e);
+    }
+    if (this.boss && this.boss.alive && this.boss.ignited && out.length < limit) out.push(this.boss);
+    return out;
+  }
+
+  // 敵へ炎上を付与し索引へ登録する共通経路（灼熱共鳴等が炎上を撒く/延長する手段）。gen は感染世代。
+  // 「延長」の意味を守り、既存の炎上が長ければ短縮しない（永劫火界の直接 ignite 呼び出しには影響しない）。
+  igniteEnemy(e, ms, gen) {
+    if (!e || !e.alive || !e.ignite) return;
+    const target = this.time.now + (ms || 0);
+    if (!(e._igniteUntil && e._igniteUntil > target)) e.ignite(ms, gen);
+    this.registerBurning(e);
+  }
+
   cleanup() {
     document.removeEventListener('visibilitychange', this._onVisibility);
     this.game.events.off('blur', this._onBlur);
     if (this.skills) this.skills.destroy();
+    // M6-E: 死亡履歴・炎上索引を破棄（Scene終了で古い参照を残さない）。
+    this._deathEvents.length = 0; this._deathTrackers = 0;
+    if (this._burningIndex) this._burningIndex.clear();
     // 空間グリッドを破棄（古い参照を残さない）。
     if (this.enemyGrid) this.enemyGrid.clear();
     if (this.gemGrid) this.gemGrid.clear();
@@ -424,6 +518,7 @@ export class BattleScene extends Phaser.Scene {
     if (this._skdbg) { this._skdbg.destroy(true); this._skdbg = null; }
     if (this._sktuner) { this._sktuner.destroy(true); this._sktuner = null; }
     if (this._w2dbg) { this._w2dbg.destroy(true); this._w2dbg = null; }
+    if (this._w3dbg) { this._w3dbg.destroy(true); this._w3dbg = null; }
     if (window.RFS_BATTLE === this) window.RFS_BATTLE = null;
   }
 
@@ -450,6 +545,16 @@ export class BattleScene extends Phaser.Scene {
       lastClonableCast: () => this.lastClonableCast(),
       spendHealthCost: (amount) => this.player.spendHealthCost(amount),
       castContext: () => this._castCtx,
+      // M6-E: 敵死亡イベント履歴・炎上索引・炎上付与。
+      retainDeathEvents: () => this.retainDeathEvents(),
+      releaseDeathEvents: () => this.releaseDeathEvents(),
+      recentDeathEvents: (ageMs, limit) => this.recentDeathEvents(ageMs, limit),
+      consumeDeathEvent: (id) => this.consumeDeathEvent(id),
+      burningCount: () => this.burningCount(),
+      burningEnemies: (limit) => this.burningEnemies(limit),
+      ignite: (e, ms, gen) => this.igniteEnemy(e, ms, gen),
+      registerBurning: (e) => this.registerBurning(e),
+      worldBounds: () => ({ w: this.worldW, h: this.worldH }),
     };
   }
 
@@ -641,6 +746,9 @@ export class BattleScene extends Phaser.Scene {
     this._echoBudget = caps.maxEchoPerFrame ?? 4;
     // M6-D: 品質別の毎フレーム予算（ビームtick/地雷爆発/反射判定/鎖再接続/複製/軍勢 等）を初期化。
     this._frameBudgets = {};
+    // M6-E: 死亡イベントの毎フレーム発行数リセット＋フレームID更新。
+    this._deathEmitsThisFrame = 0;
+    this._frameId++;
     if (this.effects) this.effects.beginFrame(caps.maxDamageNumbersPerFrame ?? 24, this.particleBudget ?? 200);
     this._resetMetrics();
   }
@@ -792,7 +900,9 @@ export class BattleScene extends Phaser.Scene {
     amount = amount * (this.bonus.damageMult || 1) * (this.passives ? this.passives.getDamageMultiplier() : 1);
     // ジョブレベル（M6-C）: 火属性ダメージ補正（基本成長＋Lv5/Lv40爆発/Lv60進化）をタグに応じて適用。
     // fire 以外・Lv1・非対象ジョブでは 1（恒等＝M6-B と一致）。適用順は最後（カテゴリ間の乗算）。
-    amount *= this.jobMods.damageMultiplier(this._damageTags(skillId, opts));
+    const _tags = this._damageTags(skillId, opts);
+    amount *= this.jobMods.damageMultiplier(_tags);
+    if (window.RFS_DEBUG) this._lastDamageInfo = { skillId: skillId || '(none)', tags: _tags, echo: this._echoScale }; // F7 表示用
     // 残響の追加発動ぶんの威力（同期ダメージ用・弾は spawn 時に反映済み）。
     if (this._echoScale && this._echoScale !== 1) amount *= this._echoScale;
     const died = target.takeDamage(amount);
@@ -1020,6 +1130,8 @@ export class BattleScene extends Phaser.Scene {
 
   onBossKilled(boss) {
     this.bossKills++;
+    this._recordDeathEvent(boss, 'boss'); // M6-E: ボス死亡も墓標の死亡位置として扱える
+    this.unregisterBurning(boss);
     this.effects.deathBurst(boss.x, boss.y, 0xff5722);
     this.effects.screenShake(300, 0.01);
     this.effects.whiteFlash();
@@ -1096,6 +1208,8 @@ export class BattleScene extends Phaser.Scene {
   onEnemyKilled(e, skillId) {
     this.kills++;
     if (e.isElite) this.eliteKills++; // M6-C: エリート撃破数（ジョブXP）
+    this._recordDeathEvent(e, skillId); // M6-E: 死亡位置履歴（墓標系スキル所持時のみ）
+    this.unregisterBurning(e);          // M6-E: 炎上索引から除去（死亡）
     // 永劫火界: 炎上中の敵の死亡で小爆発（安全上限内・連鎖暴走防止）。
     // 死亡直後は alive=false のため .ignited ではなく点火タイマーで判定する。
     const wasIgnited = e._igniteUntil && this.time.now < e._igniteUntil;
@@ -1208,17 +1322,17 @@ export class BattleScene extends Phaser.Scene {
     const rarityColor = RARITY[c.rarity] || '#bcaaa4';
     if (c.kind === 'evolution') {
       const ev = DataManager.getEvolution(c.id);
-      return { kind: 'evolution', category: 'active', rarity: c.rarity, rarityColor, badge: '★進化', icon: ev?.icon || DataManager.getSkill(c.baseId)?.iconKey, title: ev?.displayName || c.id, description: ev?.description || '', level: '→ 進化' };
+      return { id: c.id, kind: 'evolution', category: 'active', rarity: c.rarity, rarityColor, badge: '★進化', icon: ev?.icon || DataManager.getSkill(c.baseId)?.iconKey, title: ev?.displayName || c.id, description: ev?.description || '', level: '→ 進化' };
     }
     if (c.category === 'passive') {
       const p = DataManager.getPassive(c.id);
       const isNew = c.kind === 'new_passive';
-      return { kind: c.kind, category: 'passive', rarity: c.rarity, rarityColor, badge: isNew ? 'passive 新規' : 'passive 強化', icon: p?.iconKey, title: p?.displayName || c.id, description: p?.description || '', level: `Lv ${c.fromLevel}→${c.toLevel}/${c.maxLevel}` };
+      return { id: c.id, kind: c.kind, category: 'passive', rarity: c.rarity, rarityColor, badge: isNew ? 'passive 新規' : 'passive 強化', icon: p?.iconKey, title: p?.displayName || c.id, description: p?.description || '', level: `Lv ${c.fromLevel}→${c.toLevel}/${c.maxLevel}` };
     }
     const s = DataManager.getSkill(c.id);
     const isNew = c.kind === 'new_active';
     const nextStats = isNew ? DataManager.getSkillLevel(c.id, 1) : DataManager.getSkillLevel(c.id, c.toLevel);
-    return { kind: c.kind, category: 'active', rarity: c.rarity, rarityColor, badge: isNew ? 'active 新規' : 'active 強化', icon: s?.iconKey || s?.icon, title: s?.name || c.id, description: isNew ? (s?.description || '') : this.describeSkillLevel(c.id, nextStats), level: `Lv ${c.fromLevel}→${c.toLevel}/${c.maxLevel}` };
+    return { id: c.id, kind: c.kind, category: 'active', rarity: c.rarity, rarityColor, badge: isNew ? 'active 新規' : 'active 強化', icon: s?.iconKey || s?.icon, title: s?.name || c.id, description: isNew ? (s?.description || '') : this.describeSkillLevel(c.id, nextStats), level: `Lv ${c.fromLevel}→${c.toLevel}/${c.maxLevel}` };
   }
 
   applyCandidate(c) {
@@ -1675,6 +1789,125 @@ export class BattleScene extends Phaser.Scene {
       const sk = this.skills.skills.get(id);
       if (sk && sk.serializeState) { const st = sk.serializeState(); if (st) L.push(`${id}: ${JSON.stringify(st).slice(0, 40)}`); }
     }
+    return L.join('\n');
+  }
+
+  // ---------------- 新スキル検証（M6-E・?debug=1・F7） ----------------
+  // F1〜F6 と競合しない。新 active5種・新進化5種・死亡位置/墓標/共鳴/炉心熱量・監査一覧を確認する。
+  // すべてランタイムのみ。profile は破壊・保存しない。
+  toggleWave3Debug() {
+    if (this._w3dbg) { this._w3dbg.destroy(true); this._w3dbg = null; return; }
+    this._w3 = this._w3 || { skill: 'funeral_pyres', view: 'policy' };
+    const NEW = ['funeral_pyres', 'magma_vein', 'tri_flame_array', 'scorching_resonance', 'core_overdrive'];
+    const EVO = [['funeral_pyres', 'phoenix_feather'], ['magma_vein', 'burning_trail'], ['tri_flame_array', 'flame_vortex'], ['scorching_resonance', 'chain_flame'], ['core_overdrive', 'bloodfire_pact']];
+    const cx = GAME_WIDTH / 2;
+    const ui = this.add.container(0, 0).setScrollFactor(0).setDepth(4000);
+    ui.add(this.add.rectangle(cx, GAME_HEIGHT / 2, 500, 356, 0x0d1017, 0.97).setScrollFactor(0).setStrokeStyle(1, 0x80deea));
+    ui.add(this.add.text(cx, 4, 'DEBUG（M6-E 新スキル・監査・F7）', { fontSize: '11px', color: '#80deea' }).setScrollFactor(0).setOrigin(0.5, 0));
+    const redraw = () => { this.toggleWave3Debug(); this.toggleWave3Debug(); };
+    const acts = [
+      [() => `検証スキル: ${this._w3.skill}（切替）`, () => { const i = NEW.indexOf(this._w3.skill); this._w3.skill = NEW[(i + 1) % NEW.length]; }],
+      ['取得 / Lv+1 / Lv8', () => { const s = this.skills.skills.get(this._w3.skill); if (!s) this.skills.acquireOrLevel(this._w3.skill); else this.skills.setLevel(this._w3.skill, Math.min(8, s.level + 1)); this.updateHudSkills(); }],
+      ['このスキルをLv8で単独化', () => { for (const id of Array.from(this.skills.skills.keys())) if (id !== this._w3.skill) { const k = this.skills.skills.get(id); if (k && k.destroy) k.destroy(); this.skills.skills.delete(id); } this.skills.acquireOrLevel(this._w3.skill); this.skills.setLevel(this._w3.skill, 8); this.updateHudSkills(); }],
+      ['選択スキルの進化条件を達成', () => this.debugSetupWave3Evolution(this._w3.skill)],
+      ['死亡イベントを指定位置に5生成', () => this.debugSpawnDeaths(5)],
+      ['敵+30密集 / 弱体化', () => { this.debugClusterEnemies(30); this.enemyPool.forEachActive((e) => { if (e.alive) e.hp = Math.max(1, e.hp * 0.1); }); }],
+      ['敵へ炎上を一括付与', () => { let n = 0; this.enemyPool.forEachActive((e) => { if (e.alive) { this.igniteEnemy(e, 3000, 0); n++; } }); if (this.boss && this.boss.alive) this.boss.ignite(3000, 0); }],
+      ['炎上を一括解除', () => { this.enemyPool.forEachActive((e) => { e._igniteUntil = 0; this.unregisterBurning(e); }); if (this.boss) this.boss._igniteUntil = 0; }],
+      [() => `炉心熱量: ${this._w3.heat ?? 0}% 設定（切替）`, () => { const seq = [0, 25, 50, 75, 100]; this._w3.heat = seq[((seq.indexOf(this._w3.heat ?? 0) + 1) % seq.length)]; this.debugSetHeat(this._w3.heat / 100); }],
+      ['オーバーヒート開始 / 解除', () => this.debugToggleOverheat()],
+      ['終末状態を開始(終末炉心)', () => this.debugStartDoom()],
+      [() => `監査表示: ${this._w3.view}（切替）`, () => { const v = ['policy', 'clone', 'lv80', 'tag']; this._w3.view = v[(v.indexOf(this._w3.view) + 1) % v.length]; }],
+      ['通常状態へ戻す', () => { this._w3.heat = 0; this.jobMods.setResolved(this.resolvedJobModifiers); }],
+    ];
+    let yy = 22;
+    for (const [label, fn] of acts) {
+      const text = typeof label === 'function' ? label() : label;
+      const b = this.add.text(cx - 244, yy, text, { fontSize: '9px', color: '#fff', backgroundColor: '#1a3a3e', padding: { x: 5, y: 1 } }).setScrollFactor(0).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+      b.on('pointerdown', () => { fn(); redraw(); });
+      ui.add(b); yy += 15;
+    }
+    ui.add(this.add.text(cx + 4, 22, this._wave3Report(), { fontSize: '8px', color: '#b2ff59', lineSpacing: 2, wordWrap: { width: 240 } }).setScrollFactor(0).setOrigin(0, 0));
+    const close = this.add.text(cx, GAME_HEIGHT - 10, '閉じる (F7)', { fontSize: '9px', color: '#bcaaa4' }).setScrollFactor(0).setOrigin(0.5, 1).setInteractive({ useHandCursor: true });
+    close.on('pointerdown', () => this.toggleWave3Debug());
+    ui.add(close);
+    this._w3dbg = ui;
+  }
+
+  // 選択した新 active の進化条件（基礎Lv8＋補助スキル/パッシブLv4）を満たす。
+  debugSetupWave3Evolution(baseId) {
+    const map = { funeral_pyres: 'phoenix_feather', magma_vein: 'burning_trail', tri_flame_array: 'flame_vortex', scorching_resonance: 'chain_flame', core_overdrive: 'bloodfire_pact' };
+    const aux = map[baseId]; if (!aux) return;
+    this.skills.acquireOrLevel(baseId); this.skills.setLevel(baseId, 8);
+    if (DataManager.getPassive(aux)) { this.passives.acquireOrLevel(aux); this.passives.setLevel(aux, 4); }
+    else { this.skills.acquireOrLevel(aux); this.skills.setLevel(aux, 4); }
+    this.updateHudSkills();
+  }
+
+  // 死亡イベントをプレイヤー周囲へ生成する（墓標系の確認用）。死亡履歴を要求していないスキルには影響しない。
+  debugSpawnDeaths(n) {
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      const fake = { x: this.player.x + Math.cos(a) * 70, y: this.player.y + Math.sin(a) * 70, def: { id: 'slime' }, isElite: false, isBoss: false };
+      const prevTrackers = this._deathTrackers;
+      if (prevTrackers <= 0) this._deathTrackers = 1; // 一時的に記録を許可（墓標未所持でも確認できる）
+      this._recordDeathEvent(fake, 'debug');
+      this._deathTrackers = prevTrackers;
+    }
+  }
+
+  // 炉心暴走/終末炉心の熱量を割合で設定（serializeState/restoreState 経由・状態を破壊しない）。
+  debugSetHeat(frac) {
+    for (const id of ['core_overdrive', 'doomsday_core']) {
+      const sk = this.skills.skills.get(id);
+      if (!sk || !sk.serializeState || !sk.restoreState) continue;
+      const st = sk.serializeState(); if (!st || typeof st.heat !== 'number') continue;
+      const maxH = (sk.stats?.maxHeat) || (sk.evoDef?.overheat?.maxHeat) || 150;
+      st.heat = Math.round(maxH * frac); st.overheatLeft = 0;
+      sk.restoreState(st);
+    }
+  }
+
+  debugToggleOverheat() {
+    for (const id of ['core_overdrive', 'doomsday_core']) {
+      const sk = this.skills.skills.get(id);
+      if (!sk || !sk.serializeState || !sk.restoreState) continue;
+      const st = sk.serializeState(); if (!st || typeof st.overheatLeft !== 'number') continue;
+      st.overheatLeft = st.overheatLeft > 0 ? 0 : 1800;
+      sk.restoreState(st);
+    }
+  }
+
+  debugStartDoom() {
+    const sk = this.skills.skills.get('doomsday_core');
+    if (!sk || !sk.serializeState || !sk.restoreState) return;
+    const st = sk.serializeState(); if (!st) return;
+    if ('doomLeft' in st) { st.doomLeft = 2000; sk.restoreState(st); }
+  }
+
+  _wave3Report() {
+    const L = [];
+    const v = this._w3.view;
+    if (v === 'policy' || v === 'clone') {
+      L.push(v === 'policy' ? '— echoPolicy 一覧(active30) —' : '— clonePolicy 一覧(active30) —');
+      const acts = DataManager.skills.filter((s) => s.category === 'active').sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+      for (const s of acts) L.push(`${(s.displayOrder || 0)}.${s.id}: ${v === 'policy' ? echoStatus(s) : cloneStatus(s)}`);
+    } else if (v === 'lv80') {
+      L.push('— Job Lv80 発射数+1 対象 —');
+      for (const s of DataManager.skills) if (s.category === 'active' && appliesLv80ProjectileCount(s)) L.push(`+ ${s.id}`);
+      L.push('（上記以外の active/進化は対象外）');
+    } else {
+      L.push('— 最後のダメージタグ —');
+      const di = this._lastDamageInfo;
+      if (di) { L.push(`skill: ${di.skillId}`); L.push(`elem:${di.tags.element} DoT:${di.tags.isDoT} 爆:${di.tags.isExplosion} 進:${di.tags.isEvolved}`); L.push(`echo×${(di.echo || 1)}`); }
+      else L.push('(まだダメージなし)');
+    }
+    L.push('———');
+    L.push(`複製元:${(this.lastClonableCast() || {}).skillId || 'なし'} 炎上:${this.burningCount()}`);
+    L.push(`死亡履歴:${this._deathEvents.length} castCtx:${this._castCtx ? this._castCtx.origin + '/g' + this._castCtx.generation : 'normal'}`);
+    L.push(`残響:${this.jobMods.echoEnabled() ? this.jobMods.echoInterval() + '回' : '無効'}現${this.jobMods.echoCount()} 抑制/f:${(this._mLast || this._m).suppressed}`);
+    const heat = this.skills.skills.get('core_overdrive') || this.skills.skills.get('doomsday_core');
+    if (heat && heat.serializeState) { const st = heat.serializeState(); if (st && 'heat' in st) L.push(`炉心:${JSON.stringify(st).slice(0, 46)}`); }
     return L.join('\n');
   }
 

@@ -532,6 +532,115 @@ if (jobProgData) {
   }
 }
 
+// --- M6-E: castMode / 主発動イベント / 共鳴閾値 / 炉心熱量 / 新スキル・進化・skillCaps の検証 ---
+{
+  const CAST_MODES = new Set(['periodic', 'cooldown', 'continuous', 'reactive', 'defensive', 'movement', 'resource']);
+  const ATTACK_MODES = new Set(['periodic', 'cooldown', 'continuous', 'resource']);
+  const KNOWN_TAGS = new Set(['active', 'fire', 'projectile', 'area', 'explosion', 'dot', 'damageOverTime', 'burn', 'summon', 'beam', 'laser', 'melee', 'slash', 'defensive', 'reactive', 'barrier', 'shield', 'homing', 'chain', 'pierce', 'piercing', 'orbit', 'mark', 'combo', 'ground', 'fissure', 'movingArea', 'formation', 'zone', 'resonance', 'statusScaling', 'pulse', 'overheat', 'escalating', 'burst', 'highRisk', 'deathTriggered', 'delayed', 'trap', 'mine', 'ricochet', 'bouncing', 'clone', 'copy', 'sacrifice', 'projectileAbsorb', 'charge', 'screenEdge', 'wave', 'tether', 'control', 'pull', 'directional', 'spread', 'dash', 'movement', 'retaliation', 'revival', 'witch']);
+  const skillsArr = (skillsData && skillsData.skills) || [];
+  const evosArr = (evoData && evoData.evolutions) || [];
+  const actives = skillsArr.filter((s) => (s.category || 'active') === 'active');
+  // 全 active は castMode/echoPolicy/clonePolicy/mainCastEvent/echo・cloneDescription/lv80ProjectileTarget を持つ。
+  for (const s of actives) {
+    if (!CAST_MODES.has(s.castMode)) err(`M6-E: active ${s.id} の castMode が不正/未設定 (${s.castMode})`);
+    if (s.echoPolicy == null) err(`M6-E: active ${s.id} に echoPolicy がない`);
+    if (s.clonePolicy == null) err(`M6-E: active ${s.id} に clonePolicy がない`);
+    if (typeof s.lv80ProjectileTarget !== 'boolean') err(`M6-E: active ${s.id} の lv80ProjectileTarget が真偽値でない`);
+    if (!s.echoDescription) err(`M6-E: active ${s.id} に echoDescription がない`);
+    if (!s.cloneDescription) err(`M6-E: active ${s.id} に cloneDescription がない`);
+    // 攻撃目的の castMode は主発動イベントを持つ（各tick/連鎖/分裂で recordCast しないための宣言）。
+    if (ATTACK_MODES.has(s.castMode) && !s.mainCastEvent) err(`M6-E: 攻撃 active ${s.id} に mainCastEvent がない`);
+    for (const t of s.tags || []) if (!KNOWN_TAGS.has(t)) warn(`M6-E: active ${s.id} の未知タグ "${t}"`);
+  }
+  // 進化にも castMode / mainCastEvent / echo・clonePolicy を要求。lv80ProjectileTarget は false（単一形態）。
+  for (const ev of evosArr) {
+    if (!CAST_MODES.has(ev.castMode)) err(`M6-E: 進化 ${ev.id} の castMode が不正/未設定 (${ev.castMode})`);
+    if (ev.echoPolicy == null) err(`M6-E: 進化 ${ev.id} に echoPolicy がない`);
+    if (ev.clonePolicy == null) err(`M6-E: 進化 ${ev.id} に clonePolicy がない`);
+    if (ev.lv80ProjectileTarget === true) err(`M6-E: 進化 ${ev.id} は lv80ProjectileTarget=false であること（進化は発射数+1対象外）`);
+    if (ATTACK_MODES.has(ev.castMode) && !ev.mainCastEvent) err(`M6-E: 攻撃進化 ${ev.id} に mainCastEvent がない`);
+  }
+  // active プールは30種・進化18種・ID一意。
+  const fw = (jobsData?.jobs || []).find((j) => j.id === 'flame_witch');
+  if (fw && fw.activeSkillPool.length !== 30) err(`M6-E: flame_witch の activeSkillPool が30種でない (${fw.activeSkillPool.length})`);
+  if (evosArr.length !== 18) err(`M6-E: 進化総数が18種でない (${evosArr.length})`);
+  {
+    const ids = actives.map((s) => s.id); const dup = ids.filter((v, i) => ids.indexOf(v) !== i);
+    if (dup.length) err(`M6-E: active ID 重複 ${dup.join(',')}`);
+    const eids = evosArr.map((e) => e.id); const edup = eids.filter((v, i) => eids.indexOf(v) !== i);
+    if (edup.length) err(`M6-E: 進化 ID 重複 ${edup.join(',')}`);
+  }
+  // 新 active5種の存在・maxLevel8・Lv1..8・rarity。
+  const NEW_A = { funeral_pyres: 'uncommon', magma_vein: 'common', tri_flame_array: 'rare', scorching_resonance: 'rare', core_overdrive: 'legendary' };
+  for (const [id, rar] of Object.entries(NEW_A)) {
+    const s = skillsArr.find((x) => x.id === id);
+    if (!s) { err(`M6-E: 新 active ${id} が存在しない`); continue; }
+    if (s.maxLevel !== 8) err(`M6-E: ${id} の maxLevel が8でない`);
+    if (!Array.isArray(s.levels) || s.levels.length !== 8 || !s.levels.every((lv, i) => lv.level === i + 1)) err(`M6-E: ${id} の levels が Lv1..8 連番でない`);
+    if (s.rarity !== rar) err(`M6-E: ${id} の rarity が ${rar} でない (${s.rarity})`);
+    // 隣接レベルで最低1項目変化。
+    for (let i = 1; i < (s.levels || []).length; i++) if (JSON.stringify(s.levels[i]) === JSON.stringify(s.levels[i - 1])) err(`M6-E: ${id} の Lv${i + 1} が Lv${i} と同一（成長なし）`);
+    // 負数・非有限の混入チェック。
+    for (const lv of s.levels || []) for (const [k, v] of Object.entries(lv)) if (typeof v === 'number' && (!Number.isFinite(v) || v < 0)) err(`M6-E: ${id} Lv${lv.level} の ${k} が負/非有限 (${v})`);
+  }
+  // 共鳴閾値（灼熱共鳴 config.tierThresholds / 万象炎鳴 config.tierThresholds）は昇順・重複なし・0始まり。
+  const checkThresholds = (arr, who) => {
+    if (!Array.isArray(arr) || arr.length < 2) { err(`M6-E: ${who} の tierThresholds が不正`); return; }
+    if (arr[0] !== 0) err(`M6-E: ${who} の tierThresholds は0始まりであること`);
+    for (let i = 1; i < arr.length; i++) { if (!(arr[i] > arr[i - 1])) err(`M6-E: ${who} の tierThresholds が昇順/一意でない (${arr.join(',')})`); }
+  };
+  checkThresholds(skillsArr.find((s) => s.id === 'scorching_resonance')?.config?.tierThresholds, 'scorching_resonance');
+  checkThresholds(evosArr.find((e) => e.id === 'universal_flame_resonance')?.config?.tierThresholds, 'universal_flame_resonance');
+  // 炉心暴走: maxHeat>0・overheatMs>0・minCooldownMs>0・cooldownRate>0（各Lv）。
+  {
+    const co = skillsArr.find((s) => s.id === 'core_overdrive');
+    for (const lv of co?.levels || []) {
+      if (!(lv.maxHeat > 0)) err(`M6-E: core_overdrive Lv${lv.level} の maxHeat が正でない`);
+      if (!(lv.overheatMs > 0)) err(`M6-E: core_overdrive Lv${lv.level} の overheatMs が正でない`);
+      if (!(lv.minCooldownMs > 0)) err(`M6-E: core_overdrive Lv${lv.level} の minCooldownMs が正でない`);
+      if (!(lv.cooldownRate > 0)) err(`M6-E: core_overdrive Lv${lv.level} の cooldownRate が正でない`);
+      // 熱量最大化でも安全下限未満に短縮しない（effectiveCd >= minCooldownMs）。
+      if (lv.cooldown != null && lv.heatAccelPct != null && lv.cooldown * (1 - lv.heatAccelPct) < lv.minCooldownMs) warn(`M6-E: core_overdrive Lv${lv.level} は最大熱量CDが minCooldownMs 未満になりうる`);
+    }
+  }
+  // 新進化5種: 条件（実在の基礎/補助スキルLv）・replacementSkillId==id・baseSkillId が新 active。
+  const NEW_E = {
+    necroflame_mausoleum: { base: 'funeral_pyres', req: 'phoenix_feather' },
+    world_scorching_rift: { base: 'magma_vein', req: 'burning_trail' },
+    hexagram_inferno_array: { base: 'tri_flame_array', req: 'flame_vortex' },
+    universal_flame_resonance: { base: 'scorching_resonance', req: 'chain_flame' },
+    doomsday_core: { base: 'core_overdrive', req: 'bloodfire_pact' },
+  };
+  const skillIdSet = new Set(skillsArr.map((s) => s.id));
+  const passiveIdSet = new Set((loadJson('passives.json')?.passives || []).map((p) => p.id));
+  for (const [id, m] of Object.entries(NEW_E)) {
+    const ev = evosArr.find((e) => e.id === id);
+    if (!ev) { err(`M6-E: 新進化 ${id} が存在しない`); continue; }
+    if (ev.replacementSkillId !== id) err(`M6-E: ${id} の replacementSkillId が id と不一致`);
+    if (ev.baseSkillId !== m.base) err(`M6-E: ${id} の baseSkillId が ${m.base} でない (${ev.baseSkillId})`);
+    if (!skillIdSet.has(ev.baseSkillId)) err(`M6-E: ${id} の baseSkillId が実在しない (${ev.baseSkillId})`);
+    for (const rs of ev.requiredSkills || []) {
+      if (!skillIdSet.has(rs.skill) && !passiveIdSet.has(rs.skill)) err(`M6-E: ${id} の requiredSkills "${rs.skill}" が実在しない`);
+      if (!(rs.level >= 1)) err(`M6-E: ${id} の requiredSkills "${rs.skill}" の level が不正`);
+    }
+    // safetyCaps は非負。
+    for (const [ck, cv] of Object.entries(ev.safetyCaps || {})) if (typeof cv === 'number' && cv < 0) err(`M6-E: ${id} の safetyCaps.${ck} が負 (${cv})`);
+  }
+  // 新 active の evolutionBranches が実在の進化を指す。
+  for (const [id, m] of Object.entries(NEW_E)) {
+    const base = skillsArr.find((s) => s.id === m.base);
+    if (base && !(base.evolutionBranches || []).includes(id)) err(`M6-E: ${m.base} の evolutionBranches に ${id} がない`);
+  }
+  // 新 skillCaps が品質順（low<=medium<=high<=ultra）で存在する。
+  const NEW_CAPS = ['maxDeathEventsTracked', 'maxDeathEventsPerFrame', 'maxFuneralPyres', 'maxPyreEruptionsPerFrame', 'maxMagmaVeins', 'maxMagmaSegments', 'maxMagmaIntersections', 'maxTriArrays', 'maxArrayTicksPerFrame', 'maxResonanceTargets', 'maxResonanceChains', 'maxResonanceExplosions', 'maxOverdriveProjectiles', 'maxOverdriveCastsPerFrame', 'maxMausoleums', 'maxHexagramArrays', 'maxHexagramBeams', 'maxDoomsdayProjectiles', 'maxDoomsdayExplosions', 'maxBurningEnemyIndex', 'maxMainCastEventsPerFrame'];
+  for (const n of NEW_CAPS) {
+    const c = balance?.skillCaps?.[n];
+    if (!c) { err(`M6-E: skillCaps.${n} がない`); continue; }
+    if (!(c.low <= c.medium && c.medium <= c.high && c.high <= c.ultra)) err(`M6-E: skillCaps.${n} が品質順でない`);
+    for (const q of ['low', 'medium', 'high', 'ultra']) if (typeof c[q] !== 'number' || c[q] < 0 || !Number.isFinite(c[q])) err(`M6-E: skillCaps.${n}.${q} が非負の有限数でない`);
+  }
+}
+
 // --- report ---
 if (warnings.length) {
   console.log('--- 警告 ---');

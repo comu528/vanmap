@@ -44,6 +44,18 @@ import { HellfireMineNetworkSkill } from '../skills/HellfireMineNetworkSkill.js'
 import { InfernoBladeDomainSkill } from '../skills/InfernoBladeDomainSkill.js';
 import { AshLegionSkill } from '../skills/AshLegionSkill.js';
 import { StarDevouringFurnaceSkill } from '../skills/StarDevouringFurnaceSkill.js';
+// M6-E: 新 active 5種
+import { FuneralPyresSkill } from '../skills/FuneralPyresSkill.js';
+import { MagmaVeinSkill } from '../skills/MagmaVeinSkill.js';
+import { TriFlameArraySkill } from '../skills/TriFlameArraySkill.js';
+import { ScorchingResonanceSkill } from '../skills/ScorchingResonanceSkill.js';
+import { CoreOverdriveSkill } from '../skills/CoreOverdriveSkill.js';
+// M6-E: 新進化5種
+import { NecroflameMausoleumSkill } from '../skills/NecroflameMausoleumSkill.js';
+import { WorldScorchingRiftSkill } from '../skills/WorldScorchingRiftSkill.js';
+import { HexagramInfernoArraySkill } from '../skills/HexagramInfernoArraySkill.js';
+import { UniversalFlameResonanceSkill } from '../skills/UniversalFlameResonanceSkill.js';
+import { DoomsdayCoreSkill } from '../skills/DoomsdayCoreSkill.js';
 
 const REGISTRY = {
   fireball: FireballSkill,
@@ -89,6 +101,18 @@ const REGISTRY = {
   inferno_blade_domain: InfernoBladeDomainSkill,
   ash_legion: AshLegionSkill,
   star_devouring_furnace: StarDevouringFurnaceSkill,
+  // M6-E: 新 active
+  funeral_pyres: FuneralPyresSkill,
+  magma_vein: MagmaVeinSkill,
+  tri_flame_array: TriFlameArraySkill,
+  scorching_resonance: ScorchingResonanceSkill,
+  core_overdrive: CoreOverdriveSkill,
+  // M6-E: 新進化
+  necroflame_mausoleum: NecroflameMausoleumSkill,
+  world_scorching_rift: WorldScorchingRiftSkill,
+  hexagram_inferno_array: HexagramInfernoArraySkill,
+  universal_flame_resonance: UniversalFlameResonanceSkill,
+  doomsday_core: DoomsdayCoreSkill,
 };
 
 export class SkillManager {

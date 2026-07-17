@@ -7,12 +7,15 @@ import { TEX } from '../config/game-config.js';
 
 const HIT_INTERVAL = 400; // 同じ敵への連続ヒット間隔
 
+const CAST_PULSE_MS = 500; // M6-E: 主発動イベント(recordCast)の最小間隔。接触tick毎ではなく攻撃サイクル単位で記録する。
+
 export class OrbitingFlameSkill extends SkillBase {
   constructor(scene, id, level) {
     super(scene, id, level);
     this.angle = 0;
     this.orbs = [];
     this._hitCooldown = new Map(); // enemy -> 残り時間
+    this._castPulse = 0;           // M6-E: 主発動イベントのスロットル
     this._rebuild();
   }
 
@@ -41,6 +44,7 @@ export class OrbitingFlameSkill extends SkillBase {
     const p = this.scene.player;
     const radius = s.radius;
     const n = this.orbs.length;
+    if (this._castPulse > 0) this._castPulse -= dt;
 
     // ヒットクールダウン減衰
     for (const [e, t] of this._hitCooldown) {
@@ -55,15 +59,23 @@ export class OrbitingFlameSkill extends SkillBase {
       const oy = p.y + Math.sin(a) * radius;
       const orb = this.orbs[i];
       orb.setPosition(ox, oy);
-      // 接触判定
+      // 接触判定。ダメージは接触ごとに与えるが、主発動イベント(recordCast)はスロットルし、
+      // DoT/接触tick毎に残響カウンタを進めない（M6-E 監査: continuous は攻撃サイクル単位で記録）。
       this.scene.combat.forEachEnemyInRadius(ox, oy, 10, (e) => {
         if (this._hitCooldown.has(e)) return;
         this._hitCooldown.set(e, HIT_INTERVAL);
-        this.scene.skills.recordCast(this.id);
+        if (this._castPulse <= 0) { this.scene.skills.recordCast(this.id); this._castPulse = CAST_PULSE_MS; }
         this.scene.combat.dealDamage(e, s.damage, this.id, { color: 0xff9800 });
       });
     }
   }
+
+  // 残響/複製（M6-E・custom）: 攻撃サイクルの再現＝周囲の敵へ1回ぶんの炎輪パルスを与える（周回状態は変えない）。
+  echoCast() {
+    const s = this.stats; const p = this.scene.player;
+    this.scene.combat.damageArea(p.x, p.y, (s.radius || 40) + 12, s.damage, this.id, { color: 0xff9800, quiet: true });
+  }
+  cloneCast() { this.echoCast(); }
 
   destroy() {
     for (const o of this.orbs) o.destroy();

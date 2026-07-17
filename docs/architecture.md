@@ -242,3 +242,33 @@ M6-A（抽選/枠/パッシブ/進化）・M6-B（追尾/連鎖/刻印/召喚/�
 - **空間グリッド/プール/性能上限**: 近傍・範囲・連鎖・吸収・集中攻撃は M5-A SpatialGrid で候補を絞り、最終判定（線分距離/扇形/円/矩形/接続距離/光線幅/波位置）は各挙動側で厳密に行う（ボスは個別追加）。跳炎弾/地雷/警告/分身/複製弾/放出弾/炎波/鎖線/軌跡/光点/炎剣/軍勢/吸収核 は `PoolManager` または配列再利用で、`skillId/owner/target/visited/networkId/generation/origin/charge/bounceCount` 等を再利用時に完全初期化。Scene/Battle 終了・進化置換・スキル削除で残留させない。
 - **性能上限**: `balance.skillCaps` に品質別の新キー（`maxActiveBeams`/`maxMines`/`maxRicochetProjectiles`/`maxClones`/`maxBloodfireProjectiles`/`maxFurnaceCharge`/`maxScreenEdgeWaves`/`maxTethers`/`maxAshLegionUnits`/`maxCopyGeneration` ほか）を追加。上限到達時は 判定・主要挙動→主要表示→補助粒子/装飾 の順に削減し、地雷位置/光線本体/斬撃範囲/血炎攻撃/炉チャージ/波/鎖接続/ダッシュチャージ/ボス予告/敵弾/プレイヤーは消さない。
 - **保存**: 新スキルの CD/チャージ/分身数/ダッシュチャージ等は `active_run.skillRuntime`（`SkillManager.serializeRuntime`）へ加算的に保存し、`restoreFromRun` が復元する。個々の弾/地雷/分身/鎖の位置は保存せず レベル＋runtimeState から再構築。再読込での悪用（CD回復/チャージ複製/二重生成/再放出）を remaining 値の保存復元で防止。**`save_version` は 6 のまま**。
+
+## 火の魔女スキル拡張・第3波＋全スキル監査（M6-E）
+M6-A（抽選/枠/パッシブ/進化）・M6-B（戦闘挙動・`Projectile` 拡張・`skillCaps` 品質別予算）・M6-C（ジョブ補正・共通発動シグナル `_onSkillCast`/残響）・M6-D（`CastPolicy` の残響/分身再帰防止）を **再利用** し、火の魔女専用 active を5種・進化を5種追加する。あわせて**全 active30種・進化18種を監査**し、残響/分身・主発動イベント・ダメージタグ・Lv80発射数+1 の扱いを各定義へ明示する。既存25 active・13進化・4 passive のコードと性能は変更しない。結果は active 30種・進化18種・passive 4種。**`save_version` は 6 のまま**。
+
+| 追加/変更 | 役割 | 再利用元 |
+|-----------|------|----------|
+| `src/systems/SkillAudit.js`（新規・純ロジック） | def から `castSummary`/`echoStatus`/`cloneStatus`/`appliesLv80ProjectileCount`/`primaryTags`/`castBadge` を解決。castMode/echoPolicy/clonePolicy/canTriggerEcho/canBeCopiedByClone/mainCastEvent/lv80ProjectileTarget を一元管理。DOM/Phaser 非依存 | M6-D の `CastPolicy`（複製方式）を **監査/表示/Lv80対象**へ一般化 |
+| `src/skills/*Skill.js`（新規10: active5＋進化5） | 各スキルの発動・命中判定は `combat.*`、演出は `effects.*`。`serializeState`/`restoreState`・cleanup 実装。REGISTRY 登録 | M6-B/M6-D のスキルクラス実装 |
+| `BattleScene` 敵死亡イベント履歴 | `retainDeathEvents`/`releaseDeathEvents`（墓標系所持時のみ記録）・`recentDeathEvents`/`consumeDeathEvent`（同一死亡は1回だけ消費）・上限 `maxDeathEventsTracked`/`maxDeathEventsPerFrame`。死亡情報 `{id,x,y,enemyType,isElite,isBoss,killedBySkillId,timestamp,frameId,consumed}` | 既存の撃破処理へ**記録フックを足すだけ**（統計/残り火/Job XP/ジェムは不変） |
+| `BattleScene._burningIndex`（炎上索引） | `Enemy.ignite` で登録、消火/死亡/プール返却/Scene終了で解除。`burningCount()`/`burningEnemies()`（ボス炎上も1体）。`combat.ignite(e,ms,gen)` が付与＋登録 | M5-A の「炎上発生源の全敵走査」を**軽量索引**へ置換（共鳴が全敵走査を避ける） |
+| `Enemy`/`Boss`（拡張） | `ignite`/`ignited` を共通化（Boss にも追加）。プール再利用時に索引登録を解除 | 既存の炎上実装へ索引登録/解除を一元化 |
+| `combat` API 追加 | `retainDeathEvents`/`releaseDeathEvents`/`recentDeathEvents`/`consumeDeathEvent`/`burningCount`/`burningEnemies`/`ignite`/`registerBurning`/`worldBounds` | M6-B/M6-D の combat 拡張に同居 |
+| `SkillManager.recordCast`（監査） | 主発動イベントを **攻撃サイクル単位のみ** に統一。`orbiting_flame` を一定間隔スロットル、`fire_spirit` を一斉射撃サイクルで記録 | M6-C の `recordCast`/`_onSkillCast` を監査基準へ整流 |
+| `LevelUpScene`（拡張） | スキルカードへ「残響○/◑/× 分身○/◑/× Lv80+ ·主要タグ」の短い記号行（`SkillAudit` から解決） | M6-D の cast メタ表示を UI へ露出 |
+| `BattleScene.toggleWave3Debug()`（F7） | 新スキル検証パネル（`?debug=1` のみ・F1〜F6 非競合）。ランタイムのみで profile を破壊・保存しない | M6-D の F6 デバッグと同系 |
+
+### castMode / echoPolicy / clonePolicy / Lv80 メタ（`SkillAudit` が一元解決）
+- 各 active/進化定義に `castMode`（periodic/cooldown/continuous/reactive/defensive/movement/resource）・`echoPolicy`/`clonePolicy`（standard/custom/forbidden）・`canTriggerEcho`/`canBeCopiedByClone`・`echoDescription`/`cloneDescription`・`mainCastEvent`・`lv80ProjectileTarget` を持たせる。コードへ散在させず `SkillAudit` から解決する（UI・デバッグ・Lv80対象判定・監査テストが同じソースを見る）。
+- **Job Lv80「発射数+1」の対象**は独立弾を撃つ通常 active のみ（`fireball`/`flame_lance`/`scatter_flame`/`homing_wisp`/`ricochet_ember`/`core_overdrive`）。地雷/墓標/分身/光線/陣/亀裂/波/召喚/鎖/共鳴段階/熱量段階/**進化**（単一形態）は対象外。判定は `SkillAudit.appliesLv80ProjectileCount`（データ `lv80ProjectileTarget`）。
+
+### 主発動イベントの統一方針（残響/分身の起点）
+- **`recordCast` は攻撃サイクル単位のみ**行う。DoTの各tick・連鎖の各対象・分裂弾・爆発の各対象・個別起爆・召喚の通常射撃・共鳴の各連鎖・オーバーヒート開始終了では recordCast しない。これにより残響（M6-C）・分身複製（M6-D）の起点が「1回の攻撃サイクル」に揃い、多重カウントや取りこぼしが起きない。
+- **`orbiting_flame` の監査修正**: 接触tick毎の recordCast を廃し、主発動を一定間隔にスロットルする（**ダメージは接触ごとのまま＝挙動不変**）。echo/clone は炎輪パルスの再現（custom）。
+- **`fire_spirit` の監査修正**: 召喚の一斉射撃サイクルを主発動として記録する（個々の通常射撃では記録しない）。echo/clone は各精霊の追加一斉射撃（custom・精霊は増えない）。
+- **不死鳥の羽/炎の障壁**: 防御専用として `echoPolicy`/`clonePolicy=forbidden` を明示（従来も recordCast していないため挙動変更なし）。
+- **ダメージタグ**: 火属性補正は全 fire、DoT補正は DoT のみ、爆発補正は爆発のみ、進化補正は進化のみ、弾速/数補正は対象スキルのみ。echo/clone 倍率は `dealDamage` で1回だけ適用（二重適用しない）。
+
+### 性能上限・保存
+- **性能上限**: `balance.skillCaps` へ品質別の新キー（`maxDeathEventsTracked`/`maxDeathEventsPerFrame`/`maxFuneralPyres`/`maxPyreEruptionsPerFrame`/`maxMagmaVeins`/`maxMagmaSegments`/`maxMagmaIntersections`/`maxTriArrays`/`maxArrayTicksPerFrame`/`maxResonanceTargets`/`maxResonanceChains`/`maxResonanceExplosions`/`maxOverdriveProjectiles`/`maxOverdriveCastsPerFrame`/`maxMausoleums`/`maxHexagramArrays`/`maxHexagramBeams`/`maxDoomsdayProjectiles`/`maxDoomsdayExplosions`/`maxBurningEnemyIndex`/`maxMainCastEventsPerFrame`）を追加。`combat.frameBudget`/`DataManager.skillCap` で毎フレーム予算化。**上限到達でも攻撃判定は消さず、装飾を先に削る**。近傍/範囲/連鎖/交差/共鳴は M5-A SpatialGrid で候補を絞り、最終判定（点in三角形/線分距離/円/接続距離）は各挙動側で厳密に行う（ボスは個別追加）。
+- **保存**: 各スキルの runtimeState を `active_run.skillRuntime`（`SkillManager.serializeRuntime`）へ加算保存し `restoreFromRun` が復元（墓標=CD/炎脈=CD/三角=CD/共鳴=CD〈段階は再開時に再計算〉/炉心=heat/overheatLeft/cdLeft/終末=heat/overheatLeft/doomLeft/cdLeft）。個々の墓標/亀裂/陣/弾の位置は保存せず レベル＋runtimeState から再構築。再読込での悪用（熱量初期化/オーバーヒート解除/終末再開始/CD全回復/墓標二重生成）を remaining 値の保存復元で防止。**`save_version` は 6 のまま**。

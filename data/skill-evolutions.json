@@ -37,7 +37,19 @@
         "maxChainExplosions": 2,
         "maxPierce": 6
       },
-      "displayOrder": 1
+      "displayOrder": 1,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "fire",
+      "echoDescription": "追撃火球サイクルを追加",
+      "cloneDescription": "追撃火球を複製",
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
     },
     {
       "id": "purgatory_eruption",
@@ -81,7 +93,19 @@
         "maxAoePerFrame": 6,
         "burnTickMs": 300
       },
-      "displayOrder": 2
+      "displayOrder": 2,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "fire",
+      "echoDescription": "大噴火を追加",
+      "cloneDescription": "大噴火を複製",
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
     },
     {
       "id": "eternal_pyre",
@@ -123,7 +147,19 @@
         "maxIgnited": 220,
         "infectTickMs": 300
       },
-      "displayOrder": 3
+      "displayOrder": 3,
+      "lv80ProjectileTarget": false,
+      "castMode": "periodic",
+      "mainCastEvent": "emitStart",
+      "echoDescription": "燃焼地帯を追加（死亡爆発は対象外）",
+      "cloneDescription": "燃焼地帯を複製",
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
     },
     {
       "id": "thousand_flame_lances",
@@ -163,7 +199,19 @@
         "maxSplitGenerations": 2,
         "maxPierce": 10
       },
-      "displayOrder": 4
+      "displayOrder": 4,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "fire",
+      "echoDescription": "槍雨を追加",
+      "cloneDescription": "槍雨を複製",
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
     },
     {
       "id": "hundred_wisp_parade",
@@ -205,7 +253,19 @@
         "maxSplitGenerations": 1,
         "spawnPerFrame": 6
       },
-      "displayOrder": 5
+      "displayOrder": 5,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "fire",
+      "echoDescription": "鬼火群を追加（分裂は対象外）",
+      "cloneDescription": "鬼火群を複製",
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
     },
     {
       "id": "solar_core_collapse",
@@ -246,7 +306,19 @@
         "lavaTickMs": 300,
         "maxAoePerFrame": 6
       },
-      "displayOrder": 6
+      "displayOrder": 6,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "fire",
+      "echoDescription": "崩落爆発を追加",
+      "cloneDescription": "崩落爆発を複製",
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
     },
     {
       "id": "infernal_vortex_wheel",
@@ -291,7 +363,19 @@
         "maxSimultaneousExplosions": 8,
         "tickMs": 240
       },
-      "displayOrder": 7
+      "displayOrder": 7,
+      "lv80ProjectileTarget": false,
+      "castMode": "periodic",
+      "mainCastEvent": "deployStart",
+      "echoDescription": "渦輪展開を追加",
+      "cloneDescription": "渦輪を複製",
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
     },
     {
       "id": "apocalypse_chain",
@@ -336,7 +420,19 @@
         "maxSpreadPerChain": 6,
         "finalBlastPerChain": 1
       },
-      "displayOrder": 8
+      "displayOrder": 8,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "markApply",
+      "echoDescription": "刻印付与を追加（連鎖起爆は対象外）",
+      "cloneDescription": "刻印付与を複製",
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
     },
     {
       "id": "solar_annihilation_array",
@@ -383,7 +479,12 @@
         "auxBeams": 4,
         "tickRate": 160,
         "focusIntervalMs": 2600
-      }
+      },
+      "lv80ProjectileTarget": false,
+      "castMode": "continuous",
+      "mainCastEvent": "beamStart",
+      "echoDescription": "照射を追加（各tickは対象外）",
+      "cloneDescription": "照射を複製"
     },
     {
       "id": "hellfire_mine_network",
@@ -428,7 +529,12 @@
         "mines": 6,
         "markTargets": 6,
         "hitsNeeded": 2
-      }
+      },
+      "lv80ProjectileTarget": false,
+      "castMode": "periodic",
+      "mainCastEvent": "deployStart",
+      "echoDescription": "地雷網設置を追加（連鎖起爆は対象外）",
+      "cloneDescription": "地雷網を複製"
     },
     {
       "id": "inferno_blade_domain",
@@ -470,7 +576,12 @@
       "projectileCount": {
         "blades": 4,
         "sweeps": 3
-      }
+      },
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "slash",
+      "echoDescription": "剣域斬撃を追加",
+      "cloneDescription": "剣域斬撃を複製"
     },
     {
       "id": "ash_legion",
@@ -510,7 +621,12 @@
         "units": 6,
         "copyIntervalMs": 900,
         "boltInterval": 1100
-      }
+      },
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "cloneDeploy",
+      "echoDescription": "複製軍勢のため残響対象外",
+      "cloneDescription": "複製系のため複製対象外"
     },
     {
       "id": "star_devouring_furnace",
@@ -555,7 +671,298 @@
         "maxCharge": 14,
         "releaseProjectiles": 22,
         "cores": 4
-      }
+      },
+      "lv80ProjectileTarget": false,
+      "castMode": "reactive",
+      "mainCastEvent": "absorbRelease",
+      "echoDescription": "放出弾幕のみ再現（チャージ不変・防御反応）",
+      "cloneDescription": "放出弾幕のみ複製"
+    },
+    {
+      "id": "necroflame_mausoleum",
+      "displayName": "冥炎大霊廟",
+      "baseSkillId": "funeral_pyres",
+      "description": "敵死亡位置へ大型霊廟を生成。周期的に小噴火し、一定時間後に大噴火（保存死亡数に応じ追加火柱）。不死鳥の致死回避で大噴火待機を短縮（同一致死1回）。",
+      "requiredSkills": [
+        {
+          "skill": "phoenix_feather",
+          "level": 4
+        }
+      ],
+      "icon": "icon_necroflame_mausoleum",
+      "damage": {
+        "smallEruption": 26,
+        "bigEruption": 92,
+        "pillar": 40,
+        "burn": 16
+      },
+      "area": {
+        "smallRadius": 46,
+        "bigRadius": 122,
+        "senseRadius": 44,
+        "burnRadius": 40
+      },
+      "cooldown": 2600,
+      "timing": {
+        "smallEruptionMs": 1300,
+        "bigFuseMs": 5000,
+        "phoenixShortenMs": 1500,
+        "deathMaxAgeMs": 6000
+      },
+      "projectileCount": {
+        "mausoleums": 3,
+        "pillarsPerBigEruption": 6
+      },
+      "safetyCaps": {
+        "maxMausoleums": 3,
+        "maxPyreEruptionsPerFrame": 6,
+        "maxDeathEventsTracked": 40,
+        "maxDeathEventsPerFrame": 8
+      },
+      "displayOrder": 14,
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "necroflame_mausoleum",
+      "visualTier": "evolved",
+      "lv80ProjectileTarget": false,
+      "castMode": "periodic",
+      "mainCastEvent": "deployStart",
+      "echoDescription": "霊廟生成を追加（小/大噴火は対象外）",
+      "cloneDescription": "霊廟生成を複製",
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
+    },
+    {
+      "id": "world_scorching_rift",
+      "displayName": "大地灼断",
+      "baseSkillId": "magma_vein",
+      "description": "複数の巨大亀裂が異なる方向へ戦場を横断。交差地点で追加噴火。プレイヤーの移動経路にも短時間だけ小亀裂を残す。",
+      "requiredSkills": [
+        {
+          "skill": "burning_trail",
+          "level": 4
+        }
+      ],
+      "icon": "icon_world_scorching_rift",
+      "damage": {
+        "fissure": 12,
+        "intersection": 62,
+        "trail": 8
+      },
+      "area": {
+        "width": 28,
+        "segLength": 44,
+        "intersectionRadius": 40
+      },
+      "cooldown": 2600,
+      "timing": {
+        "segLifetime": 2200,
+        "trailLifetime": 800
+      },
+      "projectileCount": {
+        "veins": 3,
+        "segments": 9
+      },
+      "safetyCaps": {
+        "maxMagmaVeins": 3,
+        "maxMagmaSegments": 30,
+        "maxMagmaIntersections": 12
+      },
+      "displayOrder": 15,
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "world_scorching_rift",
+      "visualTier": "evolved",
+      "lv80ProjectileTarget": false,
+      "castMode": "periodic",
+      "mainCastEvent": "fissureStart",
+      "echoDescription": "巨大亀裂を追加（交差噴火は対象外）",
+      "cloneDescription": "巨大亀裂を複製",
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
+    },
+    {
+      "id": "hexagram_inferno_array",
+      "displayName": "六芒煉獄陣",
+      "baseSkillId": "tri_flame_array",
+      "description": "2つの三角形を重ねた六芒星型の大型陣。外周・内部・中央核で異なる判定、中央核は敵を吸引。頂点から中央へ炎波、終了時に全体爆発。",
+      "requiredSkills": [
+        {
+          "skill": "flame_vortex",
+          "level": 4
+        }
+      ],
+      "icon": "icon_hexagram_inferno_array",
+      "damage": {
+        "outer": 16,
+        "inner": 24,
+        "core": 42,
+        "beam": 20,
+        "finalBlast": 122
+      },
+      "area": {
+        "spread": 112,
+        "corePull": 60,
+        "coreRadius": 34
+      },
+      "cooldown": 4200,
+      "timing": {
+        "beamMs": 900,
+        "durationMs": 4200,
+        "tickMs": 320
+      },
+      "projectileCount": {
+        "vertices": 6,
+        "beams": 6
+      },
+      "safetyCaps": {
+        "maxHexagramArrays": 2,
+        "maxHexagramBeams": 6,
+        "maxArrayTicksPerFrame": 8
+      },
+      "displayOrder": 16,
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "hexagram_inferno_array",
+      "visualTier": "evolved",
+      "lv80ProjectileTarget": false,
+      "castMode": "periodic",
+      "mainCastEvent": "arrayDeploy",
+      "echoDescription": "六芒陣設置を追加（光線/核tickは対象外）",
+      "cloneDescription": "六芒陣設置を複製",
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
+    },
+    {
+      "id": "universal_flame_resonance",
+      "displayName": "万象炎鳴",
+      "baseSkillId": "scorching_resonance",
+      "description": "炎上中の敵を共鳴点として炎の連鎖を発生。一定数以上が炎上なら画面規模の共鳴爆発。段階に応じ連鎖回数・範囲・最終爆発が強化。",
+      "requiredSkills": [
+        {
+          "skill": "chain_flame",
+          "level": 4
+        }
+      ],
+      "icon": "icon_universal_flame_resonance",
+      "damage": {
+        "pulse": 22,
+        "chain": 16,
+        "finalBlast": 100
+      },
+      "area": {
+        "radius": 96,
+        "chainRange": 130,
+        "finalRadius": 320
+      },
+      "cooldown": 2000,
+      "config": {
+        "tierThresholds": [
+          0,
+          5,
+          15,
+          30,
+          60
+        ],
+        "maxChains": 8,
+        "maxResonancePoints": 40,
+        "finalBlastMinBurning": 15,
+        "finalBlastMs": 3000,
+        "countRadius": 300
+      },
+      "safetyCaps": {
+        "maxResonanceTargets": 60,
+        "maxResonanceChains": 24,
+        "maxResonanceExplosions": 3
+      },
+      "displayOrder": 17,
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "universal_flame_resonance",
+      "visualTier": "evolved",
+      "lv80ProjectileTarget": false,
+      "castMode": "periodic",
+      "mainCastEvent": "resonancePulse",
+      "echoDescription": "共鳴パルスを追加（連鎖/最終爆発は対象外）",
+      "cloneDescription": "共鳴パルスを複製",
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
+    },
+    {
+      "id": "doomsday_core",
+      "displayName": "終末炉心",
+      "baseSkillId": "core_overdrive",
+      "description": "熱量に応じ攻撃形態が段階変化（高速弾→多方向弾＋小爆発→連続爆発＋貫通弾→終末状態の弾幕）。終末終了で強制オーバーヒート。低HPで終末威力がわずかに上昇。",
+      "requiredSkills": [
+        {
+          "skill": "bloodfire_pact",
+          "level": 4
+        }
+      ],
+      "icon": "icon_doomsday_core",
+      "damage": {
+        "low": 26,
+        "mid": 22,
+        "high": 30,
+        "doom": 20,
+        "doomBlast": 60,
+        "overheatBlast": 100
+      },
+      "cooldown": 650,
+      "config": {
+        "heatPerCast": 8,
+        "overheatResetHeat": 30,
+        "lowHpBonusMax": 0.25
+      },
+      "overheat": {
+        "maxHeat": 150,
+        "doomMs": 2200,
+        "forcedOverheatMs": 2400,
+        "minCooldownMs": 120,
+        "cooldownRate": 18
+      },
+      "projectileCount": {
+        "baseProjectiles": 3,
+        "doomProjectiles": 24,
+        "midProjectiles": 6
+      },
+      "safetyCaps": {
+        "maxDoomsdayProjectiles": 60,
+        "maxDoomsdayExplosions": 8,
+        "maxOverdriveCastsPerFrame": 4
+      },
+      "displayOrder": 18,
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "doomsday_core",
+      "visualTier": "evolved",
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "fire",
+      "echoDescription": "攻撃部分のみ再現（熱量/終末/オーバーヒート不変）",
+      "cloneDescription": "攻撃部分のみ複製（熱量不変）",
+      "echoPolicy": "custom",
+      "clonePolicy": "custom",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
     }
   ]
 }

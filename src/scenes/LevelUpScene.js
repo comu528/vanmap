@@ -7,6 +7,21 @@
 // 進化専用演出（EvolutionScene）は pick 側（BattleScene）で従来通り起動する。
 
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/game-config.js';
+import { DataManager } from '../systems/DataManager.js';
+import { castBadge } from '../systems/SkillAudit.js';
+
+// スキル説明カードへ出す「残響・分身・Lv80・主要タグ」の短い記号行（M6-E）。
+// 640×360 を圧迫しないよう1行に凝縮する。プレイヤーが「このスキルは残響するのか」を判断できるようにする。
+function castLine(id) {
+  if (!id) return '';
+  const def = DataManager.getSkill(id) || DataManager.getEvolution(id);
+  if (!def) return '';
+  const b = castBadge(def);
+  const parts = [`残響${b.echoSym}`, `分身${b.cloneSym}`];
+  if (b.lv80) parts.push('Lv80+');
+  if (b.tags.length) parts.push('·' + b.tags.slice(0, 3).join('/'));
+  return parts.join(' ');
+}
 
 export class LevelUpScene extends Phaser.Scene {
   constructor() { super('LevelUpScene'); }
@@ -90,7 +105,10 @@ export class LevelUpScene extends Phaser.Scene {
     if (cd.icon && this.textures.exists(cd.icon)) layer.add(this.add.image(cx, cy - 38, cd.icon).setScale(evo ? 3 : 2.4).setTint(evo ? 0xffe082 : 0xffffff));
     layer.add(this.add.text(cx, cy - 8, `${num}. ${cd.title}`, { fontSize: '11px', color: evo ? '#ffd54f' : '#ffe0b2', fontStyle: 'bold', align: 'center', wordWrap: { width: w - 12 } }).setOrigin(0.5));
     layer.add(this.add.text(cx, cy + 20, cd.level || '', { fontSize: '8px', color: '#80deea' }).setOrigin(0.5));
-    layer.add(this.add.text(cx, cy + 44, cd.description || '', { fontSize: '8px', color: '#bcaaa4', align: 'center', wordWrap: { width: w - 14 } }).setOrigin(0.5));
+    layer.add(this.add.text(cx, cy + 40, cd.description || '', { fontSize: '8px', color: '#bcaaa4', align: 'center', wordWrap: { width: w - 14 } }).setOrigin(0.5));
+    // M6-E: 残響・分身・Lv80・主要タグの対応状況（短い記号行）。
+    const cl = castLine(cd.id);
+    if (cl) layer.add(this.add.text(cx, cy + h / 2 - 8, cl, { fontSize: '7px', color: '#a5d6a7', align: 'center', wordWrap: { width: w - 8 } }).setOrigin(0.5, 1));
     bg.on('pointerover', () => bg.setStrokeStyle(evo ? 4 : 3, this._banishMode ? 0xff5252 : 0xffab40));
     bg.on('pointerout', () => bg.setStrokeStyle(evo ? 3 : 2, stroke));
     bg.on('pointerdown', () => this.choose(num - 1));

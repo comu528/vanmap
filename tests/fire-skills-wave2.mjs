@@ -52,7 +52,7 @@ section('1. 新 active 10種のデータ整合');
     // 負のダメージ/CDなし
     ok(s.levels.every((lv) => Object.entries(lv).every(([k, v]) => typeof v !== 'number' || v >= 0 || !/damage|cooldown/i.test(k))), `${id} に負のダメージ/CDなし`);
   }
-  ok(job.activeSkillPool.length === 25, 'flame_witch の active プールは25種');
+  ok(job.activeSkillPool.length >= 25 && NEW.every((id) => job.activeSkillPool.includes(id)), 'flame_witch の active プールに M6-D の10種を含む（M6-E で30種へ拡張）');
   // 危険スキルの policy
   ok(byId('ash_doppelganger').echoPolicy === 'forbidden' && byId('ash_doppelganger').clonePolicy === 'forbidden', '灰燼分身は forbidden/forbidden');
   ok(byId('blazing_step').echoPolicy === 'forbidden' && byId('blazing_step').clonePolicy === 'forbidden', '爆炎歩法は forbidden/forbidden');

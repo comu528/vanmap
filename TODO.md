@@ -311,9 +311,35 @@ Milestone 1 は実装済み。以下は **Milestone 2 以降の設計と作業�
 - [x] `balance.skillCaps` 26種追加（品質別）＋`combat.frameBudget`。runtimeState を active_run に加算保存（save_version v6 維持）。F6 デバッグ。
 - [x] `tests/fire-skills-wave2.mjs`／`tests/fire-evolutions-wave2.mjs`／`tests/cast-copy-safety.mjs`＋validate-data（cast メタ）＋CI。
 
+### 今後の候補（M6-E で対応）
+- [x] 火の魔女 active 30種への拡張（第3波）→ M6-E で完成
+
+---
+
+## Milestone 6-E — 火の魔女ビルド完成・第3波【実装済み】
+
+### 新 active 5種（火の魔女専用・最大Lv8・skills.json・既存と差別化）
+- [x] 火葬の墓標(死亡位置へ墓標→噴火)/炎脈走破(蛇行する炎の亀裂)/三角焔陣(三角形の陣・内部DoT)/灼熱共鳴(炎上数で共鳴段階)/炉心暴走(熱量で加速→過熱→再開)。REGISTRY登録・jobs.jsonプール30種化・仮アイコン。
+- [x] Lv1〜8で最低1項目成長（数値は `data/skills.json` の levels に集約）。castMode: 墓標/炎脈/三角/共鳴=periodic、炉心=cooldown。Lv80発射数+1対象は炉心暴走のみ。
+### 新進化5種（skill-evolutions.json・枠非消費・補助はパッシブ可）
+- [x] 冥炎大霊廟(火葬の墓標+不死鳥の羽)/大地灼断(炎脈走破+燃える軌跡)/六芒煉獄陣(三角焔陣+火炎渦)/万象炎鳴(灼熱共鳴+連鎖炎)/終末炉心(炉心暴走+血炎契約)。active30種・進化18種に完成。
+### 全スキル監査（active30種・進化18種）
+- [x] 各定義に `castMode`/`echoPolicy`/`clonePolicy`/`canTriggerEcho`/`canBeCopiedByClone`/`echoDescription`/`cloneDescription`/`mainCastEvent`/`lv80ProjectileTarget` を明示。`src/systems/SkillAudit.js` が一元解決（純ロジック・Nodeテスト可）。
+- [x] 主発動イベント（recordCast）を攻撃サイクル単位のみに統一。DoTtick/連鎖各対象/分裂弾/爆発各対象/個別起爆/召喚通常射撃/共鳴各連鎖/オーバーヒート開始終了では記録しない。
+- [x] 監査修正（挙動不変）: orbiting_flame の主発動を一定間隔にスロットル（ダメージは接触ごと）、fire_spirit は召喚一斉射撃サイクルを主発動として記録、不死鳥/障壁を防御専用 forbidden として明示。
+- [x] Job Lv80「発射数+1」対象を独立弾の通常 active6種（fireball/flame_lance/scatter_flame/homing_wisp/ricochet_ember/core_overdrive）に限定。`appliesLv80ProjectileCount` で一元管理。
+### 新規インフラ（BattleScene / combat API）
+- [x] 敵死亡イベント履歴（墓標系所持時のみ・retain/releaseDeathEvents・recentDeathEvents/consumeDeathEvent・上限管理）。既存の撃破統計/残り火/Job XP/経験値ジェムは不変。
+- [x] 炎上中敵の索引（`_burningIndex`・Enemy/Boss.ignite で登録・消火/死亡/返却/終了で解除・burningCount()/burningEnemies()）。全敵走査を避ける軽量索引。
+- [x] combat API 追加（retainDeathEvents/releaseDeathEvents/recentDeathEvents/consumeDeathEvent/burningCount/burningEnemies/ignite/registerBurning/worldBounds）。
+- [x] LevelUpScene カードに残響/分身/Lv80/主要タグの記号行を追加。`balance.skillCaps` に品質別20種追加。runtimeState（各CD・熱量・オーバーヒート・終末）を active_run へ加算保存（save_version v6 維持）。F7 デバッグ。
+- [x] `tests/fire-skills-wave3.mjs`／`tests/fire-evolutions-wave3.mjs`／`tests/skill-tag-audit.mjs`／`tests/cast-event-audit.mjs`＋validate-data（castMode/mainCastEvent/echo・cloneDescription/共鳴閾値昇順/炉心熱量/新skillCaps/新進化条件/未知タグ）＋CI（全15スイート）。
+
 ### 今後の候補（未実装）
-- [ ] 跳炎弾/血炎契約/四方炎獄/熔火鎖/爆炎歩法 への進化追加（evolutionBranches は将来用に空）
-- [ ] 火の魔女 active 30種への拡張（第3波）・passive 拡張・legendary 追加
+- [ ] 進化を持たない active への進化系統追加（bloodfire_pact/four_sided_inferno/molten_chains/blazing_step/ash_doppelganger 等・現状 evolutionBranches は空）
+- [ ] 新ジョブ・ジョブ選択画面・他ジョブ継承・転生レガシー（`futureInheritanceSettings`/`extraAllowedIds` が拡張口）
+- [ ] 新 passive・legendary の追加、火の魔女スキル限界突破（Lv8超）・進化後スキルのレベルアップ
+- [ ] 新規敵/ボス/難易度、図鑑・実績の本実装、装備ドロップ
 
 ---
 

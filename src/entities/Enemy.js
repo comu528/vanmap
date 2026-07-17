@@ -74,10 +74,12 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     return now < this._slowUntil ? this.speed * (1 - this._slowFactor) : this.speed;
   }
 
-  // 炎上（永劫火界）。gen は感染世代。
+  // 炎上（永劫火界／M6-E 灼熱共鳴・万象炎鳴）。gen は感染世代。
+  // 炎上索引（BattleScene._burningIndex）へ登録し、灼熱共鳴系が全敵走査せず炎上数を得られるようにする。
   ignite(ms, gen) {
     this._igniteUntil = this.scene.time.now + ms;
     this._igniteGen = gen || 0;
+    if (this.alive && this.scene.registerBurning) this.scene.registerBurning(this);
   }
   get ignited() { return this.alive && this.scene.time.now < this._igniteUntil; }
 
