@@ -212,3 +212,56 @@ effectCap/permCap/speedMode/autoDash/startEmber）。`prerequisite` は `null` �
 - **魂炎計算**: `floor( emberLogBase·log2(1+累計残り火/emberLogDiv) + 過去最高難易度·difficultyPerLevel
   + √ボス討伐·bossSqrt + 転生回数·reincarnationBonus + √熟練度合計·masterySqrt )`、条件達成時は最低 `minFirst`。
 - 転生条件は farming 防止のため**今周回(cycle)の進捗**（`currentCycle.cycleEmbers` と当周回の `highestClearedDifficulty`）で判定。
+
+## Milestone 6-A: スキル抽選基盤（skill-config / passives / jobs / skills メタ）
+
+### skill-config.json
+```jsonc
+{
+  "rarityWeights": { "common": 100, "uncommon": 55, "rare": 20, "legendary": 5 }, // レアリティ抽選重み(>0)
+  "rarityOrder": ["common", "uncommon", "rare", "legendary"],
+  "slots": { "baseActiveSlots": 4, "basePassiveSlots": 4 },   // 初期所持枠(>=1)
+  "draft": { "baseRerolls": 1, "baseBanishes": 1, "baseSkips": 1 }, // 1周の初期回数(>=0)
+  "modifierKeys": ["damage","cooldown","area","duration","projectileCount", ...], // 将来の modifier 一覧
+  "passiveModifierDefaults": { "cooldownMinMult": 0.5 }        // クールダウン倍率の安全下限
+}
+```
+抽選の重み・枠・回数・modifier をコードへ散在させず集約する。検証: rarityWeights が4段階すべて正・slots/draft の必須項目。
+
+### passives.json（共通パッシブ）
+```jsonc
+{ "passives": [ {
+  "id": "power_amp", "displayName": "魔力増幅", "description": "...",
+  "category": "passive", "tags": ["offense","common"], "rarity": "uncommon", "weight": 1,
+  "jobs": [], "isCommon": true, "maxLevel": 5, "prerequisites": [], "conflicts": [],
+  "unlockCondition": null, "evolutionBranches": [], "displayOrder": 1, "iconKey": "icon_fireball", "enabled": true,
+  "modifiers": [ { "key": "damage", "op": "addMult", "perLevel": 0.06 } ]
+}, ... ] }
+```
+`modifiers[].op`: `addMult`(倍率 1+Σ) / `subMult`(倍率 1−Σ、下限あり) / `add`(加算)。`key` は `skill-config.modifierKeys` に含まれること。
+検証: 必須項目・rarity・maxLevel>=1・自己 conflict 禁止・modifier key の妥当性。M6-A の4種:
+魔力増幅(damage +6%/Lv) / 高速詠唱(cooldown −4%/Lv・下限0.5) / 焦熱拡張(area +5%/Lv) / 残火持続(duration +8%/Lv)。
+
+### jobs.json（ジョブ）
+```jsonc
+{ "jobs": [ {
+  "id": "flame_witch", "displayName": "火の魔女", "description": "...",
+  "initialActiveSkills": ["fireball"], "initialPassiveSkills": [],
+  "activeSkillPool": ["fireball","flame_pillar","burning_trail","orbiting_flame","meteor"],
+  "passiveSkillPool": [], "baseActiveSlots": 4, "basePassiveSlots": 4,
+  "tags": ["fire","witch","starter"], "unlockCondition": null,
+  "futureInheritanceSettings": { "enabled": false, "maxInheritedSkills": 0, "allowedTags": [], "allowedCategories": ["active","passive"] }
+}, ... ] }
+```
+検証: 必須項目・初期スキルが各プールに存在・プール ID がカタログに存在。共通パッシブ(isCommon)は全ジョブで抽選対象。
+`futureInheritanceSettings` は将来の継承枠の拡張口（M6-A は未使用）。
+
+### skills.json（active）の抽選メタ拡張
+既存の active 5種へ次を追加（**戦闘数値やレベル効果は不変**）: `category:"active"`, `iconKey`, `tags`, `rarity`,
+`weight`, `jobs`, `isCommon`, `prerequisites`, `conflicts`, `unlockCondition`, `evolutionBranches`, `displayOrder`, `modifiers`, `enabled`。
+`evolutionBranches` は基礎 active に対応する進化 id 配列（例: fireball→["infernal_barrage"]）。検証: rarity/weight/自己conflict/
+evolutionBranches が既存進化を参照。前提条件の循環・自己 conflict は skills+passives 横断で検証する。
+
+### reincarnation.json: active_skill_slots（魂炎強化）
+`effectType:"activeSlots"`, `maxLevel:2`, `effectPerLevel:2`。アクティブ枠を **base4 → Lv1で6 → Lv2で8**。
+`REINC_EFFECT_TYPES` に `activeSlots` を追加。検証で 4→6→8 を確認。

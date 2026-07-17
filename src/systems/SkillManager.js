@@ -67,6 +67,20 @@ export class SkillManager {
   getLevel(id) { return this.skills.get(id)?.level || 0; }
   count() { return this.skills.size; }
 
+  // アクティブ所持枠の使用数（進化は基礎スキルと同じ枠＝size は不変）。
+  activeSlotCount() { return this.skills.size; }
+  // ドラフト文脈用: 所持アクティブの id -> level（進化スキルも含む）。
+  activeLevels() { const o = {}; for (const [id, sk] of this.skills) o[id] = sk.level; return o; }
+  // 進化元となる基礎スキル id の集合（進化済みは基礎 id を返す）。
+  baseActiveIds() {
+    const ids = [];
+    for (const id of this.skills.keys()) {
+      const evo = DataManager.getEvolution(id);
+      ids.push(evo ? evo.baseSkillId : id);
+    }
+    return ids;
+  }
+
   // 取得（新規）または強化（+1）。最大レベルで頭打ち。
   // 新規取得時は熟練度の初期レベルボーナス（startLevel）を上乗せする。
   acquireOrLevel(id) {

@@ -21,6 +21,12 @@ export class BattleManager {
       bossActive: !!(s.boss && s.boss.alive), bossHp: s.boss?.alive ? s.boss.hp : 0,
       rngSeed: s.rngSeed, pendingCurrency: 0, bonus: s.bonus,
       cycleNumber: s.cycleNumber || 0,   // 転生をまたいだ再開防止
+      // --- Milestone 6-A: ジョブ・所持枠・パッシブ・ドラフト状態 ---
+      jobId: s.job?.id || 'flame_witch',
+      activeSkillSlots: s.activeSlotsMax,
+      passiveSkillSlots: s.passiveSlotsMax,
+      passiveSkills: s.passives ? s.passives.serialize() : {},
+      draftState: s.draft ? s.draft.serialize() : null,
       updated_at: new Date().toISOString(),
     };
   }
@@ -42,6 +48,7 @@ export class BattleManager {
       win, timeSec: s.timeSec, kills: s.kills, bossKills: s.bossKills,
       maxHit: s.maxHit, difficultyId: s.difficultyId,
       skills: s.skills.statsList(), evolvedBaseIds: s.skills.evolvedBaseIds,
+      passives: s.passives ? s.passives.statsList() : [], jobId: s.job?.id || 'flame_witch',
       resultId: this._resultId(win),
     };
   }

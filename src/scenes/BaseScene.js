@@ -373,6 +373,7 @@ export class BaseScene extends Phaser.Scene {
         case 'speedMode': return `速度${DataManager.speedModes[Math.min(v, DataManager.speedModes.length - 1)]}倍`;
         case 'autoDash': return v >= 1 ? '解放' : '—';
         case 'startEmber': return `残り火${v}`;
+        case 'activeSlots': return `アクティブ枠+${v}`;
         default: return `${v}`;
       }
     };

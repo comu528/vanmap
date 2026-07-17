@@ -29,11 +29,12 @@ export class EvolvedSkillBase extends SkillBase {
   get chainBonus() { return this.scene.chainBonus || 0; }
 
   // クールダウン発火（evoDef.cooldown を使用）。連続系スキルは update を上書きする。
+  // パッシブのクールダウン倍率を適用（未取得なら 1＝進化前後の挙動は不変）。
   update(dt, ctx) {
     this._cd -= dt;
     if (this._cd > 0) return;
     if (!this.canFire(ctx)) return;
-    this._cd = this.evoDef.cooldown ?? 1000;
+    this._cd = (this.evoDef.cooldown ?? 1000) * this.passiveCooldownMult();
     this.scene.skills.recordCast(this.id);
     this.fire(ctx);
   }

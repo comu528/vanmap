@@ -271,7 +271,7 @@ if (masteryData) {
 // --- skill-evolutions.json（M4） ---
 const REINC_EFFECT_TYPES = new Set([
   'levelUpChoices', 'startDamageMult', 'startSkillLevel', 'chainCount', 'enemyDensity',
-  'effectCap', 'permCap', 'speedMode', 'autoDash', 'startEmber',
+  'effectCap', 'permCap', 'speedMode', 'autoDash', 'startEmber', 'activeSlots',
 ]);
 const evoData = loadJson('skill-evolutions.json');
 if (evoData) {
@@ -312,6 +312,109 @@ if (reincData) {
     if (typeof n.baseCost === 'number' && n.baseCost < 0) err(`reincarnation.json: ノード ${n.id} の baseCost が負 (${n.baseCost})`);
     if (n.effectType && !REINC_EFFECT_TYPES.has(n.effectType)) err(`reincarnation.json: ノード ${n.id} の未知の effectType "${n.effectType}"`);
     if (n.prerequisite != null && !nodeIds.has(n.prerequisite)) err(`reincarnation.json: ノード ${n.id} が存在しない前提ノード "${n.prerequisite}" を参照`);
+  }
+}
+
+// --- Milestone 6-A: skill-config / passives / jobs / スキル抽選メタ ---
+const RARITIES = new Set(['common', 'uncommon', 'rare', 'legendary']);
+const CATEGORIES = new Set(['active', 'passive']);
+const skillCfg = loadJson('skill-config.json');
+const passivesData = loadJson('passives.json');
+const jobsData = loadJson('jobs.json');
+const MODIFIER_KEYS = new Set((skillCfg && skillCfg.modifierKeys) || []);
+const catalogIds = new Set();
+const passiveIds = new Set();
+
+if (skillCfg) {
+  requireFields('skill-config.json', skillCfg, ['rarityWeights', 'rarityOrder', 'slots', 'draft']);
+  for (const r of RARITIES) {
+    const w = skillCfg.rarityWeights && skillCfg.rarityWeights[r];
+    if (typeof w !== 'number' || w <= 0) err(`skill-config.json: rarityWeights.${r} が正の数でない (${w})`);
+  }
+  const sl = skillCfg.slots || {};
+  if (typeof sl.baseActiveSlots !== 'number' || sl.baseActiveSlots < 1) err('skill-config.json: slots.baseActiveSlots が不正');
+  if (typeof sl.basePassiveSlots !== 'number' || sl.basePassiveSlots < 1) err('skill-config.json: slots.basePassiveSlots が不正');
+  const dr = skillCfg.draft || {};
+  for (const k of ['baseRerolls', 'baseBanishes', 'baseSkips']) if (typeof dr[k] !== 'number' || dr[k] < 0) err(`skill-config.json: draft.${k} が不正 (${dr[k]})`);
+}
+
+// active スキル（skills.json）の抽選メタ
+if (skillsData) {
+  for (const s of skillsData.skills || []) {
+    catalogIds.add(s.id);
+    if (s.category && !CATEGORIES.has(s.category)) err(`skills.json: ${s.id} の category が不正 (${s.category})`);
+    if (s.rarity && !RARITIES.has(s.rarity)) err(`skills.json: ${s.id} の rarity が不正 (${s.rarity})`);
+    if (s.weight != null && (typeof s.weight !== 'number' || s.weight < 0)) err(`skills.json: ${s.id} の weight が不正 (${s.weight})`);
+    if (s.prerequisites && !Array.isArray(s.prerequisites)) err(`skills.json: ${s.id} の prerequisites が配列でない`);
+    if (Array.isArray(s.conflicts) && s.conflicts.includes(s.id)) err(`skills.json: ${s.id} が自分自身と conflict`);
+    for (const eb of s.evolutionBranches || []) {
+      const evoOk = ((evoData && evoData.evolutions) || []).some((e) => e.id === eb) || (skillsData.skills || []).some((x) => x.evolution && x.evolution.id === eb);
+      if (!evoOk) err(`skills.json: ${s.id} の evolutionBranches "${eb}" が存在しない進化`);
+    }
+  }
+}
+
+// passives.json
+if (passivesData) {
+  requireFields('passives.json', passivesData, ['passives']);
+  checkDuplicateIds('passives.json', passivesData.passives);
+  for (const p of passivesData.passives || []) {
+    requireFields('passives.json', p, ['id', 'displayName', 'category', 'rarity', 'maxLevel', 'modifiers', 'enabled', 'isCommon'], `(passive ${p?.id})`);
+    passiveIds.add(p.id); catalogIds.add(p.id);
+    if (p.category !== 'passive') err(`passives.json: ${p.id} は category=passive である必要`);
+    if (p.rarity && !RARITIES.has(p.rarity)) err(`passives.json: ${p.id} の rarity が不正 (${p.rarity})`);
+    if (typeof p.maxLevel !== 'number' || p.maxLevel < 1) err(`passives.json: ${p.id} の maxLevel が不正 (${p.maxLevel})`);
+    if (Array.isArray(p.conflicts) && p.conflicts.includes(p.id)) err(`passives.json: ${p.id} が自分自身と conflict`);
+    for (const m of p.modifiers || []) {
+      if (!m.key || (MODIFIER_KEYS.size && !MODIFIER_KEYS.has(m.key))) err(`passives.json: ${p.id} の modifier key "${m.key}" が未知`);
+      if (typeof m.perLevel !== 'number') err(`passives.json: ${p.id} の modifier perLevel が数値でない`);
+    }
+  }
+}
+
+// jobs.json（必須項目・初期スキルがプールに存在・プールID整合）
+if (jobsData) {
+  requireFields('jobs.json', jobsData, ['jobs']);
+  checkDuplicateIds('jobs.json', jobsData.jobs);
+  for (const j of jobsData.jobs || []) {
+    requireFields('jobs.json', j, ['id', 'displayName', 'initialActiveSkills', 'initialPassiveSkills', 'activeSkillPool', 'passiveSkillPool', 'baseActiveSlots', 'basePassiveSlots'], `(job ${j?.id})`);
+    if (typeof j.baseActiveSlots !== 'number' || j.baseActiveSlots < 1) err(`jobs.json: ${j.id} の baseActiveSlots が不正`);
+    if (typeof j.basePassiveSlots !== 'number' || j.basePassiveSlots < 1) err(`jobs.json: ${j.id} の basePassiveSlots が不正`);
+    for (const id of j.activeSkillPool || []) if (!catalogIds.has(id)) err(`jobs.json: ${j.id} の activeSkillPool "${id}" が存在しない`);
+    for (const id of j.passiveSkillPool || []) if (!catalogIds.has(id)) err(`jobs.json: ${j.id} の passiveSkillPool "${id}" が存在しない`);
+    for (const id of j.initialActiveSkills || []) {
+      if (!catalogIds.has(id)) err(`jobs.json: ${j.id} の initialActiveSkills "${id}" が存在しない`);
+      else if (!(j.activeSkillPool || []).includes(id)) err(`jobs.json: ${j.id} の初期スキル "${id}" が activeSkillPool に含まれない`);
+    }
+    for (const id of j.initialPassiveSkills || []) {
+      if (!catalogIds.has(id)) err(`jobs.json: ${j.id} の initialPassiveSkills "${id}" が存在しない`);
+      else if (!(j.passiveSkillPool || []).includes(id) && !passiveIds.has(id)) err(`jobs.json: ${j.id} の初期passive "${id}" が passiveSkillPool/共通passive に含まれない`);
+    }
+  }
+}
+
+// 前提条件の循環（skills + passives 横断）と自己 conflict の総点検
+{
+  const allDraft = [...((skillsData && skillsData.skills) || []), ...((passivesData && passivesData.passives) || [])];
+  const prereqMap = {};
+  for (const s of allDraft) prereqMap[s.id] = (s.prerequisites || []).map((r) => r.skill);
+  const hasCycle = (start) => {
+    const seen = new Set(); const stack = [...(prereqMap[start] || [])];
+    while (stack.length) { const n = stack.pop(); if (n === start) return true; if (seen.has(n)) continue; seen.add(n); for (const p of prereqMap[n] || []) stack.push(p); }
+    return false;
+  };
+  for (const id of Object.keys(prereqMap)) if (hasCycle(id)) err(`前提条件が循環している: ${id}`);
+}
+
+// 魂炎強化 active_skill_slots が 4→6→8（base + effectPerLevel*level）
+if (reincData && skillCfg) {
+  const node = (reincData.nodes || []).find((n) => n.id === 'active_skill_slots');
+  if (node) {
+    const base = (skillCfg.slots && skillCfg.slots.baseActiveSlots) || 4;
+    if (node.effectType !== 'activeSlots') err('reincarnation.json: active_skill_slots の effectType が activeSlots でない');
+    if (base + (node.effectPerLevel || 0) * 1 !== 6 || base + (node.effectPerLevel || 0) * (node.maxLevel || 0) !== 8) {
+      err(`reincarnation.json: active_skill_slots が 4→6→8 にならない (base ${base}, perLevel ${node.effectPerLevel}, maxLevel ${node.maxLevel})`);
+    }
   }
 }
 

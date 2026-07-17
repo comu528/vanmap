@@ -44,6 +44,12 @@ export function defaultProfile(saveVersion, gameVersion) {
       cycleBossKills: 0, cycleStartTime: nowIso,
     },
     achievements: [],
+    // --- Milestone 6-A: ジョブ・パッシブ ---
+    selectedJobId: 'flame_witch',
+    unlockedJobs: ['flame_witch'],
+    jobProgress: {},               // jobId -> { runs, ... }（将来のジョブ育成特典用）
+    passiveMastery: {},            // id -> { runsUsed, maxLevel, picks, appliedTimeMs }
+    futureInheritanceSettings: {}, // 将来の継承枠設定（M6-A は未使用の拡張口）
   };
 }
 
@@ -125,7 +131,29 @@ export function migrateProfile(stored, sv, gv) {
     cycleStartTime: (typeof cc.cycleStartTime === 'string' && cc.cycleStartTime) || m.created_at,
   };
   m.achievements = arr(s.achievements) || [];
+  // v6: ジョブ・パッシブ（v5 以前は既定値）。
+  m.selectedJobId = (typeof s.selectedJobId === 'string' && s.selectedJobId) || 'flame_witch';
+  m.unlockedJobs = (arr(s.unlockedJobs) || ['flame_witch']).filter((x) => typeof x === 'string');
+  if (!m.unlockedJobs.includes('flame_witch')) m.unlockedJobs.unshift('flame_witch');
+  m.jobProgress = obj(s.jobProgress);
+  m.passiveMastery = safePassiveMastery(s.passiveMastery);
+  m.futureInheritanceSettings = obj(s.futureInheritanceSettings);
   return m;
+}
+
+// passiveMastery を型安全に取り込む（ダメージ統計は持たせない）。
+function safePassiveMastery(src) {
+  const out = {};
+  const s = obj(src);
+  for (const k of Object.keys(s)) {
+    if (k === '__proto__' || k === 'prototype' || k === 'constructor') continue;
+    const e = obj(s[k]);
+    out[k] = {
+      runsUsed: num(e.runsUsed, 0), maxLevel: num(e.maxLevel, 0),
+      picks: num(e.picks, 0), appliedTimeMs: num(e.appliedTimeMs, 0),
+    };
+  }
+  return out;
 }
 
 // 同版でも欠落フィールドを安全に補完する（部分破損対策）。

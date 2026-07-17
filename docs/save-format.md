@@ -220,3 +220,39 @@ bonus / cycleNumber / updated_at` を保存。自動保存は 20秒毎・レベ�
 本ファイル上書き前に `backups/` へ複製（自動最大10・手動最大5世代、古い順に削除。自動は最小5分間隔）。
 破損検出は checksum + 書き込み後検証。復元は**自動では行わず**、データ管理画面で候補を提示してユーザーが選ぶ。
 復元前には現在データを自動バックアップする。
+
+## Milestone 6-A: ジョブ・パッシブ・スキル抽選（save_version 6）
+`saveVersion` を **6** に更新。v1〜v5 から安全に移行（移行前の旧キー退避は M5-B と同じ）。
+旧 active_run の既存アクティブスキルは削除せず、超過周回はその周回のみ所持維持（新規取得のみ禁止）。
+
+### profile 追加フィールド（v6）
+```jsonc
+{
+  "selectedJobId": "flame_witch",
+  "unlockedJobs": ["flame_witch"],
+  "jobProgress": {},                 // jobId -> 進捗（将来のジョブ育成特典）
+  "passiveMastery": {                // active とは別体系（ダメージ統計は持たない）
+    "power_amp": { "runsUsed": 0, "maxLevel": 0, "picks": 0, "appliedTimeMs": 0 }
+  },
+  "futureInheritanceSettings": {},   // 将来の継承枠設定（M6-A 未使用の拡張口）
+  "reincarnationUpgrades": { "active_skill_slots": 0 } // 魂炎強化（4→6→8枠）
+}
+```
+移行時、v5 以前は上記を安全な既定値で付与し、既存の残り火/魂炎/強化/熟練度/統計/転生系は保持する。
+
+### active_run 追加フィールド（v6）
+```jsonc
+{
+  "jobId": "flame_witch",
+  "activeSkillSlots": 4, "passiveSkillSlots": 4,
+  "skills": { "fireball": 3 },        // アクティブ（従来）
+  "passiveSkills": { "power_amp": 2 },// パッシブ id -> level
+  "draftState": {
+    "seed": 123, "cursor": 5, "levelUpSequence": 3, "currentDraftId": "3:5",
+    "currentCandidates": [ /* 表示中の候補（再読込で不変） */ ],
+    "rerollsRemaining": 1, "banishesRemaining": 1, "skipsRemaining": 1, "banishedSkillIds": []
+  }
+}
+```
+JSON エクスポート/インポート・バックアップ・競合比較は payload 全体を扱うため、新フィールドも自動的に保持される
+（インポートは `migrateProfile` を通すため未知キーは採用されず、passiveMastery/jobs は既定へマッピングされる）。

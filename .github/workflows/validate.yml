@@ -27,3 +27,7 @@ jobs:
       # 保存システムのテスト（M5-B・Node.js 標準機能のみ・MemoryStorageAdapter 使用）。
       - name: Save system tests
         run: node tests/save-system.mjs
+
+      # スキル抽選基盤のテスト（M6-A・Node.js 標準機能のみ）。
+      - name: Skill draft tests
+        run: node tests/skill-draft.mjs

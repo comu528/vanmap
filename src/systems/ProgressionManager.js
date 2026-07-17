@@ -195,6 +195,15 @@ class ProgressionManagerClass {
         }
       }
 
+      // パッシブ統計（M6-A: active とは別体系。ダメージ統計は持たせない）。
+      profile.passiveMastery = profile.passiveMastery || {};
+      for (const p of result.passives || []) {
+        const pm = profile.passiveMastery[p.id] || (profile.passiveMastery[p.id] = { runsUsed: 0, maxLevel: 0, picks: 0, appliedTimeMs: 0 });
+        pm.runsUsed = (pm.runsUsed || 0) + 1;
+        pm.maxLevel = Math.max(pm.maxLevel || 0, p.level || 0);
+        pm.picks = (pm.picks || 0) + (p.picks || 0);
+      }
+
       if (result.win) {
         profile.highestClearedDifficulty = Math.max(profile.highestClearedDifficulty || 0, result.difficultyId);
         const next = result.difficultyId + 1;

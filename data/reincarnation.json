@@ -105,6 +105,13 @@
       "maxLevel": 3, "baseCost": 3, "costGrowth": 1.8,
       "effectType": "startEmber", "effectPerLevel": 150,
       "prerequisite": null, "displayOrder": 10
+    },
+    {
+      "id": "active_skill_slots", "displayName": "アクティブ枠拡張",
+      "description": "アクティブスキルの所持上限を拡張（未強化4→Lv1で6→Lv2で8）",
+      "maxLevel": 2, "baseCost": 8, "costGrowth": 2.5,
+      "effectType": "activeSlots", "effectPerLevel": 2,
+      "prerequisite": null, "displayOrder": 11
     }
   ]
 }

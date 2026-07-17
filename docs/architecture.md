@@ -148,3 +148,20 @@ queryAABB / findNearest / size / usedCells`。セルサイズは `balance.spatia
 - パーティクル/敵/弾/AoE/追撃/連鎖/感染に毎フレームの安全上限（`balance.combatCaps` + 進化 `safetyCaps`）。
 - タブ非表示中は `update` を停止（自動停止）。倍速時も物理/タイマー/Tween/ロジック dt を一括スケール。
 - M5-B（保存系）は本 M5-A の範囲外。
+
+## スキル抽選・ジョブ・パッシブ（M6-A）
+| Manager | 役割 | 状態 |
+|---------|------|------|
+| `SeededRandom` | seed+cursor の決定論乱数（保存/復元可）。候補抽選に Math.random を使わない | M6-A |
+| `SkillDraftManager` | レベルアップ候補の抽選（ジョブプール/所持枠/所持/前提/排他/解放/レアリティ/重み/進化/追放/重複回避）。リロール/追放/スキップの状態管理と直列化 | M6-A |
+| `PassiveManager` | 所持パッシブの level 管理と modifier 共通集計（damage/cooldown/area/duration/…）。active が最終値を取得する共通経路 | M6-A |
+| `DataManager.draftCatalog()` | active(skills)+passive を統合した抽選カタログ（category/rarity/weight/maxLevel/jobs/isCommon/prereq/conflict/unlock） | M6-A |
+
+- **分離**: 抽選ロジックは巨大化しがちな LevelUpScene/SkillManager へ集約せず `SkillDraftManager` へ分離。UI(LevelUpScene) は表示と操作のみ。
+- **決定論**: `active_run.draftState`（seed/cursor/levelUpSequence/currentDraftId/currentCandidates/各残数/banishedSkillIds）を保存。
+  レベルアップ画面を開いた時点で候補を保存し、再読込しても同じ候補を表示（引き直し不可）。リロール/追放時のみ cursor を進める。
+- **所持枠**: 新規周回 Active `job.baseActiveSlots(+魂炎 activeSlots)` / Passive `job.basePassiveSlots`。旧 active_run が新枠を超過する場合は
+  その周回に限り所持数まで枠を引き上げ（＝新規 active 禁止・既存は削除しない）。
+- **パッシブ適用**: `SkillBase.stats` が area/duration を、`dealDamage` が damage を、`SkillBase/EvolvedSkillBase.update` が cooldown を乗算。
+  パッシブ未取得（倍率1）では M5-B 以前と完全に同一（キャッシュは熟練度＋パッシブ version で無効化）。
+- **進化**: 従来の EvolutionManager（条件判定）+ EvolutionScene（演出）は不変。抽選は canEvolve を満たす基礎スキルを高優先度の進化候補として提示。

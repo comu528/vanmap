@@ -30,22 +30,24 @@ export class PurgatoryEruptionSkill extends EvolvedSkillBase {
     const pillars = Math.min(this.cap('maxPillars', 8), d.projectileCount?.pillars || 5);
     const seqDelay = d.projectileCount?.sequenceDelay || 130;
     const bonusFinal = this.evolvedBonus().finalRadiusMult || 0;
+    const areaMul = this.passiveAreaMult(); // パッシブ「焦熱拡張」（未取得なら 1）
+    const pillarR = (d.area?.pillarRadius || 58) * areaMul;
 
     for (let i = 0; i < pillars; i++) {
       const jx = cx + (this.scene.rng() - 0.5) * 40;
       const jy = cy + (this.scene.rng() - 0.5) * 40;
-      this.scene.effects.telegraph(jx, jy, d.area?.pillarRadius || 58, 260, 0xff7043);
+      this.scene.effects.telegraph(jx, jy, pillarR, 260, 0xff7043);
       this.scene.time.delayedCall(i * seqDelay + 260, () => {
         if (this.scene.gameOver) return;
-        this.scene.effects.pillarBurst(jx, jy, d.area?.pillarRadius || 58);
+        this.scene.effects.pillarBurst(jx, jy, pillarR);
         this.scene.effects.sparks(jx, jy, 6, 0xffca28);
-        this.scene.aoe(jx, jy, d.area?.pillarRadius || 58, d.damage?.pillar || 70, this.id, { knockback: 20 });
+        this.scene.aoe(jx, jy, pillarR, d.damage?.pillar || 70, this.id, { knockback: 20 });
       });
     }
     // 最後に大爆発 + 燃焼地帯
     this.scene.time.delayedCall(pillars * seqDelay + 320, () => {
       if (this.scene.gameOver) return;
-      const finalR = (d.area?.finalRadius || 104) * (1 + bonusFinal);
+      const finalR = (d.area?.finalRadius || 104) * (1 + bonusFinal) * areaMul;
       this.scene.effects.meteorImpact(cx, cy, finalR);
       this.scene.effects.screenShake(220, 0.008);
       this.scene.effects.hitStop(45);
@@ -56,12 +58,14 @@ export class PurgatoryEruptionSkill extends EvolvedSkillBase {
 
   spawnBurnGround(x, y) {
     const d = this.evoDef;
+    const radius = (d.area?.burnGroundRadius || 44) * this.passiveAreaMult();
+    const dur = (d.area?.burnGroundDuration || 1600) * this.passiveDurationMult();
     const sprite = this.scene.add.image(x, y, TEX.PARTICLE)
       .setTint(0xd84315).setBlendMode(Phaser.BlendModes.ADD).setDepth(44)
-      .setScale((d.area?.burnGroundRadius || 44) / 4).setAlpha(0.5);
+      .setScale(radius / 4).setAlpha(0.5);
     this.burnPatches.push({
-      x, y, radius: d.area?.burnGroundRadius || 44, damage: d.damage?.burnGround || 8,
-      expire: d.area?.burnGroundDuration || 1600, tick: 0, sprite,
+      x, y, radius, damage: d.damage?.burnGround || 8,
+      expire: dur, maxDuration: dur, tick: 0, sprite,
     });
   }
 
@@ -72,7 +76,7 @@ export class PurgatoryEruptionSkill extends EvolvedSkillBase {
     for (let i = this.burnPatches.length - 1; i >= 0; i--) {
       const patch = this.burnPatches[i];
       patch.expire -= dt; patch.tick -= dt;
-      if (patch.sprite) patch.sprite.setAlpha(0.5 * Math.max(0, patch.expire) / (this.evoDef.area?.burnGroundDuration || 1600));
+      if (patch.sprite) patch.sprite.setAlpha(0.5 * Math.max(0, patch.expire) / (patch.maxDuration || this.evoDef.area?.burnGroundDuration || 1600));
       if (patch.tick <= 0) {
         patch.tick = tickMs;
         this.scene.combat.forEachEnemyInRadius(patch.x, patch.y, patch.radius, (e) => {

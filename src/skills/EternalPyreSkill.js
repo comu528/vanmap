@@ -18,7 +18,7 @@ export class EternalPyreSkill extends EvolvedSkillBase {
   update(dt, ctx) {
     const d = this.evoDef;
     const p = this.scene.player;
-    const auraR = d.area?.auraRadius || 72;
+    const auraR = (d.area?.auraRadius || 72) * this.passiveAreaMult(); // パッシブ「焦熱拡張」
     // 見た目（低エフェクトでも最低限は残す）
     if (this.aura) { this.aura.setPosition(p.x, p.y).setScale(auraR / 2); }
 
@@ -29,7 +29,7 @@ export class EternalPyreSkill extends EvolvedSkillBase {
     // 領域内の敵へ継続ダメージ + 炎上付与（毎フレームではなく tick 間隔）。
     if (this._auraTick <= 0) {
       this._auraTick = d.tickMs || 300;
-      const igniteMs = d.infect?.durationMs || 1600;
+      const igniteMs = (d.infect?.durationMs || 1600) * this.passiveDurationMult(); // パッシブ「残火持続」
       let ignitedCount = this.scene.ignitedCount ? this.scene.ignitedCount() : 0;
       const maxIgnited = this.cap('maxIgnited', 220);
       this.scene.combat.forEachEnemyInRadius(p.x, p.y, auraR, (e) => {
@@ -53,8 +53,8 @@ export class EternalPyreSkill extends EvolvedSkillBase {
   spreadInfection() {
     const d = this.evoDef;
     const maxGen = Math.min(this.cap('maxInfectGenerations', 2), (d.infect?.generations || 1) + this.chainBonus);
-    const infectR = d.area?.infectRadius || 40;
-    const igniteMs = d.infect?.durationMs || 1600;
+    const infectR = (d.area?.infectRadius || 40) * this.passiveAreaMult();
+    const igniteMs = (d.infect?.durationMs || 1600) * this.passiveDurationMult();
     const maxIgnited = this.cap('maxIgnited', 220);
 
     const sources = [];

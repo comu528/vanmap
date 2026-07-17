@@ -12,6 +12,9 @@ const FILES = {
   skillMastery: './data/skill-mastery.json',
   skillEvolutions: './data/skill-evolutions.json',
   reincarnation: './data/reincarnation.json',
+  jobs: './data/jobs.json',
+  passives: './data/passives.json',
+  skillConfig: './data/skill-config.json',
 };
 
 class DataManagerClass {
@@ -36,6 +39,10 @@ class DataManagerClass {
 
     for (const s of asArray(this.data.skills?.skills)) this._skillMap.set(s.id, s);
     for (const e of asArray(this.data.enemies?.enemies)) this._enemyMap.set(e.id, e);
+    this._passiveMap = new Map();
+    for (const p of asArray(this.data.passives?.passives)) this._passiveMap.set(p.id, p);
+    this._jobMap = new Map();
+    for (const j of asArray(this.data.jobs?.jobs)) this._jobMap.set(j.id, j);
 
     this.loaded = true;
     return this.data;
@@ -53,6 +60,36 @@ class DataManagerClass {
   get reincarnationNodes() { return asArray(this.data.reincarnation?.nodes); }
   get combatCaps() { return this.balance.combatCaps || {}; }
   get saveConfig() { return this.balance.save || {}; }
+
+  // ---- Milestone 6-A: ジョブ / パッシブ / スキル抽選 ----
+  get jobs() { return asArray(this.data.jobs?.jobs); }
+  getJob(id) { return this._jobMap?.get(id) || null; }
+  get passives() { return asArray(this.data.passives?.passives); }
+  getPassive(id) { return this._passiveMap?.get(id) || null; }
+  get skillConfig() { return this.data.skillConfig || {}; }
+  get rarityWeights() { return this.skillConfig.rarityWeights || { common: 100, uncommon: 55, rare: 20, legendary: 5 }; }
+
+  // active(skills) と passive を統合したドラフト用メタ配列（抽選カタログ）。
+  draftCatalog() {
+    const out = [];
+    for (const s of this.skills) {
+      out.push({
+        id: s.id, category: s.category || 'active', rarity: s.rarity || 'common', weight: s.weight ?? 1,
+        maxLevel: s.maxLevel || 1, enabled: s.enabled !== false, jobs: s.jobs || [], isCommon: !!s.isCommon,
+        prerequisites: s.prerequisites || [], conflicts: s.conflicts || [], unlockCondition: s.unlockCondition || null,
+        displayName: s.name, description: s.description, iconKey: s.iconKey || s.icon,
+      });
+    }
+    for (const p of this.passives) {
+      out.push({
+        id: p.id, category: 'passive', rarity: p.rarity || 'common', weight: p.weight ?? 1,
+        maxLevel: p.maxLevel || 1, enabled: p.enabled !== false, jobs: p.jobs || [], isCommon: p.isCommon !== false,
+        prerequisites: p.prerequisites || [], conflicts: p.conflicts || [], unlockCondition: p.unlockCondition || null,
+        displayName: p.displayName, description: p.description, iconKey: p.iconKey,
+      });
+    }
+    return out;
+  }
   get speedModes() { return asArray(this.balance.speedModes).length ? this.balance.speedModes : [1]; }
 
   getEvolution(id) { return this.evolutions.find((e) => e.id === id) || null; }

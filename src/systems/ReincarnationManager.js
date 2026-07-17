@@ -164,6 +164,7 @@ class ReincarnationManagerClass {
       levelUpChoices: 0, startDamageMult: 1 + perReincDmg * (profile.reincarnationCount || 0),
       startSkillLevel: 0, chainCount: 0, enemyCapAdd: 0, rewardMult: 1,
       effectCapAdd: 0, permCapAdd: 0, speedLevel: 0, autoDash: false, startEmber: 0,
+      activeSlotBonus: 0,
       reincarnationCount: profile.reincarnationCount || 0,
     };
     for (const node of DataManager.reincarnationNodes) {
@@ -181,6 +182,7 @@ class ReincarnationManagerClass {
         case 'speedMode': s.speedLevel = Math.max(s.speedLevel, lvl); break;
         case 'autoDash': s.autoDash = true; break;
         case 'startEmber': s.startEmber += v; break;
+        case 'activeSlots': s.activeSlotBonus += v; break; // アクティブ枠拡張（+2/Lv）
         default: break;
       }
     }

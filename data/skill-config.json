@@ -1,0 +1,27 @@
+{
+  "_comment": "Milestone 6-A: スキル抽選基盤の共通設定。レアリティ抽選重み・所持枠・ドラフト操作回数・modifier一覧を集約する（コードへ散在させない）。",
+  "rarityWeights": {
+    "common": 100,
+    "uncommon": 55,
+    "rare": 20,
+    "legendary": 5
+  },
+  "rarityOrder": ["common", "uncommon", "rare", "legendary"],
+  "slots": {
+    "baseActiveSlots": 4,
+    "basePassiveSlots": 4
+  },
+  "draft": {
+    "baseRerolls": 1,
+    "baseBanishes": 1,
+    "baseSkips": 1
+  },
+  "modifierKeys": [
+    "damage", "cooldown", "area", "duration", "projectileCount", "projectileSpeed",
+    "pierce", "critical", "movementSpeed", "summonCount", "statusEffect"
+  ],
+  "passiveModifierDefaults": {
+    "cooldownMinMult": 0.5,
+    "note": "パッシブは共通 modifier 集計を通して適用する。cooldownMinMult はクールダウン倍率の安全下限。"
+  }
+}

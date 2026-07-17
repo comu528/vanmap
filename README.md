@@ -7,9 +7,10 @@
 npm・ビルド処理・バックエンド・データベースは一切使いません。Phaser 3.90.0 を CDN から読み込み、
 すべての素材（プレイヤー・敵・弾・エフェクト等）は JavaScript 上で動的生成しています。
 
-> ⚠️ **開発状況**: 現在 **Milestone 5-B**（フォルダ保存・バックアップ・JSON入出力・保存データ競合解決）まで実装済みです。
-> 保存は localStorage を基本としつつ、対応ブラウザ（HTTPS＝GitHub Pages 前提）ではユーザーが選んだフォルダへも
-> ミラー保存できます。本格的な統合デバッグパネルやクラウド保存は今後の課題です。
+> ⚠️ **開発状況**: 現在 **Milestone 6-A**（スキル抽選基盤: active/passive分類・所持枠・ジョブ別プール・
+> レアリティ・決定論抽選・リロール/追放/スキップ）まで実装済みです。今回は既存の攻撃スキル5種を新基盤へ移行し、
+> 動作確認用の共通パッシブ4種を追加しました（新しい攻撃魔法・新ジョブ・新進化はまだ追加していません）。
+> 保存は localStorage を基本に、対応ブラウザ（HTTPS＝GitHub Pages 前提）ではフォルダへもミラー保存できます（M5-B）。
 
 ---
 
@@ -23,6 +24,7 @@ npm・ビルド処理・バックエンド・データベースは一切使い�
 | **M4** | スキル進化3種＋演出 / 熟練度と進化の連携 / 転生 / 転生通貨「魂炎」/ 魂炎強化10種 / 転生後のゲーム拡張 / 拠点タブ＋スクロール / profile v4 / 最小デバッグ機能 / 安全上限 | ✅ 実装済み |
 | **M5-A** | 空間グリッド（Spatial Hash Grid）による近傍検索 / 総当たり O(敵×弾) の解消 / 性能計測パネル・グリッド可視化・グリッドON/OFF比較（`?debug=1`）/ オブジェクトプール整理 / 品質別エフェクト上限の集約 / 決定論的な非回帰テスト | ✅ 実装済み |
 | **M5-B** | 保存アダプター分離 / フォルダ保存（File System Access API）＋ブラウザミラー / manifest＋安全書き込み / バックアップ（自動10・手動5世代）/ JSON エクスポート・インポート（検証・プロトタイプ汚染ガード）/ 競合検出・解決 / 複数タブ制御 / profile v5 移行 / データ管理画面 | ✅ 実装済み |
+| **M6-A** | スキル抽選基盤: active/passive分類・所持枠(Active4→6→8/Passive4)・ジョブ別スキルプール(flame_witch)・レアリティ・重み付き**決定論**抽選・リロール/追放/スキップ・共通パッシブ4種(共通modifier集計)・既存5active移行・profile v6 | ✅ 実装済み |
 
 ### 遊びの流れ（M4）
 タイトル →「はじめから / 拠点」→ **拠点**（恒久強化・難易度・熟練度・**転生**・**魂炎強化**）→「戦闘開始」→
@@ -139,6 +141,32 @@ npm・ビルド処理・バックエンド・データベースは一切使い�
   停止しない・安全上限を超えない・一時停止/リザルト/拠点へ戻れる・セーブ破損なし、を満たす設計です。
   プレイヤー↔敵接触・ボス弾↔プレイヤーの判定は対象が少ないため従来方式のままです。
 
+## Milestone 6-A の要素（スキル抽選基盤）
+
+将来の大量スキル追加（約30種の魔法・進化分岐・複数ジョブ・転生継承・100種超でも破綻しない抽選）に耐える基盤です。
+今回は**既存の攻撃スキル5種を新基盤へ移行**し、**動作確認用の共通パッシブ4種**のみ追加しました。
+
+- **分類**: `active`（自動発動）/`passive`（補正）。進化後スキルは元の active と同じ枠。
+- **所持枠**: 新規周回は Active4 / Passive4（初期火球も1枠）。魂炎強化「アクティブ枠拡張」で Active **4→6→8**。
+  満枠時は未取得の新規を出さず、所持済みの強化・進化・（空きがあれば）passive は出す。進化は枠を消費しない。
+- **ジョブ**: `data/jobs.json`（今回は `flame_witch` のみ）。共通パッシブは全ジョブで抽選対象。継承機能は拡張口のみ（未実装）。
+- **レアリティ / 重み**: common/uncommon/rare/legendary。重みは `data/skill-config.json`（既定 100/55/20/5）。
+- **決定論抽選**: `SkillDraftManager` + `SeededRandom`。Math.random を使わず、候補は `active_run.draftState` に保存。
+  レベルアップ画面を開いた時点の候補を保存し、**リロードしても同じ候補**（引き直し不可）。リロール時のみ乱数を次へ進めます。
+- **リロール/追放/スキップ**: 1周それぞれ初期1回。追放はその周回の通常候補から除外（所持スキルは消さない）、スキップは何も取らず戦闘へ。
+- **パッシブ**: `PassiveManager` が modifier を共通集計（各スキルへハードコードしない）。魔力増幅(ダメージ)/高速詠唱(CD・下限あり)/
+  焦熱拡張(範囲)/残火持続(持続)。適用順=基礎値→熟練度→パッシブ→恒久/魂炎。**パッシブ未取得なら M5-B 以前と同じ性能**。
+
+### 次に魔法（active）を10種追加する手順
+1. `data/skills.json` に新 active を追加（`levels` の戦闘数値＋メタ: `category:"active"`, `rarity`, `weight`, `jobs`,
+   `isCommon`, `prerequisites`, `conflicts`, `unlockCondition`, `evolutionBranches`, `displayOrder`, `iconKey`, `enabled`）。
+2. `data/jobs.json` の対象ジョブの `activeSkillPool` にIDを追加（全ジョブ共通にするなら `isCommon:true`）。
+3. スキル挙動クラス `src/skills/<Name>Skill.js`（`SkillBase` 継承・`fire(ctx)` 実装）を追加し、`SkillManager` の `REGISTRY` に登録。
+4. アイコンが必要なら `BootScene.makeSkillIcons()` に色を足す（正式画像は追加しない）。
+5. `node tests/validate-data.mjs` と `node tests/skill-draft.mjs` を通す（抽選は自動で新スキルを扱う）。
+   ※ 抽選・所持枠・レアリティ・決定論・リロール/追放/スキップは基盤側が処理するため、スキル追加時に抽選コードは触りません。
+新パッシブは `data/passives.json` に modifier 付きで追加、新ジョブは `data/jobs.json` に追加するだけで抽選対象になります。
+
 ## セーブについて（M5-B）
 
 基本は **ブラウザの localStorage**（恒久データ profile / 設定 settings / 途中セーブ active_run）です。
@@ -192,9 +220,10 @@ src/
   entities/           Player / Enemy(炎上対応) / Boss / Projectile(貫通減衰) / ExperienceGem
   skills/             SkillBase / Fireball / FlamePillar / BurningTrail / OrbitingFlame / Meteor /
                       EvolvedSkillBase / InfernalBarrage / PurgatoryEruption / EternalPyre
-  systems/            DataManager / SaveManager / profileSchema(v5移行) / ProgressionManager /
+  systems/            DataManager / SaveManager / profileSchema(v6移行) / ProgressionManager /
                       ReincarnationManager / EvolutionManager / SpawnManager / BattleManager /
-                      PoolManager / SkillManager / EffectManager / SpatialGrid(空間グリッド・M5-A)
+                      PoolManager / SkillManager / EffectManager / SpatialGrid(空間グリッド・M5-A) /
+                      SeededRandom・SkillDraftManager・PassiveManager（スキル抽選基盤・M6-A）
   storage/            StorageAdapter / BrowserStorageAdapter / FolderStorageAdapter / MemoryStorageAdapter /
                       SaveCoordinator / SaveValidator / SaveConflictResolver / SaveService / idb（保存レイヤー・M5-B）
   ui/                 HUD / PauseMenu
@@ -205,7 +234,9 @@ docs/                 game-design / architecture / data-format / save-format / t
 tests/validate-data.mjs        Node標準のみのデータ検証
 tests/spatial-nonregression.mjs 空間グリッドの決定論的非回帰＋負荷計測（Node標準のみ・M5-A）
 tests/save-system.mjs          保存システムのテスト（移行/検証/キュー/バックアップ/競合・Node標準のみ・M5-B）
+tests/skill-draft.mjs          スキル抽選のテスト（枠/決定論/リロール/追放/スキップ/進化/旧セーブ/パッシブ・Node標準のみ・M6-A）
 .github/workflows/    static.yml（公開） / validate.yml（データ検証＋各テスト）
+data/                 ... / jobs.json・passives.json・skill-config.json（スキル抽選基盤・M6-A）
 ```
 
 保存レイヤー（`src/storage/*`）とデータ管理画面（`DataManagementScene`）は M5-B で実装済みです。今後の候補は `TODO.md` を参照してください。
@@ -273,6 +304,13 @@ tests/save-system.mjs          保存システムのテスト（移行/検証/�
 安全書き込み・実ファイル生成・複数タブ・容量不足時の挙動）はヘッドレスでは未検証**のため、GitHub Pages の
 公開 URL を対応ブラウザ（Chrome/Edge 等・HTTPS）で開き、「データ管理」画面で接続→保存→再読込→
 エクスポート/インポート→バックアップ→競合解決 を実機で確認してください。
+
+**Milestone 6-A の検証**: スキル抽選基盤（`SkillDraftManager`/`SeededRandom`/`PassiveManager`）は Phaser 非依存の
+純 JS のため、`node tests/skill-draft.mjs`（39項目・実データのカタログ使用）で検証済みです。所持枠(4/満杯時の挙動)・
+決定論(同seed同状態で同一・serialize/restore で不変)・リロール/追放/スキップ・進化候補の最低1枠・最大Lv除外・
+ジョブ外/前提未達/conflict/重複なし・4→6→8枠・旧セーブ超過時の新規禁止・パッシブ modifier(未取得=恒等/取得で反映)を確認。
+`profile v5→v6 移行`は `node tests/save-system.mjs` で確認。**レベルアップUIの実描画・進化演出・実プレイでの体感・
+パッシブ適用後の実数値はヘッドレスでは未計測**のため、GitHub Pages を実ブラウザで開いて最終確認してください（`docs/test-guide.md` の M6-A 項目）。
 
 > ヘッドレス環境の制約: `requestAnimationFrame` が断続的に間引かれ、また headless では
 > ページが非フォーカス扱いになり自動一時停止が働くため、「リザルト→再挑戦後の実時間ループ継続」や

@@ -59,6 +59,13 @@ section('2. profile 移行（v1〜v4 → v5）');
   // v2/v3 は v4 と同系統（欠落は既定へ）
   const m3 = migrateProfile({ save_version: 3, embers: 10 }, 5, '0.5.0');
   ok(m3.reincarnationCount === 0 && m3.soulflame === 0, 'v3 の未定義な転生系が安全な既定値になる');
+
+  // v5 → v6（M6-A: ジョブ/パッシブの既定付与、既存は保持）
+  const m6 = migrateProfile({ save_version: 5, embers: 50, reincarnationCount: 1, reincarnationUpgrades: { active_skill_slots: 2 } }, 6, '0.6.0');
+  ok(m6.save_version === 6 && m6.embers === 50 && m6.reincarnationCount === 1, 'v5→v6 で既存データが保持される');
+  ok(m6.selectedJobId === 'flame_witch' && Array.isArray(m6.unlockedJobs) && m6.unlockedJobs.includes('flame_witch'), 'v6 でジョブ既定が付与される');
+  ok(typeof m6.passiveMastery === 'object' && typeof m6.futureInheritanceSettings === 'object' && typeof m6.jobProgress === 'object', 'v6 でパッシブ/継承/ジョブ進捗の器が付与される');
+  ok(m6.reincarnationUpgrades.active_skill_slots === 2, 'アクティブ枠拡張(魂炎強化)が保持される');
 }
 
 // ===== 3. インポート検証 =====

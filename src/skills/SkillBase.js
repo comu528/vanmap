@@ -20,20 +20,32 @@ export class SkillBase {
 
   get rawStats() { return DataManager.getSkillLevel(this.id, this.level); }
 
-  // JSON のレベル別値に、スキル熟練度ボーナス（M3）を掛けた実効値を返す。
-  // 熟練度レベル1では恒等（M2 の威力と一致）。結果はレベル/版数でキャッシュする。
+  // JSON のレベル別値に、スキル熟練度ボーナス（M3）とパッシブ（M6-A: area/duration）を掛けた実効値を返す。
+  // パッシブ未取得かつ熟練度Lv1 では恒等（M5-B 以前の威力と一致）。
+  // 適用順: 基礎値 → 熟練度(damage/cooldown/radius) → パッシブ(area/duration)。
+  //   ※ ダメージのパッシブは dealDamage、クールダウンのパッシブは update で適用する（二重適用しない）。
   get stats() {
     const raw = this.rawStats;
     if (!raw) return raw;
     const b = this.scene.skills?.masteryBonusFor?.(this.id);
-    if (!b || (b.damageMult === 1 && b.cooldownMult === 1 && b.radiusMult === 1)) return raw;
-    if (this._cacheLevel === this.level && this._cacheVer === b.level && this._cache) return this._cache;
+    const pm = this.scene.passives;
+    const areaMul = pm ? pm.getAreaMultiplier() : 1;
+    const durMul = pm ? pm.getDurationMultiplier() : 1;
+    const pVer = pm ? pm.version : 0;
+    const noMastery = !b || (b.damageMult === 1 && b.cooldownMult === 1 && b.radiusMult === 1);
+    if (noMastery && areaMul === 1 && durMul === 1) return raw; // 恒等
+    const mLevel = b ? b.level : 0;
+    if (this._cacheLevel === this.level && this._cacheVer === mLevel && this._cachePVer === pVer && this._cache) return this._cache;
+    const dmul = b ? b.damageMult : 1;
+    const cmul = b ? b.cooldownMult : 1;
+    const rmul = b ? b.radiusMult : 1;
     const adj = { ...raw };
-    if (adj.damage != null) adj.damage = raw.damage * b.damageMult;
-    if (adj.cooldown != null) adj.cooldown = raw.cooldown * b.cooldownMult;
-    if (adj.radius != null) adj.radius = raw.radius * b.radiusMult;
-    if (adj.explosionRadius != null) adj.explosionRadius = raw.explosionRadius * b.radiusMult;
-    this._cache = adj; this._cacheLevel = this.level; this._cacheVer = b.level;
+    if (adj.damage != null) adj.damage = raw.damage * dmul;
+    if (adj.cooldown != null) adj.cooldown = raw.cooldown * cmul;
+    if (adj.radius != null) adj.radius = raw.radius * rmul * areaMul;
+    if (adj.explosionRadius != null) adj.explosionRadius = raw.explosionRadius * rmul * areaMul;
+    if (adj.duration != null) adj.duration = raw.duration * durMul;
+    this._cache = adj; this._cacheLevel = this.level; this._cacheVer = mLevel; this._cachePVer = pVer;
     return adj;
   }
 
@@ -42,11 +54,16 @@ export class SkillBase {
 
   visualScale() { return EffectManager.scaleForVisual(this.stats?.visual); }
 
+  // パッシブのクールダウン倍率（未取得なら 1）。安全下限は PassiveManager 側でクランプ。
+  passiveCooldownMult() { return this.scene.passives ? this.scene.passives.getCooldownMultiplier() : 1; }
+  passiveAreaMult() { return this.scene.passives ? this.scene.passives.getAreaMultiplier() : 1; }
+  passiveDurationMult() { return this.scene.passives ? this.scene.passives.getDurationMultiplier() : 1; }
+
   update(dt, ctx) {
     this._cd -= dt;
     if (this._cd > 0) return;
     if (!this.canFire(ctx)) return;
-    this._cd = this.stats?.cooldown ?? 1000;
+    this._cd = (this.stats?.cooldown ?? 1000) * this.passiveCooldownMult();
     this.scene.skills.recordCast(this.id);
     this.fire(ctx);
   }

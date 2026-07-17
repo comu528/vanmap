@@ -17,6 +17,7 @@ export class InfernalBarrageSkill extends EvolvedSkillBase {
     const count = Math.min(this.cap('maxProjectilesPerCast', 14), (d.projectileCount?.base || 6) + this.chainBonus);
     const spread = d.projectileCount?.spread ?? 0.5;
     const pierce = Math.min(this.cap('maxPierce', 6), 4);
+    const areaMul = this.passiveAreaMult(); // パッシブ「焦熱拡張」（未取得なら 1）
     for (let i = 0; i < count; i++) {
       const offset = count > 1 ? (i / (count - 1) - 0.5) * spread : 0;
       this.scene.combat.spawnPlayerProjectile(p.x, p.y, baseAng + offset, 280, {
@@ -25,7 +26,7 @@ export class InfernalBarrageSkill extends EvolvedSkillBase {
         pierce,
         pierceFalloff: d.damage?.pierceFalloff ?? 0.92,
         knockback: 30,
-        explosionRadius: d.area?.explosionRadius || 30,
+        explosionRadius: (d.area?.explosionRadius || 30) * areaMul,
         scale: 1.4, lifeMs: 1600, tint: 0xffca28,
       });
     }

@@ -1,0 +1,93 @@
+{
+  "_comment": "Milestone 6-A: 動作確認用の共通パッシブ4種。効果は共通 modifier 集計(PassiveManager)を通して適用し、各スキルへハードコードしない。全ジョブ共通(isCommon)。",
+  "passives": [
+    {
+      "id": "power_amp",
+      "displayName": "魔力増幅",
+      "description": "全スキルのダメージが上昇する。",
+      "category": "passive",
+      "tags": ["offense", "common"],
+      "rarity": "uncommon",
+      "weight": 1,
+      "jobs": [],
+      "isCommon": true,
+      "maxLevel": 5,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [],
+      "displayOrder": 1,
+      "iconKey": "icon_fireball",
+      "enabled": true,
+      "modifiers": [
+        { "key": "damage", "op": "addMult", "perLevel": 0.06 }
+      ]
+    },
+    {
+      "id": "swift_cast",
+      "displayName": "高速詠唱",
+      "description": "全スキルのクールダウンが短縮される（下限あり）。",
+      "category": "passive",
+      "tags": ["utility", "common"],
+      "rarity": "uncommon",
+      "weight": 1,
+      "jobs": [],
+      "isCommon": true,
+      "maxLevel": 5,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [],
+      "displayOrder": 2,
+      "iconKey": "icon_burning_trail",
+      "enabled": true,
+      "modifiers": [
+        { "key": "cooldown", "op": "subMult", "perLevel": 0.04 }
+      ]
+    },
+    {
+      "id": "scorch_expand",
+      "displayName": "焦熱拡張",
+      "description": "攻撃範囲・爆発範囲・設置範囲が拡大する。",
+      "category": "passive",
+      "tags": ["area", "common"],
+      "rarity": "common",
+      "weight": 1,
+      "jobs": [],
+      "isCommon": true,
+      "maxLevel": 5,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [],
+      "displayOrder": 3,
+      "iconKey": "icon_flame_pillar",
+      "enabled": true,
+      "modifiers": [
+        { "key": "area", "op": "addMult", "perLevel": 0.05 }
+      ]
+    },
+    {
+      "id": "ember_persist",
+      "displayName": "残火持続",
+      "description": "設置物・継続ダメージ・炎上などの持続時間が延びる。",
+      "category": "passive",
+      "tags": ["duration", "common"],
+      "rarity": "common",
+      "weight": 1,
+      "jobs": [],
+      "isCommon": true,
+      "maxLevel": 5,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [],
+      "displayOrder": 4,
+      "iconKey": "icon_orbiting_flame",
+      "enabled": true,
+      "modifiers": [
+        { "key": "duration", "op": "addMult", "perLevel": 0.08 }
+      ]
+    }
+  ]
+}

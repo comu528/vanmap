@@ -213,8 +213,38 @@ Milestone 1 は実装済み。以下は **Milestone 2 以降の設計と作業�
 
 ---
 
-## 拡張余地（M5以降）
+## Milestone 6-A — スキル抽選基盤【実装済み】
+
+### 分類・枠・ジョブ・レアリティ
+- [x] 全取得可能スキルを active/passive に分類。進化後は基礎 active と同じ枠（`skills.json` メタ拡張・`passives.json`）。
+- [x] 所持枠: 新規周回 Active4/Passive4（初期火球1枠）。魂炎強化 `active_skill_slots` で Active 4→6→8。満枠時の候補制御。
+- [x] `data/jobs.json`（flame_witch のみ）。初期=火球、active プール=既存5種、共通パッシブは全ジョブ対象。継承は拡張口のみ。
+- [x] レアリティ common/uncommon/rare/legendary と抽選重み（`data/skill-config.json`）。
+
+### 抽選・決定論・操作
+- [x] `systems/SkillDraftManager.js` + `systems/SeededRandom.js`: 巨大 Scene に集約せず分離。ジョブ/枠/所持/前提/排他/
+      解放/レアリティ/重み/進化/追放/重複/enabled を考慮。最大Lv除外・進化最低1枠・不足時は水増ししない・0件救済。
+- [x] 決定論（Math.random 不使用）。`active_run.draftState`（seed/cursor/levelUpSequence/currentDraftId/
+      currentCandidates/各残数/banishedSkillIds）を保存。開いた時点の候補を保存し再読込で不変。リロール時のみ乱数を進める。
+- [x] リロール/追放/スキップ（各1周1回・即保存・将来増加できる構造）。`LevelUpScene` を新仕様へ（スロット/残数/追放モード）。
+
+### パッシブ・統計・セーブ
+- [x] `systems/PassiveManager.js`: modifier 共通集計（damage/cooldown/area/duration…）。active が最終値を取得する共通経路。
+      4種（魔力増幅/高速詠唱/焦熱拡張/残火持続）。未取得は恒等（M5-B 以前と同性能）。適用順を設計書に明記。
+- [x] active/passive を区別した統計（passive は runs/level/picks。ダメージ統計は持たせない）。既存 active 熟練度は非破壊移行。
+- [x] profile v6（selectedJobId/unlockedJobs/jobProgress/passiveMastery/futureInheritanceSettings）＋ active_run 拡張。v1〜v5 移行。
+- [x] `tests/skill-draft.mjs` と `validate-data.mjs`（skill/job/passive/rarity/枠/循環前提/自己conflict）。CI 追加。
+
+### M6-B 以降の候補（未実装）
+- [ ] 火の魔女へ約30種の魔法・進化分岐の大量追加
+- [ ] 複数ジョブ・ジョブ選択画面・ジョブ育成特典
+- [ ] 転生後に別ジョブ要素を継承する継承枠の実装
+- [ ] passive 熟練度の具体的報酬・条件付き共通スキル・legendary 実スキル
+
+---
+
+## 拡張余地（今後）
 - [ ] 周回長の拡張（10分/15分/無限モード）
-- [ ] 追加の敵・ボス・スキル・進化
-- [ ] 実績システムの本実装
+- [ ] 追加の敵・ボス
+- [ ] 実績システム・図鑑の本実装
 - [ ] スキル分岐（熟練度による）

@@ -18,6 +18,8 @@ import { Projectile } from '../entities/Projectile.js';
 import { ExperienceGem } from '../entities/ExperienceGem.js';
 import { Pool } from '../systems/PoolManager.js';
 import { SkillManager } from '../systems/SkillManager.js';
+import { PassiveManager } from '../systems/PassiveManager.js';
+import { SkillDraftManager } from '../systems/SkillDraftManager.js';
 import { EffectManager } from '../systems/EffectManager.js';
 import { SpawnManager } from '../systems/SpawnManager.js';
 import { BattleManager } from '../systems/BattleManager.js';
@@ -132,11 +134,22 @@ export class BattleScene extends Phaser.Scene {
       onRelease: (g) => this.gemGrid.remove(g),
     });
 
+    // ジョブ・所持枠（M6-A）
+    this.job = DataManager.getJob(this.profile.selectedJobId) || DataManager.getJob('flame_witch') || DataManager.jobs[0] || { id: 'flame_witch', initialActiveSkills: ['fireball'], initialPassiveSkills: [], activeSkillPool: DataManager.skills.map((s) => s.id), passiveSkillPool: [], baseActiveSlots: 4, basePassiveSlots: 4 };
+    const slotCfg = DataManager.skillConfig.slots || {};
+    this.activeSlotsMax = (this.job.baseActiveSlots ?? slotCfg.baseActiveSlots ?? 4) + (this.reincStats.activeSlotBonus || 0);
+    this.passiveSlotsMax = (this.job.basePassiveSlots ?? slotCfg.basePassiveSlots ?? 4);
+
     // マネージャ
     this.effects = new EffectManager(this);
     this.effects.setSettings(this.effSettings);
     this.skills = new SkillManager(this);
     this.skills.setMasteryBonuses(this.masteryBonus);
+    // パッシブ（共通 modifier 集計）とスキル抽選（決定論ドラフト）。
+    this.passives = new PassiveManager(this);
+    this.passives.setDefs(DataManager.passives, DataManager.skillConfig);
+    const dcfg = DataManager.skillConfig.draft || {};
+    this.draft = new SkillDraftManager({ rarityWeights: DataManager.rarityWeights, baseRerolls: dcfg.baseRerolls, baseBanishes: dcfg.baseBanishes, baseSkips: dcfg.baseSkips });
     this.spawn = new SpawnManager(this);
     this.battle = new BattleManager(this);
     this.pauseMenu = new PauseMenu(this);
@@ -171,13 +184,20 @@ export class BattleScene extends Phaser.Scene {
     this.rngSeed = (this.resumeData?.rngSeed) || ((Date.now() % 2147483647) >>> 0) || 12345;
     this.rng = createRng(this.rngSeed);
 
+    // ドラフト用シード（周回内で決定論。途中再開時は restoreFromRun で上書き）。
+    this._draftSeed = ((this.rngSeed >>> 0) ^ 0x5ca1ab1e) >>> 0 || 1;
+
     // 途中再開 or 新規
     if (this.resumeData) {
       this.restoreFromRun(this.resumeData, bal);
     } else {
-      this.skills.acquireOrLevel('fireball');
+      this.draft.reset(this._draftSeed, {});
+      // ジョブの初期スキル（active/passive）。
+      for (const id of (this.job.initialActiveSkills && this.job.initialActiveSkills.length ? this.job.initialActiveSkills : ['fireball'])) this.skills.acquireOrLevel(id);
+      for (const id of (this.job.initialPassiveSkills || [])) this.passives.acquireOrLevel(id);
+      // 初期スキルレベル強化（恒久＋魂炎）を初期 active（火球）へ。
       const startAdd = (up.startSkillLevel || 0) + (reinc.startSkillLevel || 0);
-      if (startAdd > 0) this.skills.setLevel('fireball', this.skills.getLevel('fireball') + startAdd);
+      if (startAdd > 0 && this.skills.has('fireball')) this.skills.setLevel('fireball', this.skills.getLevel('fireball') + startAdd);
     }
     this.player.moveSpeed = bal.player.moveSpeed * this.bonus.moveMult;
 
@@ -223,6 +243,12 @@ export class BattleScene extends Phaser.Scene {
 
     this.showBanner(this.resumeData ? '途中から再開' : `${this.difficulty.name} 開始 — 5分生存を目指せ`);
     this.autoSave();
+
+    // 途中再開時、レベルアップ選択中に閉じていた場合は同じ候補を再表示する（決定論・巻き戻しなし）。
+    if (this.resumeData && this.draft.hasPendingDraft()) {
+      this.forcePause(false);
+      this._launchDraft();
+    }
   }
 
   restoreFromRun(r, bal) {
@@ -238,6 +264,15 @@ export class BattleScene extends Phaser.Scene {
     this.skills.loadFrom(r.skills);
     this.skills.restoreEvolved(r.evolvedBase); // 進化済み基礎スキルを復元
     if (this.skills.count() === 0) this.skills.acquireOrLevel('fireball');
+    // M6-A: パッシブ・ドラフト状態の復元。
+    if (r.passiveSkills) this.passives.loadFrom(r.passiveSkills);
+    // 旧途中セーブ（v5 以前）で active が新枠を超過している場合は、その周回に限り所持を維持し
+    // 新規 active の取得だけ禁止する（activeSlotsMax を所持数まで引き上げる＝新規枠なし）。
+    const ownedActive = this.skills.activeSlotCount();
+    if (ownedActive > this.activeSlotsMax) this.activeSlotsMax = ownedActive;
+    // ドラフト状態: v6 の active_run なら復元、無ければ現在シードで初期化。
+    if (r.draftState) this.draft.restore(r.draftState);
+    else this.draft.reset(this._draftSeed, {});
   }
 
   cleanup() {
@@ -422,8 +457,9 @@ export class BattleScene extends Phaser.Scene {
 
   dealDamage(target, amount, skillId, opts = {}) {
     if (!target || !target.alive) return false;
-    // 基礎ダメージ恒久強化（damageMult）を全プレイヤーダメージへ適用。
-    amount = amount * (this.bonus.damageMult || 1);
+    // 基礎ダメージ恒久強化（damageMult）＋パッシブ「魔力増幅」を全プレイヤーダメージへ適用。
+    // パッシブ未取得なら getDamageMultiplier()=1（＝M5-B 以前と同じ）。
+    amount = amount * (this.bonus.damageMult || 1) * (this.passives ? this.passives.getDamageMultiplier() : 1);
     const died = target.takeDamage(amount);
     const dealt = target.lastDamage || amount;
     if (skillId) { this.skills.recordDamage(skillId, dealt); this.skills.recordHit(skillId); }
@@ -733,75 +769,139 @@ export class BattleScene extends Phaser.Scene {
     if (ups > 0) this.openLevelUp();
   }
 
-  // ---------------- レベルアップ（新規取得 + 既存強化） ----------------
+  // ---------------- レベルアップ（M6-A: SkillDraftManager による決定論ドラフト） ----------------
   openLevelUp() {
     this.forcePause(false);
-    const choices = this.rollChoices();
-    this.scene.launch('LevelUpScene', {
-      choices,
-      onPick: (choice) => {
-        const evoBase = choice.evolution ? choice.baseSkillId : null;
-        choice.apply();               // 進化の場合はここでスキル置換が完了（演出とは分離）
-        this.updateHudSkills();
-        this.autoSave();
-        if (evoBase) {
-          const ev = DataManager.getEvolutionForBase(evoBase);
-          const baseName = DataManager.getSkill(evoBase)?.name || evoBase;
-          this.scene.launch('EvolutionScene', {
-            evo: ev, baseName, lowFx: this.settings.effectQuality === 'low',
-            onDone: () => this.resumeFromMenu(),   // 演出終了で戦闘再開（演出中は停止したまま）
-          });
-        } else {
-          this.resumeFromMenu();
-        }
-      },
-    });
+    this.draft.open(this.buildDraftCtx());  // 候補を抽選し active_run へ保存（再読込で不変）
+    this.autoSave();
+    this._launchDraft();
   }
 
-  rollChoices() {
-    const need = this.choicesPerLevel || (DataManager.balance.leveling.choicesPerLevel || 3);
-    // 進化候補（条件成立 + 出現率）。通常強化と区別して優先的に提示する。
-    const evoChoices = EvolutionManager.candidates(this.skills, this.profile, this.rng).map((ev) => ({
-      id: `evo_${ev.id}`, evolution: true, baseSkillId: ev.baseSkillId,
-      title: ev.displayName, icon: ev.icon, description: ev.description,
-      apply: () => this.skills.evolve(ev.baseSkillId),
-    }));
+  _launchDraft() {
+    this.scene.launch('LevelUpScene', { provider: {
+      getView: () => this.draftView(),
+      pick: (i) => this.draftPick(i),
+      reroll: () => this.draftReroll(),
+      banish: (i) => this.draftBanish(i),
+      skip: () => this.draftSkip(),
+      rescue: () => this.draftRescue(),
+    } });
+  }
 
-    const pool = [];
-    // 既存スキルの強化
-    for (const s of this.skills.ownedList()) {
-      if (this.skills.isMaxed(s.id)) continue;
-      const next = DataManager.getSkillLevel(s.id, s.level + 1);
-      pool.push({
-        id: `up_${s.id}`, title: `${s.name} Lv.${s.level + 1}`, icon: DataManager.getSkill(s.id)?.icon,
-        description: this.describeSkillLevel(s.id, next),
-        apply: () => this.skills.acquireOrLevel(s.id),
-      });
-    }
-    // 未取得スキルの新規取得（重複取得しない）
-    for (const def of DataManager.skills) {
-      if (this.skills.has(def.id)) continue;
-      pool.push({
-        id: `new_${def.id}`, title: `【新】${def.name}`, icon: def.icon,
-        description: def.description || '新しいスキルを取得',
-        apply: () => this.skills.acquireOrLevel(def.id),
-      });
-    }
-    // 補填（スキルが出揃った場合の基礎強化）
-    const fillers = [
-      { id: 'max_hp', title: '最大HP +20', icon: 'icon_flame_pillar', description: 'HPを20回復し最大値を増加', apply: () => { this.player.maxHp += 20; this.player.heal(20); } },
-      { id: 'move', title: '移動速度 +8%', icon: 'icon_burning_trail', description: '移動が速くなる', apply: () => { this.bonus.moveMult *= 1.08; this.player.moveSpeed *= 1.08; } },
-      { id: 'pickup', title: '吸収範囲 +25%', icon: 'icon_orbiting_flame', description: '経験値を集めやすくなる', apply: () => { this.bonus.pickupMult *= 1.25; } },
-      { id: 'xp', title: '経験値獲得 +15%', icon: 'icon_meteor', description: '得られる経験値が増える', apply: () => { this.bonus.xpMult *= 1.15; } },
-    ];
+  // 抽選コンテキスト（所持枠・所持スキル・進化候補・ジョブプール）。
+  buildDraftCtx() {
+    const activeUsed = this.skills.activeSlotCount();
+    return {
+      catalog: DataManager.draftCatalog(),
+      job: { activeSkillPool: this.job.activeSkillPool || [], passiveSkillPool: this.job.passiveSkillPool || [] },
+      extraAllowedIds: (this.job.futureInheritanceSettings && this.job.futureInheritanceSettings.enabled) ? (this._inheritedIds || []) : [],
+      owned: { active: this.skills.activeLevels(), passive: this.passives.serialize() },
+      slots: {
+        active: { used: activeUsed, max: Math.max(this.activeSlotsMax, activeUsed) },
+        passive: { used: this.passives.count(), max: this.passiveSlotsMax },
+      },
+      evolvables: this.computeEvolvables(),
+      need: this.choicesPerLevel,
+      unlock: { highestClearedDifficulty: this.profile.highestClearedDifficulty || 0 },
+    };
+  }
 
-    this.shuffleInPlace(pool);
-    // 進化候補を先頭に、残りを通常強化→補填で埋める。
-    const chosen = evoChoices.slice(0, need);
-    for (const c of pool) { if (chosen.length >= need) break; chosen.push(c); }
-    let fi = 0;
-    while (chosen.length < need && fi < fillers.length) chosen.push(fillers[fi++]);
-    return chosen;
+  computeEvolvables() {
+    const out = [];
+    const seen = new Set();
+    for (const base of this.skills.baseActiveIds()) {
+      if (seen.has(base)) continue; seen.add(base);
+      if (EvolutionManager.canEvolve(this.skills, this.profile, base)) {
+        const ev = EvolutionManager.forBase(base);
+        if (ev) out.push({ evolutionId: ev.id, baseId: base, rarity: 'legendary', order: DataManager.getSkill(base)?.displayOrder || 0 });
+      }
+    }
+    return out;
+  }
+
+  // 抽選結果を LevelUpScene 用の表示データへ変換する。
+  draftView() {
+    return {
+      candidates: this.draft.currentCandidates.map((c) => this.describeCandidate(c)),
+      slots: {
+        activeUsed: this.skills.activeSlotCount(), activeMax: Math.max(this.activeSlotsMax, this.skills.activeSlotCount()),
+        passiveUsed: this.passives.count(), passiveMax: this.passiveSlotsMax,
+      },
+      counts: { rerolls: this.draft.rerollsRemaining, banishes: this.draft.banishesRemaining, skips: this.draft.skipsRemaining },
+    };
+  }
+
+  describeCandidate(c) {
+    const RARITY = { common: '#bcaaa4', uncommon: '#80deea', rare: '#ce93d8', legendary: '#ffd54f' };
+    const rarityColor = RARITY[c.rarity] || '#bcaaa4';
+    if (c.kind === 'evolution') {
+      const ev = DataManager.getEvolution(c.id);
+      return { kind: 'evolution', category: 'active', rarity: c.rarity, rarityColor, badge: '★進化', icon: ev?.icon || DataManager.getSkill(c.baseId)?.iconKey, title: ev?.displayName || c.id, description: ev?.description || '', level: '→ 進化' };
+    }
+    if (c.category === 'passive') {
+      const p = DataManager.getPassive(c.id);
+      const isNew = c.kind === 'new_passive';
+      return { kind: c.kind, category: 'passive', rarity: c.rarity, rarityColor, badge: isNew ? 'passive 新規' : 'passive 強化', icon: p?.iconKey, title: p?.displayName || c.id, description: p?.description || '', level: `Lv ${c.fromLevel}→${c.toLevel}/${c.maxLevel}` };
+    }
+    const s = DataManager.getSkill(c.id);
+    const isNew = c.kind === 'new_active';
+    const nextStats = isNew ? DataManager.getSkillLevel(c.id, 1) : DataManager.getSkillLevel(c.id, c.toLevel);
+    return { kind: c.kind, category: 'active', rarity: c.rarity, rarityColor, badge: isNew ? 'active 新規' : 'active 強化', icon: s?.iconKey || s?.icon, title: s?.name || c.id, description: isNew ? (s?.description || '') : this.describeSkillLevel(c.id, nextStats), level: `Lv ${c.fromLevel}→${c.toLevel}/${c.maxLevel}` };
+  }
+
+  applyCandidate(c) {
+    if (c.kind === 'evolution') this.skills.evolve(c.baseId);
+    else if (c.category === 'passive') this.passives.acquireOrLevel(c.id);
+    else this.skills.acquireOrLevel(c.id);
+  }
+
+  draftPick(i) {
+    const c = this.draft.currentCandidates[i];
+    if (!c) return;
+    const isEvo = c.kind === 'evolution';
+    const evoBase = isEvo ? c.baseId : null;
+    this.applyCandidate(c);
+    this.draft.resolvePick();
+    this.updateHudSkills();
+    this.autoSave();
+    this.scene.stop('LevelUpScene');
+    if (isEvo) {
+      const ev = DataManager.getEvolutionForBase(evoBase);
+      const baseName = DataManager.getSkill(evoBase)?.name || evoBase;
+      this.scene.launch('EvolutionScene', { evo: ev, baseName, lowFx: this.settings.effectQuality === 'low', onDone: () => this.resumeFromMenu() });
+    } else {
+      this.resumeFromMenu();
+    }
+  }
+
+  draftReroll() {
+    const r = this.draft.reroll(this.buildDraftCtx());
+    if (r.ok) this.autoSave();
+    return r.ok;
+  }
+
+  draftBanish(i) {
+    const c = this.draft.currentCandidates[i];
+    if (!c) return false;
+    const r = this.draft.banish(c.id, this.buildDraftCtx());
+    if (r.ok) this.autoSave();
+    return r.ok;
+  }
+
+  draftSkip() {
+    if (!this.draft.skip()) return false;
+    this.autoSave();
+    this.scene.stop('LevelUpScene');
+    this.resumeFromMenu();
+    return true;
+  }
+
+  // 候補0件時の救済（回数を消費せず戦闘へ戻る）。
+  draftRescue() {
+    this.draft.forceClear();
+    this.autoSave();
+    this.scene.stop('LevelUpScene');
+    this.resumeFromMenu();
   }
 
   describeSkillLevel(id, lv) {
@@ -824,7 +924,11 @@ export class BattleScene extends Phaser.Scene {
     return arr;
   }
 
-  updateHudSkills() { this.hud.setSkills(this.skills.ownedList().map((s) => ({ name: s.name, level: s.level }))); }
+  updateHudSkills() {
+    const list = this.skills.ownedList().map((s) => ({ name: s.name, level: s.level }));
+    for (const p of this.passives.ownedList()) list.push({ name: p.name, level: p.level });
+    this.hud.setSkills(list);
+  }
 
   updateHud() {
     this.hud.update({ player: this.player, timeSec: this.timeSec, kills: this.kills, difficultyName: this.difficulty.name, autoMove: this.autoMove });
