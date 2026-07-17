@@ -50,7 +50,20 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this._dashTimer = this.dashDurationMs;
     this.dashCharges--;
     this._invulnUntil = Math.max(this._invulnUntil, this.scene.time.now + this.dashInvulnMs);
+    // ダッシュ拡張フック（M6-D 爆炎歩法）。専用分岐を入力処理へ散在させず共通イベントで通知する。
+    if (this.scene.onPlayerDash) this.scene.onPlayerDash('start', this);
     return true;
+  }
+
+  // HP消費コスト（M6-D 血炎契約）: 通常の被ダメージ処理とは完全に分離する。
+  // 障壁/無敵/不死鳥で防がれず、敵ダメージ統計に含めず、最低HP1を保証（死亡・不死鳥発動をしない）。
+  // 実際に消費した量を返す。
+  spendHealthCost(amount) {
+    if (!this.alive) return 0;
+    const cost = Math.max(0, amount || 0);
+    const before = this.hp;
+    this.hp = Math.max(1, before - cost);
+    return before - this.hp;
   }
 
   // 移動処理。入力ベクトルは -1..1。
@@ -60,6 +73,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (this.isDashing) {
       this._dashTimer -= dt;
       this.setVelocity(this._dashDir.x * this.dashSpeed, this._dashDir.y * this.dashSpeed);
+      if (this.scene.onPlayerDash) this.scene.onPlayerDash('move', this); // 軌跡（M6-D 爆炎歩法）
+      if (this._dashTimer <= 0 && this.scene.onPlayerDash) this.scene.onPlayerDash('end', this);
     } else {
       const len = Math.hypot(inputX, inputY) || 1;
       this.setVelocity((inputX / len) * this.moveSpeed, (inputY / len) * this.moveSpeed);

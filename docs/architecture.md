@@ -221,3 +221,24 @@ queryAABB / findNearest / size / usedCells`。セルサイズは `balance.spatia
 ### 保存システム統合（M5-B 非回帰）
 - ブラウザ保存/フォルダ保存/JSON 入出力/バックアップ/競合検出/複数タブ/保存キューを壊さない。比較/競合/インポート表示に 選択ジョブ・火の魔女ジョブレベル・`jobTotalXp` を追加（`StorageAdapter.summarize`/`SaveConflictResolver.extractMeta`）。`jobProgress` はエクスポート/インポート/バックアップ/復元/競合解決で失われない。
 - `profile.jobProgress` は M6-A の空 `{}` を加算的に拡張（`jobId` キーで将来の複数ジョブへ）。`profileSchema.js` の `safeJobProgress` がプロトタイプ汚染キー除外・負数/非有限を安全化。`totalXp` は保存し `jobLevel` は保存しない。**`save_version` は 6 のまま**（加算的追加で既存移行が安全に既定を補える）。転生でリセットしない。
+
+## 火の魔女スキル拡張・第2波（M6-D）
+M6-A（抽選/枠/パッシブ/進化）・M6-B（追尾/連鎖/刻印/召喚/防御・`Projectile` 拡張・`skillCaps` 品質別予算）・M6-C（ジョブ補正・共通発動シグナル `_onSkillCast`/残響）を **再利用** し、火の魔女専用 active を10種・進化を5種追加する。既存15 active・8進化・4 passive・`dealDamage`/`aoe()`/防御パイプラインには **分岐を足すだけ** で、コードと性能は変更しない。結果は active 25種・進化13種・passive 4種。
+
+| 追加/変更 | 役割 | 再利用元 |
+|-----------|------|----------|
+| `src/systems/CastPolicy.js`（新規・純ロジック） | `resolveCastMeta(def)` が echo/clone ポリシー＋メタを解決、`defaultCastContext`/`replayContext`/`canCastTriggerEcho`/`canCloneCopy` が「normal 由来のみ1世代」の再帰不可判定を提供。DOM/Phaser 非依存 | M6-C の残響（`_triggerEcho`）を一般化 |
+| `Player.spendHealthCost(amount)` | 血炎契約用の HP コスト。`takeDamage` と完全分離（障壁/無敵/不死鳥で防がれず・敵ダメージ統計に含めず・最低HP1保証・安全HP以下不発）。`combat.spendHealthCost` 経由 | M6-B の防御パイプラインを迂回する別経路 |
+| `Player` ダッシュフック（`onDashStart/Move/End`） | ダッシュの開始/移動/終了を `scene.onPlayerDash(kind,player)` へ通知（→ `skills.dispatchDash`）。既存ダッシュ/autoDash/無敵を壊さず入力処理へ分岐を散在させない | 既存ダッシュ実装へ共通フックを追加 |
+| `Projectile`（拡張） | 後方互換の吸収情報 `absorbable`/`absorbValue`/`projectileKind`/`ownerType`/`isBossProjectile`/`isTelegraph`/`isBeam`/`consumedByAbility` と反射 `bounceCount` を追加。`reset`/`_clearState` で完全初期化 | M6-B の Projectile 拡張（homing/chain/tag）に同居 |
+| `BattleScene._onSkillCast(id)` | 発動起点。normal 由来かつ複製可能な発動を `_lastClonableCast` に記録。Job残響は `canTriggerEcho` のみカウントし `_triggerEcho` へ | M6-C の `_onSkillCast`/`recordCast` を拡張 |
+| `BattleScene.performClone(power)` / `_runReplay` | 直近の複製可能発動を低威力で安全に再実行。`_runReplay` が `castContext` と威力倍率を張り、scene が世代・毎フレーム予算を管理 | M6-C の `requestEchoCast`/`_echoScale` と同じ再実行機構 |
+| `BattleScene.absorbBossBullets(x,y,r,max)` | 範囲内の吸収可能なボス弾を最大数まで吸収し `{absorbed,value}` を返す。予告/ビーム/接触/吸収不能/消費済みは除外・`consumedByAbility`＋release で二重吸収防止 | M5-A SpatialGrid で候補を絞り最終判定は厳密に |
+| `BattleScene._ricochetBounce` / `_spendFrameBudget(name,capName)` | 跳炎弾の反射処理と、毎フレーム予算の共通消費（`combat.frameBudget`）。到達しても戦闘ロジックは停止しない | M6-B の `_explosionBudget`/`skillCap` を一般化 |
+| `BattleScene.toggleWave2Debug()`（F6） | 新スキル検証パネル（`?debug=1` のみ・F1〜F5 非競合）。ランタイムのみで profile を破壊・保存しない | M6-C の F5 デバッグと同系 |
+
+- **再帰の停止保証**: echo/clone は `CastPolicy` の「normal→echo / normal→clone を各1世代のみ・echo→*/clone→* は不発」ルールと origin ガードで必ず停止する（`maxCopyGeneration=maxEchoCloneGeneration=1`）。残響→分身→残響 / 分身→残響→分身 の循環を禁止。
+- **custom ポリシー**: 血炎契約は複製時 HP を再消費せず、弾喰い炉はチャージを再消費せず、攻撃部分のみ複製する。`forbidden`（灰燼分身/爆炎歩法）は移動/分身増殖/危険な runtimeState 再展開を防ぐため一切コピーしない。
+- **空間グリッド/プール/性能上限**: 近傍・範囲・連鎖・吸収・集中攻撃は M5-A SpatialGrid で候補を絞り、最終判定（線分距離/扇形/円/矩形/接続距離/光線幅/波位置）は各挙動側で厳密に行う（ボスは個別追加）。跳炎弾/地雷/警告/分身/複製弾/放出弾/炎波/鎖線/軌跡/光点/炎剣/軍勢/吸収核 は `PoolManager` または配列再利用で、`skillId/owner/target/visited/networkId/generation/origin/charge/bounceCount` 等を再利用時に完全初期化。Scene/Battle 終了・進化置換・スキル削除で残留させない。
+- **性能上限**: `balance.skillCaps` に品質別の新キー（`maxActiveBeams`/`maxMines`/`maxRicochetProjectiles`/`maxClones`/`maxBloodfireProjectiles`/`maxFurnaceCharge`/`maxScreenEdgeWaves`/`maxTethers`/`maxAshLegionUnits`/`maxCopyGeneration` ほか）を追加。上限到達時は 判定・主要挙動→主要表示→補助粒子/装飾 の順に削減し、地雷位置/光線本体/斬撃範囲/血炎攻撃/炉チャージ/波/鎖接続/ダッシュチャージ/ボス予告/敵弾/プレイヤーは消さない。
+- **保存**: 新スキルの CD/チャージ/分身数/ダッシュチャージ等は `active_run.skillRuntime`（`SkillManager.serializeRuntime`）へ加算的に保存し、`restoreFromRun` が復元する。個々の弾/地雷/分身/鎖の位置は保存せず レベル＋runtimeState から再構築。再読込での悪用（CD回復/チャージ複製/二重生成/再放出）を remaining 値の保存復元で防止。**`save_version` は 6 のまま**。

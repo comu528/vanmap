@@ -43,3 +43,11 @@ jobs:
         run: node tests/job-progression.mjs
       - name: Job modifiers tests
         run: node tests/job-modifiers.mjs
+
+      # 新スキル/新進化 第2波・複製安全（M6-D・Node.js 標準機能のみ）。
+      - name: Fire skills wave2 tests
+        run: node tests/fire-skills-wave2.mjs
+      - name: Fire evolutions wave2 tests
+        run: node tests/fire-evolutions-wave2.mjs
+      - name: Cast copy safety tests
+        run: node tests/cast-copy-safety.mjs

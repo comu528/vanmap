@@ -27,6 +27,23 @@ import { HundredWispParadeSkill } from '../skills/HundredWispParadeSkill.js';
 import { SolarCoreCollapseSkill } from '../skills/SolarCoreCollapseSkill.js';
 import { InfernalVortexWheelSkill } from '../skills/InfernalVortexWheelSkill.js';
 import { ApocalypseChainSkill } from '../skills/ApocalypseChainSkill.js';
+// M6-D: 新 active 10種
+import { ScorchingRaySkill } from '../skills/ScorchingRaySkill.js';
+import { EmberMinefieldSkill } from '../skills/EmberMinefieldSkill.js';
+import { FlameCrescentSkill } from '../skills/FlameCrescentSkill.js';
+import { RicochetEmberSkill } from '../skills/RicochetEmberSkill.js';
+import { AshDoppelgangerSkill } from '../skills/AshDoppelgangerSkill.js';
+import { BloodfirePactSkill } from '../skills/BloodfirePactSkill.js';
+import { BulletFurnaceSkill } from '../skills/BulletFurnaceSkill.js';
+import { FourSidedInfernoSkill } from '../skills/FourSidedInfernoSkill.js';
+import { MoltenChainsSkill } from '../skills/MoltenChainsSkill.js';
+import { BlazingStepSkill } from '../skills/BlazingStepSkill.js';
+// M6-D: 新進化5種
+import { SolarAnnihilationArraySkill } from '../skills/SolarAnnihilationArraySkill.js';
+import { HellfireMineNetworkSkill } from '../skills/HellfireMineNetworkSkill.js';
+import { InfernoBladeDomainSkill } from '../skills/InfernoBladeDomainSkill.js';
+import { AshLegionSkill } from '../skills/AshLegionSkill.js';
+import { StarDevouringFurnaceSkill } from '../skills/StarDevouringFurnaceSkill.js';
 
 const REGISTRY = {
   fireball: FireballSkill,
@@ -55,6 +72,23 @@ const REGISTRY = {
   solar_core_collapse: SolarCoreCollapseSkill,
   infernal_vortex_wheel: InfernalVortexWheelSkill,
   apocalypse_chain: ApocalypseChainSkill,
+  // M6-D: 新 active
+  scorching_ray: ScorchingRaySkill,
+  ember_minefield: EmberMinefieldSkill,
+  flame_crescent: FlameCrescentSkill,
+  ricochet_ember: RicochetEmberSkill,
+  ash_doppelganger: AshDoppelgangerSkill,
+  bloodfire_pact: BloodfirePactSkill,
+  bullet_furnace: BulletFurnaceSkill,
+  four_sided_inferno: FourSidedInfernoSkill,
+  molten_chains: MoltenChainsSkill,
+  blazing_step: BlazingStepSkill,
+  // M6-D: 新進化
+  solar_annihilation_array: SolarAnnihilationArraySkill,
+  hellfire_mine_network: HellfireMineNetworkSkill,
+  inferno_blade_domain: InfernoBladeDomainSkill,
+  ash_legion: AshLegionSkill,
+  star_devouring_furnace: StarDevouringFurnaceSkill,
 };
 
 export class SkillManager {
@@ -155,10 +189,21 @@ export class SkillManager {
   }
 
   // 残響詠唱（M6-C）: スキル id の攻撃挙動を威力倍率つきで安全に再実行する。
-  // カウンターは進めない・残響から残響を発生させない（scene 側の _inEcho ガードと併用）。
+  // カウンターは進めない・残響から残響を発生させない（scene 側の castContext ガードと併用）。
   requestEchoCast(id) {
     const sk = this.skills.get(id);
     if (sk && sk.echoCast) sk.echoCast(this._ctx || { hasEnemies: this.scene.hasTargets?.() });
+  }
+
+  // 灰燼分身の複製（M6-D）: スキル id の攻撃部分だけを複製再実行する（cloneCast 既定＝echoCast）。
+  requestCloneCast(id) {
+    const sk = this.skills.get(id);
+    if (sk && sk.cloneCast) sk.cloneCast(this._ctx || { hasEnemies: this.scene.hasTargets?.() });
+  }
+
+  // ダッシュフック分配（M6-D 爆炎歩法）。phase: 'start'|'move'|'end'。
+  dispatchDash(phase, player) {
+    for (const sk of this.skills.values()) { if (sk.onDash) sk.onDash(phase, player); }
   }
 
   // 撃破フック（M6-B: 百鬼燎乱の分裂など）。スキルが onEnemyKilled を実装していれば呼ぶ。

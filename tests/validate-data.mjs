@@ -439,6 +439,31 @@ if (balance && balance.skillCaps) {
   }
 }
 
+// --- cast メタデータ（M6-D）: echoPolicy/clonePolicy/フラグの検証 ---
+{
+  const POL = new Set(['standard', 'custom', 'forbidden']);
+  const skillsArr = (skillsData && skillsData.skills) || [];
+  const evosArr = (evoData && evoData.evolutions) || [];
+  for (const s of [...skillsArr, ...evosArr]) {
+    const id = s.id;
+    if (s.echoPolicy != null && !POL.has(s.echoPolicy)) err(`cast: ${id} の echoPolicy が不正 (${s.echoPolicy})`);
+    if (s.clonePolicy != null && !POL.has(s.clonePolicy)) err(`cast: ${id} の clonePolicy が不正 (${s.clonePolicy})`);
+    for (const k of ['isDefensive', 'isReactive', 'usesResourceCost', 'canTriggerEcho', 'canBeCopiedByClone']) {
+      if (s[k] != null && typeof s[k] !== 'boolean') err(`cast: ${id} の ${k} が真偽値でない (${s[k]})`);
+    }
+    // forbidden は複製・残響の対象にしない（メタの一貫性）
+    if (s.echoPolicy === 'forbidden' && s.canTriggerEcho === true) err(`cast: ${id} は echoPolicy=forbidden だが canTriggerEcho=true（矛盾）`);
+    if (s.clonePolicy === 'forbidden' && s.canBeCopiedByClone === true) err(`cast: ${id} は clonePolicy=forbidden だが canBeCopiedByClone=true（矛盾）`);
+  }
+  // maxCopyGeneration / maxEchoCloneGeneration は 1 以上の整数（無限複製防止）
+  for (const n of ['maxCopyGeneration', 'maxEchoCloneGeneration']) {
+    const c = balance && balance.skillCaps && balance.skillCaps[n];
+    if (c) for (const q of ['low', 'medium', 'high', 'ultra']) {
+      if (!Number.isInteger(c[q]) || c[q] < 1) err(`balance.json: skillCaps.${n}.${q} は1以上の整数であること (${c[q]})`);
+    }
+  }
+}
+
 // --- job-progression.json（M6-C）: ジョブ育成（曲線・報酬・到達報酬）の検証 ---
 const jobProgData = loadJson('job-progression.json');
 if (jobProgData) {

@@ -328,3 +328,31 @@ JSON エクスポート/インポート・バックアップ・競合比較は p
 - ブラウザ保存/フォルダ保存/JSON 入出力/バックアップ/競合検出/複数タブ/保存キューを壊さない。付与と profile 保存は M5-B の `SaveCoordinator` 経由（`SaveManager.saveProfile`）。
 - 比較/競合/インポート表示に **選択ジョブ・火の魔女ジョブレベル・`jobTotalXp`** を追加（`StorageAdapter.summarize`／`SaveConflictResolver.extractMeta`）。
 - `jobProgress` はエクスポート/インポート/バックアップ/復元/競合解決で失われない（payload 全体を扱い、インポートは `migrateProfile` を通す）。
+
+## Milestone 6-D: 火の魔女ビルド拡張・第2波（save_version は 6 のまま）
+新 active 10種・進化5種の追加は、M6-B の `active_run.skillRuntime`（`SkillManager.serializeRuntime`）へ **各スキルの実行時状態を加算的に足すだけ** で、profile/active_run の既存構造を変えない。
+そのため **`saveVersion` は 6 のまま**（不要な版上げをしない）。v1〜v6 からの移行は M6-A/M6-B/M6-C と同じ経路で、既存データを保持する。
+
+### active_run.skillRuntime（第2波スキルの追加フィールド・任意）
+M6-B の `skillRuntime`（不死鳥/障壁CD・召喚数など）に、第2波スキルの再開に必要な最小限を加算する。無い（旧セーブ・新スキル未所持）場合は空として安全に再開する。
+```jsonc
+{
+  "skillRuntime": {
+    "scorching_ray":      { "cdLeft": 0 },                       // 灼熱光線: 残りCD
+    "ember_minefield":    { "cdLeft": 0 },                       // 火種地雷: 残りCD（個々の地雷位置は保存しない）
+    "ricochet_ember":     { "cdLeft": 0 },                       // 跳炎弾: 残りCD
+    "four_sided_inferno": { "cdLeft": 0 },                       // 四方炎獄: 残りCD
+    "molten_chains":      { "cdLeft": 0 },                       // 熔火鎖: 残りCD（鎖接続は再構築）
+    "ash_doppelganger":   { "clones": 2, "replayPending": false },// 灰燼分身: 分身数・複製待機
+    "bloodfire_pact":     { "cdLeft": 0, "buffLeft": 0 },        // 血炎契約: 残りCD・強化残り時間
+    "bullet_furnace":     { "charge": 5, "timeLeft": 0, "releasePending": false }, // 弾喰い炉: チャージ・時間・放出待機
+    "blazing_step":       { "charges": 2, "nextChargeLeft": 0 }, // 爆炎歩法: 残りチャージ数・次チャージまで
+    "solar_annihilation_array": { "cdLeft": 0 }                  // 新進化の必要 runtime（同形式で加算）
+    // 個々の弾/地雷/分身/鎖/光線/波の位置は保存せず、レベル＋runtimeState から再構築する
+  }
+}
+```
+- **保存対象**: 灼熱光線/地雷/跳炎弾/四方炎獄/熔火鎖の CD、灰燼分身の分身数・複製待機、血炎契約の CD・強化時間、弾喰い炉のチャージ・時間・放出待機、爆炎歩法のチャージ数・次チャージ、新進化の必要 runtime。統計は profile 側 `skillMastery`（新スキル分も同形式・`recordExtra`）で保持する。
+- **保存しない**: 個々の弾/地雷/分身/鎖の位置。これらはレベル＋ runtimeState から自然に再構築する。
+- **再読込での悪用防止**: remaining 値（CD/チャージ/時間/分身数）を保存・復元することで、血炎契約の CD 回復・弾喰い炉のチャージ複製・爆炎歩法のチャージ全回復・地雷/分身の二重生成・星喰い炉の再放出・太陽滅却陣の多重生成 を防ぐ。一時停止中は update が止まるため CD/チャージも進まない。
+- `SkillManager.serializeRuntime()`／`restoreRuntime()` が各スキルの `serializeState/restoreState` を集約し、`BattleScene.restoreFromRun()` が復元する。加算的追加のため **`save_version` は 6 のまま**（構造変更が無いので明確な移行は不要）。転生でもリセットしない。

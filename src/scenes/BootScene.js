@@ -262,5 +262,25 @@ export class BootScene extends Phaser.Scene {
     g = base(0xffd54f); g.fillTriangle(8, 2, 2, 13, 14, 13); done(g, 'icon_phoenix_feather');                                   // 不死鳥: 上三角
     g = base(0x80d8ff); g.lineStyle(2, 0x80d8ff, 1); g.strokeCircle(8, 8, 5); done(g, 'icon_flame_barrier');                    // 障壁: 環
     g = base(0xff5252); g.lineStyle(2, 0xff5252, 1); g.lineBetween(4, 4, 12, 12); g.lineBetween(12, 4, 4, 12); done(g, 'icon_detonation_mark'); // 刻印: X
+
+    // --- M6-D: 新 active 10種 ---
+    g = base(0xffee58); g.lineStyle(2, 0xffee58, 1); g.lineBetween(3, 8, 14, 8); g.fillTriangle(14, 5, 14, 11, 16, 8); done(g, 'icon_scorching_ray'); // 光線: 直線
+    g = base(0xff7043); g.fillCircle(5, 6, 2); g.fillCircle(11, 6, 2); g.fillCircle(8, 11, 2); g.lineStyle(1, 0xffca28, 1); g.strokeCircle(8, 8, 6); done(g, 'icon_ember_minefield'); // 地雷: 円内の粒
+    g = base(0xffd54f); g.lineStyle(2, 0xffd54f, 1); g.beginPath(); g.arc(8, 8, 6, -1.0, 1.0, false); g.strokePath(); done(g, 'icon_flame_crescent'); // 斬: 三日月
+    g = base(0xff8a65); g.lineStyle(2, 0xff8a65, 1); g.strokePoints([{ x: 2, y: 12 }, { x: 6, y: 4 }, { x: 10, y: 12 }, { x: 14, y: 4 }], false); done(g, 'icon_ricochet_ember'); // 反射: 折れ線
+    g = base(0xbcaaa4); g.fillRect(5, 3, 3, 10); g.fillStyle(0x8d6e63, 0.7); g.fillRect(9, 4, 3, 9); done(g, 'icon_ash_doppelganger'); // 分身: 二重人型
+    g = base(0xff5252); g.fillTriangle(8, 3, 5, 9, 11, 9); g.fillStyle(0xffca28, 1); g.fillCircle(8, 12, 2); done(g, 'icon_bloodfire_pact'); // 血炎: 滴＋炎
+    g = base(0xff9800); g.fillRect(3, 6, 10, 8); g.fillStyle(0x1a1420, 1); g.fillRect(6, 9, 4, 5); g.fillStyle(0xffca28, 1); g.fillCircle(8, 5, 2); done(g, 'icon_bullet_furnace'); // 炉: 口＋炎
+    g = base(0xff7043); g.lineStyle(2, 0xff7043, 1); g.lineBetween(8, 2, 8, 6); g.lineBetween(8, 10, 8, 14); g.lineBetween(2, 8, 6, 8); g.lineBetween(10, 8, 14, 8); done(g, 'icon_four_sided_inferno'); // 四方: 十字矢印
+    g = base(0xffab40); g.lineStyle(2, 0xffab40, 1); g.strokeCircle(5, 8, 2); g.strokeCircle(11, 8, 2); g.lineBetween(7, 8, 9, 8); done(g, 'icon_molten_chains'); // 鎖: 二輪
+    g = base(0xffca28); g.fillCircle(5, 11, 2); g.fillCircle(10, 6, 2); g.fillStyle(0xff7043, 0.7); g.fillCircle(12, 3, 1.5); done(g, 'icon_blazing_step'); // 歩法: 足跡
+
+    // --- M6-D: 新進化5種（二重輪郭で進化を示す） ---
+    const evo = (color) => { const gg = base(color); gg.lineStyle(1, 0xffd54f, 0.9); gg.strokeRect(1, 1, 14, 14); return gg; };
+    g = evo(0xffee58); g.fillCircle(8, 8, 3); g.lineStyle(1, 0xffee58, 1); for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; g.lineBetween(8, 8, 8 + Math.cos(a) * 6, 8 + Math.sin(a) * 6); } done(g, 'icon_solar_annihilation_array'); // 太陽＋光線
+    g = evo(0xff7043); g.fillCircle(4, 5, 1.5); g.fillCircle(11, 5, 1.5); g.fillCircle(4, 11, 1.5); g.fillCircle(11, 11, 1.5); g.lineStyle(1, 0xffca28, 0.8); g.lineBetween(4, 5, 11, 11); g.lineBetween(11, 5, 4, 11); done(g, 'icon_hellfire_mine_network'); // 地雷網
+    g = evo(0xffd54f); g.lineStyle(2, 0xffd54f, 1); g.beginPath(); g.arc(8, 8, 6, -1.2, 1.2, false); g.strokePath(); g.beginPath(); g.arc(8, 8, 4, 2.0, 4.2, false); g.strokePath(); done(g, 'icon_inferno_blade_domain'); // 複数刃
+    g = evo(0xbcaaa4); g.fillRect(3, 4, 2, 9); g.fillRect(7, 3, 2, 10); g.fillRect(11, 4, 2, 9); done(g, 'icon_ash_legion'); // 複数人型
+    g = evo(0xff9800); g.fillRect(4, 7, 8, 6); g.fillStyle(0xffee58, 1); g.fillTriangle(8, 2, 6, 6, 10, 6); g.fillTriangle(8, 6, 6, 2, 10, 2); done(g, 'icon_star_devouring_furnace'); // 星＋炉
   }
 }

@@ -397,3 +397,89 @@ active に加え passive（`passives.json` の id）も指定できる**（例: 
 - type 固有: `echo`/`echoUpgrade` の残響回数 `interval` は **正整数**・倍率 `power` は **非負**、`rarityWeight` の抽選重み(rare/legendary)は **正**、`projectileCount` の value は **整数**、`cooldownMult` の value は **0..1**。
 - 数値フィールドは **NaN 相当（非有限）を拒否**。
 - `job-progression.mjs` は XP曲線（累計XP・単調増加・Lv100頭打ち・巨大XP/負数/NaN の安全化）を、`job-modifiers.mjs` は補正解決（Lv1恒等・各 milestone の乗算合成・残響カウンター・凍結の直列化/復元）を検証する。
+
+## Milestone 6-D: 火の魔女ビルド拡張・第2波（`skills.json`/`skill-evolutions.json`/`balance.json` を加算的に拡張）
+
+新 active 10種・進化5種を追加し、既存構造へ **echo/clone ポリシーの cast フィールドを追加** する。既存15 active・8進化・4 passive・データ形式は変更しない。結果は active 25種・進化13種・passive 4種で、`jobs.json` の `activeSkillPool` は25種。
+
+### skills.json の新 active10種（cast フィールド追加）
+各スキルは従来どおり `id`/`name`/`rarity`/`element`/`levels`（Lv1〜8）/`evolutionBranches` を持ち、加えて残響・分身複製の挙動を制御する **cast フィールド** を持つ。
+```jsonc
+{
+  "id": "bloodfire_pact", "name": "血炎契約", "rarity": "rare", "element": "fire",
+  "echoPolicy": "custom",          // 'standard' | 'custom' | 'forbidden'（残響の複製方式）
+  "clonePolicy": "custom",         // 'standard' | 'custom' | 'forbidden'（灰燼分身の複製方式）
+  "isDefensive": false,            // 防御目的（残響・複製の対象外にする）
+  "isReactive": false,             // 反応型（敵弾/被弾トリガー。残響・複製の対象外）
+  "usesResourceCost": true,        // HP等のコストを消費する（custom で再消費させない）
+  "canTriggerEcho": true,          // Job残響(Lv50/100)のカウント対象か
+  "canBeCopiedByClone": true,      // 灰燼分身がコピーできるか
+  "evolutionBranches": [],         // 進化なし（跳炎弾/血炎契約/四方炎獄/熔火鎖/爆炎歩法は空）
+  "levels": [ /* Lv1〜8 */ ]
+}
+```
+- **10種の cast 設定**（実装値）:
+  - `scorching_ray`(uncommon)/`ember_minefield`(common)/`flame_crescent`(common)/`ricochet_ember`(common)/`four_sided_inferno`(rare)/`molten_chains`(uncommon): `echoPolicy=clonePolicy=standard`・`canTriggerEcho=canBeCopiedByClone=true`・非防御/非反応/非コスト（通常の攻撃 active）。
+  - `bloodfire_pact`(rare): `echo/clone=custom`・`usesResourceCost=true`（HP を再消費せず攻撃部分のみ複製）。
+  - `bullet_furnace`(legendary): `echo/clone=custom`・`isDefensive=isReactive=true`・`canTriggerEcho=canBeCopiedByClone=false`（チャージを再消費せず放出のみ複製）。
+  - `ash_doppelganger`(rare): `echo/clone=forbidden`・全カウント false（分身が分身を増殖させない）。
+  - `blazing_step`(uncommon): `echo/clone=forbidden`・`isReactive=true`（移動系。残響/複製でダッシュしない）。
+- `evolutionBranches`: 進化を持つのは `scorching_ray`(→`solar_annihilation_array`) など5種のみ。残り5種は空配列。
+
+### skill-evolutions.json の新進化5種（同じ cast フィールド）
+進化エントリも基礎 active と同じ cast フィールドを持ち、`requiredSkills` の補助条件に passive を含められる（M6-B と同じく `auxSkillIds = skillIds ∪ passiveIds`）。
+```jsonc
+{ "id": "solar_annihilation_array", "baseSkillId": "scorching_ray",
+  "replacementSkillId": "solar_annihilation_array",
+  "requiredSkills": [ { "skill": "swift_cast", "level": 4 } ],   // swift_cast はパッシブ
+  "echoPolicy": "standard", "clonePolicy": "standard",
+  "isDefensive": false, "isReactive": false, "usesResourceCost": false,
+  "canTriggerEcho": true, "canBeCopiedByClone": true,
+  "safetyCaps": { "maxSolarMirrors": 6, "maxActiveBeams": 10, "maxBeamTicksPerFrame": 40, "maxSimultaneousExplosions": 6 },
+  "displayOrder": 9 }
+```
+- 5種: `solar_annihilation_array`(灼熱光線+高速詠唱[passive]) / `hellfire_mine_network`(火種地雷+起爆刻印) / `inferno_blade_domain`(炎月斬+炎の障壁) / `ash_legion`(灰燼分身+火の精霊) / `star_devouring_furnace`(弾喰い炉+不死鳥の羽)。いずれも基礎Lv8＋補助Lv4。
+- cast フィールドは基礎スキルを継承（`ash_legion`=forbidden・`star_devouring_furnace`=custom/防御反応・他3種=standard）。`replacementSkillId` は自身＝基礎スキルと衝突しない。
+
+### balance.skillCaps（第2波の新キー・品質別）
+M6-B の `skillCaps` へ品質別の新キーを加算的に追加する。全キーが `low <= medium <= high <= ultra`・非負整数。
+```jsonc
+"skillCaps": {
+  /* …M6-B の既存キー… */
+  "maxActiveBeams":            { "low": 2,  "medium": 3,  "high": 5,   "ultra": 7   },
+  "maxBeamTicksPerFrame":      { "low": 12, "medium": 24, "high": 40,  "ultra": 60  },
+  "maxMines":                  { "low": 20, "medium": 30, "high": 40,  "ultra": 60  },
+  "maxMineExplosionsPerFrame": { "low": 3,  "medium": 5,  "high": 6,   "ultra": 8   },
+  "maxRicochetProjectiles":    { "low": 16, "medium": 28, "high": 44,  "ultra": 64  },
+  "maxRicochetChecksPerFrame": { "low": 40, "medium": 80, "high": 140, "ultra": 220 },
+  "maxClones":                 { "low": 2,  "medium": 3,  "high": 4,   "ultra": 5   },
+  "maxCloneCastsPerFrame":     { "low": 2,  "medium": 3,  "high": 4,   "ultra": 6   },
+  "maxBloodfireProjectiles":   { "low": 12, "medium": 20, "high": 32,  "ultra": 48  },
+  "maxAbsorbedBulletsPerSecond":{ "low": 8, "medium": 12, "high": 16,  "ultra": 24  },
+  "maxFurnaceCharge":          { "low": 8,  "medium": 10, "high": 14,  "ultra": 18  },
+  "maxFurnaceProjectiles":     { "low": 24, "medium": 48, "high": 90,  "ultra": 160 },
+  "maxScreenEdgeWaves":        { "low": 2,  "medium": 3,  "high": 4,   "ultra": 4   },
+  "maxTethers":                { "low": 6,  "medium": 10, "high": 16,  "ultra": 24  },
+  "maxTetherRetargetsPerFrame":{ "low": 2,  "medium": 4,  "high": 6,   "ultra": 8   },
+  "maxBlazingTrails":          { "low": 16, "medium": 28, "high": 44,  "ultra": 64  },
+  "maxSolarMirrors":           { "low": 4,  "medium": 5,  "high": 6,   "ultra": 8   },
+  "maxMineNetworkDepth":       { "low": 3,  "medium": 4,  "high": 6,   "ultra": 8   },
+  "maxMineNetworkExplosions":  { "low": 10, "medium": 16, "high": 24,  "ultra": 32  },
+  "maxInfernoBlades":          { "low": 4,  "medium": 6,  "high": 8,   "ultra": 10  },
+  "maxAshLegionUnits":         { "low": 4,  "medium": 6,  "high": 8,   "ultra": 10  },
+  "maxAshLegionCastsPerFrame": { "low": 2,  "medium": 3,  "high": 4,   "ultra": 6   },
+  "maxStarFurnaceCores":       { "low": 3,  "medium": 4,  "high": 6,   "ultra": 8   },
+  "maxStarFurnaceProjectiles": { "low": 40, "medium": 80, "high": 140, "ultra": 220 },
+  "maxCopyGeneration":         { "low": 1,  "medium": 1,  "high": 1,   "ultra": 1   },
+  "maxEchoCloneGeneration":    { "low": 1,  "medium": 1,  "high": 1,   "ultra": 1   }
+}
+```
+- `maxCopyGeneration`/`maxEchoCloneGeneration` は複製世代の上限で **品質によらず 1**（normal 由来のみ echo/clone を1世代・再帰不可）。`DataManager.skillCap(name, quality, fallback)` で取得し、上限に達しても戦闘ロジックは停止しない。
+
+### 検証（`tests/validate-data.mjs`・`tests/fire-skills-wave2.mjs`・`tests/fire-evolutions-wave2.mjs`・`tests/cast-copy-safety.mjs`）
+`validate-data.mjs` が第2波について次を追加確認する:
+- **cast ポリシーの妥当性**: `echoPolicy`/`clonePolicy` は `standard`/`custom`/`forbidden` のいずれか、`isDefensive`/`isReactive`/`usesResourceCost`/`canTriggerEcho`/`canBeCopiedByClone` は真偽値。
+- **forbidden と canTrigger の整合**: `echoPolicy=forbidden` のとき `canTriggerEcho=false`、`clonePolicy=forbidden` のとき `canBeCopiedByClone=false`（矛盾を弾く）。防御/反応スキルが残響・複製対象にならないこと。
+- **世代上限**: `maxCopyGeneration`/`maxEchoCloneGeneration` が全品質で **1以上**（再帰不可を保証・逆に無限世代を許さない）。
+- 新 active10種・進化5種の `id`/`rarity`/`levels`(1..8)/`evolutionBranches`・`baseSkillId`/`replacementSkillId`/`requiredSkills`(active∪passive に実在・Lv1..8)/`safetyCaps`(非負) の整合、既存 skillCaps と同様の品質順(`low<=medium<=high<=ultra`)・非負整数。
+- `fire-skills-wave2.mjs` は新 active のデータ整合・抽選出現/満枠/最大Lv/追放/決定論・skillCaps 品質順を、`fire-evolutions-wave2.mjs` は新進化の `canEvolve`（パッシブ補助含む・基礎Lv8＋補助Lv4で可能・未達で不可）と既存進化の非回帰を、`cast-copy-safety.mjs` は `CastPolicy` の「normal 由来のみ1世代・echo→*/clone→* 不発・custom は再消費なし・forbidden は複製不可・循環禁止」を純ロジックで検証する。

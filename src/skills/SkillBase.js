@@ -4,6 +4,7 @@
 
 import { DataManager } from '../systems/DataManager.js';
 import { EffectManager } from '../systems/EffectManager.js';
+import { resolveCastMeta } from '../systems/CastPolicy.js';
 
 export class SkillBase {
   constructor(scene, id, level = 1) {
@@ -87,11 +88,19 @@ export class SkillBase {
     return Math.max(1, (base || 1) + j + p);
   }
 
-  // 残響詠唱（M6-C）: このスキルの「攻撃挙動」を威力倍率つきで安全に再実行する。
+  // 残響詠唱（M6-C）・灰燼分身の複製（M6-D）: このスキルの「攻撃挙動」を威力倍率つきで安全に再実行する。
   // 既定は fire(ctx) の再実行（弾/設置/召喚などの攻撃挙動を再発動）。カウンターは進めない（scene 側で保証）。
+  // 資源消費（血炎契約）や吸収チャージ（弾喰い炉）を伴うスキルは echoCast/cloneCast を上書きし、攻撃部分のみ複製する。
   echoCast(ctx) { this.fire(ctx); }
-  get isDefensive() { return false; }
-  get isReactive() { return false; }
+  cloneCast(ctx) { this.echoCast(ctx); }
+
+  // cast メタデータ（skills.json / skill-evolutions.json の echoPolicy/clonePolicy/... を解決）。M6-D。
+  get castMeta() { return resolveCastMeta(this.def || DataManager.getEvolution(this.id)); }
+  get isDefensive() { return this.castMeta.isDefensive; }
+  get isReactive() { return this.castMeta.isReactive; }
+  // 本発動が Job残響カウンターを進めてよいか（防御/反応/forbidden は不可）。
+  get canTriggerEcho() { return this.castMeta.canTriggerEcho && !this.isDefensive && !this.isReactive; }
+  get canBeCopiedByClone() { return this.castMeta.canBeCopiedByClone; }
 
   update(dt, ctx) {
     this._cd -= dt;

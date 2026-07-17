@@ -296,6 +296,27 @@ Milestone 1 は実装済み。以下は **Milestone 2 以降の設計と作業�
 
 ---
 
+## Milestone 6-D — 火の魔女ビルド拡張・第2波【実装済み】
+
+### 新 active 10種（火の魔女専用・最大Lv8・skills.json・戦い方を差別化）
+- [x] 灼熱光線(継続レーザー)/火種地雷(罠)/炎月斬(近接)/跳炎弾(反射)/灰燼分身(複製)/血炎契約(HP消費)/弾喰い炉(敵弾吸収)/四方炎獄(画面端波)/熔火鎖(拘束)/爆炎歩法(ダッシュ強化)。REGISTRY登録・jobs.jsonプール25種化・仮アイコン。
+### 新進化5種（skill-evolutions.json・枠非消費・補助はパッシブ可）
+- [x] 太陽滅却陣/地獄火連鎖陣/炎帝剣域/灰燼軍勢/星喰い炉。進化なし5種の evolutionBranches は空。active25種・進化13種。
+### 残響・分身の複製安全（M6-A〜C 基盤を再利用）
+- [x] `CastPolicy`（純ロジック）: echoPolicy/clonePolicy(standard/custom/forbidden)＋castContext(origin/generation/powerMultiplier/suppress)。normal→echo/clone を各1世代で停止、echo→*・clone→* は発生しない。
+- [x] BattleScene: _onSkillCast/_triggerEcho/performClone/_runReplay/_lastClonableCast。custom=攻撃部分のみ複製、forbidden=対象外。残響↔分身の循環禁止。
+### 共通拡張
+- [x] `Player.spendHealthCost`（血炎契約・被弾と分離・最低HP1・不死鳥非発動）。`Player` onDash 共通フック→`SkillManager.dispatchDash`（爆炎歩法）。
+- [x] `Projectile` 吸収情報(absorbable/…)＋反射(bounce)。`BattleScene.absorbBossBullets`（予告/ビーム/二重吸収防止・完全無敵化しない）。
+- [x] `balance.skillCaps` 26種追加（品質別）＋`combat.frameBudget`。runtimeState を active_run に加算保存（save_version v6 維持）。F6 デバッグ。
+- [x] `tests/fire-skills-wave2.mjs`／`tests/fire-evolutions-wave2.mjs`／`tests/cast-copy-safety.mjs`＋validate-data（cast メタ）＋CI。
+
+### 今後の候補（未実装）
+- [ ] 跳炎弾/血炎契約/四方炎獄/熔火鎖/爆炎歩法 への進化追加（evolutionBranches は将来用に空）
+- [ ] 火の魔女 active 30種への拡張（第3波）・passive 拡張・legendary 追加
+
+---
+
 ## 拡張余地（今後）
 - [ ] 周回長の拡張（10分/15分/無限モード）
 - [ ] 追加の敵・ボス

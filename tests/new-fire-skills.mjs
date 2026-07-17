@@ -49,8 +49,9 @@ section('1. 新 active 10種のデータ整合');
     // evolutionBranches は既存進化を参照 or 空
     ok((s.evolutionBranches || []).every((eb) => evoIds.has(eb)), `${id} の evolutionBranches が実在の進化のみ`);
   }
-  // プールは 15種
-  ok(job.activeSkillPool.length === 15, 'flame_witch の active プールは15種');
+  // プールは M6-B 時点で15種以上（M6-D で25種へ拡張。ここでは M6-B の10種が含まれることを確認）。
+  ok(job.activeSkillPool.length >= 15, 'flame_witch の active プールは15種以上');
+  ok(NEW_ACTIVES.every((id) => job.activeSkillPool.includes(id)), 'M6-B の新 active 10種がプールに含まれる');
   // 各レベルで必ず変化がある（隣接レベルが完全一致しない）
   for (const id of NEW_ACTIVES) {
     const s = byId(id); let changed = true;

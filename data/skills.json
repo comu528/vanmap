@@ -7,37 +7,123 @@
       "icon": "icon_fireball",
       "iconKey": "icon_fireball",
       "category": "active",
-      "tags": ["fire", "projectile", "witch"],
+      "tags": [
+        "fire",
+        "projectile",
+        "witch"
+      ],
       "rarity": "common",
       "weight": 1,
-      "jobs": ["flame_witch"],
+      "jobs": [
+        "flame_witch"
+      ],
       "isCommon": false,
       "prerequisites": [],
       "conflicts": [],
       "unlockCondition": null,
-      "evolutionBranches": ["infernal_barrage"],
+      "evolutionBranches": [
+        "infernal_barrage"
+      ],
       "displayOrder": 1,
       "modifiers": [],
       "enabled": true,
       "maxLevel": 8,
       "initial": true,
       "levels": [
-        { "level": 1, "damage": 8,  "cooldown": 900, "count": 1, "pierce": 0, "explosionRadius": 12, "knockback": 40,  "visual": "small" },
-        { "level": 2, "damage": 11, "cooldown": 850, "count": 1, "pierce": 0, "explosionRadius": 14, "knockback": 45,  "visual": "small" },
-        { "level": 3, "damage": 14, "cooldown": 800, "count": 1, "pierce": 1, "explosionRadius": 16, "knockback": 50,  "visual": "medium" },
-        { "level": 4, "damage": 18, "cooldown": 760, "count": 2, "pierce": 1, "explosionRadius": 18, "knockback": 55,  "visual": "medium" },
-        { "level": 5, "damage": 23, "cooldown": 720, "count": 2, "pierce": 1, "explosionRadius": 22, "knockback": 60,  "visual": "large" },
-        { "level": 6, "damage": 29, "cooldown": 680, "count": 3, "pierce": 2, "explosionRadius": 26, "knockback": 65,  "visual": "large" },
-        { "level": 7, "damage": 36, "cooldown": 640, "count": 3, "pierce": 2, "explosionRadius": 30, "knockback": 70,  "visual": "huge" },
-        { "level": 8, "damage": 46, "cooldown": 600, "count": 4, "pierce": 3, "explosionRadius": 36, "knockback": 80,  "visual": "huge" }
+        {
+          "level": 1,
+          "damage": 8,
+          "cooldown": 900,
+          "count": 1,
+          "pierce": 0,
+          "explosionRadius": 12,
+          "knockback": 40,
+          "visual": "small"
+        },
+        {
+          "level": 2,
+          "damage": 11,
+          "cooldown": 850,
+          "count": 1,
+          "pierce": 0,
+          "explosionRadius": 14,
+          "knockback": 45,
+          "visual": "small"
+        },
+        {
+          "level": 3,
+          "damage": 14,
+          "cooldown": 800,
+          "count": 1,
+          "pierce": 1,
+          "explosionRadius": 16,
+          "knockback": 50,
+          "visual": "medium"
+        },
+        {
+          "level": 4,
+          "damage": 18,
+          "cooldown": 760,
+          "count": 2,
+          "pierce": 1,
+          "explosionRadius": 18,
+          "knockback": 55,
+          "visual": "medium"
+        },
+        {
+          "level": 5,
+          "damage": 23,
+          "cooldown": 720,
+          "count": 2,
+          "pierce": 1,
+          "explosionRadius": 22,
+          "knockback": 60,
+          "visual": "large"
+        },
+        {
+          "level": 6,
+          "damage": 29,
+          "cooldown": 680,
+          "count": 3,
+          "pierce": 2,
+          "explosionRadius": 26,
+          "knockback": 65,
+          "visual": "large"
+        },
+        {
+          "level": 7,
+          "damage": 36,
+          "cooldown": 640,
+          "count": 3,
+          "pierce": 2,
+          "explosionRadius": 30,
+          "knockback": 70,
+          "visual": "huge"
+        },
+        {
+          "level": 8,
+          "damage": 46,
+          "cooldown": 600,
+          "count": 4,
+          "pierce": 3,
+          "explosionRadius": 36,
+          "knockback": 80,
+          "visual": "huge"
+        }
       ],
       "evolution": {
         "id": "infernal_barrage",
         "name": "業火弾幕",
         "description": "多数の火球を扇状に発射し、敵撃破時に追加火球を生成、着弾で連鎖爆発。",
         "requires": [
-          { "skill": "fireball", "level": 8 },
-          { "skill": "orbiting_flame", "level": 4 }
+          {
+            "skill": "fireball",
+            "level": 8
+          },
+          {
+            "skill": "orbiting_flame",
+            "level": 4
+          }
         ]
       }
     },
@@ -48,37 +134,131 @@
       "icon": "icon_flame_pillar",
       "iconKey": "icon_flame_pillar",
       "category": "active",
-      "tags": ["fire", "area", "witch"],
+      "tags": [
+        "fire",
+        "area",
+        "witch"
+      ],
       "rarity": "uncommon",
       "weight": 1,
-      "jobs": ["flame_witch"],
+      "jobs": [
+        "flame_witch"
+      ],
       "isCommon": false,
       "prerequisites": [],
       "conflicts": [],
       "unlockCondition": null,
-      "evolutionBranches": ["purgatory_eruption"],
+      "evolutionBranches": [
+        "purgatory_eruption"
+      ],
       "displayOrder": 2,
       "modifiers": [],
       "enabled": true,
       "maxLevel": 8,
       "initial": false,
       "levels": [
-        { "level": 1, "damage": 14, "cooldown": 2400, "count": 1, "radius": 30, "duration": 400, "telegraph": 600, "knockback": 20, "visual": "small" },
-        { "level": 2, "damage": 18, "cooldown": 2300, "count": 1, "radius": 34, "duration": 420, "telegraph": 580, "knockback": 20, "visual": "small" },
-        { "level": 3, "damage": 23, "cooldown": 2200, "count": 2, "radius": 38, "duration": 440, "telegraph": 560, "knockback": 25, "visual": "medium" },
-        { "level": 4, "damage": 29, "cooldown": 2100, "count": 2, "radius": 42, "duration": 460, "telegraph": 540, "knockback": 25, "visual": "medium" },
-        { "level": 5, "damage": 36, "cooldown": 2000, "count": 3, "radius": 46, "duration": 500, "telegraph": 520, "knockback": 30, "visual": "large" },
-        { "level": 6, "damage": 44, "cooldown": 1900, "count": 3, "radius": 52, "duration": 520, "telegraph": 500, "knockback": 30, "visual": "large" },
-        { "level": 7, "damage": 54, "cooldown": 1800, "count": 4, "radius": 58, "duration": 560, "telegraph": 480, "knockback": 35, "visual": "huge" },
-        { "level": 8, "damage": 66, "cooldown": 1700, "count": 5, "radius": 64, "duration": 600, "telegraph": 460, "knockback": 40, "visual": "huge" }
+        {
+          "level": 1,
+          "damage": 14,
+          "cooldown": 2400,
+          "count": 1,
+          "radius": 30,
+          "duration": 400,
+          "telegraph": 600,
+          "knockback": 20,
+          "visual": "small"
+        },
+        {
+          "level": 2,
+          "damage": 18,
+          "cooldown": 2300,
+          "count": 1,
+          "radius": 34,
+          "duration": 420,
+          "telegraph": 580,
+          "knockback": 20,
+          "visual": "small"
+        },
+        {
+          "level": 3,
+          "damage": 23,
+          "cooldown": 2200,
+          "count": 2,
+          "radius": 38,
+          "duration": 440,
+          "telegraph": 560,
+          "knockback": 25,
+          "visual": "medium"
+        },
+        {
+          "level": 4,
+          "damage": 29,
+          "cooldown": 2100,
+          "count": 2,
+          "radius": 42,
+          "duration": 460,
+          "telegraph": 540,
+          "knockback": 25,
+          "visual": "medium"
+        },
+        {
+          "level": 5,
+          "damage": 36,
+          "cooldown": 2000,
+          "count": 3,
+          "radius": 46,
+          "duration": 500,
+          "telegraph": 520,
+          "knockback": 30,
+          "visual": "large"
+        },
+        {
+          "level": 6,
+          "damage": 44,
+          "cooldown": 1900,
+          "count": 3,
+          "radius": 52,
+          "duration": 520,
+          "telegraph": 500,
+          "knockback": 30,
+          "visual": "large"
+        },
+        {
+          "level": 7,
+          "damage": 54,
+          "cooldown": 1800,
+          "count": 4,
+          "radius": 58,
+          "duration": 560,
+          "telegraph": 480,
+          "knockback": 35,
+          "visual": "huge"
+        },
+        {
+          "level": 8,
+          "damage": 66,
+          "cooldown": 1700,
+          "count": 5,
+          "radius": 64,
+          "duration": 600,
+          "telegraph": 460,
+          "knockback": 40,
+          "visual": "huge"
+        }
       ],
       "evolution": {
         "id": "purgatory_eruption",
         "name": "煉獄噴火",
         "description": "複数の火柱が連続発生し地面に炎を残し、最後に大爆発する。",
         "requires": [
-          { "skill": "flame_pillar", "level": 8 },
-          { "skill": "meteor", "level": 4 }
+          {
+            "skill": "flame_pillar",
+            "level": 8
+          },
+          {
+            "skill": "meteor",
+            "level": 4
+          }
         ]
       }
     },
@@ -89,37 +269,116 @@
       "icon": "icon_burning_trail",
       "iconKey": "icon_burning_trail",
       "category": "active",
-      "tags": ["fire", "ground", "dot", "witch"],
+      "tags": [
+        "fire",
+        "ground",
+        "dot",
+        "witch"
+      ],
       "rarity": "common",
       "weight": 1,
-      "jobs": ["flame_witch"],
+      "jobs": [
+        "flame_witch"
+      ],
       "isCommon": false,
       "prerequisites": [],
       "conflicts": [],
       "unlockCondition": null,
-      "evolutionBranches": ["eternal_pyre"],
+      "evolutionBranches": [
+        "eternal_pyre"
+      ],
       "displayOrder": 3,
       "modifiers": [],
       "enabled": true,
       "maxLevel": 8,
       "initial": false,
       "levels": [
-        { "level": 1, "damage": 4,  "cooldown": 220, "duration": 1200, "radius": 12, "slow": 0.0,  "visual": "small" },
-        { "level": 2, "damage": 5,  "cooldown": 210, "duration": 1300, "radius": 13, "slow": 0.05, "visual": "small" },
-        { "level": 3, "damage": 6,  "cooldown": 200, "duration": 1400, "radius": 14, "slow": 0.1,  "visual": "medium" },
-        { "level": 4, "damage": 8,  "cooldown": 190, "duration": 1500, "radius": 15, "slow": 0.12, "visual": "medium" },
-        { "level": 5, "damage": 10, "cooldown": 180, "duration": 1700, "radius": 16, "slow": 0.15, "visual": "large" },
-        { "level": 6, "damage": 12, "cooldown": 170, "duration": 1900, "radius": 18, "slow": 0.18, "visual": "large" },
-        { "level": 7, "damage": 15, "cooldown": 160, "duration": 2100, "radius": 20, "slow": 0.22, "visual": "huge" },
-        { "level": 8, "damage": 19, "cooldown": 150, "duration": 2400, "radius": 22, "slow": 0.28, "visual": "huge" }
+        {
+          "level": 1,
+          "damage": 4,
+          "cooldown": 220,
+          "duration": 1200,
+          "radius": 12,
+          "slow": 0.0,
+          "visual": "small"
+        },
+        {
+          "level": 2,
+          "damage": 5,
+          "cooldown": 210,
+          "duration": 1300,
+          "radius": 13,
+          "slow": 0.05,
+          "visual": "small"
+        },
+        {
+          "level": 3,
+          "damage": 6,
+          "cooldown": 200,
+          "duration": 1400,
+          "radius": 14,
+          "slow": 0.1,
+          "visual": "medium"
+        },
+        {
+          "level": 4,
+          "damage": 8,
+          "cooldown": 190,
+          "duration": 1500,
+          "radius": 15,
+          "slow": 0.12,
+          "visual": "medium"
+        },
+        {
+          "level": 5,
+          "damage": 10,
+          "cooldown": 180,
+          "duration": 1700,
+          "radius": 16,
+          "slow": 0.15,
+          "visual": "large"
+        },
+        {
+          "level": 6,
+          "damage": 12,
+          "cooldown": 170,
+          "duration": 1900,
+          "radius": 18,
+          "slow": 0.18,
+          "visual": "large"
+        },
+        {
+          "level": 7,
+          "damage": 15,
+          "cooldown": 160,
+          "duration": 2100,
+          "radius": 20,
+          "slow": 0.22,
+          "visual": "huge"
+        },
+        {
+          "level": 8,
+          "damage": 19,
+          "cooldown": 150,
+          "duration": 2400,
+          "radius": 22,
+          "slow": 0.28,
+          "visual": "huge"
+        }
       ],
       "evolution": {
         "id": "eternal_pyre",
         "name": "永劫火界",
         "description": "プレイヤー周辺が常時炎上し、炎が敵へ感染、炎上した敵の死亡で爆発する。",
         "requires": [
-          { "skill": "burning_trail", "level": 8 },
-          { "skill": "orbiting_flame", "level": 4 }
+          {
+            "skill": "burning_trail",
+            "level": 8
+          },
+          {
+            "skill": "orbiting_flame",
+            "level": 4
+          }
         ]
       }
     },
@@ -130,10 +389,17 @@
       "icon": "icon_orbiting_flame",
       "iconKey": "icon_orbiting_flame",
       "category": "active",
-      "tags": ["fire", "orbit", "melee", "witch"],
+      "tags": [
+        "fire",
+        "orbit",
+        "melee",
+        "witch"
+      ],
       "rarity": "uncommon",
       "weight": 1,
-      "jobs": ["flame_witch"],
+      "jobs": [
+        "flame_witch"
+      ],
       "isCommon": false,
       "prerequisites": [],
       "conflicts": [],
@@ -145,14 +411,78 @@
       "maxLevel": 8,
       "initial": false,
       "levels": [
-        { "level": 1, "damage": 6,  "cooldown": 300, "count": 1, "radius": 36, "rotationSpeed": 2.0, "visual": "small" },
-        { "level": 2, "damage": 8,  "cooldown": 300, "count": 1, "radius": 40, "rotationSpeed": 2.2, "visual": "small" },
-        { "level": 3, "damage": 10, "cooldown": 300, "count": 2, "radius": 44, "rotationSpeed": 2.4, "visual": "medium" },
-        { "level": 4, "damage": 13, "cooldown": 300, "count": 2, "radius": 48, "rotationSpeed": 2.6, "visual": "medium" },
-        { "level": 5, "damage": 16, "cooldown": 300, "count": 3, "radius": 52, "rotationSpeed": 2.8, "visual": "large" },
-        { "level": 6, "damage": 20, "cooldown": 300, "count": 3, "radius": 56, "rotationSpeed": 3.0, "visual": "large" },
-        { "level": 7, "damage": 25, "cooldown": 300, "count": 4, "radius": 60, "rotationSpeed": 3.2, "visual": "huge" },
-        { "level": 8, "damage": 31, "cooldown": 300, "count": 5, "radius": 66, "rotationSpeed": 3.5, "visual": "huge" }
+        {
+          "level": 1,
+          "damage": 6,
+          "cooldown": 300,
+          "count": 1,
+          "radius": 36,
+          "rotationSpeed": 2.0,
+          "visual": "small"
+        },
+        {
+          "level": 2,
+          "damage": 8,
+          "cooldown": 300,
+          "count": 1,
+          "radius": 40,
+          "rotationSpeed": 2.2,
+          "visual": "small"
+        },
+        {
+          "level": 3,
+          "damage": 10,
+          "cooldown": 300,
+          "count": 2,
+          "radius": 44,
+          "rotationSpeed": 2.4,
+          "visual": "medium"
+        },
+        {
+          "level": 4,
+          "damage": 13,
+          "cooldown": 300,
+          "count": 2,
+          "radius": 48,
+          "rotationSpeed": 2.6,
+          "visual": "medium"
+        },
+        {
+          "level": 5,
+          "damage": 16,
+          "cooldown": 300,
+          "count": 3,
+          "radius": 52,
+          "rotationSpeed": 2.8,
+          "visual": "large"
+        },
+        {
+          "level": 6,
+          "damage": 20,
+          "cooldown": 300,
+          "count": 3,
+          "radius": 56,
+          "rotationSpeed": 3.0,
+          "visual": "large"
+        },
+        {
+          "level": 7,
+          "damage": 25,
+          "cooldown": 300,
+          "count": 4,
+          "radius": 60,
+          "rotationSpeed": 3.2,
+          "visual": "huge"
+        },
+        {
+          "level": 8,
+          "damage": 31,
+          "cooldown": 300,
+          "count": 5,
+          "radius": 66,
+          "rotationSpeed": 3.5,
+          "visual": "huge"
+        }
       ],
       "evolution": null
     },
@@ -163,10 +493,17 @@
       "icon": "icon_meteor",
       "iconKey": "icon_meteor",
       "category": "active",
-      "tags": ["fire", "area", "burst", "witch"],
+      "tags": [
+        "fire",
+        "area",
+        "burst",
+        "witch"
+      ],
       "rarity": "rare",
       "weight": 1,
-      "jobs": ["flame_witch"],
+      "jobs": [
+        "flame_witch"
+      ],
       "isCommon": false,
       "prerequisites": [],
       "conflicts": [],
@@ -178,195 +515,2453 @@
       "maxLevel": 8,
       "initial": false,
       "levels": [
-        { "level": 1, "damage": 40,  "cooldown": 6000, "count": 1, "radius": 50, "telegraph": 900, "shake": 6,  "visual": "small" },
-        { "level": 2, "damage": 52,  "cooldown": 5800, "count": 1, "radius": 55, "telegraph": 880, "shake": 7,  "visual": "small" },
-        { "level": 3, "damage": 66,  "cooldown": 5600, "count": 1, "radius": 60, "telegraph": 860, "shake": 8,  "visual": "medium" },
-        { "level": 4, "damage": 82,  "cooldown": 5400, "count": 2, "radius": 66, "telegraph": 840, "shake": 9,  "visual": "medium" },
-        { "level": 5, "damage": 100, "cooldown": 5200, "count": 2, "radius": 72, "telegraph": 820, "shake": 10, "visual": "large" },
-        { "level": 6, "damage": 122, "cooldown": 5000, "count": 2, "radius": 80, "telegraph": 800, "shake": 12, "visual": "large" },
-        { "level": 7, "damage": 148, "cooldown": 4800, "count": 3, "radius": 88, "telegraph": 780, "shake": 14, "visual": "huge" },
-        { "level": 8, "damage": 180, "cooldown": 4600, "count": 3, "radius": 96, "telegraph": 760, "shake": 16, "visual": "huge" }
+        {
+          "level": 1,
+          "damage": 40,
+          "cooldown": 6000,
+          "count": 1,
+          "radius": 50,
+          "telegraph": 900,
+          "shake": 6,
+          "visual": "small"
+        },
+        {
+          "level": 2,
+          "damage": 52,
+          "cooldown": 5800,
+          "count": 1,
+          "radius": 55,
+          "telegraph": 880,
+          "shake": 7,
+          "visual": "small"
+        },
+        {
+          "level": 3,
+          "damage": 66,
+          "cooldown": 5600,
+          "count": 1,
+          "radius": 60,
+          "telegraph": 860,
+          "shake": 8,
+          "visual": "medium"
+        },
+        {
+          "level": 4,
+          "damage": 82,
+          "cooldown": 5400,
+          "count": 2,
+          "radius": 66,
+          "telegraph": 840,
+          "shake": 9,
+          "visual": "medium"
+        },
+        {
+          "level": 5,
+          "damage": 100,
+          "cooldown": 5200,
+          "count": 2,
+          "radius": 72,
+          "telegraph": 820,
+          "shake": 10,
+          "visual": "large"
+        },
+        {
+          "level": 6,
+          "damage": 122,
+          "cooldown": 5000,
+          "count": 2,
+          "radius": 80,
+          "telegraph": 800,
+          "shake": 12,
+          "visual": "large"
+        },
+        {
+          "level": 7,
+          "damage": 148,
+          "cooldown": 4800,
+          "count": 3,
+          "radius": 88,
+          "telegraph": 780,
+          "shake": 14,
+          "visual": "huge"
+        },
+        {
+          "level": 8,
+          "damage": 180,
+          "cooldown": 4600,
+          "count": 3,
+          "radius": 96,
+          "telegraph": 760,
+          "shake": 16,
+          "visual": "huge"
+        }
       ],
       "evolution": null
     },
     {
-      "id": "flame_lance", "name": "炎槍", "description": "最寄りの敵へ細く高速な炎の槍を放ち、貫通させる。1本は同じ敵に一度だけ命中。",
-      "icon": "icon_flame_lance", "iconKey": "icon_flame_lance", "category": "active",
-      "tags": ["active", "projectile", "piercing", "fire"], "rarity": "common", "weight": 1,
-      "jobs": ["flame_witch"], "isCommon": false, "prerequisites": [], "conflicts": [], "unlockCondition": null,
-      "evolutionBranches": ["thousand_flame_lances"], "displayOrder": 6, "modifiers": [], "enabled": true,
-      "maxLevel": 8, "initial": false,
+      "id": "flame_lance",
+      "name": "炎槍",
+      "description": "最寄りの敵へ細く高速な炎の槍を放ち、貫通させる。1本は同じ敵に一度だけ命中。",
+      "icon": "icon_flame_lance",
+      "iconKey": "icon_flame_lance",
+      "category": "active",
+      "tags": [
+        "active",
+        "projectile",
+        "piercing",
+        "fire"
+      ],
+      "rarity": "common",
+      "weight": 1,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [
+        "thousand_flame_lances"
+      ],
+      "displayOrder": 6,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "initial": false,
       "levels": [
-        { "level": 1, "damage": 16, "cooldown": 820, "count": 1, "pierce": 3, "speed": 430, "spread": 0.0,  "visual": "small" },
-        { "level": 2, "damage": 20, "cooldown": 780, "count": 1, "pierce": 3, "speed": 450, "spread": 0.0,  "visual": "small" },
-        { "level": 3, "damage": 25, "cooldown": 740, "count": 1, "pierce": 4, "speed": 470, "spread": 0.05, "visual": "medium" },
-        { "level": 4, "damage": 31, "cooldown": 700, "count": 2, "pierce": 4, "speed": 490, "spread": 0.06, "visual": "medium" },
-        { "level": 5, "damage": 38, "cooldown": 660, "count": 2, "pierce": 5, "speed": 510, "spread": 0.07, "visual": "large" },
-        { "level": 6, "damage": 46, "cooldown": 620, "count": 3, "pierce": 6, "speed": 530, "spread": 0.08, "visual": "large" },
-        { "level": 7, "damage": 56, "cooldown": 590, "count": 3, "pierce": 7, "speed": 550, "spread": 0.10, "visual": "huge" },
-        { "level": 8, "damage": 70, "cooldown": 560, "count": 4, "pierce": 8, "speed": 580, "spread": 0.12, "visual": "huge" }
+        {
+          "level": 1,
+          "damage": 16,
+          "cooldown": 820,
+          "count": 1,
+          "pierce": 3,
+          "speed": 430,
+          "spread": 0.0,
+          "visual": "small"
+        },
+        {
+          "level": 2,
+          "damage": 20,
+          "cooldown": 780,
+          "count": 1,
+          "pierce": 3,
+          "speed": 450,
+          "spread": 0.0,
+          "visual": "small"
+        },
+        {
+          "level": 3,
+          "damage": 25,
+          "cooldown": 740,
+          "count": 1,
+          "pierce": 4,
+          "speed": 470,
+          "spread": 0.05,
+          "visual": "medium"
+        },
+        {
+          "level": 4,
+          "damage": 31,
+          "cooldown": 700,
+          "count": 2,
+          "pierce": 4,
+          "speed": 490,
+          "spread": 0.06,
+          "visual": "medium"
+        },
+        {
+          "level": 5,
+          "damage": 38,
+          "cooldown": 660,
+          "count": 2,
+          "pierce": 5,
+          "speed": 510,
+          "spread": 0.07,
+          "visual": "large"
+        },
+        {
+          "level": 6,
+          "damage": 46,
+          "cooldown": 620,
+          "count": 3,
+          "pierce": 6,
+          "speed": 530,
+          "spread": 0.08,
+          "visual": "large"
+        },
+        {
+          "level": 7,
+          "damage": 56,
+          "cooldown": 590,
+          "count": 3,
+          "pierce": 7,
+          "speed": 550,
+          "spread": 0.1,
+          "visual": "huge"
+        },
+        {
+          "level": 8,
+          "damage": 70,
+          "cooldown": 560,
+          "count": 4,
+          "pierce": 8,
+          "speed": 580,
+          "spread": 0.12,
+          "visual": "huge"
+        }
       ]
     },
     {
-      "id": "scatter_flame", "name": "拡散火弾", "description": "最寄りの敵方向を中心に扇状へ複数の火弾を発射。近距離集中・遠距離拡散。1発は火球より低威力。",
-      "icon": "icon_scatter_flame", "iconKey": "icon_scatter_flame", "category": "active",
-      "tags": ["active", "projectile", "spread", "fire"], "rarity": "common", "weight": 1,
-      "jobs": ["flame_witch"], "isCommon": false, "prerequisites": [], "conflicts": [], "unlockCondition": null,
-      "evolutionBranches": [], "displayOrder": 7, "modifiers": [], "enabled": true,
-      "maxLevel": 8, "initial": false,
+      "id": "scatter_flame",
+      "name": "拡散火弾",
+      "description": "最寄りの敵方向を中心に扇状へ複数の火弾を発射。近距離集中・遠距離拡散。1発は火球より低威力。",
+      "icon": "icon_scatter_flame",
+      "iconKey": "icon_scatter_flame",
+      "category": "active",
+      "tags": [
+        "active",
+        "projectile",
+        "spread",
+        "fire"
+      ],
+      "rarity": "common",
+      "weight": 1,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [],
+      "displayOrder": 7,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "initial": false,
       "levels": [
-        { "level": 1, "damage": 6,  "cooldown": 1100, "count": 3,  "spread": 0.5, "pierce": 0, "speed": 300, "visual": "small" },
-        { "level": 2, "damage": 7,  "cooldown": 1050, "count": 4,  "spread": 0.6, "pierce": 0, "speed": 305, "visual": "small" },
-        { "level": 3, "damage": 9,  "cooldown": 1000, "count": 5,  "spread": 0.7, "pierce": 0, "speed": 310, "visual": "medium" },
-        { "level": 4, "damage": 11, "cooldown": 950,  "count": 6,  "spread": 0.8, "pierce": 1, "speed": 315, "visual": "medium" },
-        { "level": 5, "damage": 13, "cooldown": 900,  "count": 7,  "spread": 0.9, "pierce": 1, "speed": 320, "visual": "large" },
-        { "level": 6, "damage": 15, "cooldown": 860,  "count": 8,  "spread": 1.0, "pierce": 1, "speed": 325, "visual": "large" },
-        { "level": 7, "damage": 18, "cooldown": 820,  "count": 9,  "spread": 1.1, "pierce": 2, "speed": 330, "visual": "huge" },
-        { "level": 8, "damage": 21, "cooldown": 780,  "count": 11, "spread": 1.2, "pierce": 2, "speed": 340, "visual": "huge" }
+        {
+          "level": 1,
+          "damage": 6,
+          "cooldown": 1100,
+          "count": 3,
+          "spread": 0.5,
+          "pierce": 0,
+          "speed": 300,
+          "visual": "small"
+        },
+        {
+          "level": 2,
+          "damage": 7,
+          "cooldown": 1050,
+          "count": 4,
+          "spread": 0.6,
+          "pierce": 0,
+          "speed": 305,
+          "visual": "small"
+        },
+        {
+          "level": 3,
+          "damage": 9,
+          "cooldown": 1000,
+          "count": 5,
+          "spread": 0.7,
+          "pierce": 0,
+          "speed": 310,
+          "visual": "medium"
+        },
+        {
+          "level": 4,
+          "damage": 11,
+          "cooldown": 950,
+          "count": 6,
+          "spread": 0.8,
+          "pierce": 1,
+          "speed": 315,
+          "visual": "medium"
+        },
+        {
+          "level": 5,
+          "damage": 13,
+          "cooldown": 900,
+          "count": 7,
+          "spread": 0.9,
+          "pierce": 1,
+          "speed": 320,
+          "visual": "large"
+        },
+        {
+          "level": 6,
+          "damage": 15,
+          "cooldown": 860,
+          "count": 8,
+          "spread": 1.0,
+          "pierce": 1,
+          "speed": 325,
+          "visual": "large"
+        },
+        {
+          "level": 7,
+          "damage": 18,
+          "cooldown": 820,
+          "count": 9,
+          "spread": 1.1,
+          "pierce": 2,
+          "speed": 330,
+          "visual": "huge"
+        },
+        {
+          "level": 8,
+          "damage": 21,
+          "cooldown": 780,
+          "count": 11,
+          "spread": 1.2,
+          "pierce": 2,
+          "speed": 340,
+          "visual": "huge"
+        }
       ]
     },
     {
-      "id": "homing_wisp", "name": "追尾鬼火", "description": "鬼火を生成し、短く漂った後に敵を追尾。対象死亡時は残り時間内で別の敵を再捕捉する。",
-      "icon": "icon_homing_wisp", "iconKey": "icon_homing_wisp", "category": "active",
-      "tags": ["active", "projectile", "homing", "fire"], "rarity": "uncommon", "weight": 1,
-      "jobs": ["flame_witch"], "isCommon": false, "prerequisites": [], "conflicts": [], "unlockCondition": null,
-      "evolutionBranches": ["hundred_wisp_parade"], "displayOrder": 8, "modifiers": [], "enabled": true,
-      "maxLevel": 8, "initial": false,
+      "id": "homing_wisp",
+      "name": "追尾鬼火",
+      "description": "鬼火を生成し、短く漂った後に敵を追尾。対象死亡時は残り時間内で別の敵を再捕捉する。",
+      "icon": "icon_homing_wisp",
+      "iconKey": "icon_homing_wisp",
+      "category": "active",
+      "tags": [
+        "active",
+        "projectile",
+        "homing",
+        "fire"
+      ],
+      "rarity": "uncommon",
+      "weight": 1,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [
+        "hundred_wisp_parade"
+      ],
+      "displayOrder": 8,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "initial": false,
       "levels": [
-        { "level": 1, "damage": 8,  "cooldown": 1400, "count": 2, "homingSpeed": 180, "duration": 3000, "retargets": 1, "wanderMs": 400, "visual": "small" },
-        { "level": 2, "damage": 10, "cooldown": 1350, "count": 2, "homingSpeed": 195, "duration": 3200, "retargets": 1, "wanderMs": 400, "visual": "small" },
-        { "level": 3, "damage": 12, "cooldown": 1300, "count": 3, "homingSpeed": 210, "duration": 3400, "retargets": 2, "wanderMs": 380, "visual": "medium" },
-        { "level": 4, "damage": 15, "cooldown": 1250, "count": 3, "homingSpeed": 225, "duration": 3600, "retargets": 2, "wanderMs": 360, "visual": "medium" },
-        { "level": 5, "damage": 18, "cooldown": 1200, "count": 4, "homingSpeed": 240, "duration": 3800, "retargets": 3, "wanderMs": 340, "visual": "large" },
-        { "level": 6, "damage": 22, "cooldown": 1150, "count": 4, "homingSpeed": 255, "duration": 4000, "retargets": 3, "wanderMs": 320, "visual": "large" },
-        { "level": 7, "damage": 27, "cooldown": 1100, "count": 5, "homingSpeed": 270, "duration": 4200, "retargets": 4, "wanderMs": 300, "visual": "huge" },
-        { "level": 8, "damage": 33, "cooldown": 1050, "count": 6, "homingSpeed": 290, "duration": 4500, "retargets": 5, "wanderMs": 280, "visual": "huge" }
+        {
+          "level": 1,
+          "damage": 8,
+          "cooldown": 1400,
+          "count": 2,
+          "homingSpeed": 180,
+          "duration": 3000,
+          "retargets": 1,
+          "wanderMs": 400,
+          "visual": "small"
+        },
+        {
+          "level": 2,
+          "damage": 10,
+          "cooldown": 1350,
+          "count": 2,
+          "homingSpeed": 195,
+          "duration": 3200,
+          "retargets": 1,
+          "wanderMs": 400,
+          "visual": "small"
+        },
+        {
+          "level": 3,
+          "damage": 12,
+          "cooldown": 1300,
+          "count": 3,
+          "homingSpeed": 210,
+          "duration": 3400,
+          "retargets": 2,
+          "wanderMs": 380,
+          "visual": "medium"
+        },
+        {
+          "level": 4,
+          "damage": 15,
+          "cooldown": 1250,
+          "count": 3,
+          "homingSpeed": 225,
+          "duration": 3600,
+          "retargets": 2,
+          "wanderMs": 360,
+          "visual": "medium"
+        },
+        {
+          "level": 5,
+          "damage": 18,
+          "cooldown": 1200,
+          "count": 4,
+          "homingSpeed": 240,
+          "duration": 3800,
+          "retargets": 3,
+          "wanderMs": 340,
+          "visual": "large"
+        },
+        {
+          "level": 6,
+          "damage": 22,
+          "cooldown": 1150,
+          "count": 4,
+          "homingSpeed": 255,
+          "duration": 4000,
+          "retargets": 3,
+          "wanderMs": 320,
+          "visual": "large"
+        },
+        {
+          "level": 7,
+          "damage": 27,
+          "cooldown": 1100,
+          "count": 5,
+          "homingSpeed": 270,
+          "duration": 4200,
+          "retargets": 4,
+          "wanderMs": 300,
+          "visual": "huge"
+        },
+        {
+          "level": 8,
+          "damage": 33,
+          "cooldown": 1050,
+          "count": 6,
+          "homingSpeed": 290,
+          "duration": 4500,
+          "retargets": 5,
+          "wanderMs": 280,
+          "visual": "huge"
+        }
       ]
     },
     {
-      "id": "chain_flame", "name": "連鎖炎", "description": "最寄りの敵へ炎を飛ばし、命中後に近くの別の敵へ連鎖。同一発動で同じ敵へ二重連鎖しない。",
-      "icon": "icon_chain_flame", "iconKey": "icon_chain_flame", "category": "active",
-      "tags": ["active", "chain", "fire"], "rarity": "rare", "weight": 1,
-      "jobs": ["flame_witch"], "isCommon": false, "prerequisites": [], "conflicts": [], "unlockCondition": null,
-      "evolutionBranches": [], "displayOrder": 9, "modifiers": [], "enabled": true,
-      "maxLevel": 8, "initial": false,
+      "id": "chain_flame",
+      "name": "連鎖炎",
+      "description": "最寄りの敵へ炎を飛ばし、命中後に近くの別の敵へ連鎖。同一発動で同じ敵へ二重連鎖しない。",
+      "icon": "icon_chain_flame",
+      "iconKey": "icon_chain_flame",
+      "category": "active",
+      "tags": [
+        "active",
+        "chain",
+        "fire"
+      ],
+      "rarity": "rare",
+      "weight": 1,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [],
+      "displayOrder": 9,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "initial": false,
       "levels": [
-        { "level": 1, "damage": 16, "cooldown": 1500, "chainCount": 2, "chainRange": 120, "falloff": 0.80, "speed": 340, "visual": "small" },
-        { "level": 2, "damage": 20, "cooldown": 1440, "chainCount": 2, "chainRange": 128, "falloff": 0.82, "speed": 345, "visual": "small" },
-        { "level": 3, "damage": 25, "cooldown": 1380, "chainCount": 3, "chainRange": 136, "falloff": 0.84, "speed": 350, "visual": "medium" },
-        { "level": 4, "damage": 31, "cooldown": 1320, "chainCount": 3, "chainRange": 144, "falloff": 0.86, "speed": 355, "visual": "medium" },
-        { "level": 5, "damage": 38, "cooldown": 1260, "chainCount": 4, "chainRange": 152, "falloff": 0.88, "speed": 360, "visual": "large" },
-        { "level": 6, "damage": 46, "cooldown": 1200, "chainCount": 5, "chainRange": 160, "falloff": 0.90, "speed": 365, "visual": "large" },
-        { "level": 7, "damage": 56, "cooldown": 1140, "chainCount": 6, "chainRange": 170, "falloff": 0.92, "speed": 370, "visual": "huge" },
-        { "level": 8, "damage": 70, "cooldown": 1080, "chainCount": 7, "chainRange": 180, "falloff": 0.94, "speed": 380, "visual": "huge" }
+        {
+          "level": 1,
+          "damage": 16,
+          "cooldown": 1500,
+          "chainCount": 2,
+          "chainRange": 120,
+          "falloff": 0.8,
+          "speed": 340,
+          "visual": "small"
+        },
+        {
+          "level": 2,
+          "damage": 20,
+          "cooldown": 1440,
+          "chainCount": 2,
+          "chainRange": 128,
+          "falloff": 0.82,
+          "speed": 345,
+          "visual": "small"
+        },
+        {
+          "level": 3,
+          "damage": 25,
+          "cooldown": 1380,
+          "chainCount": 3,
+          "chainRange": 136,
+          "falloff": 0.84,
+          "speed": 350,
+          "visual": "medium"
+        },
+        {
+          "level": 4,
+          "damage": 31,
+          "cooldown": 1320,
+          "chainCount": 3,
+          "chainRange": 144,
+          "falloff": 0.86,
+          "speed": 355,
+          "visual": "medium"
+        },
+        {
+          "level": 5,
+          "damage": 38,
+          "cooldown": 1260,
+          "chainCount": 4,
+          "chainRange": 152,
+          "falloff": 0.88,
+          "speed": 360,
+          "visual": "large"
+        },
+        {
+          "level": 6,
+          "damage": 46,
+          "cooldown": 1200,
+          "chainCount": 5,
+          "chainRange": 160,
+          "falloff": 0.9,
+          "speed": 365,
+          "visual": "large"
+        },
+        {
+          "level": 7,
+          "damage": 56,
+          "cooldown": 1140,
+          "chainCount": 6,
+          "chainRange": 170,
+          "falloff": 0.92,
+          "speed": 370,
+          "visual": "huge"
+        },
+        {
+          "level": 8,
+          "damage": 70,
+          "cooldown": 1080,
+          "chainCount": 7,
+          "chainRange": 180,
+          "falloff": 0.94,
+          "speed": 380,
+          "visual": "huge"
+        }
       ]
     },
     {
-      "id": "lava_bomb", "name": "溶岩爆弾", "description": "敵の密集地点へ溶岩爆弾を投下。予告後に遅延起爆し、中心ほど高威力。跡地に短い燃焼地帯を残す。",
-      "icon": "icon_lava_bomb", "iconKey": "icon_lava_bomb", "category": "active",
-      "tags": ["active", "delayed", "explosion", "fire"], "rarity": "uncommon", "weight": 1,
-      "jobs": ["flame_witch"], "isCommon": false, "prerequisites": [], "conflicts": [], "unlockCondition": null,
-      "evolutionBranches": ["solar_core_collapse"], "displayOrder": 10, "modifiers": [], "enabled": true,
-      "maxLevel": 8, "initial": false,
+      "id": "lava_bomb",
+      "name": "溶岩爆弾",
+      "description": "敵の密集地点へ溶岩爆弾を投下。予告後に遅延起爆し、中心ほど高威力。跡地に短い燃焼地帯を残す。",
+      "icon": "icon_lava_bomb",
+      "iconKey": "icon_lava_bomb",
+      "category": "active",
+      "tags": [
+        "active",
+        "delayed",
+        "explosion",
+        "fire"
+      ],
+      "rarity": "uncommon",
+      "weight": 1,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [
+        "solar_core_collapse"
+      ],
+      "displayOrder": 10,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "initial": false,
       "levels": [
-        { "level": 1, "damage": 30,  "cooldown": 2600, "count": 1, "radius": 36, "telegraph": 500, "burnDuration": 1000, "burnDamage": 4,  "visual": "small" },
-        { "level": 2, "damage": 38,  "cooldown": 2500, "count": 1, "radius": 40, "telegraph": 490, "burnDuration": 1100, "burnDamage": 5,  "visual": "small" },
-        { "level": 3, "damage": 47,  "cooldown": 2400, "count": 2, "radius": 44, "telegraph": 480, "burnDuration": 1200, "burnDamage": 6,  "visual": "medium" },
-        { "level": 4, "damage": 57,  "cooldown": 2300, "count": 2, "radius": 48, "telegraph": 470, "burnDuration": 1300, "burnDamage": 7,  "visual": "medium" },
-        { "level": 5, "damage": 69,  "cooldown": 2200, "count": 2, "radius": 54, "telegraph": 460, "burnDuration": 1500, "burnDamage": 9,  "visual": "large" },
-        { "level": 6, "damage": 83,  "cooldown": 2100, "count": 3, "radius": 60, "telegraph": 450, "burnDuration": 1700, "burnDamage": 11, "visual": "large" },
-        { "level": 7, "damage": 100, "cooldown": 2000, "count": 3, "radius": 66, "telegraph": 440, "burnDuration": 1900, "burnDamage": 13, "visual": "huge" },
-        { "level": 8, "damage": 120, "cooldown": 1900, "count": 4, "radius": 74, "telegraph": 430, "burnDuration": 2200, "burnDamage": 16, "visual": "huge" }
+        {
+          "level": 1,
+          "damage": 30,
+          "cooldown": 2600,
+          "count": 1,
+          "radius": 36,
+          "telegraph": 500,
+          "burnDuration": 1000,
+          "burnDamage": 4,
+          "visual": "small"
+        },
+        {
+          "level": 2,
+          "damage": 38,
+          "cooldown": 2500,
+          "count": 1,
+          "radius": 40,
+          "telegraph": 490,
+          "burnDuration": 1100,
+          "burnDamage": 5,
+          "visual": "small"
+        },
+        {
+          "level": 3,
+          "damage": 47,
+          "cooldown": 2400,
+          "count": 2,
+          "radius": 44,
+          "telegraph": 480,
+          "burnDuration": 1200,
+          "burnDamage": 6,
+          "visual": "medium"
+        },
+        {
+          "level": 4,
+          "damage": 57,
+          "cooldown": 2300,
+          "count": 2,
+          "radius": 48,
+          "telegraph": 470,
+          "burnDuration": 1300,
+          "burnDamage": 7,
+          "visual": "medium"
+        },
+        {
+          "level": 5,
+          "damage": 69,
+          "cooldown": 2200,
+          "count": 2,
+          "radius": 54,
+          "telegraph": 460,
+          "burnDuration": 1500,
+          "burnDamage": 9,
+          "visual": "large"
+        },
+        {
+          "level": 6,
+          "damage": 83,
+          "cooldown": 2100,
+          "count": 3,
+          "radius": 60,
+          "telegraph": 450,
+          "burnDuration": 1700,
+          "burnDamage": 11,
+          "visual": "large"
+        },
+        {
+          "level": 7,
+          "damage": 100,
+          "cooldown": 2000,
+          "count": 3,
+          "radius": 66,
+          "telegraph": 440,
+          "burnDuration": 1900,
+          "burnDamage": 13,
+          "visual": "huge"
+        },
+        {
+          "level": 8,
+          "damage": 120,
+          "cooldown": 1900,
+          "count": 4,
+          "radius": 74,
+          "telegraph": 430,
+          "burnDuration": 2200,
+          "burnDamage": 16,
+          "visual": "huge"
+        }
       ]
     },
     {
-      "id": "flame_vortex", "name": "火炎渦", "description": "密集地点に火炎渦を残し、範囲内へ継続ダメージ＋中心へ緩く吸引（ボスは弱め）。終了時に小爆発。",
-      "icon": "icon_flame_vortex", "iconKey": "icon_flame_vortex", "category": "active",
-      "tags": ["active", "area", "pull", "damageOverTime", "fire"], "rarity": "rare", "weight": 1,
-      "jobs": ["flame_witch"], "isCommon": false, "prerequisites": [], "conflicts": [], "unlockCondition": null,
-      "evolutionBranches": ["infernal_vortex_wheel"], "displayOrder": 11, "modifiers": [], "enabled": true,
-      "maxLevel": 8, "initial": false,
+      "id": "flame_vortex",
+      "name": "火炎渦",
+      "description": "密集地点に火炎渦を残し、範囲内へ継続ダメージ＋中心へ緩く吸引（ボスは弱め）。終了時に小爆発。",
+      "icon": "icon_flame_vortex",
+      "iconKey": "icon_flame_vortex",
+      "category": "active",
+      "tags": [
+        "active",
+        "area",
+        "pull",
+        "damageOverTime",
+        "fire"
+      ],
+      "rarity": "rare",
+      "weight": 1,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [
+        "infernal_vortex_wheel"
+      ],
+      "displayOrder": 11,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "initial": false,
       "levels": [
-        { "level": 1, "damage": 5,  "cooldown": 4000, "radius": 48, "duration": 2000, "pull": 40, "tickRate": 300, "maxActive": 1, "endBurst": 20, "visual": "small" },
-        { "level": 2, "damage": 6,  "cooldown": 3900, "radius": 52, "duration": 2200, "pull": 44, "tickRate": 300, "maxActive": 1, "endBurst": 24, "visual": "small" },
-        { "level": 3, "damage": 7,  "cooldown": 3800, "radius": 56, "duration": 2400, "pull": 48, "tickRate": 290, "maxActive": 2, "endBurst": 28, "visual": "medium" },
-        { "level": 4, "damage": 9,  "cooldown": 3700, "radius": 62, "duration": 2600, "pull": 52, "tickRate": 280, "maxActive": 2, "endBurst": 34, "visual": "medium" },
-        { "level": 5, "damage": 11, "cooldown": 3600, "radius": 68, "duration": 2900, "pull": 56, "tickRate": 270, "maxActive": 2, "endBurst": 42, "visual": "large" },
-        { "level": 6, "damage": 13, "cooldown": 3500, "radius": 74, "duration": 3200, "pull": 60, "tickRate": 260, "maxActive": 3, "endBurst": 52, "visual": "large" },
-        { "level": 7, "damage": 16, "cooldown": 3400, "radius": 82, "duration": 3500, "pull": 66, "tickRate": 250, "maxActive": 3, "endBurst": 64, "visual": "huge" },
-        { "level": 8, "damage": 20, "cooldown": 3300, "radius": 90, "duration": 4000, "pull": 72, "tickRate": 240, "maxActive": 4, "endBurst": 80, "visual": "huge" }
+        {
+          "level": 1,
+          "damage": 5,
+          "cooldown": 4000,
+          "radius": 48,
+          "duration": 2000,
+          "pull": 40,
+          "tickRate": 300,
+          "maxActive": 1,
+          "endBurst": 20,
+          "visual": "small"
+        },
+        {
+          "level": 2,
+          "damage": 6,
+          "cooldown": 3900,
+          "radius": 52,
+          "duration": 2200,
+          "pull": 44,
+          "tickRate": 300,
+          "maxActive": 1,
+          "endBurst": 24,
+          "visual": "small"
+        },
+        {
+          "level": 3,
+          "damage": 7,
+          "cooldown": 3800,
+          "radius": 56,
+          "duration": 2400,
+          "pull": 48,
+          "tickRate": 290,
+          "maxActive": 2,
+          "endBurst": 28,
+          "visual": "medium"
+        },
+        {
+          "level": 4,
+          "damage": 9,
+          "cooldown": 3700,
+          "radius": 62,
+          "duration": 2600,
+          "pull": 52,
+          "tickRate": 280,
+          "maxActive": 2,
+          "endBurst": 34,
+          "visual": "medium"
+        },
+        {
+          "level": 5,
+          "damage": 11,
+          "cooldown": 3600,
+          "radius": 68,
+          "duration": 2900,
+          "pull": 56,
+          "tickRate": 270,
+          "maxActive": 2,
+          "endBurst": 42,
+          "visual": "large"
+        },
+        {
+          "level": 6,
+          "damage": 13,
+          "cooldown": 3500,
+          "radius": 74,
+          "duration": 3200,
+          "pull": 60,
+          "tickRate": 260,
+          "maxActive": 3,
+          "endBurst": 52,
+          "visual": "large"
+        },
+        {
+          "level": 7,
+          "damage": 16,
+          "cooldown": 3400,
+          "radius": 82,
+          "duration": 3500,
+          "pull": 66,
+          "tickRate": 250,
+          "maxActive": 3,
+          "endBurst": 64,
+          "visual": "huge"
+        },
+        {
+          "level": 8,
+          "damage": 20,
+          "cooldown": 3300,
+          "radius": 90,
+          "duration": 4000,
+          "pull": 72,
+          "tickRate": 240,
+          "maxActive": 4,
+          "endBurst": 80,
+          "visual": "huge"
+        }
       ]
     },
     {
-      "id": "fire_spirit", "name": "火の精霊", "description": "プレイヤーに追従する火の精霊を召喚し、近くの敵へ自動射撃。精霊は敵の攻撃対象にならない。",
-      "icon": "icon_fire_spirit", "iconKey": "icon_fire_spirit", "category": "active",
-      "tags": ["active", "summon", "projectile", "fire"], "rarity": "uncommon", "weight": 1,
-      "jobs": ["flame_witch"], "isCommon": false, "prerequisites": [], "conflicts": [], "unlockCondition": null,
-      "evolutionBranches": [], "displayOrder": 12, "modifiers": [], "enabled": true,
-      "maxLevel": 8, "initial": false,
+      "id": "fire_spirit",
+      "name": "火の精霊",
+      "description": "プレイヤーに追従する火の精霊を召喚し、近くの敵へ自動射撃。精霊は敵の攻撃対象にならない。",
+      "icon": "icon_fire_spirit",
+      "iconKey": "icon_fire_spirit",
+      "category": "active",
+      "tags": [
+        "active",
+        "summon",
+        "projectile",
+        "fire"
+      ],
+      "rarity": "uncommon",
+      "weight": 1,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [],
+      "displayOrder": 12,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "initial": false,
       "levels": [
-        { "level": 1, "count": 1, "shotDamage": 6,  "shotInterval": 900, "shotSpeed": 320, "range": 200, "pierce": 0, "visual": "small" },
-        { "level": 2, "count": 1, "shotDamage": 8,  "shotInterval": 850, "shotSpeed": 330, "range": 210, "pierce": 0, "visual": "small" },
-        { "level": 3, "count": 2, "shotDamage": 10, "shotInterval": 800, "shotSpeed": 340, "range": 220, "pierce": 0, "visual": "medium" },
-        { "level": 4, "count": 2, "shotDamage": 13, "shotInterval": 760, "shotSpeed": 350, "range": 230, "pierce": 1, "visual": "medium" },
-        { "level": 5, "count": 3, "shotDamage": 16, "shotInterval": 720, "shotSpeed": 360, "range": 240, "pierce": 1, "visual": "large" },
-        { "level": 6, "count": 3, "shotDamage": 20, "shotInterval": 680, "shotSpeed": 370, "range": 250, "pierce": 1, "visual": "large" },
-        { "level": 7, "count": 4, "shotDamage": 25, "shotInterval": 640, "shotSpeed": 380, "range": 260, "pierce": 2, "visual": "huge" },
-        { "level": 8, "count": 5, "shotDamage": 31, "shotInterval": 600, "shotSpeed": 400, "range": 280, "pierce": 2, "visual": "huge" }
+        {
+          "level": 1,
+          "count": 1,
+          "shotDamage": 6,
+          "shotInterval": 900,
+          "shotSpeed": 320,
+          "range": 200,
+          "pierce": 0,
+          "visual": "small"
+        },
+        {
+          "level": 2,
+          "count": 1,
+          "shotDamage": 8,
+          "shotInterval": 850,
+          "shotSpeed": 330,
+          "range": 210,
+          "pierce": 0,
+          "visual": "small"
+        },
+        {
+          "level": 3,
+          "count": 2,
+          "shotDamage": 10,
+          "shotInterval": 800,
+          "shotSpeed": 340,
+          "range": 220,
+          "pierce": 0,
+          "visual": "medium"
+        },
+        {
+          "level": 4,
+          "count": 2,
+          "shotDamage": 13,
+          "shotInterval": 760,
+          "shotSpeed": 350,
+          "range": 230,
+          "pierce": 1,
+          "visual": "medium"
+        },
+        {
+          "level": 5,
+          "count": 3,
+          "shotDamage": 16,
+          "shotInterval": 720,
+          "shotSpeed": 360,
+          "range": 240,
+          "pierce": 1,
+          "visual": "large"
+        },
+        {
+          "level": 6,
+          "count": 3,
+          "shotDamage": 20,
+          "shotInterval": 680,
+          "shotSpeed": 370,
+          "range": 250,
+          "pierce": 1,
+          "visual": "large"
+        },
+        {
+          "level": 7,
+          "count": 4,
+          "shotDamage": 25,
+          "shotInterval": 640,
+          "shotSpeed": 380,
+          "range": 260,
+          "pierce": 2,
+          "visual": "huge"
+        },
+        {
+          "level": 8,
+          "count": 5,
+          "shotDamage": 31,
+          "shotInterval": 600,
+          "shotSpeed": 400,
+          "range": 280,
+          "pierce": 2,
+          "visual": "huge"
+        }
       ]
     },
     {
-      "id": "phoenix_feather", "name": "不死鳥の羽", "description": "自動発動の致死防御。致死ダメージを一度だけ防ぎ、HP回復＋大規模な炎爆発＋一時無敵。長い再使用時間。",
-      "icon": "icon_phoenix_feather", "iconKey": "icon_phoenix_feather", "category": "active",
-      "tags": ["active", "defensive", "revival", "fire"], "rarity": "legendary", "weight": 1,
-      "jobs": ["flame_witch"], "isCommon": false, "prerequisites": [], "conflicts": [], "unlockCondition": null,
-      "evolutionBranches": [], "displayOrder": 13, "modifiers": [], "enabled": true,
-      "maxLevel": 8, "initial": false,
+      "id": "phoenix_feather",
+      "name": "不死鳥の羽",
+      "description": "自動発動の致死防御。致死ダメージを一度だけ防ぎ、HP回復＋大規模な炎爆発＋一時無敵。長い再使用時間。",
+      "icon": "icon_phoenix_feather",
+      "iconKey": "icon_phoenix_feather",
+      "category": "active",
+      "tags": [
+        "active",
+        "defensive",
+        "revival",
+        "fire"
+      ],
+      "rarity": "legendary",
+      "weight": 1,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [],
+      "displayOrder": 13,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "initial": false,
       "levels": [
-        { "level": 1, "cooldown": 60000, "healPercent": 0.30, "explosionDamage": 80,  "explosionRadius": 80,  "invulnMs": 1000, "visual": "small" },
-        { "level": 2, "cooldown": 56000, "healPercent": 0.34, "explosionDamage": 100, "explosionRadius": 88,  "invulnMs": 1100, "visual": "small" },
-        { "level": 3, "cooldown": 52000, "healPercent": 0.38, "explosionDamage": 124, "explosionRadius": 96,  "invulnMs": 1200, "visual": "medium" },
-        { "level": 4, "cooldown": 48000, "healPercent": 0.42, "explosionDamage": 152, "explosionRadius": 106, "invulnMs": 1300, "visual": "medium" },
-        { "level": 5, "cooldown": 44000, "healPercent": 0.46, "explosionDamage": 184, "explosionRadius": 116, "invulnMs": 1400, "visual": "large" },
-        { "level": 6, "cooldown": 40000, "healPercent": 0.50, "explosionDamage": 220, "explosionRadius": 128, "invulnMs": 1500, "visual": "large" },
-        { "level": 7, "cooldown": 36000, "healPercent": 0.55, "explosionDamage": 260, "explosionRadius": 140, "invulnMs": 1600, "visual": "huge" },
-        { "level": 8, "cooldown": 32000, "healPercent": 0.60, "explosionDamage": 320, "explosionRadius": 155, "invulnMs": 1800, "visual": "huge" }
+        {
+          "level": 1,
+          "cooldown": 60000,
+          "healPercent": 0.3,
+          "explosionDamage": 80,
+          "explosionRadius": 80,
+          "invulnMs": 1000,
+          "visual": "small"
+        },
+        {
+          "level": 2,
+          "cooldown": 56000,
+          "healPercent": 0.34,
+          "explosionDamage": 100,
+          "explosionRadius": 88,
+          "invulnMs": 1100,
+          "visual": "small"
+        },
+        {
+          "level": 3,
+          "cooldown": 52000,
+          "healPercent": 0.38,
+          "explosionDamage": 124,
+          "explosionRadius": 96,
+          "invulnMs": 1200,
+          "visual": "medium"
+        },
+        {
+          "level": 4,
+          "cooldown": 48000,
+          "healPercent": 0.42,
+          "explosionDamage": 152,
+          "explosionRadius": 106,
+          "invulnMs": 1300,
+          "visual": "medium"
+        },
+        {
+          "level": 5,
+          "cooldown": 44000,
+          "healPercent": 0.46,
+          "explosionDamage": 184,
+          "explosionRadius": 116,
+          "invulnMs": 1400,
+          "visual": "large"
+        },
+        {
+          "level": 6,
+          "cooldown": 40000,
+          "healPercent": 0.5,
+          "explosionDamage": 220,
+          "explosionRadius": 128,
+          "invulnMs": 1500,
+          "visual": "large"
+        },
+        {
+          "level": 7,
+          "cooldown": 36000,
+          "healPercent": 0.55,
+          "explosionDamage": 260,
+          "explosionRadius": 140,
+          "invulnMs": 1600,
+          "visual": "huge"
+        },
+        {
+          "level": 8,
+          "cooldown": 32000,
+          "healPercent": 0.6,
+          "explosionDamage": 320,
+          "explosionRadius": 155,
+          "invulnMs": 1800,
+          "visual": "huge"
+        }
       ]
     },
     {
-      "id": "flame_barrier", "name": "炎の障壁", "description": "一定間隔で炎の障壁を展開。被弾を軽減/無効化し、防いだ際に周囲へ反撃爆発（1被弾1回）。",
-      "icon": "icon_flame_barrier", "iconKey": "icon_flame_barrier", "category": "active",
-      "tags": ["active", "defensive", "shield", "retaliation", "fire"], "rarity": "uncommon", "weight": 1,
-      "jobs": ["flame_witch"], "isCommon": false, "prerequisites": [], "conflicts": [], "unlockCondition": null,
-      "evolutionBranches": [], "displayOrder": 14, "modifiers": [], "enabled": true,
-      "maxLevel": 8, "initial": false,
+      "id": "flame_barrier",
+      "name": "炎の障壁",
+      "description": "一定間隔で炎の障壁を展開。被弾を軽減/無効化し、防いだ際に周囲へ反撃爆発（1被弾1回）。",
+      "icon": "icon_flame_barrier",
+      "iconKey": "icon_flame_barrier",
+      "category": "active",
+      "tags": [
+        "active",
+        "defensive",
+        "shield",
+        "retaliation",
+        "fire"
+      ],
+      "rarity": "uncommon",
+      "weight": 1,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [],
+      "displayOrder": 14,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "initial": false,
       "levels": [
-        { "level": 1, "cooldown": 8000, "duration": 2500, "hits": 1, "reduction": 0.50, "retaliateDamage": 20, "retaliateRadius": 40, "visual": "small" },
-        { "level": 2, "cooldown": 7600, "duration": 2600, "hits": 1, "reduction": 0.60, "retaliateDamage": 26, "retaliateRadius": 44, "visual": "small" },
-        { "level": 3, "cooldown": 7200, "duration": 2700, "hits": 2, "reduction": 0.65, "retaliateDamage": 32, "retaliateRadius": 48, "visual": "medium" },
-        { "level": 4, "cooldown": 6800, "duration": 2800, "hits": 2, "reduction": 0.70, "retaliateDamage": 40, "retaliateRadius": 52, "visual": "medium" },
-        { "level": 5, "cooldown": 6400, "duration": 3000, "hits": 3, "reduction": 0.80, "retaliateDamage": 50, "retaliateRadius": 58, "visual": "large" },
-        { "level": 6, "cooldown": 6000, "duration": 3200, "hits": 3, "reduction": 0.85, "retaliateDamage": 62, "retaliateRadius": 64, "visual": "large" },
-        { "level": 7, "cooldown": 5600, "duration": 3400, "hits": 4, "reduction": 0.92, "retaliateDamage": 76, "retaliateRadius": 70, "visual": "huge" },
-        { "level": 8, "cooldown": 5200, "duration": 3600, "hits": 5, "reduction": 1.00, "retaliateDamage": 94, "retaliateRadius": 78, "visual": "huge" }
+        {
+          "level": 1,
+          "cooldown": 8000,
+          "duration": 2500,
+          "hits": 1,
+          "reduction": 0.5,
+          "retaliateDamage": 20,
+          "retaliateRadius": 40,
+          "visual": "small"
+        },
+        {
+          "level": 2,
+          "cooldown": 7600,
+          "duration": 2600,
+          "hits": 1,
+          "reduction": 0.6,
+          "retaliateDamage": 26,
+          "retaliateRadius": 44,
+          "visual": "small"
+        },
+        {
+          "level": 3,
+          "cooldown": 7200,
+          "duration": 2700,
+          "hits": 2,
+          "reduction": 0.65,
+          "retaliateDamage": 32,
+          "retaliateRadius": 48,
+          "visual": "medium"
+        },
+        {
+          "level": 4,
+          "cooldown": 6800,
+          "duration": 2800,
+          "hits": 2,
+          "reduction": 0.7,
+          "retaliateDamage": 40,
+          "retaliateRadius": 52,
+          "visual": "medium"
+        },
+        {
+          "level": 5,
+          "cooldown": 6400,
+          "duration": 3000,
+          "hits": 3,
+          "reduction": 0.8,
+          "retaliateDamage": 50,
+          "retaliateRadius": 58,
+          "visual": "large"
+        },
+        {
+          "level": 6,
+          "cooldown": 6000,
+          "duration": 3200,
+          "hits": 3,
+          "reduction": 0.85,
+          "retaliateDamage": 62,
+          "retaliateRadius": 64,
+          "visual": "large"
+        },
+        {
+          "level": 7,
+          "cooldown": 5600,
+          "duration": 3400,
+          "hits": 4,
+          "reduction": 0.92,
+          "retaliateDamage": 76,
+          "retaliateRadius": 70,
+          "visual": "huge"
+        },
+        {
+          "level": 8,
+          "cooldown": 5200,
+          "duration": 3600,
+          "hits": 5,
+          "reduction": 1.0,
+          "retaliateDamage": 94,
+          "retaliateRadius": 78,
+          "visual": "huge"
+        }
       ]
     },
     {
-      "id": "detonation_mark", "name": "起爆刻印", "description": "複数の敵へ起爆刻印を付与。火属性攻撃/炎上が規定回数命中すると起爆。刻印敵の死亡でも小起爆。",
-      "icon": "icon_detonation_mark", "iconKey": "icon_detonation_mark", "category": "active",
-      "tags": ["active", "mark", "combo", "explosion", "fire"], "rarity": "rare", "weight": 1,
-      "jobs": ["flame_witch"], "isCommon": false, "prerequisites": [], "conflicts": [], "unlockCondition": null,
-      "evolutionBranches": ["apocalypse_chain"], "displayOrder": 15, "modifiers": [], "enabled": true,
-      "maxLevel": 8, "initial": false,
+      "id": "detonation_mark",
+      "name": "起爆刻印",
+      "description": "複数の敵へ起爆刻印を付与。火属性攻撃/炎上が規定回数命中すると起爆。刻印敵の死亡でも小起爆。",
+      "icon": "icon_detonation_mark",
+      "iconKey": "icon_detonation_mark",
+      "category": "active",
+      "tags": [
+        "active",
+        "mark",
+        "combo",
+        "explosion",
+        "fire"
+      ],
+      "rarity": "rare",
+      "weight": 1,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [
+        "apocalypse_chain"
+      ],
+      "displayOrder": 15,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "initial": false,
       "levels": [
-        { "level": 1, "cooldown": 3000, "markCount": 2, "hitsNeeded": 3, "detonateDamage": 24, "detonateRadius": 40, "markDuration": 4000, "deathDamage": 12, "visual": "small" },
-        { "level": 2, "cooldown": 2900, "markCount": 2, "hitsNeeded": 3, "detonateDamage": 30, "detonateRadius": 44, "markDuration": 4200, "deathDamage": 15, "visual": "small" },
-        { "level": 3, "cooldown": 2800, "markCount": 3, "hitsNeeded": 3, "detonateDamage": 37, "detonateRadius": 48, "markDuration": 4400, "deathDamage": 18, "visual": "medium" },
-        { "level": 4, "cooldown": 2700, "markCount": 3, "hitsNeeded": 2, "detonateDamage": 45, "detonateRadius": 54, "markDuration": 4600, "deathDamage": 22, "visual": "medium" },
-        { "level": 5, "cooldown": 2600, "markCount": 4, "hitsNeeded": 2, "detonateDamage": 54, "detonateRadius": 60, "markDuration": 4900, "deathDamage": 27, "visual": "large" },
-        { "level": 6, "cooldown": 2500, "markCount": 4, "hitsNeeded": 2, "detonateDamage": 65, "detonateRadius": 68, "markDuration": 5200, "deathDamage": 33, "visual": "large" },
-        { "level": 7, "cooldown": 2400, "markCount": 5, "hitsNeeded": 2, "detonateDamage": 78, "detonateRadius": 76, "markDuration": 5600, "deathDamage": 40, "visual": "huge" },
-        { "level": 8, "cooldown": 2300, "markCount": 6, "hitsNeeded": 2, "detonateDamage": 94, "detonateRadius": 86, "markDuration": 6000, "deathDamage": 48, "visual": "huge" }
+        {
+          "level": 1,
+          "cooldown": 3000,
+          "markCount": 2,
+          "hitsNeeded": 3,
+          "detonateDamage": 24,
+          "detonateRadius": 40,
+          "markDuration": 4000,
+          "deathDamage": 12,
+          "visual": "small"
+        },
+        {
+          "level": 2,
+          "cooldown": 2900,
+          "markCount": 2,
+          "hitsNeeded": 3,
+          "detonateDamage": 30,
+          "detonateRadius": 44,
+          "markDuration": 4200,
+          "deathDamage": 15,
+          "visual": "small"
+        },
+        {
+          "level": 3,
+          "cooldown": 2800,
+          "markCount": 3,
+          "hitsNeeded": 3,
+          "detonateDamage": 37,
+          "detonateRadius": 48,
+          "markDuration": 4400,
+          "deathDamage": 18,
+          "visual": "medium"
+        },
+        {
+          "level": 4,
+          "cooldown": 2700,
+          "markCount": 3,
+          "hitsNeeded": 2,
+          "detonateDamage": 45,
+          "detonateRadius": 54,
+          "markDuration": 4600,
+          "deathDamage": 22,
+          "visual": "medium"
+        },
+        {
+          "level": 5,
+          "cooldown": 2600,
+          "markCount": 4,
+          "hitsNeeded": 2,
+          "detonateDamage": 54,
+          "detonateRadius": 60,
+          "markDuration": 4900,
+          "deathDamage": 27,
+          "visual": "large"
+        },
+        {
+          "level": 6,
+          "cooldown": 2500,
+          "markCount": 4,
+          "hitsNeeded": 2,
+          "detonateDamage": 65,
+          "detonateRadius": 68,
+          "markDuration": 5200,
+          "deathDamage": 33,
+          "visual": "large"
+        },
+        {
+          "level": 7,
+          "cooldown": 2400,
+          "markCount": 5,
+          "hitsNeeded": 2,
+          "detonateDamage": 78,
+          "detonateRadius": 76,
+          "markDuration": 5600,
+          "deathDamage": 40,
+          "visual": "huge"
+        },
+        {
+          "level": 8,
+          "cooldown": 2300,
+          "markCount": 6,
+          "hitsNeeded": 2,
+          "detonateDamage": 94,
+          "detonateRadius": 86,
+          "markDuration": 6000,
+          "deathDamage": 48,
+          "visual": "huge"
+        }
+      ]
+    },
+    {
+      "id": "scorching_ray",
+      "name": "灼熱光線",
+      "description": "最寄りの敵へ継続する炎の光線を照射。照射中もゆるやかに追従し、対象死亡時は別の敵へ照準を移す。光線上の敵へ一定間隔でダメージ。",
+      "icon": "icon_scorching_ray",
+      "iconKey": "icon_scorching_ray",
+      "category": "active",
+      "tags": [
+        "active",
+        "fire",
+        "beam",
+        "damageOverTime",
+        "directional"
+      ],
+      "rarity": "uncommon",
+      "weight": 1,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [
+        "solar_annihilation_array"
+      ],
+      "displayOrder": 16,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "initial": false,
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "levels": [
+        {
+          "level": 1,
+          "damage": 9,
+          "cooldown": 3400,
+          "width": 10.0,
+          "duration": 1400,
+          "followSpeed": 2.2,
+          "tickRate": 180,
+          "beams": 1
+        },
+        {
+          "level": 2,
+          "damage": 11,
+          "cooldown": 3280,
+          "width": 11.2,
+          "duration": 1480,
+          "followSpeed": 2.332,
+          "tickRate": 174,
+          "beams": 1
+        },
+        {
+          "level": 3,
+          "damage": 12,
+          "cooldown": 3160,
+          "width": 12.4,
+          "duration": 1560,
+          "followSpeed": 2.472,
+          "tickRate": 168,
+          "beams": 1
+        },
+        {
+          "level": 4,
+          "damage": 14,
+          "cooldown": 3040,
+          "width": 13.6,
+          "duration": 1640,
+          "followSpeed": 2.62,
+          "tickRate": 162,
+          "beams": 1
+        },
+        {
+          "level": 5,
+          "damage": 15,
+          "cooldown": 2920,
+          "width": 14.8,
+          "duration": 1720,
+          "followSpeed": 2.777,
+          "tickRate": 156,
+          "beams": 2
+        },
+        {
+          "level": 6,
+          "damage": 17,
+          "cooldown": 2800,
+          "width": 16.0,
+          "duration": 1800,
+          "followSpeed": 2.944,
+          "tickRate": 150,
+          "beams": 2
+        },
+        {
+          "level": 7,
+          "damage": 19,
+          "cooldown": 2680,
+          "width": 17.2,
+          "duration": 1880,
+          "followSpeed": 3.121,
+          "tickRate": 144,
+          "beams": 2
+        },
+        {
+          "level": 8,
+          "damage": 20,
+          "cooldown": 2560,
+          "width": 18.4,
+          "duration": 1960,
+          "followSpeed": 3.308,
+          "tickRate": 138,
+          "beams": 2
+        }
+      ]
+    },
+    {
+      "id": "ember_minefield",
+      "name": "火種地雷",
+      "description": "プレイヤー周辺へ火種地雷を設置。敵が接近すると短い警告後に起爆し、反応が無ければ寿命で自動起爆。",
+      "icon": "icon_ember_minefield",
+      "iconKey": "icon_ember_minefield",
+      "category": "active",
+      "tags": [
+        "active",
+        "fire",
+        "mine",
+        "trap",
+        "explosion",
+        "area"
+      ],
+      "rarity": "common",
+      "weight": 1,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [
+        "hellfire_mine_network"
+      ],
+      "displayOrder": 17,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "initial": false,
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "levels": [
+        {
+          "level": 1,
+          "damage": 16,
+          "cooldown": 2600,
+          "mineCount": 2,
+          "senseRadius": 34,
+          "explosionRadius": 38,
+          "lifetime": 5000,
+          "warnMs": 360,
+          "visual": "small"
+        },
+        {
+          "level": 2,
+          "damage": 18,
+          "cooldown": 2510,
+          "mineCount": 2,
+          "senseRadius": 36,
+          "explosionRadius": 41,
+          "lifetime": 5220,
+          "warnMs": 346,
+          "visual": "small"
+        },
+        {
+          "level": 3,
+          "damage": 21,
+          "cooldown": 2420,
+          "mineCount": 3,
+          "senseRadius": 38,
+          "explosionRadius": 44,
+          "lifetime": 5440,
+          "warnMs": 332,
+          "visual": "medium"
+        },
+        {
+          "level": 4,
+          "damage": 23,
+          "cooldown": 2330,
+          "mineCount": 3,
+          "senseRadius": 40,
+          "explosionRadius": 47,
+          "lifetime": 5660,
+          "warnMs": 318,
+          "visual": "medium"
+        },
+        {
+          "level": 5,
+          "damage": 26,
+          "cooldown": 2240,
+          "mineCount": 4,
+          "senseRadius": 42,
+          "explosionRadius": 50,
+          "lifetime": 5880,
+          "warnMs": 304,
+          "visual": "medium"
+        },
+        {
+          "level": 6,
+          "damage": 28,
+          "cooldown": 2150,
+          "mineCount": 4,
+          "senseRadius": 44,
+          "explosionRadius": 53,
+          "lifetime": 6100,
+          "warnMs": 290,
+          "visual": "large"
+        },
+        {
+          "level": 7,
+          "damage": 30,
+          "cooldown": 2060,
+          "mineCount": 5,
+          "senseRadius": 46,
+          "explosionRadius": 56,
+          "lifetime": 6320,
+          "warnMs": 276,
+          "visual": "large"
+        },
+        {
+          "level": 8,
+          "damage": 33,
+          "cooldown": 1970,
+          "mineCount": 6,
+          "senseRadius": 48,
+          "explosionRadius": 59,
+          "lifetime": 6540,
+          "warnMs": 262,
+          "visual": "large"
+        }
+      ]
+    },
+    {
+      "id": "flame_crescent",
+      "name": "炎月斬",
+      "description": "プレイヤー周囲を扇状に薙ぎ払う近接斬撃。一振りで同じ敵へ1回命中し、通常敵を軽くノックバック（ボスは無効）。",
+      "icon": "icon_flame_crescent",
+      "iconKey": "icon_flame_crescent",
+      "category": "active",
+      "tags": [
+        "active",
+        "fire",
+        "melee",
+        "slash",
+        "area"
+      ],
+      "rarity": "common",
+      "weight": 1,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [
+        "inferno_blade_domain"
+      ],
+      "displayOrder": 18,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "initial": false,
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "levels": [
+        {
+          "level": 1,
+          "damage": 14,
+          "cooldown": 1100,
+          "radius": 46,
+          "arc": 1.6,
+          "sweeps": 1,
+          "knockback": 30,
+          "visual": "small"
+        },
+        {
+          "level": 2,
+          "damage": 16,
+          "cooldown": 1060,
+          "radius": 49,
+          "arc": 1.68,
+          "sweeps": 1,
+          "knockback": 33,
+          "visual": "small"
+        },
+        {
+          "level": 3,
+          "damage": 18,
+          "cooldown": 1020,
+          "radius": 52,
+          "arc": 1.764,
+          "sweeps": 1,
+          "knockback": 36,
+          "visual": "medium"
+        },
+        {
+          "level": 4,
+          "damage": 21,
+          "cooldown": 980,
+          "radius": 55,
+          "arc": 1.852,
+          "sweeps": 2,
+          "knockback": 39,
+          "visual": "medium"
+        },
+        {
+          "level": 5,
+          "damage": 23,
+          "cooldown": 940,
+          "radius": 58,
+          "arc": 1.945,
+          "sweeps": 2,
+          "knockback": 42,
+          "visual": "medium"
+        },
+        {
+          "level": 6,
+          "damage": 25,
+          "cooldown": 900,
+          "radius": 61,
+          "arc": 2.042,
+          "sweeps": 2,
+          "knockback": 45,
+          "visual": "large"
+        },
+        {
+          "level": 7,
+          "damage": 27,
+          "cooldown": 860,
+          "radius": 64,
+          "arc": 2.144,
+          "sweeps": 3,
+          "knockback": 48,
+          "visual": "large"
+        },
+        {
+          "level": 8,
+          "damage": 29,
+          "cooldown": 820,
+          "radius": 67,
+          "arc": 2.251,
+          "sweeps": 3,
+          "knockback": 51,
+          "visual": "large"
+        }
+      ]
+    },
+    {
+      "id": "ricochet_ember",
+      "name": "跳炎弾",
+      "description": "敵や画面端で反射する火弾を発射。反射のたびに別の敵を優先して狙い、同じ敵への連続再命中には待機を設ける。",
+      "icon": "icon_ricochet_ember",
+      "iconKey": "icon_ricochet_ember",
+      "category": "active",
+      "tags": [
+        "active",
+        "fire",
+        "projectile",
+        "ricochet",
+        "bouncing"
+      ],
+      "rarity": "common",
+      "weight": 1,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [],
+      "displayOrder": 19,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "initial": false,
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "levels": [
+        {
+          "level": 1,
+          "damage": 12,
+          "cooldown": 900,
+          "count": 1,
+          "bounces": 2,
+          "speed": 300,
+          "retriggerMs": 320,
+          "bounceDamageFactor": 1.0
+        },
+        {
+          "level": 2,
+          "damage": 14,
+          "cooldown": 876,
+          "count": 1,
+          "bounces": 3,
+          "speed": 314,
+          "retriggerMs": 312,
+          "bounceDamageFactor": 1.02
+        },
+        {
+          "level": 3,
+          "damage": 16,
+          "cooldown": 852,
+          "count": 2,
+          "bounces": 3,
+          "speed": 328,
+          "retriggerMs": 304,
+          "bounceDamageFactor": 1.04
+        },
+        {
+          "level": 4,
+          "damage": 17,
+          "cooldown": 828,
+          "count": 2,
+          "bounces": 4,
+          "speed": 342,
+          "retriggerMs": 296,
+          "bounceDamageFactor": 1.061
+        },
+        {
+          "level": 5,
+          "damage": 19,
+          "cooldown": 804,
+          "count": 2,
+          "bounces": 5,
+          "speed": 356,
+          "retriggerMs": 288,
+          "bounceDamageFactor": 1.082
+        },
+        {
+          "level": 6,
+          "damage": 21,
+          "cooldown": 780,
+          "count": 3,
+          "bounces": 6,
+          "speed": 370,
+          "retriggerMs": 280,
+          "bounceDamageFactor": 1.104
+        },
+        {
+          "level": 7,
+          "damage": 23,
+          "cooldown": 756,
+          "count": 3,
+          "bounces": 6,
+          "speed": 384,
+          "retriggerMs": 272,
+          "bounceDamageFactor": 1.126
+        },
+        {
+          "level": 8,
+          "damage": 25,
+          "cooldown": 732,
+          "count": 3,
+          "bounces": 7,
+          "speed": 398,
+          "retriggerMs": 264,
+          "bounceDamageFactor": 1.149
+        }
+      ]
+    },
+    {
+      "id": "ash_doppelganger",
+      "name": "灰燼分身",
+      "description": "灰の分身を生成。分身は直近に発動した複製可能な攻撃を遅延・低威力で再現する（防御/反応/移動/資源消費スキルと残響発は複製しない）。",
+      "icon": "icon_ash_doppelganger",
+      "iconKey": "icon_ash_doppelganger",
+      "category": "active",
+      "tags": [
+        "active",
+        "fire",
+        "clone",
+        "copy",
+        "summon"
+      ],
+      "rarity": "rare",
+      "weight": 1,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [
+        "ash_legion"
+      ],
+      "displayOrder": 20,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "initial": false,
+      "echoPolicy": "forbidden",
+      "clonePolicy": "forbidden",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "levels": [
+        {
+          "level": 1,
+          "cloneCount": 1,
+          "copyPower": 0.35,
+          "copyIntervalMs": 1200,
+          "followDist": 34,
+          "duration": 6000
+        },
+        {
+          "level": 2,
+          "cloneCount": 1,
+          "copyPower": 0.371,
+          "copyIntervalMs": 1160,
+          "followDist": 36,
+          "duration": 6300
+        },
+        {
+          "level": 3,
+          "cloneCount": 2,
+          "copyPower": 0.393,
+          "copyIntervalMs": 1120,
+          "followDist": 37,
+          "duration": 6600
+        },
+        {
+          "level": 4,
+          "cloneCount": 2,
+          "copyPower": 0.417,
+          "copyIntervalMs": 1080,
+          "followDist": 38,
+          "duration": 6900
+        },
+        {
+          "level": 5,
+          "cloneCount": 2,
+          "copyPower": 0.442,
+          "copyIntervalMs": 1040,
+          "followDist": 40,
+          "duration": 7200
+        },
+        {
+          "level": 6,
+          "cloneCount": 3,
+          "copyPower": 0.468,
+          "copyIntervalMs": 1000,
+          "followDist": 42,
+          "duration": 7500
+        },
+        {
+          "level": 7,
+          "cloneCount": 3,
+          "copyPower": 0.496,
+          "copyIntervalMs": 960,
+          "followDist": 43,
+          "duration": 7800
+        },
+        {
+          "level": 8,
+          "cloneCount": 4,
+          "copyPower": 0.526,
+          "copyIntervalMs": 920,
+          "followDist": 44,
+          "duration": 8100
+        }
+      ]
+    },
+    {
+      "id": "bloodfire_pact",
+      "name": "血炎契約",
+      "description": "現在HPの一定割合をコストに強力な炎爆発を発生（最低HP1保証・安全HP以下では不発）。発動後は短時間 火属性ダメージが上昇。",
+      "icon": "icon_bloodfire_pact",
+      "iconKey": "icon_bloodfire_pact",
+      "category": "active",
+      "tags": [
+        "active",
+        "fire",
+        "sacrifice",
+        "burst",
+        "highRisk",
+        "explosion"
+      ],
+      "rarity": "rare",
+      "weight": 1,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [],
+      "displayOrder": 21,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "initial": false,
+      "echoPolicy": "custom",
+      "clonePolicy": "custom",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": true,
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "levels": [
+        {
+          "level": 1,
+          "damage": 60,
+          "cooldown": 6000,
+          "radius": 70,
+          "extraBolts": 0,
+          "buffMs": 2000,
+          "buffDamage": 0.12,
+          "hpCostPercent": 0.12,
+          "safeHpPercent": 0.25
+        },
+        {
+          "level": 2,
+          "damage": 70,
+          "cooldown": 5840,
+          "radius": 74,
+          "extraBolts": 0,
+          "buffMs": 2120,
+          "buffDamage": 0.126,
+          "hpCostPercent": 0.12,
+          "safeHpPercent": 0.25
+        },
+        {
+          "level": 3,
+          "damage": 80,
+          "cooldown": 5680,
+          "radius": 78,
+          "extraBolts": 2,
+          "buffMs": 2240,
+          "buffDamage": 0.132,
+          "hpCostPercent": 0.13,
+          "safeHpPercent": 0.25
+        },
+        {
+          "level": 4,
+          "damage": 90,
+          "cooldown": 5520,
+          "radius": 82,
+          "extraBolts": 2,
+          "buffMs": 2360,
+          "buffDamage": 0.139,
+          "hpCostPercent": 0.13,
+          "safeHpPercent": 0.25
+        },
+        {
+          "level": 5,
+          "damage": 100,
+          "cooldown": 5360,
+          "radius": 86,
+          "extraBolts": 4,
+          "buffMs": 2480,
+          "buffDamage": 0.146,
+          "hpCostPercent": 0.14,
+          "safeHpPercent": 0.25
+        },
+        {
+          "level": 6,
+          "damage": 110,
+          "cooldown": 5200,
+          "radius": 90,
+          "extraBolts": 4,
+          "buffMs": 2600,
+          "buffDamage": 0.153,
+          "hpCostPercent": 0.14,
+          "safeHpPercent": 0.25
+        },
+        {
+          "level": 7,
+          "damage": 120,
+          "cooldown": 5040,
+          "radius": 94,
+          "extraBolts": 6,
+          "buffMs": 2720,
+          "buffDamage": 0.161,
+          "hpCostPercent": 0.15,
+          "safeHpPercent": 0.25
+        },
+        {
+          "level": 8,
+          "damage": 130,
+          "cooldown": 4880,
+          "radius": 98,
+          "extraBolts": 8,
+          "buffMs": 2840,
+          "buffDamage": 0.169,
+          "hpCostPercent": 0.15,
+          "safeHpPercent": 0.25
+        }
+      ]
+    },
+    {
+      "id": "bullet_furnace",
+      "name": "弾喰い炉",
+      "description": "周囲に炉領域を展開し、侵入した吸収可能な敵弾を一定数まで吸収してチャージ。最大/一定時間で炎弾幕を放出する（ボス予告・接触・ビーム・吸収不能弾は消さない）。",
+      "icon": "icon_bullet_furnace",
+      "iconKey": "icon_bullet_furnace",
+      "category": "active",
+      "tags": [
+        "active",
+        "fire",
+        "defensive",
+        "reactive",
+        "projectileAbsorb",
+        "charge"
+      ],
+      "rarity": "legendary",
+      "weight": 1,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [
+        "star_devouring_furnace"
+      ],
+      "displayOrder": 22,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "initial": false,
+      "echoPolicy": "custom",
+      "clonePolicy": "custom",
+      "isDefensive": true,
+      "isReactive": true,
+      "usesResourceCost": false,
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "levels": [
+        {
+          "level": 1,
+          "absorbRadius": 54,
+          "maxCharge": 8,
+          "releaseProjectiles": 8,
+          "releaseDamage": 14,
+          "absorbPerSec": 6.0,
+          "maxAbsorbConcurrent": 3,
+          "redeployMs": 1400
+        },
+        {
+          "level": 2,
+          "absorbRadius": 57,
+          "maxCharge": 9,
+          "releaseProjectiles": 9,
+          "releaseDamage": 16,
+          "absorbPerSec": 6.6,
+          "maxAbsorbConcurrent": 3,
+          "redeployMs": 1370
+        },
+        {
+          "level": 3,
+          "absorbRadius": 60,
+          "maxCharge": 10,
+          "releaseProjectiles": 10,
+          "releaseDamage": 18,
+          "absorbPerSec": 7.2,
+          "maxAbsorbConcurrent": 4,
+          "redeployMs": 1340
+        },
+        {
+          "level": 4,
+          "absorbRadius": 63,
+          "maxCharge": 11,
+          "releaseProjectiles": 12,
+          "releaseDamage": 20,
+          "absorbPerSec": 7.8,
+          "maxAbsorbConcurrent": 4,
+          "redeployMs": 1310
+        },
+        {
+          "level": 5,
+          "absorbRadius": 66,
+          "maxCharge": 12,
+          "releaseProjectiles": 14,
+          "releaseDamage": 22,
+          "absorbPerSec": 8.4,
+          "maxAbsorbConcurrent": 5,
+          "redeployMs": 1280
+        },
+        {
+          "level": 6,
+          "absorbRadius": 69,
+          "maxCharge": 13,
+          "releaseProjectiles": 16,
+          "releaseDamage": 24,
+          "absorbPerSec": 9.0,
+          "maxAbsorbConcurrent": 5,
+          "redeployMs": 1250
+        },
+        {
+          "level": 7,
+          "absorbRadius": 72,
+          "maxCharge": 14,
+          "releaseProjectiles": 18,
+          "releaseDamage": 26,
+          "absorbPerSec": 9.6,
+          "maxAbsorbConcurrent": 5,
+          "redeployMs": 1220
+        },
+        {
+          "level": 8,
+          "absorbRadius": 75,
+          "maxCharge": 15,
+          "releaseProjectiles": 20,
+          "releaseDamage": 28,
+          "absorbPerSec": 10.2,
+          "maxAbsorbConcurrent": 6,
+          "redeployMs": 1190
+        }
+      ]
+    },
+    {
+      "id": "four_sided_inferno",
+      "name": "四方炎獄",
+      "description": "画面端の1〜4方向から炎波が中央へ進行。方向は決定論的に選択し、全方向を塞がない。プレイヤーは無傷、敵へ接触でダメージ＋炎上。",
+      "icon": "icon_four_sided_inferno",
+      "iconKey": "icon_four_sided_inferno",
+      "category": "active",
+      "tags": [
+        "active",
+        "fire",
+        "screenEdge",
+        "wave",
+        "area"
+      ],
+      "rarity": "rare",
+      "weight": 1,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [],
+      "displayOrder": 23,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "initial": false,
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "levels": [
+        {
+          "level": 1,
+          "damage": 20,
+          "cooldown": 4200,
+          "directions": 1,
+          "wallWidth": 30,
+          "waveSpeed": 90,
+          "burnMs": 1200,
+          "staggerMs": 260
+        },
+        {
+          "level": 2,
+          "damage": 23,
+          "cooldown": 4080,
+          "directions": 1,
+          "wallWidth": 32,
+          "waveSpeed": 95,
+          "burnMs": 1280,
+          "staggerMs": 252
+        },
+        {
+          "level": 3,
+          "damage": 26,
+          "cooldown": 3960,
+          "directions": 2,
+          "wallWidth": 34,
+          "waveSpeed": 100,
+          "burnMs": 1360,
+          "staggerMs": 244
+        },
+        {
+          "level": 4,
+          "damage": 29,
+          "cooldown": 3840,
+          "directions": 2,
+          "wallWidth": 36,
+          "waveSpeed": 105,
+          "burnMs": 1440,
+          "staggerMs": 236
+        },
+        {
+          "level": 5,
+          "damage": 32,
+          "cooldown": 3720,
+          "directions": 2,
+          "wallWidth": 38,
+          "waveSpeed": 110,
+          "burnMs": 1520,
+          "staggerMs": 228
+        },
+        {
+          "level": 6,
+          "damage": 35,
+          "cooldown": 3600,
+          "directions": 3,
+          "wallWidth": 40,
+          "waveSpeed": 115,
+          "burnMs": 1600,
+          "staggerMs": 220
+        },
+        {
+          "level": 7,
+          "damage": 38,
+          "cooldown": 3480,
+          "directions": 3,
+          "wallWidth": 42,
+          "waveSpeed": 120,
+          "burnMs": 1680,
+          "staggerMs": 212
+        },
+        {
+          "level": 8,
+          "damage": 41,
+          "cooldown": 3360,
+          "directions": 4,
+          "wallWidth": 44,
+          "waveSpeed": 125,
+          "burnMs": 1760,
+          "staggerMs": 204
+        }
+      ]
+    },
+    {
+      "id": "molten_chains",
+      "name": "熔火鎖",
+      "description": "複数の敵を炎の鎖で接続し継続ダメージ。通常敵は緩く引き寄せ（ボス除く）、接続敵の死亡で近くの敵へ再接続する。",
+      "icon": "icon_molten_chains",
+      "iconKey": "icon_molten_chains",
+      "category": "active",
+      "tags": [
+        "active",
+        "fire",
+        "tether",
+        "control",
+        "damageOverTime"
+      ],
+      "rarity": "uncommon",
+      "weight": 1,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [],
+      "displayOrder": 24,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "initial": false,
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "levels": [
+        {
+          "level": 1,
+          "dotDamage": 7.0,
+          "cooldown": 3000,
+          "tethers": 2,
+          "range": 120,
+          "duration": 2600,
+          "tickRate": 300,
+          "retargets": 1,
+          "pull": 30
+        },
+        {
+          "level": 2,
+          "dotDamage": 8.1,
+          "cooldown": 2910,
+          "tethers": 2,
+          "range": 128,
+          "duration": 2760,
+          "tickRate": 292,
+          "retargets": 1,
+          "pull": 33
+        },
+        {
+          "level": 3,
+          "dotDamage": 9.2,
+          "cooldown": 2820,
+          "tethers": 3,
+          "range": 136,
+          "duration": 2920,
+          "tickRate": 284,
+          "retargets": 1,
+          "pull": 36
+        },
+        {
+          "level": 4,
+          "dotDamage": 10.3,
+          "cooldown": 2730,
+          "tethers": 3,
+          "range": 144,
+          "duration": 3080,
+          "tickRate": 276,
+          "retargets": 2,
+          "pull": 39
+        },
+        {
+          "level": 5,
+          "dotDamage": 11.4,
+          "cooldown": 2640,
+          "tethers": 4,
+          "range": 152,
+          "duration": 3240,
+          "tickRate": 268,
+          "retargets": 2,
+          "pull": 42
+        },
+        {
+          "level": 6,
+          "dotDamage": 12.5,
+          "cooldown": 2550,
+          "tethers": 4,
+          "range": 160,
+          "duration": 3400,
+          "tickRate": 260,
+          "retargets": 2,
+          "pull": 45
+        },
+        {
+          "level": 7,
+          "dotDamage": 13.6,
+          "cooldown": 2460,
+          "tethers": 5,
+          "range": 168,
+          "duration": 3560,
+          "tickRate": 252,
+          "retargets": 3,
+          "pull": 48
+        },
+        {
+          "level": 8,
+          "dotDamage": 14.7,
+          "cooldown": 2370,
+          "tethers": 6,
+          "range": 176,
+          "duration": 3720,
+          "tickRate": 244,
+          "retargets": 3,
+          "pull": 51
+        }
+      ]
+    },
+    {
+      "id": "blazing_step",
+      "name": "爆炎歩法",
+      "description": "通常ダッシュを強化するactive。一定時間ごとに爆炎チャージを生成し、チャージ所持中のダッシュで開始/終了地点の爆発・炎の軌跡・わずかに長い無敵を発生。",
+      "icon": "icon_blazing_step",
+      "iconKey": "icon_blazing_step",
+      "category": "active",
+      "tags": [
+        "active",
+        "fire",
+        "movement",
+        "dash",
+        "reactive",
+        "explosion"
+      ],
+      "rarity": "uncommon",
+      "weight": 1,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [],
+      "displayOrder": 25,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "initial": false,
+      "echoPolicy": "forbidden",
+      "clonePolicy": "forbidden",
+      "isDefensive": false,
+      "isReactive": true,
+      "usesResourceCost": false,
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "levels": [
+        {
+          "level": 1,
+          "maxCharge": 1,
+          "chargeMs": 5000,
+          "explosionDamage": 22,
+          "explosionRadius": 40,
+          "trailMs": 500,
+          "invulnBonusMs": 120,
+          "trailDamage": 8.0
+        },
+        {
+          "level": 2,
+          "maxCharge": 1,
+          "chargeMs": 4820,
+          "explosionDamage": 25,
+          "explosionRadius": 43,
+          "trailMs": 530,
+          "invulnBonusMs": 130,
+          "trailDamage": 9.2
+        },
+        {
+          "level": 3,
+          "maxCharge": 2,
+          "chargeMs": 4640,
+          "explosionDamage": 29,
+          "explosionRadius": 46,
+          "trailMs": 560,
+          "invulnBonusMs": 140,
+          "trailDamage": 10.4
+        },
+        {
+          "level": 4,
+          "maxCharge": 2,
+          "chargeMs": 4460,
+          "explosionDamage": 32,
+          "explosionRadius": 49,
+          "trailMs": 590,
+          "invulnBonusMs": 150,
+          "trailDamage": 11.6
+        },
+        {
+          "level": 5,
+          "maxCharge": 2,
+          "chargeMs": 4280,
+          "explosionDamage": 36,
+          "explosionRadius": 52,
+          "trailMs": 620,
+          "invulnBonusMs": 160,
+          "trailDamage": 12.8
+        },
+        {
+          "level": 6,
+          "maxCharge": 3,
+          "chargeMs": 4100,
+          "explosionDamage": 39,
+          "explosionRadius": 55,
+          "trailMs": 650,
+          "invulnBonusMs": 170,
+          "trailDamage": 14.0
+        },
+        {
+          "level": 7,
+          "maxCharge": 3,
+          "chargeMs": 3920,
+          "explosionDamage": 42,
+          "explosionRadius": 58,
+          "trailMs": 680,
+          "invulnBonusMs": 180,
+          "trailDamage": 15.2
+        },
+        {
+          "level": 8,
+          "maxCharge": 3,
+          "chargeMs": 3740,
+          "explosionDamage": 46,
+          "explosionRadius": 61,
+          "trailMs": 710,
+          "invulnBonusMs": 190,
+          "trailDamage": 16.4
+        }
       ]
     }
   ]

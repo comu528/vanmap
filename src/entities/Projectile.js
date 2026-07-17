@@ -45,6 +45,20 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     this.splitGen = 0;         // 分裂の残り世代
     this.splitCount = 0;
     this.splitFactor = 0.55;
+    // 反射（M6-D 跳炎弾）
+    this.bounceCount = 0;      // 残り反射回数
+    this.bounceDamageFactor = 1; // 反射のたびの威力倍率
+    this._retriggerMs = 0;     // 同一敵への再命中待機
+    this._recentHits = null;   // Map<enemy, untilTime>（短時間の再命中待機）
+    // 敵弾の吸収情報（M6-D 弾喰い炉）。既存敵弾は reset で後方互換の既定値を持つ。
+    this.absorbable = false;
+    this.absorbValue = 0;
+    this.projectileKind = null;  // 'bossBullet' | 'beam' | 'ember' 等
+    this.ownerType = null;       // 'player' | 'boss' | 'enemy'
+    this.isBossProjectile = false;
+    this.isTelegraph = false;
+    this.isBeam = false;
+    this.consumedByAbility = false; // 吸収/消費済み（多重吸収防止）
     this._lifeTimer = 0;
     this._hitSet.clear();
   }
@@ -89,6 +103,22 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     this.splitGen = opts.splitGen || 0;
     this.splitCount = opts.splitCount || 0;
     this.splitFactor = opts.splitFactor || 0.55;
+    // 反射（M6-D 跳炎弾）
+    this.bounceCount = opts.bounceCount || 0;
+    this.bounceDamageFactor = opts.bounceDamageFactor || 1;
+    this._retriggerMs = opts.retriggerMs || 0;
+    // 敵弾の吸収情報（M6-D）。プレイヤー弾は既定 absorbable=false。
+    // 敵弾（hostile）は明示指定が無ければ「通常弾＝吸収可・低価値」を既定にする（後方互換）。
+    if (opts.absorbable !== undefined) {
+      this.absorbable = !!opts.absorbable; this.absorbValue = opts.absorbValue || 1;
+    } else if (this.hostile && !opts.isTelegraph && !opts.isBeam && opts.absorbable !== false) {
+      this.absorbable = true; this.absorbValue = opts.absorbValue || 1;
+    }
+    this.projectileKind = opts.projectileKind || (this.hostile ? 'bossBullet' : null);
+    this.ownerType = opts.ownerType || (this.hostile ? 'boss' : 'player');
+    this.isBossProjectile = opts.isBossProjectile !== undefined ? !!opts.isBossProjectile : this.hostile;
+    this.isTelegraph = !!opts.isTelegraph;
+    this.isBeam = !!opts.isBeam;
     this._lifeTimer = opts.lifeMs || 1600;
     this.alive = true;
     this.setActive(true).setVisible(true).setAlpha(1);
@@ -103,6 +133,20 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     if (!this.alive) return;
     this._lifeTimer -= dt;
     if (this._lifeTimer <= 0) { this.alive = false; return; }
+
+    // 反射（M6-D 跳炎弾）: 画面端（ワールド境界）で反射。反射回数を消費し威力補正を掛ける。
+    if (this.behavior === 'ricochet' && this.bounceCount > 0 && this.body) {
+      const W = this.scene.worldW || 1600, H = this.scene.worldH || 1200;
+      const v = this.body.velocity;
+      let bounced = false;
+      if ((this.x <= 4 && v.x < 0) || (this.x >= W - 4 && v.x > 0)) { this.setVelocity(-v.x, v.y); bounced = true; }
+      if ((this.y <= 4 && v.y < 0) || (this.y >= H - 4 && v.y > 0)) { this.setVelocity(this.body.velocity.x, -v.y); bounced = true; }
+      if (bounced) {
+        this.bounceCount -= 1;
+        this.damage *= (this.bounceDamageFactor || 1);
+        this.setRotation(Math.atan2(this.body.velocity.y, this.body.velocity.x));
+      }
+    }
 
     // 追尾（wander 経過後に対象へ緩やかに旋回）。対象が死亡したら残り回数内で再捕捉。
     if (this.homingRate > 0) {

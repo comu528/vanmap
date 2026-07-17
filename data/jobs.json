@@ -5,19 +5,54 @@
       "id": "flame_witch",
       "displayName": "火の魔女",
       "description": "火属性の自動攻撃を主体とする基本ジョブ。近接を避けつつ大量の敵を焼き払う。",
-      "initialActiveSkills": ["fireball"],
+      "initialActiveSkills": [
+        "fireball"
+      ],
       "initialPassiveSkills": [],
-      "activeSkillPool": ["fireball", "flame_pillar", "burning_trail", "orbiting_flame", "meteor", "flame_lance", "scatter_flame", "homing_wisp", "chain_flame", "lava_bomb", "flame_vortex", "fire_spirit", "phoenix_feather", "flame_barrier", "detonation_mark"],
+      "activeSkillPool": [
+        "fireball",
+        "flame_pillar",
+        "burning_trail",
+        "orbiting_flame",
+        "meteor",
+        "flame_lance",
+        "scatter_flame",
+        "homing_wisp",
+        "chain_flame",
+        "lava_bomb",
+        "flame_vortex",
+        "fire_spirit",
+        "phoenix_feather",
+        "flame_barrier",
+        "detonation_mark",
+        "scorching_ray",
+        "ember_minefield",
+        "flame_crescent",
+        "ricochet_ember",
+        "ash_doppelganger",
+        "bloodfire_pact",
+        "bullet_furnace",
+        "four_sided_inferno",
+        "molten_chains",
+        "blazing_step"
+      ],
       "passiveSkillPool": [],
       "baseActiveSlots": 4,
       "basePassiveSlots": 4,
-      "tags": ["fire", "witch", "starter"],
+      "tags": [
+        "fire",
+        "witch",
+        "starter"
+      ],
       "unlockCondition": null,
       "futureInheritanceSettings": {
         "enabled": false,
         "maxInheritedSkills": 0,
         "allowedTags": [],
-        "allowedCategories": ["active", "passive"],
+        "allowedCategories": [
+          "active",
+          "passive"
+        ],
         "note": "M6-A では継承は未実装。将来、他ジョブから選択したスキルだけを持ち込む継承枠を有効化する拡張口。"
       }
     }

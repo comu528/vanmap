@@ -5,17 +5,38 @@
       "displayName": "業火弾幕",
       "description": "多数の火球を扇状に連射。撃破で近くの敵へ追撃火球、着弾で連鎖爆発。貫通しても威力が落ちにくい。",
       "baseSkillId": "fireball",
-      "requiredSkills": [{ "skill": "orbiting_flame", "level": 4 }],
+      "requiredSkills": [
+        {
+          "skill": "orbiting_flame",
+          "level": 4
+        }
+      ],
       "requiredMasteryLevel": 0,
       "replacementSkillId": "infernal_barrage",
       "visualTier": "evolved",
       "icon": "icon_fireball",
-      "damage": { "base": 46, "pierceFalloff": 0.92 },
+      "damage": {
+        "base": 46,
+        "pierceFalloff": 0.92
+      },
       "cooldown": 520,
-      "area": { "explosionRadius": 34 },
-      "projectileCount": { "base": 6, "spread": 0.55 },
-      "chain": { "onKillExtra": 1, "chainExplosion": 1 },
-      "safetyCaps": { "maxProjectilesPerCast": 14, "maxOnKillChain": 3, "maxChainExplosions": 2, "maxPierce": 6 },
+      "area": {
+        "explosionRadius": 34
+      },
+      "projectileCount": {
+        "base": 6,
+        "spread": 0.55
+      },
+      "chain": {
+        "onKillExtra": 1,
+        "chainExplosion": 1
+      },
+      "safetyCaps": {
+        "maxProjectilesPerCast": 14,
+        "maxOnKillChain": 3,
+        "maxChainExplosions": 2,
+        "maxPierce": 6
+      },
       "displayOrder": 1
     },
     {
@@ -23,18 +44,43 @@
       "displayName": "煉獄噴火",
       "description": "敵の密集地点で複数の火柱が連続噴火し、最後に大爆発。跡地に燃焼地帯を残す。通常敵を軽く引き寄せる（ボスは対象外）。",
       "baseSkillId": "flame_pillar",
-      "requiredSkills": [{ "skill": "meteor", "level": 4 }],
+      "requiredSkills": [
+        {
+          "skill": "meteor",
+          "level": 4
+        }
+      ],
       "requiredMasteryLevel": 0,
       "replacementSkillId": "purgatory_eruption",
       "visualTier": "evolved",
       "icon": "icon_flame_pillar",
-      "damage": { "pillar": 70, "finalBlast": 170, "burnGround": 8 },
+      "damage": {
+        "pillar": 70,
+        "finalBlast": 170,
+        "burnGround": 8
+      },
       "cooldown": 2600,
-      "area": { "pillarRadius": 58, "finalRadius": 104, "burnGroundRadius": 44, "burnGroundDuration": 1600 },
-      "projectileCount": { "pillars": 5, "sequenceDelay": 130 },
+      "area": {
+        "pillarRadius": 58,
+        "finalRadius": 104,
+        "burnGroundRadius": 44,
+        "burnGroundDuration": 1600
+      },
+      "projectileCount": {
+        "pillars": 5,
+        "sequenceDelay": 130
+      },
       "chain": {},
-      "pull": { "radius": 130, "strength": 70, "excludeBoss": true },
-      "safetyCaps": { "maxPillars": 8, "maxAoePerFrame": 6, "burnTickMs": 300 },
+      "pull": {
+        "radius": 130,
+        "strength": 70,
+        "excludeBoss": true
+      },
+      "safetyCaps": {
+        "maxPillars": 8,
+        "maxAoePerFrame": 6,
+        "burnTickMs": 300
+      },
       "displayOrder": 2
     },
     {
@@ -42,19 +88,41 @@
       "displayName": "永劫火界",
       "description": "プレイヤー周囲に常時炎の領域を展開。領域内の敵へ継続ダメージ、炎上が近くの敵へ感染、炎上中の敵が死ぬと小爆発。",
       "baseSkillId": "burning_trail",
-      "requiredSkills": [{ "skill": "orbiting_flame", "level": 4 }],
+      "requiredSkills": [
+        {
+          "skill": "orbiting_flame",
+          "level": 4
+        }
+      ],
       "requiredMasteryLevel": 0,
       "replacementSkillId": "eternal_pyre",
       "visualTier": "evolved",
       "icon": "icon_burning_trail",
-      "damage": { "aura": 12, "deathExplosion": 34 },
+      "damage": {
+        "aura": 12,
+        "deathExplosion": 34
+      },
       "cooldown": 200,
-      "area": { "auraRadius": 72, "infectRadius": 40, "deathExplosionRadius": 46 },
+      "area": {
+        "auraRadius": 72,
+        "infectRadius": 40,
+        "deathExplosionRadius": 46
+      },
       "projectileCount": {},
-      "chain": { "deathExplosion": 1 },
+      "chain": {
+        "deathExplosion": 1
+      },
       "tickMs": 300,
-      "infect": { "generations": 1, "durationMs": 1600 },
-      "safetyCaps": { "maxInfectGenerations": 2, "maxDeathExplosionsPerFrame": 4, "maxIgnited": 220, "infectTickMs": 300 },
+      "infect": {
+        "generations": 1,
+        "durationMs": 1600
+      },
+      "safetyCaps": {
+        "maxInfectGenerations": 2,
+        "maxDeathExplosionsPerFrame": 4,
+        "maxIgnited": 220,
+        "infectTickMs": 300
+      },
       "displayOrder": 3
     },
     {
@@ -62,17 +130,39 @@
       "displayName": "千条炎槍",
       "description": "一度に複数方向へ炎槍を連射（敵の多い方向を優先しつつ全方位）。連続命中で段階的に威力上昇、一定貫通で小型炎槍へ分裂（世代上限あり）。",
       "baseSkillId": "flame_lance",
-      "requiredSkills": [{ "skill": "swift_cast", "level": 4 }],
+      "requiredSkills": [
+        {
+          "skill": "swift_cast",
+          "level": 4
+        }
+      ],
       "requiredMasteryLevel": 0,
       "replacementSkillId": "thousand_flame_lances",
       "visualTier": "evolved",
       "icon": "icon_flame_lance",
-      "damage": { "base": 60, "rampPerHit": 0.06, "rampMax": 0.6, "splitFactor": 0.55 },
+      "damage": {
+        "base": 60,
+        "rampPerHit": 0.06,
+        "rampMax": 0.6,
+        "splitFactor": 0.55
+      },
       "cooldown": 620,
       "area": {},
-      "projectileCount": { "base": 10, "allDirections": 4, "pierce": 8, "speed": 600 },
-      "chain": { "splitOnPierce": 2, "splitCount": 2 },
-      "safetyCaps": { "maxProjectilesPerCast": 22, "maxSplitGenerations": 2, "maxPierce": 10 },
+      "projectileCount": {
+        "base": 10,
+        "allDirections": 4,
+        "pierce": 8,
+        "speed": 600
+      },
+      "chain": {
+        "splitOnPierce": 2,
+        "splitCount": 2
+      },
+      "safetyCaps": {
+        "maxProjectilesPerCast": 22,
+        "maxSplitGenerations": 2,
+        "maxPierce": 10
+      },
       "displayOrder": 4
     },
     {
@@ -80,17 +170,41 @@
       "displayName": "百鬼燎乱",
       "description": "大量の鬼火を継続生成。撃破時に上限付きで小型鬼火へ分裂。一部は突撃せずプレイヤー周囲を防衛し、近づいた敵を自動攻撃。",
       "baseSkillId": "homing_wisp",
-      "requiredSkills": [{ "skill": "fire_spirit", "level": 4 }],
+      "requiredSkills": [
+        {
+          "skill": "fire_spirit",
+          "level": 4
+        }
+      ],
       "requiredMasteryLevel": 0,
       "replacementSkillId": "hundred_wisp_parade",
       "visualTier": "evolved",
       "icon": "icon_homing_wisp",
-      "damage": { "base": 22, "splitFactor": 0.6 },
+      "damage": {
+        "base": 22,
+        "splitFactor": 0.6
+      },
       "cooldown": 900,
-      "area": { "defenderRadius": 70 },
-      "projectileCount": { "perCast": 4, "homingSpeed": 260, "duration": 4200, "retargets": 3, "defenderRatio": 0.34, "splitChance": 0.35 },
-      "chain": { "splitOnKill": 1 },
-      "safetyCaps": { "maxWisps": 60, "maxSplitWisps": 40, "maxSplitGenerations": 1, "spawnPerFrame": 6 },
+      "area": {
+        "defenderRadius": 70
+      },
+      "projectileCount": {
+        "perCast": 4,
+        "homingSpeed": 260,
+        "duration": 4200,
+        "retargets": 3,
+        "defenderRatio": 0.34,
+        "splitChance": 0.35
+      },
+      "chain": {
+        "splitOnKill": 1
+      },
+      "safetyCaps": {
+        "maxWisps": 60,
+        "maxSplitWisps": 40,
+        "maxSplitGenerations": 1,
+        "spawnPerFrame": 6
+      },
       "displayOrder": 5
     },
     {
@@ -98,19 +212,40 @@
       "displayName": "太陽核崩壊",
       "description": "巨大な太陽核を密集地点へ投下。爆発前に周囲を中心へ引き寄せ、明確な予告とカウント後に大爆発。跡地に大型溶岩地帯（継続ダメージ＋炎上）を残す。低頻度。",
       "baseSkillId": "lava_bomb",
-      "requiredSkills": [{ "skill": "scorch_expand", "level": 4 }],
+      "requiredSkills": [
+        {
+          "skill": "scorch_expand",
+          "level": 4
+        }
+      ],
       "requiredMasteryLevel": 0,
       "replacementSkillId": "solar_core_collapse",
       "visualTier": "evolved",
       "icon": "icon_lava_bomb",
-      "damage": { "blast": 260, "lavaTick": 14 },
+      "damage": {
+        "blast": 260,
+        "lavaTick": 14
+      },
       "cooldown": 6000,
-      "area": { "finalRadius": 130, "lavaRadius": 96, "lavaDuration": 3200, "pullRadius": 150 },
+      "area": {
+        "finalRadius": 130,
+        "lavaRadius": 96,
+        "lavaDuration": 3200,
+        "pullRadius": 150
+      },
       "projectileCount": {},
       "chain": {},
-      "pull": { "radius": 150, "strength": 90, "excludeBoss": true },
+      "pull": {
+        "radius": 150,
+        "strength": 90,
+        "excludeBoss": true
+      },
       "telegraph": 1200,
-      "safetyCaps": { "maxCores": 3, "lavaTickMs": 300, "maxAoePerFrame": 6 },
+      "safetyCaps": {
+        "maxCores": 3,
+        "lavaTickMs": 300,
+        "maxAoePerFrame": 6
+      },
       "displayOrder": 6
     },
     {
@@ -118,17 +253,44 @@
       "displayName": "煉獄大火輪",
       "description": "移動する複数の火炎竜巻を生成。画面内を移動して敵を吸引、通過地点へ燃焼地帯を残し、範囲内の炎上を感染。持続終了時に全竜巻が同時爆発。",
       "baseSkillId": "flame_vortex",
-      "requiredSkills": [{ "skill": "burning_trail", "level": 4 }],
+      "requiredSkills": [
+        {
+          "skill": "burning_trail",
+          "level": 4
+        }
+      ],
       "requiredMasteryLevel": 0,
       "replacementSkillId": "infernal_vortex_wheel",
       "visualTier": "evolved",
       "icon": "icon_flame_vortex",
-      "damage": { "tick": 16, "endBurst": 90, "burnGround": 8 },
+      "damage": {
+        "tick": 16,
+        "endBurst": 90,
+        "burnGround": 8
+      },
       "cooldown": 5000,
-      "area": { "radius": 74, "moveSpeed": 45, "infectRadius": 44, "burnGroundRadius": 30, "burnGroundDuration": 900 },
-      "projectileCount": { "vortices": 3, "duration": 4000, "pull": 66, "tickRate": 250 },
-      "chain": { "infect": 1 },
-      "safetyCaps": { "maxActiveVortices": 6, "maxInfectPerFrame": 6, "maxSimultaneousExplosions": 8, "tickMs": 240 },
+      "area": {
+        "radius": 74,
+        "moveSpeed": 45,
+        "infectRadius": 44,
+        "burnGroundRadius": 30,
+        "burnGroundDuration": 900
+      },
+      "projectileCount": {
+        "vortices": 3,
+        "duration": 4000,
+        "pull": 66,
+        "tickRate": 250
+      },
+      "chain": {
+        "infect": 1
+      },
+      "safetyCaps": {
+        "maxActiveVortices": 6,
+        "maxInfectPerFrame": 6,
+        "maxSimultaneousExplosions": 8,
+        "tickMs": 240
+      },
       "displayOrder": 7
     },
     {
@@ -136,18 +298,264 @@
       "displayName": "終焉連鎖",
       "description": "より多くの敵へ終焉刻印を付与。刻印敵の起爆/死亡で周囲の刻印を連鎖起爆し、未刻印の敵へ拡散。一定連鎖で最終爆発（1連鎖1回）。visited集合と最大連鎖で無限化を防止。",
       "baseSkillId": "detonation_mark",
-      "requiredSkills": [{ "skill": "power_amp", "level": 4 }],
+      "requiredSkills": [
+        {
+          "skill": "power_amp",
+          "level": 4
+        }
+      ],
       "requiredMasteryLevel": 0,
       "replacementSkillId": "apocalypse_chain",
       "visualTier": "evolved",
       "icon": "icon_detonation_mark",
-      "damage": { "detonate": 70, "finalBlast": 180, "death": 40 },
+      "damage": {
+        "detonate": 70,
+        "finalBlast": 180,
+        "death": 40
+      },
       "cooldown": 2600,
-      "area": { "detonateRadius": 70, "chainRadius": 90, "finalRadius": 120 },
-      "projectileCount": { "markCount": 8, "hitsNeeded": 2, "markDuration": 6000, "spreadCount": 3 },
-      "chain": { "chainDetonate": 1, "spreadOnChain": 1 },
-      "safetyCaps": { "maxMarks": 40, "maxChainTargets": 10, "maxChainDepth": 8, "maxSpreadPerChain": 6, "finalBlastPerChain": 1 },
+      "area": {
+        "detonateRadius": 70,
+        "chainRadius": 90,
+        "finalRadius": 120
+      },
+      "projectileCount": {
+        "markCount": 8,
+        "hitsNeeded": 2,
+        "markDuration": 6000,
+        "spreadCount": 3
+      },
+      "chain": {
+        "chainDetonate": 1,
+        "spreadOnChain": 1
+      },
+      "safetyCaps": {
+        "maxMarks": 40,
+        "maxChainTargets": 10,
+        "maxChainDepth": 8,
+        "maxSpreadPerChain": 6,
+        "finalBlastPerChain": 1
+      },
       "displayOrder": 8
+    },
+    {
+      "id": "solar_annihilation_array",
+      "displayName": "太陽滅却陣",
+      "description": "主光線を高頻度で照射しつつ、周囲の鏡（光点）から補助光線を別の敵へ照射。一定間隔で全光線が密集地点へ集中し大爆発。",
+      "baseSkillId": "scorching_ray",
+      "requiredSkills": [
+        {
+          "skill": "swift_cast",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "solar_annihilation_array",
+      "visualTier": "evolved",
+      "icon": "icon_solar_annihilation_array",
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "safetyCaps": {
+        "maxSolarMirrors": 6,
+        "maxActiveBeams": 10,
+        "maxBeamTicksPerFrame": 40,
+        "maxSimultaneousExplosions": 6
+      },
+      "displayOrder": 9,
+      "damage": {
+        "mainTick": 22,
+        "auxTick": 9,
+        "focusBlast": 160
+      },
+      "cooldown": 240,
+      "area": {
+        "mainWidth": 16,
+        "auxWidth": 9,
+        "focusRadius": 120
+      },
+      "projectileCount": {
+        "mirrors": 4,
+        "auxBeams": 4,
+        "tickRate": 160,
+        "focusIntervalMs": 2600
+      }
+    },
+    {
+      "id": "hellfire_mine_network",
+      "displayName": "地獄火連鎖陣",
+      "description": "線で接続された地雷網を設置。1つの起爆が近くの地雷へ時間差で連鎖起爆し、爆発を受けた敵へ起爆刻印を付与/加速。visited集合とnetworkIdで二重起爆を防止。",
+      "baseSkillId": "ember_minefield",
+      "requiredSkills": [
+        {
+          "skill": "detonation_mark",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "hellfire_mine_network",
+      "visualTier": "evolved",
+      "icon": "icon_hellfire_mine_network",
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "safetyCaps": {
+        "maxMines": 40,
+        "maxMineNetworkDepth": 6,
+        "maxMineNetworkExplosions": 24,
+        "maxMineExplosionsPerFrame": 6,
+        "maxMarks": 40
+      },
+      "displayOrder": 10,
+      "damage": {
+        "explosion": 40,
+        "markBonus": 18
+      },
+      "cooldown": 3600,
+      "area": {
+        "explosionRadius": 52,
+        "linkRadius": 70
+      },
+      "projectileCount": {
+        "mines": 6,
+        "markTargets": 6,
+        "hitsNeeded": 2
+      }
+    },
+    {
+      "id": "inferno_blade_domain",
+      "displayName": "炎帝剣域",
+      "description": "巨大な三日月刃を複数展開。通常は回転防御、発動時は広範囲斬撃。炎の障壁が被弾を防ぐたびに追加の反撃斬撃（障壁1防御につき1回・無限反撃なし）。",
+      "baseSkillId": "flame_crescent",
+      "requiredSkills": [
+        {
+          "skill": "flame_barrier",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "inferno_blade_domain",
+      "visualTier": "evolved",
+      "icon": "icon_inferno_blade_domain",
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "safetyCaps": {
+        "maxInfernoBlades": 8,
+        "maxSimultaneousHits": 40,
+        "maxRetaliationsPerHit": 1
+      },
+      "displayOrder": 11,
+      "damage": {
+        "slash": 52,
+        "retaliate": 40
+      },
+      "cooldown": 1400,
+      "area": {
+        "radius": 78,
+        "arc": 6.2
+      },
+      "projectileCount": {
+        "blades": 4,
+        "sweeps": 3
+      }
+    },
+    {
+      "id": "ash_legion",
+      "displayName": "灰燼軍勢",
+      "description": "灰燼分身と火の精霊の混成軍勢を召喚。分身は直近の攻撃を時間差で複製、一部は専用火弾を発射。軍勢の攻撃は残響・追加分身を発生させない。",
+      "baseSkillId": "ash_doppelganger",
+      "requiredSkills": [
+        {
+          "skill": "fire_spirit",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "ash_legion",
+      "visualTier": "evolved",
+      "icon": "icon_ash_legion",
+      "echoPolicy": "forbidden",
+      "clonePolicy": "forbidden",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "safetyCaps": {
+        "maxAshLegionUnits": 8,
+        "maxAshLegionCastsPerFrame": 3,
+        "maxCloneCastsPerFrame": 4,
+        "maxCopyGeneration": 1
+      },
+      "displayOrder": 12,
+      "damage": {
+        "copyPower": 0.5,
+        "boltDamage": 18
+      },
+      "cooldown": 0,
+      "projectileCount": {
+        "units": 6,
+        "copyIntervalMs": 900,
+        "boltInterval": 1100
+      }
+    },
+    {
+      "id": "star_devouring_furnace",
+      "displayName": "星喰い炉",
+      "description": "敵弾吸収に加え周囲へ吸収核を展開し、吸収弾を星炎エネルギーへ変換。最大チャージで全方向弾幕＋大爆発＋短時間防御。不死鳥の致死回避時にチャージを増加し自動放出（同一致死1回・不死鳥は消費しない）。",
+      "baseSkillId": "bullet_furnace",
+      "requiredSkills": [
+        {
+          "skill": "phoenix_feather",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "star_devouring_furnace",
+      "visualTier": "evolved",
+      "icon": "icon_star_devouring_furnace",
+      "echoPolicy": "custom",
+      "clonePolicy": "custom",
+      "isDefensive": true,
+      "isReactive": true,
+      "usesResourceCost": false,
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "safetyCaps": {
+        "maxStarFurnaceCores": 6,
+        "maxStarFurnaceProjectiles": 160,
+        "maxFurnaceCharge": 14,
+        "maxAbsorbedBulletsPerSecond": 16,
+        "maxFurnaceProjectiles": 160
+      },
+      "displayOrder": 13,
+      "damage": {
+        "release": 16,
+        "burstBlast": 120
+      },
+      "cooldown": 0,
+      "area": {
+        "absorbRadius": 64,
+        "burstRadius": 110
+      },
+      "projectileCount": {
+        "maxCharge": 14,
+        "releaseProjectiles": 22,
+        "cores": 4
+      }
     }
   ]
 }

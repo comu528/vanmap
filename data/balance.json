@@ -26,7 +26,12 @@
     "maxDeathExplosionChain": 3,
     "maxInfectGenerations": 3,
     "maxEchoPerFrame": 4,
-    "particleBudget": { "low": 40, "medium": 120, "high": 260, "ultra": 480 }
+    "particleBudget": {
+      "low": 40,
+      "medium": 120,
+      "high": 260,
+      "ultra": 480
+    }
   },
   "spatialGrid": {
     "cellSize": 64,
@@ -34,21 +39,246 @@
     "enabledByDefault": true
   },
   "skillCaps": {
-    "maxFlameLances":         { "low": 24, "medium": 48, "high": 80,  "ultra": 120 },
-    "maxHomingWisps":         { "low": 16, "medium": 30, "high": 50,  "ultra": 80 },
-    "maxSplitWisps":          { "low": 8,  "medium": 16, "high": 28,  "ultra": 40 },
-    "maxSummons":             { "low": 4,  "medium": 6,  "high": 8,   "ultra": 10 },
-    "maxSummonProjectiles":   { "low": 20, "medium": 40, "high": 70,  "ultra": 100 },
-    "maxActiveVortices":      { "low": 2,  "medium": 3,  "high": 4,   "ultra": 6 },
-    "maxMarks":               { "low": 10, "medium": 18, "high": 30,  "ultra": 40 },
-    "maxChainTargets":        { "low": 4,  "medium": 6,  "high": 8,   "ultra": 10 },
-    "maxChainDepth":          { "low": 4,  "medium": 6,  "high": 8,   "ultra": 10 },
-    "maxSimultaneousExplosions": { "low": 3, "medium": 5, "high": 8,  "ultra": 10 },
-    "maxEvolutionProjectiles":{ "low": 40, "medium": 80, "high": 140, "ultra": 220 },
-    "maxPhoenixEffects":      { "low": 1,  "medium": 1,  "high": 2,   "ultra": 2 },
-    "maxBarrierEffects":      { "low": 1,  "medium": 2,  "high": 2,   "ultra": 3 }
+    "maxFlameLances": {
+      "low": 24,
+      "medium": 48,
+      "high": 80,
+      "ultra": 120
+    },
+    "maxHomingWisps": {
+      "low": 16,
+      "medium": 30,
+      "high": 50,
+      "ultra": 80
+    },
+    "maxSplitWisps": {
+      "low": 8,
+      "medium": 16,
+      "high": 28,
+      "ultra": 40
+    },
+    "maxSummons": {
+      "low": 4,
+      "medium": 6,
+      "high": 8,
+      "ultra": 10
+    },
+    "maxSummonProjectiles": {
+      "low": 20,
+      "medium": 40,
+      "high": 70,
+      "ultra": 100
+    },
+    "maxActiveVortices": {
+      "low": 2,
+      "medium": 3,
+      "high": 4,
+      "ultra": 6
+    },
+    "maxMarks": {
+      "low": 10,
+      "medium": 18,
+      "high": 30,
+      "ultra": 40
+    },
+    "maxChainTargets": {
+      "low": 4,
+      "medium": 6,
+      "high": 8,
+      "ultra": 10
+    },
+    "maxChainDepth": {
+      "low": 4,
+      "medium": 6,
+      "high": 8,
+      "ultra": 10
+    },
+    "maxSimultaneousExplosions": {
+      "low": 3,
+      "medium": 5,
+      "high": 8,
+      "ultra": 10
+    },
+    "maxEvolutionProjectiles": {
+      "low": 40,
+      "medium": 80,
+      "high": 140,
+      "ultra": 220
+    },
+    "maxPhoenixEffects": {
+      "low": 1,
+      "medium": 1,
+      "high": 2,
+      "ultra": 2
+    },
+    "maxBarrierEffects": {
+      "low": 1,
+      "medium": 2,
+      "high": 2,
+      "ultra": 3
+    },
+    "maxActiveBeams": {
+      "low": 2,
+      "medium": 3,
+      "high": 5,
+      "ultra": 7
+    },
+    "maxBeamTicksPerFrame": {
+      "low": 12,
+      "medium": 24,
+      "high": 40,
+      "ultra": 60
+    },
+    "maxMines": {
+      "low": 20,
+      "medium": 30,
+      "high": 40,
+      "ultra": 60
+    },
+    "maxMineExplosionsPerFrame": {
+      "low": 3,
+      "medium": 5,
+      "high": 6,
+      "ultra": 8
+    },
+    "maxRicochetProjectiles": {
+      "low": 16,
+      "medium": 28,
+      "high": 44,
+      "ultra": 64
+    },
+    "maxRicochetChecksPerFrame": {
+      "low": 40,
+      "medium": 80,
+      "high": 140,
+      "ultra": 220
+    },
+    "maxClones": {
+      "low": 2,
+      "medium": 3,
+      "high": 4,
+      "ultra": 5
+    },
+    "maxCloneCastsPerFrame": {
+      "low": 2,
+      "medium": 3,
+      "high": 4,
+      "ultra": 6
+    },
+    "maxBloodfireProjectiles": {
+      "low": 12,
+      "medium": 20,
+      "high": 32,
+      "ultra": 48
+    },
+    "maxAbsorbedBulletsPerSecond": {
+      "low": 8,
+      "medium": 12,
+      "high": 16,
+      "ultra": 24
+    },
+    "maxFurnaceCharge": {
+      "low": 8,
+      "medium": 10,
+      "high": 14,
+      "ultra": 18
+    },
+    "maxFurnaceProjectiles": {
+      "low": 24,
+      "medium": 48,
+      "high": 90,
+      "ultra": 160
+    },
+    "maxScreenEdgeWaves": {
+      "low": 2,
+      "medium": 3,
+      "high": 4,
+      "ultra": 4
+    },
+    "maxTethers": {
+      "low": 6,
+      "medium": 10,
+      "high": 16,
+      "ultra": 24
+    },
+    "maxTetherRetargetsPerFrame": {
+      "low": 2,
+      "medium": 4,
+      "high": 6,
+      "ultra": 8
+    },
+    "maxBlazingTrails": {
+      "low": 16,
+      "medium": 28,
+      "high": 44,
+      "ultra": 64
+    },
+    "maxSolarMirrors": {
+      "low": 4,
+      "medium": 5,
+      "high": 6,
+      "ultra": 8
+    },
+    "maxMineNetworkDepth": {
+      "low": 3,
+      "medium": 4,
+      "high": 6,
+      "ultra": 8
+    },
+    "maxMineNetworkExplosions": {
+      "low": 10,
+      "medium": 16,
+      "high": 24,
+      "ultra": 32
+    },
+    "maxInfernoBlades": {
+      "low": 4,
+      "medium": 6,
+      "high": 8,
+      "ultra": 10
+    },
+    "maxAshLegionUnits": {
+      "low": 4,
+      "medium": 6,
+      "high": 8,
+      "ultra": 10
+    },
+    "maxAshLegionCastsPerFrame": {
+      "low": 2,
+      "medium": 3,
+      "high": 4,
+      "ultra": 6
+    },
+    "maxStarFurnaceCores": {
+      "low": 3,
+      "medium": 4,
+      "high": 6,
+      "ultra": 8
+    },
+    "maxStarFurnaceProjectiles": {
+      "low": 40,
+      "medium": 80,
+      "high": 140,
+      "ultra": 220
+    },
+    "maxCopyGeneration": {
+      "low": 1,
+      "medium": 1,
+      "high": 1,
+      "ultra": 1
+    },
+    "maxEchoCloneGeneration": {
+      "low": 1,
+      "medium": 1,
+      "high": 1,
+      "ultra": 1
+    }
   },
-  "speedModes": [1, 1.5, 2],
+  "speedModes": [
+    1,
+    1.5,
+    2
+  ],
   "player": {
     "maxHp": 100,
     "moveSpeed": 110,
@@ -65,9 +295,27 @@
     "baseDurationSec": 300,
     "bossAtSec": 300,
     "phases": [
-      { "fromSec": 0, "toSec": 60, "label": "少数の敵", "spawnIntervalMs": 900, "maxAlive": 40 },
-      { "fromSec": 60, "toSec": 180, "label": "敵数増加", "spawnIntervalMs": 550, "maxAlive": 90 },
-      { "fromSec": 180, "toSec": 300, "label": "高密度", "spawnIntervalMs": 320, "maxAlive": 160 }
+      {
+        "fromSec": 0,
+        "toSec": 60,
+        "label": "少数の敵",
+        "spawnIntervalMs": 900,
+        "maxAlive": 40
+      },
+      {
+        "fromSec": 60,
+        "toSec": 180,
+        "label": "敵数増加",
+        "spawnIntervalMs": 550,
+        "maxAlive": 90
+      },
+      {
+        "fromSec": 180,
+        "toSec": 300,
+        "label": "高密度",
+        "spawnIntervalMs": 320,
+        "maxAlive": 160
+      }
     ]
   },
   "leveling": {
@@ -76,16 +324,108 @@
     "choicesPerLevel": 3
   },
   "difficulties": [
-    { "id": 1, "name": "難易度1", "enemyHp": 1.0, "enemyDamage": 1.0, "enemySpeed": 1.0, "spawnRate": 1.0, "eliteRate": 0.02, "bossHp": 1.0, "currency": 1.0, "reincarnationEfficiency": 1.0, "unlockAfter": null },
-    { "id": 2, "name": "難易度2", "enemyHp": 1.3, "enemyDamage": 1.2, "enemySpeed": 1.05, "spawnRate": 1.2, "eliteRate": 0.04, "bossHp": 1.4, "currency": 1.3, "reincarnationEfficiency": 1.1, "unlockAfter": 1 },
-    { "id": 3, "name": "難易度3", "enemyHp": 1.7, "enemyDamage": 1.45, "enemySpeed": 1.1, "spawnRate": 1.45, "eliteRate": 0.07, "bossHp": 1.9, "currency": 1.7, "reincarnationEfficiency": 1.25, "unlockAfter": 2 },
-    { "id": 4, "name": "難易度4", "enemyHp": 2.2, "enemyDamage": 1.75, "enemySpeed": 1.18, "spawnRate": 1.7, "eliteRate": 0.1, "bossHp": 2.6, "currency": 2.2, "reincarnationEfficiency": 1.45, "unlockAfter": 3 },
-    { "id": 5, "name": "難易度5", "enemyHp": 3.0, "enemyDamage": 2.1, "enemySpeed": 1.25, "spawnRate": 2.0, "eliteRate": 0.14, "bossHp": 3.5, "currency": 3.0, "reincarnationEfficiency": 1.7, "unlockAfter": 4 }
+    {
+      "id": 1,
+      "name": "難易度1",
+      "enemyHp": 1.0,
+      "enemyDamage": 1.0,
+      "enemySpeed": 1.0,
+      "spawnRate": 1.0,
+      "eliteRate": 0.02,
+      "bossHp": 1.0,
+      "currency": 1.0,
+      "reincarnationEfficiency": 1.0,
+      "unlockAfter": null
+    },
+    {
+      "id": 2,
+      "name": "難易度2",
+      "enemyHp": 1.3,
+      "enemyDamage": 1.2,
+      "enemySpeed": 1.05,
+      "spawnRate": 1.2,
+      "eliteRate": 0.04,
+      "bossHp": 1.4,
+      "currency": 1.3,
+      "reincarnationEfficiency": 1.1,
+      "unlockAfter": 1
+    },
+    {
+      "id": 3,
+      "name": "難易度3",
+      "enemyHp": 1.7,
+      "enemyDamage": 1.45,
+      "enemySpeed": 1.1,
+      "spawnRate": 1.45,
+      "eliteRate": 0.07,
+      "bossHp": 1.9,
+      "currency": 1.7,
+      "reincarnationEfficiency": 1.25,
+      "unlockAfter": 2
+    },
+    {
+      "id": 4,
+      "name": "難易度4",
+      "enemyHp": 2.2,
+      "enemyDamage": 1.75,
+      "enemySpeed": 1.18,
+      "spawnRate": 1.7,
+      "eliteRate": 0.1,
+      "bossHp": 2.6,
+      "currency": 2.2,
+      "reincarnationEfficiency": 1.45,
+      "unlockAfter": 3
+    },
+    {
+      "id": 5,
+      "name": "難易度5",
+      "enemyHp": 3.0,
+      "enemyDamage": 2.1,
+      "enemySpeed": 1.25,
+      "spawnRate": 2.0,
+      "eliteRate": 0.14,
+      "bossHp": 3.5,
+      "currency": 3.0,
+      "reincarnationEfficiency": 1.7,
+      "unlockAfter": 4
+    }
   ],
   "effectQuality": {
-    "low": { "particleScale": 0.25, "damageNumbers": false, "screenShake": false, "whiteFlash": false, "maxEnemies": 60, "maxProjectiles": 120, "maxSparksPerBurst": 3 },
-    "medium": { "particleScale": 0.5, "damageNumbers": true, "screenShake": true, "whiteFlash": false, "maxEnemies": 120, "maxProjectiles": 250, "maxSparksPerBurst": 6 },
-    "high": { "particleScale": 1.0, "damageNumbers": true, "screenShake": true, "whiteFlash": true, "maxEnemies": 200, "maxProjectiles": 400, "maxSparksPerBurst": 10 },
-    "ultra": { "particleScale": 1.5, "damageNumbers": true, "screenShake": true, "whiteFlash": true, "maxEnemies": 320, "maxProjectiles": 700, "maxSparksPerBurst": 16 }
+    "low": {
+      "particleScale": 0.25,
+      "damageNumbers": false,
+      "screenShake": false,
+      "whiteFlash": false,
+      "maxEnemies": 60,
+      "maxProjectiles": 120,
+      "maxSparksPerBurst": 3
+    },
+    "medium": {
+      "particleScale": 0.5,
+      "damageNumbers": true,
+      "screenShake": true,
+      "whiteFlash": false,
+      "maxEnemies": 120,
+      "maxProjectiles": 250,
+      "maxSparksPerBurst": 6
+    },
+    "high": {
+      "particleScale": 1.0,
+      "damageNumbers": true,
+      "screenShake": true,
+      "whiteFlash": true,
+      "maxEnemies": 200,
+      "maxProjectiles": 400,
+      "maxSparksPerBurst": 10
+    },
+    "ultra": {
+      "particleScale": 1.5,
+      "damageNumbers": true,
+      "screenShake": true,
+      "whiteFlash": true,
+      "maxEnemies": 320,
+      "maxProjectiles": 700,
+      "maxSparksPerBurst": 16
+    }
   }
 }

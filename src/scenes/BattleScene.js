@@ -25,6 +25,7 @@ import { SpawnManager } from '../systems/SpawnManager.js';
 import { BattleManager } from '../systems/BattleManager.js';
 import { JobProgressionManager } from '../systems/JobProgressionManager.js';
 import { JobModifierManager } from '../systems/JobModifierManager.js';
+import { defaultCastContext, replayContext, canCastTriggerEcho, canCloneCopy } from '../systems/CastPolicy.js';
 import { HUD } from '../ui/HUD.js';
 import { PauseMenu } from '../ui/PauseMenu.js';
 import { distance, dist2, createRng } from '../utils/math.js';
@@ -149,6 +150,10 @@ export class BattleScene extends Phaser.Scene {
     this._defaultElement = (this.jobId === 'flame_witch') ? 'fire' : null;
     this._echoScale = 1;
     this._inEcho = false;
+    // M6-D: 発動文脈（残響/分身の再帰防止）・複製元・毎フレーム予算。
+    this._castCtx = null;
+    this._lastClonableCast = null;
+    this._frameBudgets = {};
     this.jobMods = new JobModifierManager();
     this._resolveJobModsFromProfile();
 
@@ -237,6 +242,7 @@ export class BattleScene extends Phaser.Scene {
       this.input.keyboard.on('keydown-F3', () => this.toggleGridViz());      // グリッド可視化（M5-A）
       this.input.keyboard.on('keydown-F4', () => this.toggleSkillDebug());   // 新スキル確認（M6-B）
       this.input.keyboard.on('keydown-F5', () => this.toggleSkillTuner());    // 個別スキル検証（M6-C）
+      this.input.keyboard.on('keydown-F6', () => this.toggleWave2Debug());    // 新スキル検証（M6-D）
       // ヘッドレス/実ブラウザからの検査・比較用に戦闘シーンを公開する。
       window.RFS_BATTLE = this;
       this.togglePerfOverlay(); // debug 時は性能パネルを既定表示
@@ -327,25 +333,83 @@ export class BattleScene extends Phaser.Scene {
     this.draft.setRarityWeightMult({ rare: this.jobMods.rarityWeightMult('rare'), legendary: this.jobMods.rarityWeightMult('legendary') });
   }
 
-  // ---------------- 残響詠唱（M6-C・Lv50/Lv100） ----------------
-  // recordCast（本発動の共通シグナル）から呼ばれる。攻撃用 fire active のみカウントし、
-  // 閾値到達で直前の攻撃を1回だけ追加発動する。防御/反応/DoT/召喚射撃/連鎖/分裂/残響発は対象外。
+  // ---------------- 残響詠唱（M6-C）・灰燼分身の複製（M6-D）: castContext 統合 ----------------
+  // recordCast（本発動の共通シグナル）から呼ばれる。攻撃用 fire active のみ残響カウントし、
+  // 直近の複製可能な発動を記録する。防御/反応/DoT/召喚射撃/連鎖/分裂/複製発は対象外（CastPolicy で判定）。
   _onSkillCast(id) {
-    if (this._inEcho) return;                       // 残響発動からは残響を発生させない
-    if (!this.jobMods || !this.jobMods.echoEnabled()) return;
     const sk = this.skills.skills.get(id);
-    if (!sk || sk.isDefensive || sk.isReactive) return;
-    if (this.jobMods.registerCast()) this._triggerEcho(sk);
+    if (!sk) return;
+    const ctx = this._castCtx || defaultCastContext(id);
+    // 灰燼分身の複製元: 「直近の normal 由来 かつ 複製可能」な発動を記録（echo/clone 発は上書きしない）。
+    if (ctx.origin === 'normal' && canCloneCopy(sk.castMeta)) this._lastClonableCast = { skillId: id, at: this.time.now };
+    // Job残響カウンター。
+    if (!this.jobMods || !this.jobMods.echoEnabled()) return;
+    if (!canCastTriggerEcho(sk.castMeta, ctx) || !sk.canTriggerEcho) return;
+    if (this.jobMods.registerCast()) this._triggerEcho(sk, ctx);
   }
 
-  _triggerEcho(sk) {
+  copyGenCap() { return DataManager.skillCap('maxEchoCloneGeneration', this.settings?.effectQuality || 'high', 1); }
+
+  _triggerEcho(sk, parentCtx) {
     if (this._echoBudget <= 0) { this._m.suppressed++; return; } // 1フレーム上限（無限発動防止）
+    if (sk.castMeta.echoPolicy === 'forbidden') return;
+    const child = replayContext(parentCtx, 'echo', this.jobMods.echoPower(), this.copyGenCap());
+    if (!child) return;
     this._echoBudget--;
-    this._inEcho = true;
-    this._echoScale = this.jobMods.echoPower(); // 弾生成/同期ダメージへ威力倍率を反映
-    try { this.skills.requestEchoCast(sk.id); }
-    finally { this._echoScale = 1; this._inEcho = false; }
+    this._runReplay(child, () => this.skills.requestEchoCast(sk.id));
     this.skills.recordExtra(sk.id, 'echoCasts', 1, 'add');
+  }
+
+  // 灰燼分身が「直近の複製可能な攻撃」を低威力で再実行する（分身/軍勢から呼ぶ）。
+  performClone(powerMult) {
+    const last = this._lastClonableCast;
+    if (!last) return false;
+    const sk = this.skills.skills.get(last.skillId);
+    if (!sk || !canCloneCopy(sk.castMeta) || sk.castMeta.clonePolicy === 'forbidden') return false;
+    if (!this._spendFrameBudget('cloneCast', 'maxCloneCastsPerFrame')) return false;
+    const child = replayContext(defaultCastContext(last.skillId), 'clone', powerMult || 0.4, this.copyGenCap());
+    if (!child) return false;
+    this._runReplay(child, () => this.skills.requestCloneCast(sk.id));
+    this.skills.recordExtra(last.skillId, 'cloneDamageCasts', 1, 'add');
+    return true;
+  }
+
+  // echo/clone 再実行を castContext・威力倍率つきで安全に呼ぶ（発動中は自己複製を抑制）。
+  _runReplay(ctx, fn) {
+    const prevCtx = this._castCtx, prevScale = this._echoScale, prevInEcho = this._inEcho;
+    this._castCtx = ctx; this._echoScale = ctx.powerMultiplier || 1; this._inEcho = true;
+    try { fn(); } finally { this._castCtx = prevCtx; this._echoScale = prevScale; this._inEcho = prevInEcho; }
+  }
+
+  // 直近の複製可能な発動（灰燼分身の複製対象表示・F6デバッグ用）。
+  lastClonableCast() { return this._lastClonableCast || null; }
+
+  // ダッシュフック（M6-D 爆炎歩法）。Player から phase 通知を受け、所持スキルへ分配する。
+  onPlayerDash(phase, player) { if (this.skills) this.skills.dispatchDash(phase, player); }
+
+  // 品質別の毎フレーム予算（ビームtick/地雷爆発/反射判定/鎖再接続/複製/軍勢 等）。
+  _spendFrameBudget(name, capName) {
+    const cap = DataManager.skillCap(capName, this.settings?.effectQuality || 'high', 9999);
+    const used = (this._frameBudgets && this._frameBudgets[name]) || 0;
+    if (used >= cap) { this._m.suppressed++; return false; }
+    (this._frameBudgets || (this._frameBudgets = {}))[name] = used + 1;
+    return true;
+  }
+
+  // 敵弾吸収（M6-D 弾喰い炉/星喰い炉）。範囲内の吸収可能なボス弾を最大数まで吸収し、プール返却する。
+  // 予告/ビーム/接触/吸収不能弾/消費済み弾は吸収しない。同じ弾を二重吸収しない（consumedByAbility＋release）。
+  absorbBossBullets(x, y, r, maxCount) {
+    let absorbed = 0, value = 0; const r2 = r * r;
+    this.bossBulletPool.forEachActive((b) => {
+      if (absorbed >= maxCount || !b.alive || b.consumedByAbility) return;
+      if (!b.absorbable || b.isTelegraph || b.isBeam) return;
+      const dx = b.x - x, dy = b.y - y;
+      if (dx * dx + dy * dy > r2) return;
+      b.consumedByAbility = true;
+      value += b.absorbValue || 1; absorbed++;
+      this.bossBulletPool.release(b);
+    });
+    return { absorbed, value };
   }
 
   cleanup() {
@@ -359,6 +423,7 @@ export class BattleScene extends Phaser.Scene {
     if (this._gridGfx) { this._gridGfx.destroy(); this._gridGfx = null; }
     if (this._skdbg) { this._skdbg.destroy(true); this._skdbg = null; }
     if (this._sktuner) { this._sktuner.destroy(true); this._sktuner = null; }
+    if (this._w2dbg) { this._w2dbg.destroy(true); this._w2dbg = null; }
     if (window.RFS_BATTLE === this) window.RFS_BATTLE = null;
   }
 
@@ -378,6 +443,13 @@ export class BattleScene extends Phaser.Scene {
       skillCap: (name, fallback) => DataManager.skillCap(name, this.settings?.effectQuality || 'high', fallback),
       markEnemy: (e, mark) => { e._mark = mark; },
       markedCount: () => this.markedEnemyCount(),
+      // M6-D: 毎フレーム予算・敵弾吸収・分身複製・HP消費コスト。
+      frameBudget: (name, capName) => this._spendFrameBudget(name, capName),
+      absorbBossBullets: (x, y, r, max) => this.absorbBossBullets(x, y, r, max),
+      performClone: (power) => this.performClone(power),
+      lastClonableCast: () => this.lastClonableCast(),
+      spendHealthCost: (amount) => this.player.spendHealthCost(amount),
+      castContext: () => this._castCtx,
     };
   }
 
@@ -494,6 +566,31 @@ export class BattleScene extends Phaser.Scene {
     this.showBanner('不死鳥の羽が発動！');
   }
 
+  // 跳炎弾（M6-D）: 対象ごとの短時間再命中待機。true=命中を受け付けた。
+  _ricochetTryHit(proj, e) {
+    if (!this.combat.frameBudget('ricochetCheck', 'maxRicochetChecksPerFrame')) return false;
+    const now = this.time.now;
+    const m = proj._recentHits || (proj._recentHits = new Map());
+    const until = m.get(e);
+    if (until && now < until) return false;
+    m.set(e, now + (proj._retriggerMs || 300));
+    return true;
+  }
+
+  // 跳炎弾（M6-D）: 命中後に別の敵を優先して進行方向を補正。反射回数を使い切ったら消滅。
+  _ricochetBounce(proj, e) {
+    if (proj.bounceCount <= 0) { proj.alive = false; return; }
+    proj.bounceCount -= 1;
+    proj.damage *= (proj.bounceDamageFactor || 1);
+    const t = this.nearestTargetExcept(e.x, e.y, 320, new Set([e]));
+    let ang;
+    if (t && t.alive) ang = Math.atan2(t.y - e.y, t.x - e.x);
+    else { const v = proj.body.velocity; ang = Math.atan2(-v.y, -v.x); } // 敵がいなければ反転
+    const sp = proj.speed || 300;
+    proj.setVelocity(Math.cos(ang) * sp, Math.sin(ang) * sp);
+    proj.setRotation(ang);
+  }
+
   // 連鎖炎: 命中後に visited を共有しつつ次の敵へ。generation と品質別上限で無限往復を防止。
   _chainHit(proj, e) {
     const cap = Math.min(proj.chainCount || 0, this.combat.skillCap('maxChainDepth', 8));
@@ -542,6 +639,8 @@ export class BattleScene extends Phaser.Scene {
     this._explosionBudget = DataManager.skillCap('maxSimultaneousExplosions', this.settings?.effectQuality || 'high', 8);
     // M6-C: 残響詠唱の1フレーム内発動上限（無限発動・処理停止の防止）。
     this._echoBudget = caps.maxEchoPerFrame ?? 4;
+    // M6-D: 品質別の毎フレーム予算（ビームtick/地雷爆発/反射判定/鎖再接続/複製/軍勢 等）を初期化。
+    this._frameBudgets = {};
     if (this.effects) this.effects.beginFrame(caps.maxDamageNumbersPerFrame ?? 24, this.particleBudget ?? 200);
     this._resetMetrics();
   }
@@ -943,6 +1042,13 @@ export class BattleScene extends Phaser.Scene {
         if (!proj.alive) break;
         const rad = rr + e.displayWidth * 0.4;
         if (distance(proj.x, proj.y, e.x, e.y) <= rad) {
+          // M6-D 跳炎弾: 恒久 hitSet ではなく対象ごとの再命中待機で判定し、貫通ではなく反射する。
+          if (proj.behavior === 'ricochet') {
+            if (!this._ricochetTryHit(proj, e)) continue;
+            this.dealDamage(e, proj.damage, proj.skillId, { knockback: proj.knockback, from: { x: this.player.x, y: this.player.y }, element: proj.element });
+            this._ricochetBounce(proj, e);
+            continue;
+          }
           if (!proj.registerHit(e)) continue;
           this.dealDamage(e, proj.damage, proj.skillId, { knockback: proj.knockback, from: { x: this.player.x, y: this.player.y }, element: proj.element });
           if (proj.explosionRadius > 0) {
@@ -1493,6 +1599,82 @@ export class BattleScene extends Phaser.Scene {
       L.push('(進化/常時型: 内訳は挙動で確認)');
     } else L.push('(未取得)');
     L.push(`無効: ${[t.noJob && 'ジョブ', t.noMastery && '熟練', t.noPassive && 'passive', t.noPerm && '恒久火力'].filter(Boolean).join('/') || 'なし'}`);
+    return L.join('\n');
+  }
+
+  // ---------------- 新スキル検証（M6-D・?debug=1・F6） ----------------
+  // F1〜F5 と競合しない。新 active10種・新進化5種・複製/吸収/ダッシュ・上限到達を確認する。
+  // すべてランタイムのみ。profile は破壊・保存しない。
+  toggleWave2Debug() {
+    if (this._w2dbg) { this._w2dbg.destroy(true); this._w2dbg = null; return; }
+    this._w2 = this._w2 || { skill: 'scorching_ray', jobLevel: null };
+    const NEW = ['scorching_ray', 'ember_minefield', 'flame_crescent', 'ricochet_ember', 'ash_doppelganger', 'bloodfire_pact', 'bullet_furnace', 'four_sided_inferno', 'molten_chains', 'blazing_step'];
+    const JOBLV = [1, 50, 80, 100];
+    const cx = GAME_WIDTH / 2;
+    const ui = this.add.container(0, 0).setScrollFactor(0).setDepth(4000);
+    ui.add(this.add.rectangle(cx, GAME_HEIGHT / 2, 470, 350, 0x0d1017, 0.97).setScrollFactor(0).setStrokeStyle(1, 0x80deea));
+    ui.add(this.add.text(cx, 6, 'DEBUG（M6-D 新スキル・F6）', { fontSize: '11px', color: '#80deea' }).setScrollFactor(0).setOrigin(0.5, 0));
+    const acts = [
+      [() => `検証スキル: ${this._w2.skill}（切替）`, () => { const i = NEW.indexOf(this._w2.skill); this._w2.skill = NEW[(i + 1) % NEW.length]; }],
+      ['取得 / Lv+1 / Lv8', () => { const s = this.skills.skills.get(this._w2.skill); if (!s) this.skills.acquireOrLevel(this._w2.skill); else this.skills.setLevel(this._w2.skill, Math.min(8, s.level + 1)); this.updateHudSkills(); }],
+      ['このスキルをLv8で単独化', () => { for (const id of Array.from(this.skills.skills.keys())) if (id !== this._w2.skill) { const k = this.skills.skills.get(id); if (k && k.destroy) k.destroy(); this.skills.skills.delete(id); } this.skills.acquireOrLevel(this._w2.skill); this.skills.setLevel(this._w2.skill, 8); this.updateHudSkills(); }],
+      ['進化条件を全達成(補助含む)', () => this.debugSetupWave2Evolutions()],
+      [() => `Job Lv一時適用: ${this._w2.jobLevel ?? '実際'}（切替）`, () => { const i = JOBLV.indexOf(this._w2.jobLevel); this._w2.jobLevel = JOBLV[(i + 1) % JOBLV.length]; this.jobMods.setResolved(JobModifierManager.resolve(DataManager.getJobProgression(this.jobId), this._w2.jobLevel)); }],
+      ['吸収可能なボス弾を8発生成', () => { for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; this.bossBulletPool.spawn(this.player.x + Math.cos(a) * 90, this.player.y + Math.sin(a) * 90, a + Math.PI, 60, { hostile: true, damage: 5, absorbable: true, absorbValue: 1, projectileKind: 'bossBullet' }); } }],
+      ['吸収不能なボス弾を4発生成', () => { for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI * 2; this.bossBulletPool.spawn(this.player.x + Math.cos(a) * 90, this.player.y + Math.sin(a) * 90, a + Math.PI, 60, { hostile: true, damage: 8, absorbable: false, isBeam: true, projectileKind: 'beam' }); } }],
+      ['分身の複製を次発動で強制', () => this.performClone(0.5)],
+      ['チャージ系を最大化(炉/歩法)', () => this.debugMaxCharges()],
+      ['敵+40密集 / 敵HP弱体化', () => { this.debugClusterEnemies(40); this.enemyPool.forEachActive((e) => { if (e.alive) e.hp = Math.max(1, e.hp * 0.1); }); }],
+      ['通常状態へ戻す', () => { this._w2.jobLevel = null; this.jobMods.setResolved(this.resolvedJobModifiers); }],
+    ];
+    let yy = 24;
+    for (const [label, fn] of acts) {
+      const text = typeof label === 'function' ? label() : label;
+      const b = this.add.text(cx - 224, yy, text, { fontSize: '9px', color: '#fff', backgroundColor: '#1a3a3e', padding: { x: 5, y: 1 } }).setScrollFactor(0).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+      b.on('pointerdown', () => { fn(); this.toggleWave2Debug(); this.toggleWave2Debug(); });
+      ui.add(b); yy += 15;
+    }
+    ui.add(this.add.text(cx + 8, 24, this._wave2Report(), { fontSize: '8px', color: '#b2ff59', lineSpacing: 2, wordWrap: { width: 214 } }).setScrollFactor(0).setOrigin(0, 0));
+    const close = this.add.text(cx, GAME_HEIGHT - 12, '閉じる (F6)', { fontSize: '9px', color: '#bcaaa4' }).setScrollFactor(0).setOrigin(0.5, 1).setInteractive({ useHandCursor: true });
+    close.on('pointerdown', () => this.toggleWave2Debug());
+    ui.add(close);
+    this._w2dbg = ui;
+  }
+
+  debugSetupWave2Evolutions() {
+    const setup = [['scorching_ray', 'swift_cast'], ['ember_minefield', 'detonation_mark'], ['flame_crescent', 'flame_barrier'], ['ash_doppelganger', 'fire_spirit'], ['bullet_furnace', 'phoenix_feather']];
+    for (const [base, aux] of setup) {
+      this.skills.acquireOrLevel(base); this.skills.setLevel(base, 8);
+      if (DataManager.getPassive(aux)) { this.passives.acquireOrLevel(aux); this.passives.setLevel(aux, 4); }
+      else { this.skills.acquireOrLevel(aux); this.skills.setLevel(aux, 4); }
+    }
+    this.updateHudSkills();
+  }
+
+  // チャージ系スキルの runtimeState を最大化する（field名に依存せず charge を含むキーを増やす）。
+  debugMaxCharges() {
+    for (const sk of this.skills.skills.values()) {
+      if (!sk.serializeState || !sk.restoreState) continue;
+      const st = sk.serializeState(); if (!st || typeof st !== 'object') continue;
+      let changed = false;
+      for (const k of Object.keys(st)) if (/charge/i.test(k) && typeof st[k] === 'number') { st[k] = 99; changed = true; }
+      if (changed) sk.restoreState(st);
+    }
+  }
+
+  _wave2Report() {
+    const L = [];
+    const last = this.lastClonableCast();
+    L.push(`複製元: ${last ? last.skillId : 'なし'}`);
+    L.push(`castCtx: ${this._castCtx ? `${this._castCtx.origin}/g${this._castCtx.generation}` : 'normal'}`);
+    L.push(`残響: ${this.jobMods.echoEnabled() ? `${this.jobMods.echoInterval()}回` : '無効'} 現${this.jobMods.echoCount()}`);
+    L.push(`刻印${this.markedEnemyCount()} 味方弾${this.projPool.activeCount} 敵弾${this.bossBulletPool.activeCount}`);
+    L.push(`抑制/f ${(this._mLast || this._m).suppressed}`);
+    L.push('— 所持新スキル runtime —');
+    for (const id of ['scorching_ray', 'ember_minefield', 'ash_doppelganger', 'bloodfire_pact', 'bullet_furnace', 'blazing_step', 'molten_chains']) {
+      const sk = this.skills.skills.get(id);
+      if (sk && sk.serializeState) { const st = sk.serializeState(); if (st) L.push(`${id}: ${JSON.stringify(st).slice(0, 40)}`); }
+    }
     return L.join('\n');
   }
 

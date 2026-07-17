@@ -213,3 +213,56 @@ M6-A の抽選基盤の上に、火の魔女専用のアクティブ10種と進�
   一時無効化はランタイムのみ（profile の購入強化や熟練度を削除・保存しない）。
 - **将来拡張 / 未実装**: 転生レガシー未実装（複数ジョブ実装後に設計・他ジョブへ効果を持ち越さない）。ジョブ間継承/新ジョブ/ジョブ選択画面/他ジョブスキル/新 active/passive/進化 は今回対象外。
   新ジョブ追加は `jobs.json` にジョブ定義＋`job-progression.json` に `jobs.<id>` を追加し、必要なら `JobModifierManager.resolve` に新 milestone type を足す（火の魔女以外・未定義ジョブは全て恒等）。
+
+## 火の魔女ビルド拡張・第2波（Milestone 6-D 実装済み）
+M6-A の抽選/枠/パッシブ/進化基盤・M6-B の戦闘挙動・M6-C のジョブ育成を再利用し、火の魔女専用の active を **さらに10種**・進化を **さらに5種** 追加する。
+既存15 active・8進化・4 passive のコードと性能は変更しない。結果として火の魔女は **active 25種（既存15＋新10）・進化13種（既存8＋新5）・passive 4種** となる（`jobs.json` の `activeSkillPool` は25種）。
+
+### 新アクティブ10種（すべて火の魔女専用・最大Lv8・毎レベル成長）
+| スキル | id | レアリティ | 役割 |
+|--------|----|-----------|------|
+| 灼熱光線 | `scorching_ray` | uncommon | 継続する炎の光線（自機追従・DoT・線分/矩形判定・同tick同一敵1回・高Lvで2本目） |
+| 火種地雷 | `ember_minefield` | common | 敵接近で起爆する罠。寿命で自動起爆・同じ地雷は1回のみ |
+| 炎月斬 | `flame_crescent` | common | 扇状の近接薙ぎ払い（Projectile 非使用・一振り同一敵1回・ボスはノックバック無効） |
+| 跳炎弾 | `ricochet_ember` | common | 敵/画面端で反射する火弾（対象ごと再命中待機・反射回数上限） |
+| 灰燼分身 | `ash_doppelganger` | rare | 灰の分身が直近の複製可能な攻撃を低威力で再現する（clone） |
+| 血炎契約 | `bloodfire_pact` | rare | 現在HPの一定割合をコストに大火力（最低HP1保証・安全HP以下では不発） |
+| 弾喰い炉 | `bullet_furnace` | legendary | 敵弾を吸収してチャージ→炎弾幕を放出（防御/反応型） |
+| 四方炎獄 | `four_sided_inferno` | rare | 画面端1〜4方向から炎波（プレイヤーは無傷・全方向を同時に塞がない） |
+| 熔火鎖 | `molten_chains` | uncommon | 敵同士を炎の鎖で接続し DoT＋緩い引き寄せ（ボス除く）・再接続あり |
+| 爆炎歩法 | `blazing_step` | uncommon | ダッシュ強化（チャージ制・開始/終了爆発＋軌跡＋無敵延長） |
+
+### 新進化5種（枠を消費せず基礎 active を置換・補助条件スキルは消費しない）
+補助条件には passive も指定できる（M6-B と同じく `EvolutionManager.canEvolve(...,levelOf)` が active∪passive を解決）。
+| 進化 | 基礎スキル(Lv8) | 補助条件(Lv4) |
+|------|-----------------|---------------|
+| 太陽滅却陣 `solar_annihilation_array` | 灼熱光線 `scorching_ray` | 高速詠唱 `swift_cast`（passive） |
+| 地獄火連鎖陣 `hellfire_mine_network` | 火種地雷 `ember_minefield` | 起爆刻印 `detonation_mark` |
+| 炎帝剣域 `inferno_blade_domain` | 炎月斬 `flame_crescent` | 炎の障壁 `flame_barrier` |
+| 灰燼軍勢 `ash_legion` | 灰燼分身 `ash_doppelganger` | 火の精霊 `fire_spirit` |
+| 星喰い炉 `star_devouring_furnace` | 弾喰い炉 `bullet_furnace` | 不死鳥の羽 `phoenix_feather` |
+
+- **進化を追加しない5種**（跳炎弾/血炎契約/四方炎獄/熔火鎖/爆炎歩法）は `evolutionBranches` を空にする。進化演出→置換・枠非消費・補助条件スキルを消さない点は M6-B と同一。
+
+### 残響（echo）・分身複製（clone）の設計と再帰防止
+- スキルメタに `echoPolicy`/`clonePolicy`（standard/custom/forbidden）と `isDefensive`/`isReactive`/`usesResourceCost`/`canTriggerEcho`/`canBeCopiedByClone` を持たせ、発動文脈 `castContext`（origin=normal/echo/clone・generation・親/根スキルID・威力倍率）で追跡する（純ロジック `CastPolicy.js`）。
+- **再帰は「normal 由来のみ echo/clone を1世代」で必ず停止**する。normal→echo / normal→clone は各1世代だけ発生し、echo→* / clone→* は一切発生しない（`maxCopyGeneration=maxEchoCloneGeneration=1`・品質で不変）。
+- `standard` は通常の追加発動（`fire` 再実行）、`custom` は攻撃部分だけ複製（血炎契約は **HP を再消費しない**・弾喰い炉は **チャージを再消費しない**）、`forbidden` は複製禁止（灰燼分身・爆炎歩法＝移動/分身増殖/危険な runtimeState 再展開を防ぐ）。
+- 残響発動を灰燼分身がコピーしない・分身複製を残響カウンターへ加算しない・残響→分身→残響 / 分身→残響→分身 の循環を origin ガードで禁止する。M6-C の残響（Lv50/100）は `canTriggerEcho` のみカウントする。
+
+### 血炎契約のHP消費（防御を貫通しないコスト）
+- 現在HP割合を消費して大火力を出す。通常の被ダメージ（`takeDamage`）とは完全に分離し、障壁/無敵/不死鳥では防がれず、敵ダメージ統計にも含めない。
+- **最低HP1を保証**（このコストでは死亡せず・不死鳥も発動しない）。安全HP（`safeHpPercent=0.25`）以下では不発。リザルト後/一時停止中（update 停止）は発動しない。残響・分身の複製では HP を再消費しない。
+
+### 敵弾吸収（弾喰い炉・星喰い炉）
+- 通常の敵弾（hostile）は既定で「通常弾＝吸収可・低価値」、予告/ビームは吸収不能。範囲内の吸収可能なボス弾を最大数まで吸収してチャージし、炎弾幕として放出する。
+- 予告/ビーム/接触/吸収不能/消費済みの弾は吸収しない。二重吸収を防止し、吸収は発動回数・残響カウンターを進めない（**放出時のみ攻撃記録**）。吸収レート/同時数/最大チャージに上限を設け、無制限吸収で完全無敵にならないようにする。
+
+### 爆炎歩法とダッシュ
+- 既存ダッシュ/autoDash/無敵を壊さず、共通フック（`onDashStart/Move/End` → `scene.onPlayerDash` → `skills.dispatchDash`）で通知する。専用分岐を入力処理へ散在させない。
+- 未取得/チャージ0なら挙動不変。1ダッシュ1チャージ消費・開始/終了爆発各1回（autoDash でも同様）・一時停止中はチャージしない・リザルト後は発動しない・残響/分身ではダッシュしない。
+
+### Job Lv補正・パッシブ（M6-C/M6-A の共通経路を再利用）
+- 全新スキルへ 火ダメージ/DoT/範囲/Lv5・10 投射速度/Lv20・90 CD/Lv40 爆発/Lv50・100 残響/Lv60 進化/Lv70 抽選重み/Lv80 発射数 が共通経路で反映される。ダメージはスキル側で pre-multiply せず `dealDamage` が適用する。
+- **Lv80 の発射数+1 の対象**: 跳炎弾/弾喰い炉の放出弾/星喰い炉の放出弾/明確な projectile。**対象外**: 地雷数/分身数/鎖接続数/光線数/ダッシュチャージ数/敵弾吸収数/灰燼軍勢ユニット数。
+- パッシブ（魔力増幅=damage/高速詠唱=cooldown/焦熱拡張=area/残火持続=duration）を共通集計する。**血炎契約のHP消費量は damage 補正で増えない**・**弾喰い炉の吸収数/チャージ上限は area/damage 補正で増えない**。
