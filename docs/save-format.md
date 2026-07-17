@@ -465,3 +465,32 @@ v1〜v6 からの移行は M6-A〜M6-F と同じ経路で既存データを保�
   凍土/氷壁/絶対零度領域/弾の**位置は保存せず**、再開後は空から安全に再構築するため**二重生成しない**（`tests/frost-cooldown-save.mjs` で検証）。
 - JSON エクスポート/インポート・バックアップ・競合比較は payload 全体を扱うため新フィールドも自動保持される（インポートは `migrateProfile` を通す）。
   加算的追加のため **`save_version` は 6 のまま**・転生でもリセットしない。
+
+## Milestone 7-B: 氷術師ビルド拡張・第2波（save_version は 6 のまま）
+氷術師へ新 active10種・進化5種を追加するが、M6-B/M7-A の `active_run.skillRuntime`（`SkillManager.serializeRuntime`）へ **各スキルの実行時状態を加算的に足すだけ** で、
+profile/active_run の既存構造を変えない。そのため **`saveVersion` は 6 のまま**。v1〜v6 からの移行は M6-A〜M7-A と同じ経路で、既存データを保持し転生でもリセットしない。
+状態RNG（`statusRng`）・ボス frostbreak 状態（`bossFrost`）の保存は M7-A のまま。
+
+### active_run.skillRuntime（M7-B 氷スキルの追加フィールド・任意）
+無い（旧セーブ・新スキル未所持）場合は空として安全に再開する。CD型は `cdLeft` のみ、常設型（周回接触/召喚）は runtimeState を**保存せず再構築**する。
+```jsonc
+{
+  "skillRuntime": {
+    "icicle_volley": { "cdLeft": 0 },                        // 連射: 残りCD
+    "freezing_ray":  { "cdLeft": 0 },                        // 凍結光線: 冷気ランプ間隔の残りCD
+    "hailstorm":     { "cdLeft": 0 },                        // 雹嵐: 残りCD
+    "cryo_mine":     { "cdLeft": 0 },                        // 氷結地雷: 残りCD（個々の地雷位置は保存しない）
+    "ice_prison":    { "cdLeft": 0 },                        // 氷牢封印: 残りCD
+    "avalanche":     { "cdLeft": 0 },                        // 雪崩奔流: 残りCD
+    "mirror_ice":    { "cdLeft": 0, "activeLeft": 0, "durabilityLeft": 0 }, // 氷鏡結界: 残りCD・展開残り時間・残り耐久
+    "glacier_drop":  { "cdLeft": 0, "pendingImpactLeft": 0, "pendingImpactX": 0, "pendingImpactY": 0 }, // 氷河墜落: 残りCD＋落下待機(残り時間/着弾座標)
+    "crystal_tempest": { "cdLeft": 0 }, "absolute_zero_ray": { "cdLeft": 0 },   // 進化: cooldown/continuous 型は cdLeft
+    "whiteout_cataclysm": { "cdLeft": 0 }, "world_end_avalanche": { "cdLeft": 0 }
+    // frost_orbit / frost_spirit / frost_queen_court（常設型）は runtimeState を保存せず、レベルから再構築する
+  }
+}
+```
+- **保存対象**: 上記 CD 型・`mirror_ice`（cdLeft/activeLeft/durabilityLeft）・`glacier_drop`（cdLeft/pendingImpact*）。統計は profile 側 `skillMastery`（新スキル分も同形式・`recordExtra`）で保持。
+- **保存しない**: 常設型（`frost_orbit`/`frost_spirit`/`frost_queen_court`）の runtimeState、個々の氷弾/雹/地雷/精霊/波/凍結床の位置。これらはレベル＋runtimeState と再開後の戦闘から自然に再構築する。
+- **再読込での悪用防止**: `glacier_drop` は落下待機（`pendingImpactLeft`/座標）を保存・復元し、**無料の再発動・二重落下**を防ぐ。`mirror_ice` は展開残り時間/耐久を保存し再展開の悪用を防ぐ。CD型は残りCDを保存して即時再発動を防ぐ。一時停止中は update が止まるため CD/待機も進まない。
+- `SkillManager.serializeRuntime()`／`restoreRuntime()` が各スキルの `serializeState/restoreState` を集約し、`BattleScene.restoreFromRun()` が復元する（`tests/frost-runtime-save-wave2.mjs` で実スキルクラスを最小 Phaser モックで駆動し CD/pending/durability 保存を検証）。加算的追加のため **`save_version` は 6 のまま**。

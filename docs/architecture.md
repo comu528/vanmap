@@ -354,3 +354,24 @@ M6-A（抽選/枠/パッシブ/進化）・M6-B（戦闘挙動・`Projectile` �
   `maxAbsoluteZeroShattersPerFrame`/`maxHeavenGlacierFragments`/`maxBossFrostbreaksPerFrame`）を追加。**到達しても判定・主要挙動は消さず装飾を先に削る**。
 - **保存**: `active_run` へ `jobId`/`jobElement`/`resolvedJobModifiers`/`statusRng`（状態RNGの cursor）/ボス frostbreak 状態
   （`gauge`/`breaks`/`vulnRemainMs`）を保存。個々の敵の冷気/凍結/氷弾位置/凍土位置/氷壁位置は保存せず、再開時に安全に再構築する。加算的追加のため **`save_version` は 6 のまま**。
+
+## 氷術師ビルド拡張・第2波（M7-B）
+M7-A の状態異常/凍結基盤（`StatusEffectManager`/`FreezeSystem`）・複数ジョブ補正（`JobModifierManager`）と、M6-A〜M6-E の抽選/枠/パッシブ/進化・
+`SkillAudit`（cast/echo/clone/Lv80 の一元解決）・`skillCaps` 品質別予算を **再利用** し、氷術師専用の active を **10種**・進化を **5種** 追加する。
+火の魔女（active30/進化18）と氷術師の既存5 active・3進化は不変。結果は氷術師 **active15・進化8**。**冷気/凍結/粉砕/ボス氷砕は既存 `StatusEffectManager` 経路**を通し
+（独自凍結タイマーなし）、**Math.random は不使用**（決定論・combat rng も未使用の index ベース／status RNG は `StatusEffectManager` 内）、draft RNG cursor は不変。**`save_version` は 6 のまま**。
+
+| 追加/変更 | 役割 |
+|-----------|------|
+| `src/skills/*Skill.js`（新規15: active10＋evolution5） | 各スキルの発動・命中判定は `combat.*`、演出は `effects.*`。氷命中は既存 `applyIceHit` 経路。進化は `EvolvedSkillBase`（単一形態）。`serializeState`/`restoreState`・cleanup 実装 |
+| `SkillManager` REGISTRY 登録 | 新15クラスを REGISTRY へ登録し、`serializeRuntime`/`restoreRuntime`/`recordExtra`（新スキルのテレメトリ）に接続。主発動時のみ `recordCast`（各弾/tick/命中/雹/地雷起爆/精霊射撃/波接触/粉砕/frostbreak では記録しない） |
+| combat API 追加 | `freezeEnemy`（条件付き凍結＝ice_prison。`freeze_immunity` 尊重・ボスは氷砕ゲージ）・`addBossGaugeTo`（直撃したボスの氷砕ゲージ加算＝glacier_drop/avalanche/ice_prison）。いずれも `StatusEffectManager`/`FreezeSystem` の既存計算へ委譲し独自タイマーを持たない |
+| `SkillAudit`（再利用） | 新 active/進化の `castMode`/`echoPolicy`/`clonePolicy`/`lv80ProjectileTarget` を一元解決。**Lv80発射数対象は `icicle_volley` のみ**・新進化5種は全て対象外。`mirror_ice` は echo/clone=forbidden、`cryo_mine` は canTriggerEcho=false |
+| `balance.skillCaps`（29種追加） | 氷スキル/進化の品質別上限（`low≤medium≤high≤ultra`・正）を加算。到達しても判定は消さず装飾を先に削る |
+
+- **runtimeState / 保存**: CD型は `cdLeft`、`mirror_ice`=`cdLeft`/`activeLeft`/`durabilityLeft`、`glacier_drop`=`cdLeft`/`pendingImpact*`（落下待機を保存し再開の無料再発動・二重落下を防止）。
+  常設型（`frost_orbit`/`frost_spirit`/`frost_queen_court`）は runtimeState を保存せず再構築する。`active_run.skillRuntime` へ加算保存（詳細は `docs/save-format.md`）。
+- **echo/clone**: `CastPolicy`/`SkillAudit` の「normal 由来のみ1世代・再帰なし」を踏襲。`mirror_ice`（forbidden）は複製せず、既存 `bossBulletPool` の `absorbable` メタを再利用して敵弾を吸収し氷反撃弾を撃つ。
+- **テレメトリ**: `skills.recordExtra` でスキル別の追加キー（icicle_volley=volleys/iciclesFired、freezing_ray=channelSeconds/beamTicks/maxRampReached、glacier_drop=glaciersDropped/pendingImpactsCompleted ほか）を記録。**外部送信なし**・テレメトリ失敗でゲーム/保存は失敗しない。
+- **デバッグ**: `?debug=1` の **F9** で氷術師 active15・進化8 を切替/取得/進化条件達成でき、`debugRun` として通常 profile へ保存しない。
+- 検証: `frost-skills-wave2.mjs`／`frost-evolutions-wave2.mjs`／`frost-policy-audit.mjs`／`frost-runtime-save-wave2.mjs`（実スキルクラスを最小 Phaser モックで駆動）／`frost-determinism-wave2.mjs`（Math.random 不使用のソース走査＋同一状態で同一攻撃パターンの決定論トレース）・`validate-data.mjs`（M7-B ブロック）。**全34テストスイート通過**。

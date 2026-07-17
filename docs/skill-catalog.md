@@ -12,7 +12,9 @@ M7-A で 2人目のジョブ **氷術師（frost_mage）** を追加したため
 | ジョブ | active | 進化 | passive |
 |--------|--------|------|---------|
 | 火の魔女 flame_witch | 30 | 18 | 4（共通） |
-| 氷術師 frost_mage | 5 | 3 | 4（氷専用） |
+| 氷術師 frost_mage | 15 | 8 | 4（氷専用） |
+
+> 氷術師は M7-A で active5/進化3、**M7-B で active15/進化8** へ拡張（下記「Milestone 7-B」）。火の魔女は不変。
 
 - **氷術師 active5**: 氷晶弾 `frost_shard`（初期）/ 氷輪爆 `frost_nova` / 氷河槍 `glacial_lance` / 永久凍土 `permafrost_field` / 氷壁 `ice_wall`。
 - **氷術師 進化3**: ダイヤモンドブリザード（frost_shard+rapid_freezing）/ 絶対零度領域（frost_nova+frozen_expansion）/ 天穿氷河槍（glacial_lance+frost_amplification）。
@@ -109,3 +111,36 @@ ricochet_ember / scatter_flame
 active30種化で進化相手が候補へ極端に出にくくならないよう、**軽いシナジー補助**（`data/skill-config.json` の `synergy`）を追加した。
 レアリティ重みへ**乗算**し（無視しない）、決定論は不変・data で無効化できる。詳細と抽選シミュレーション結果は
 `docs/balance-testing.md` を参照。
+
+## Milestone 7-B: 氷術師カタログ拡張（active15 / 進化8）
+氷術師へ新 active10種・進化5種を追加し、`SkillCatalog.buildCatalog(frost_mage)` は **active15 / passive8（=共通4＋氷4）/ 進化8・issues0**（孤立/未登録/参照不整合0）になる。
+（passive8 はカタログが共通 passive を含むため。**装備枠 `basePassiveSlots` は4**。氷 passive は M7-B で追加なし。）火の魔女カタログ（active30/進化18）は不変。
+
+各 active/進化は `castMode`・`echoPolicy`/`clonePolicy`・`lv80ProjectileTarget`・`procCoefficient`・`runtimeState` を実データから露出する。
+
+### 新 active10種
+| スキル | id | rarity | castMode | echo/clonePolicy | lv80 | procCoeff | runtimeState |
+|--------|----|--------|----------|------------------|------|-----------|--------------|
+| 氷柱斉射 | `icicle_volley` | common | cooldown | standard | **true** | ≈0.38 | `cdLeft` |
+| 氷晶環 | `frost_orbit` | common | continuous | standard | false | ≈0.20 | なし（常設・再構築） |
+| 凍結光線 | `freezing_ray` | uncommon | continuous | standard | false | ≈0.12 | `cdLeft` |
+| 雹嵐 | `hailstorm` | uncommon | periodic | standard | false | ≈0.22 | `cdLeft` |
+| 氷結地雷 | `cryo_mine` | common | reactive | standard（canTriggerEcho=false） | false | ≈0.75 | `cdLeft` |
+| 雪精霊 | `frost_spirit` | uncommon | continuous | standard | false | ≈0.42 | なし（常設・再構築） |
+| 氷牢封印 | `ice_prison` | rare | cooldown | standard | false | ≈0.95(主)/0.45(周辺) | `cdLeft` |
+| 雪崩奔流 | `avalanche` | uncommon | periodic | standard | false | ≈0.55 | `cdLeft` |
+| 氷鏡結界 | `mirror_ice` | rare | defensive | **forbidden/forbidden** | false | ≈0.30 | `cdLeft`/`activeLeft`/`durabilityLeft` |
+| 氷河墜落 | `glacier_drop` | legendary | cooldown | standard | false | ≈0.95(主)/0.15(残留床) | `cdLeft`/`pendingImpactLeft`/`pendingImpactX`/`pendingImpactY` |
+
+- `glacier_drop` の `pendingImpact*` は落下待機を保存し、再開の無料再発動・二重落下を防ぐ。`mirror_ice` は複製なし（forbidden）で既存 `bossBulletPool` の absorbable メタを再利用。
+
+### 新 進化5種（単一形態・element ice・lv80ProjectileTarget=false・evolved タグ）
+| 進化 | id | 置換元 | 条件 | castMode | runtimeState |
+|------|----|--------|------|----------|--------------|
+| 天晶氷嵐 | `crystal_tempest` | `icicle_volley` | icicle_volley Lv8 ＋ frost_amplification Lv4 | cooldown | `cdLeft` |
+| 絶対零光 | `absolute_zero_ray` | `freezing_ray` | freezing_ray Lv8 ＋ rapid_freezing Lv4 | continuous | `cdLeft` |
+| 白魔大氷災 | `whiteout_cataclysm` | `hailstorm` | hailstorm Lv8 ＋ lingering_cold Lv4 | periodic | `cdLeft` |
+| 雪后氷霊陣 | `frost_queen_court` | `frost_spirit` | frost_spirit Lv8 ＋ frozen_expansion Lv4 | continuous | なし（常設・再構築） |
+| 終末氷河奔流 | `world_end_avalanche` | `avalanche` | avalanche Lv8 ＋ ice_wall(active) Lv4 | periodic | `cdLeft` |
+
+- **Job Lv80「発射数+1」対象**は `SkillAudit` で一元管理し、新 active では `icicle_volley` のみ・新進化5種は全て対象外。検証は `frost-policy-audit.mjs`・`skill-catalog` 相当。

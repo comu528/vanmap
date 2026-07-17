@@ -12,9 +12,10 @@ M6-A で導入したジョブ基盤（`data/jobs.json`・`data/job-progression.j
 | jobId | 表示名 | element | 初期スキル | active | passive | 進化 | Job Lv |
 |-------|--------|---------|-----------|--------|---------|------|--------|
 | `flame_witch` | 火の魔女 | fire | `fireball` | 30 | 4（共通） | 18 | 1〜100 |
-| `frost_mage` | 氷術師 | ice | `frost_shard` | 5 | 4（氷専用） | 3 | 1〜100 |
+| `frost_mage` | 氷術師 | ice | `frost_shard` | 15 | 4（氷専用） | 8 | 1〜100 |
 
-- **火の魔女は M7-A で変更なし**（active30 / passive4 / evo18）。
+- **火の魔女は M7-A/M7-B で変更なし**（active30 / passive4 / evo18・同 seed 抽選結果不変）。
+- **氷術師は M7-A で active5/passive4/evo3、M7-B で active15/passive4/evo8 へ拡張**（下記「Milestone 7-B」）。
 - **氷術師（M7-A 新規）**:
   - active5: `frost_shard`（氷晶弾）/ `frost_nova`（氷輪爆）/ `glacial_lance`（氷河槍）/ `permafrost_field`（永久凍土）/ `ice_wall`（氷壁）
   - passive4: `frost_amplification`（氷晶増幅・氷Dmg）/ `rapid_freezing`（急速冷却・氷CD）/ `frozen_expansion`（凍域拡張・範囲）/ `lingering_cold`（余寒残留・氷状態持続＋冷気減衰緩和）
@@ -91,3 +92,40 @@ XP曲線・周回報酬の計算は両ジョブ共通（`totalXpForLevel(L)=25(L
 4. 新しい属性補正／状態異常が必要なら `JobModifierManager.resolve`（milestone type）と `data/status-effects.json` を拡張する。
 5. `profileSchema.js` の `unlockedJobs` 既定へ id を足せば選択可能になる（`profile.jobProgress[id]` は加算的に初期化）。
 6. `node tests/validate-data.mjs`・`node tests/multi-job-selection.mjs` を通す。継承（`futureInheritanceSettings`）・転生レガシーは拡張口のみ（未実装）。
+
+## Milestone 7-B: 氷術師ビルド拡張（active15 / 進化8 へ・save_version は v6 のまま）
+氷術師（frost_mage）へ専用 active を **10種**・進化を **5種** 追加し、**active 15種 / passive 4種（M7-B で追加なし）/ 進化 8種 / Job Lv1〜100** に拡張した。
+火の魔女（active30/passive4/進化18）は不変で同 seed の抽選結果も不変。冷気/凍結/粉砕/ボス氷砕は既存 `StatusEffectManager` 経路を使い
+（独自凍結タイマーなし）、Math.random 不使用（決定論）・draft RNG cursor 不変。**save_version は v6 のまま**（加算的）。数値は `data/skills.json` が正。
+
+### 新 active10種（すべて氷術師専用・`element:"ice"`・maxLevel8・Lv1〜8 データ駆動）
+| スキル | id | rarity | castMode | 役割 | Lv80発射数 |
+|--------|----|--------|----------|------|-----------|
+| 氷柱斉射 | `icicle_volley` | common | cooldown | 時間差の連射（複数弾） | **対象** |
+| 氷晶環 | `frost_orbit` | common | continuous | 常設の周回接触（再構築） | 対象外 |
+| 凍結光線 | `freezing_ray` | uncommon | continuous | 冷気ランプ・指定間隔のみ粉砕するビーム | 対象外 |
+| 雹嵐 | `hailstorm` | uncommon | periodic | 範囲の雹 | 対象外 |
+| 氷結地雷 | `cryo_mine` | common | reactive | 罠/爆発・frozen 敵を粉砕（反応型） | 対象外 |
+| 雪精霊 | `frost_spirit` | uncommon | continuous | 常設の召喚（再構築） | 対象外 |
+| 氷牢封印 | `ice_prison` | rare | cooldown | 制御/範囲・冷気十分で短時間凍結、不足で大幅減速、ボスは氷砕ゲージ | 対象外 |
+| 雪崩奔流 | `avalanche` | uncommon | periodic | 波/範囲・通常押し流し/エリート軽減/ボス移動なし/frozen 粉砕 | 対象外 |
+| 氷鏡結界 | `mirror_ice` | rare | defensive | 敵弾吸収＋氷反撃弾（複製なし） | 対象外 |
+| 氷河墜落 | `glacier_drop` | legendary | cooldown | 予告後に落下する遅延大範囲/爆発・frozen 粉砕・ボス氷砕・凍結床残留 | 対象外 |
+
+- **Job Lv80「発射数+1」対象の新 active は `icicle_volley` のみ**（`SkillAudit` で一元管理・新進化5種は全て対象外）。
+- proc係数（凍結寄与）: icicle_volley≈0.38 / frost_orbit≈0.20 / freezing_ray≈0.12 / hailstorm≈0.22 / cryo_mine≈0.75 /
+  frost_spirit≈0.42 / ice_prison≈0.95(主)・0.45(周辺) / avalanche≈0.55 / mirror_ice≈0.30 / glacier_drop≈0.95(主)・0.15(残留床)。
+- `mirror_ice` は echoPolicy=clonePolicy=forbidden（複製なし）・既存 `bossBulletPool` の absorbable メタを再利用。`cryo_mine` は反応型で canTriggerEcho=false。
+
+### 新 進化5種（`EvolvedSkillBase`・単一形態・`element:"ice"`・Lv80発射数対象外・evolved タグ）
+| 進化 | id | 置換元 | 条件（基礎Lv8＋補助Lv4） | castMode |
+|------|----|--------|--------------------------|----------|
+| 天晶氷嵐 | `crystal_tempest` | `icicle_volley` | icicle_volley Lv8 ＋ frost_amplification Lv4 | cooldown |
+| 絶対零光 | `absolute_zero_ray` | `freezing_ray` | freezing_ray Lv8 ＋ rapid_freezing Lv4 | continuous |
+| 白魔大氷災 | `whiteout_cataclysm` | `hailstorm` | hailstorm Lv8 ＋ lingering_cold Lv4 | periodic |
+| 雪后氷霊陣 | `frost_queen_court` | `frost_spirit` | frost_spirit Lv8 ＋ frozen_expansion Lv4 | continuous（常設・再構築） |
+| 終末氷河奔流 | `world_end_avalanche` | `avalanche` | avalanche Lv8 ＋ ice_wall(active) Lv4 | periodic |
+
+- 進化は基礎 active を置換し active/passive 枠を消費しない。補助条件スキルは消費しない。**passive は4種のまま**（M7-B で追加なし）。
+- 主発動時のみ `recordCast`（各弾/tick/命中/雹/地雷起爆/精霊射撃/波接触/粉砕/frostbreak では記録しない）。echo/clone は1世代・再帰なし。
+- 検証: `frost-skills-wave2.mjs`／`frost-evolutions-wave2.mjs`／`frost-policy-audit.mjs`／`frost-runtime-save-wave2.mjs`／`frost-determinism-wave2.mjs`・`validate-data.mjs`（M7-B 検証ブロック）。詳細は `./docs/skill-catalog.md`・`./docs/status-effects.md`。

@@ -776,3 +776,47 @@ M6-E までの `skillCaps` へ品質別（`low ≤ medium ≤ high ≤ ultra`・
 - `maxStatusIndexEntries` は状態索引の登録上限（到達時は新規付与をスキップ・**burning は上限なし**）。
   `maxBossFrostbreaksPerFrame` は 1（同一フレームに複数の氷砕を起こさない）。`DataManager.skillCap(name, quality, fallback)` で取得。
 - 検証: 全キーが品質順で単調非減少・非負整数。**上限到達でも凍結/粉砕/氷砕の判定は消さず、装飾を先に削る**。
+
+## Milestone 7-B: 氷術師ビルド拡張・第2波（`skills.json`/`skill-evolutions.json`/`balance.skillCaps` を加算拡張）
+
+氷術師へ新 active10種・進化5種を追加する。既存データ形式は変更しない。**`saveVersion` は 6 のまま**。
+
+### skills.json（氷 active を15件へ）
+M7-A の氷 active5種に加え、新 active10種を追記して **氷 active は15件**（`jobs.json` の `frost_mage.activeSkillPool` も15件）。
+各スキルは既存の active／氷メタ（`category`/`element:"ice"`/`rarity`/`maxLevel:8`/`levels`(Lv1〜8)/`evolutionBranches`/cast・監査フィールド/`procCoefficient`）に準拠する。
+```jsonc
+// 例: 氷河墜落 glacier_drop（legendary・遅延大範囲）
+{ "id": "glacier_drop", "element": "ice", "rarity": "legendary", "jobs": ["frost_mage"],
+  "castMode": "cooldown", "lv80ProjectileTarget": false,
+  "procCoefficient": 0.95,                 // 主発動の凍結寄与（残留床は別係数）
+  "echoPolicy": "standard", "clonePolicy": "standard",
+  "evolutionBranches": [],
+  "levels": [ /* Lv1〜8 */ ] }
+```
+- 新10種の `rarity`: `icicle_volley`/`frost_orbit`/`cryo_mine`=common、`freezing_ray`/`hailstorm`/`frost_spirit`/`avalanche`=uncommon、
+  `ice_prison`/`mirror_ice`=rare、`glacier_drop`=legendary。`castMode`: cooldown（icicle_volley/ice_prison/glacier_drop）/continuous（frost_orbit/freezing_ray/frost_spirit）/
+  periodic（hailstorm/avalanche）/reactive（cryo_mine）/defensive（mirror_ice）。
+- `lv80ProjectileTarget` は **`icicle_volley` のみ true**、他9種は false。`mirror_ice` は `echoPolicy=clonePolicy=forbidden`（→ `canTriggerEcho=canBeCopiedByClone=false`）、
+  `cryo_mine` は反応型で `canTriggerEcho=false`。`evolutionBranches` は進化を持つ5種（icicle_volley/freezing_ray/hailstorm/frost_spirit/avalanche）のみ非空。
+- 検証（`frost-skills-wave2.mjs`・`validate-data.mjs`）: 10種の存在/一意/active/maxLevel8/Lv連番/rarity一致/`jobs:["frost_mage"]`/プール所属/`procCoefficient` が 0<..≤1/
+  毎レベル成長/`evolutionBranches` が実在進化のみ、cast・監査フィールドの妥当性（forbidden と canTrigger の整合）。
+
+### skill-evolutions.json（氷進化を8件へ）
+M7-A の氷進化3種に加え、新進化5種を追記して **氷進化は8件**。いずれも `EvolvedSkillBase`・単一形態・`element:"ice"`・`lv80ProjectileTarget:false`・evolved タグ。
+補助条件 `requiredSkills[].skill` は active∪passive（`auxSkillIds`）に実在・`replacementSkillId` は基礎と衝突しない。
+```jsonc
+{ "id": "world_end_avalanche", "baseSkillId": "avalanche", "replacementSkillId": "world_end_avalanche",
+  "requiredSkills": [ { "skill": "ice_wall", "level": 4 } ],   // ice_wall は active 補助
+  "castMode": "periodic", "lv80ProjectileTarget": false, "displayOrder": 8 }
+```
+- 5種: `crystal_tempest`(icicle_volley＋frost_amplification[P]) / `absolute_zero_ray`(freezing_ray＋rapid_freezing[P]) /
+  `whiteout_cataclysm`(hailstorm＋lingering_cold[P]) / `frost_queen_court`(frost_spirit＋frozen_expansion[P]) /
+  `world_end_avalanche`(avalanche＋**ice_wall(active)** Lv4)。いずれも基礎Lv8＋補助Lv4。
+- 検証（`frost-evolutions-wave2.mjs`・`validate-data.mjs`）: `canEvolve`（補助 active/passive 解決・基礎Lv8＋補助Lv4で可能・未達で不可）・既存氷進化3種の非回帰。
+
+### balance.skillCaps（M7-B の29種を加算的に追加）
+M6-E/M7-A までの `skillCaps` へ、氷スキル/進化の品質別（`low ≤ medium ≤ high ≤ ultra`・非負整数）新キーを **29種** 追加する。
+弾数/雹/地雷/精霊/波/凍結床/落下/吸収/反撃弾/氷牢 などの同時数・毎フレーム処理数を制限する予算で、`DataManager.skillCap(name, quality, fallback)` で取得。
+- 検証: 追加29キーが品質順で単調非減少・非負整数（`low≤medium≤high≤ultra`・正）。**上限到達でも凍結/粉砕/氷砕の判定は消さず、装飾を先に削る**。
+
+`validate-data.mjs` に M7-B 検証ブロックを追加（氷 active15/進化8・skillCaps 29種・cast/監査/procCoefficient・lv80 対象が icicle_volley のみ）。詳細は `docs/skill-catalog.md`・`docs/jobs.md`。

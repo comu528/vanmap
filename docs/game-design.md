@@ -397,3 +397,33 @@ profile 側のジョブを変えても進行中周回のジョブ・スキル・
 
 ### 火と氷の関係（M7-A では未実装）
 火と氷の属性反応（火で凍結解除／氷で消火／蒸発・融解）は実装しない。炎上と冷気/凍結は独立して共存する（将来のため状態付与に source element を保持）。
+
+## Milestone 7-B: 氷術師ビルド拡張（active15 / 進化8）
+氷術師を **active15種 / passive4種（M7-B で追加なし）/ 進化8種 / Job Lv1〜100** に拡張した。火の魔女（active30/進化18）は不変で同 seed の抽選結果も不変。
+冷気→凍結→粉砕／ボス氷砕の制圧サイクルはそのままに、制御・範囲・防御・遅延大技のバリエーションを増やす。数値バランスは `data/skills.json` が正（指示なく変更しない）。
+
+### 新アクティブ10種（すべて氷術師専用・最大Lv8・毎レベル成長）
+| スキル | id | レア | 役割 |
+|--------|----|------|------|
+| 氷柱斉射 | `icicle_volley` | common | 時間差で複数弾を連射（**Job Lv80 発射数+1 の唯一の対象**） |
+| 氷晶環 | `frost_orbit` | common | 周囲を回る氷晶が接触ダメージ（常設・再構築） |
+| 凍結光線 | `freezing_ray` | uncommon | 冷気を溜めるビーム。指定間隔でのみ粉砕を起こす（冷気ランプ） |
+| 雹嵐 | `hailstorm` | uncommon | 範囲へ雹を降らせる周期攻撃 |
+| 氷結地雷 | `cryo_mine` | common | 敵接近で起爆する罠。frozen 敵を粉砕（反応型） |
+| 雪精霊 | `frost_spirit` | uncommon | 追従する雪精霊が自動で撃つ（常設・再構築） |
+| 氷牢封印 | `ice_prison` | rare | 冷気が十分なら短時間凍結、不足なら大幅減速。ボスは氷砕ゲージ |
+| 雪崩奔流 | `avalanche` | uncommon | 波状範囲。通常敵を押し流し・エリート軽減・ボスは移動なし・frozen 粉砕 |
+| 氷鏡結界 | `mirror_ice` | rare | 敵弾を吸収し氷の反撃弾を撃つ防御技（複製なし） |
+| 氷河墜落 | `glacier_drop` | legendary | 予告後に落下する遅延大範囲爆発。frozen 粉砕・ボス氷砕・凍結床が残留 |
+
+### 新進化5種（枠を消費せず基礎 active を置換・補助条件スキルは消費しない・進化は Lv80発射数対象外）
+| 進化 | 基礎スキル(Lv8) | 補助条件(Lv4) |
+|------|-----------------|---------------|
+| 天晶氷嵐 `crystal_tempest` | 氷柱斉射 `icicle_volley` | 氷晶増幅 `frost_amplification`（passive） |
+| 絶対零光 `absolute_zero_ray` | 凍結光線 `freezing_ray` | 急速冷却 `rapid_freezing`（passive） |
+| 白魔大氷災 `whiteout_cataclysm` | 雹嵐 `hailstorm` | 余寒残留 `lingering_cold`（passive） |
+| 雪后氷霊陣 `frost_queen_court` | 雪精霊 `frost_spirit` | 凍域拡張 `frozen_expansion`（passive） |
+| 終末氷河奔流 `world_end_avalanche` | 雪崩奔流 `avalanche` | 氷壁結界 `ice_wall`（active） |
+
+- 冷気/凍結/粉砕/ボス氷砕は既存 `StatusEffectManager` 経路（独自凍結タイマーなし）。Math.random 不使用で決定論・draft RNG cursor 不変。
+  echo/clone は1世代・再帰なし（`mirror_ice` は複製なし・`cryo_mine` は反応型で残響カウント対象外）。詳細は `docs/jobs.md`・`docs/skill-catalog.md`。

@@ -403,3 +403,39 @@ Node テストで検証したのは **純ロジックのみ**（状態異常/凍
 - [ ] `node tests/multi-job-draft.mjs` が成功する（火スキルが氷術師候補に出ない/氷スキルが火の魔女に出ない・決定論）
 - [ ] `node tests/status-save-nonregression.mjs` が成功する（状態RNG/ボス氷砕/氷スキルの保存往復・v6 非回帰）
 - [ ] `validate-data.mjs` に status-effects.json・frost_mage・氷スキル/進化・新 skillCaps の検証が加わる
+
+## 氷術師ビルド拡張・第2波（M7-B・実ブラウザ）
+（M7-B は氷術師へ新 active10種・進化5種を追加する。Node テストは**純ロジック**（データ整合・ポリシー監査・保存往復・決定論）のみを検証する。以下の
+**Phaser ランタイム挙動・UI 描画は実ブラウザでのみ確認**する項目で、**実行していない項目を「成功」「確認済み」と報告しない**方針。時間短縮は `?debug=1` の **F9** を使う。）
+- [ ] 氷術師の候補に新 active10種（氷柱斉射/氷晶環/凍結光線/雹嵐/氷結地雷/雪精霊/氷牢封印/雪崩奔流/氷鏡結界/氷河墜落）が出うる
+- [ ] 各新 active を **Lv1 と Lv8** で単独取得して動作する（火の魔女スキルは氷術師候補に出ない）
+- [ ] 新進化5種（天晶氷嵐/絶対零光/白魔大氷災/雪后氷霊陣/終末氷河奔流）を基礎Lv8＋補助Lv4で発現できる（`終末氷河奔流` は補助が **ice_wall(active)**）
+- [ ] 氷術師で active15種・進化8種が抽選・進化でき、既存 active5/進化3 も非回帰（火の魔女 active30/進化18 は不変）
+- [ ] 氷柱斉射が時間差で複数弾を連射し、**Job Lv80 で発射数が +1**（他の氷 active は増えない）
+- [ ] 凍結光線が冷気を溜め、指定間隔でのみ粉砕を起こす（毎tick粉砕にならない）
+- [ ] 氷牢封印が冷気十分で短時間凍結・不足で大幅減速し、`freeze_immunity` 中は凍らせない・ボスは氷砕ゲージに変換する
+- [ ] 雪崩奔流が通常敵を押し流し・エリート軽減・ボスは移動なし・frozen 敵を粉砕する
+- [ ] 氷結地雷が接近で起爆し frozen 敵を粉砕する（反応型・残響カウント対象外）
+- [ ] 氷鏡結界が敵弾を吸収して氷反撃弾を撃つ（複製なし）。既存 `bossBulletPool` の吸収可能弾のみ吸う（予告/ビームは残る）
+- [ ] 氷河墜落が予告後に落下して大範囲爆発し、frozen 粉砕・ボス氷砕・凍結床が残留する
+- [ ] 冷気/凍結/粉砕/ボス氷砕が M7-A と同じ挙動（新スキルでも独自タイマーを持たず既存経路を通る）
+- [ ] 途中保存→再読込で 新スキル/レベル/進化/CD/`mirror_ice`(activeLeft/durabilityLeft)/`glacier_drop`(pendingImpact*) が概ね復元され、**無料の再発動・二重落下・CD全回復**が起きない
+- [ ] 常設型（氷晶環/雪精霊/雪后氷霊陣）は保存されず再開時に再構築される（二重生成しない）
+- [ ] 品質 low/medium/high/ultra いずれでも凍結/粉砕/氷河落下の視認性が保たれる（上限は装飾から削る）
+- [ ] 敵100体＋2倍速でも処理が止まらず、凍結/氷砕/粉砕/氷河落下が破綻しない（一時停止/リザルト/拠点へ戻れる）
+- [ ] `?debug=1` の **F9** で氷術師 active15・進化8 を切替/取得/進化条件達成でき、`debugRun` として通常 profile へ保存されない
+- [ ] リザルト「Balance詳細」に新スキルのテレメトリ（volleys/beamTicks/minesTriggered/glaciersDropped 等）が出て、外部送信されない
+- [ ] 上記いずれの操作でもコンソールに **JS エラーが出ない**
+
+### 実際には確認できていない内容（M7-B・重要）
+Node テストで検証したのは **純ロジックのみ**（氷 active15/進化8 のデータ整合・ポリシー監査・runtimeState 保存往復・決定論）。
+**描画/当たり判定/体感バランス/60FPS はブラウザでの確認が必要**（凍結・粉砕・氷河落下・氷鏡吸収の見た目、氷弾/雹/地雷/精霊/波/凍結床の実挙動、
+F9 パネルの描画、実フレームレート）。実ブラウザ（GitHub Pages・`?debug=1` の F9）で上記チェックリストを手動確認すること。実行していない項目を「確認済み」と報告しない。
+
+### M7-B の Node テスト（CI・上の「データ検証（CI）」へ追加）
+- [ ] `node tests/frost-skills-wave2.mjs` が成功する（新 active10種のデータ整合・rarity/castMode/procCoefficient・抽選出現/満枠/最大Lv/追放/決定論）
+- [ ] `node tests/frost-evolutions-wave2.mjs` が成功する（新進化5種のデータ整合・canEvolve〈ice_wall 補助含む〉・既存氷進化3種の非回帰）
+- [ ] `node tests/frost-policy-audit.mjs` が成功する（castMode/echo・clonePolicy/Lv80 対象＝icicle_volley のみ・mirror_ice forbidden・cryo_mine canTriggerEcho=false）
+- [ ] `node tests/frost-runtime-save-wave2.mjs` が成功する（実スキルクラスを最小 Phaser モックで駆動し CD/pending/durability の保存往復を検証・v6 非回帰）
+- [ ] `node tests/frost-determinism-wave2.mjs` が成功する（Math.random 不使用のソース走査＋同一状態で同一攻撃パターンの決定論トレース）
+- [ ] `validate-data.mjs` に M7-B 検証ブロック（氷 active15/進化8・skillCaps 29種・cast/監査/procCoefficient）が加わり、**全34テストスイートが通過**する

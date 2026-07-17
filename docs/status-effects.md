@@ -94,3 +94,16 @@ maxAbsoluteZeroShattersPerFrame / maxHeavenGlacierFragments / maxBossFrostbreaks
 ## 属性反応は将来課題（M7-A では未実装）
 火と氷の属性反応（火で凍結解除／氷で消火／蒸発／融解 など）は **M7-A では実装していない**。炎上と冷気/凍結は独立して共存する。
 ただし将来の反応実装に備え、状態付与時に **発生源の属性（source element）** を保持している。
+
+## Milestone 7-B: 氷術師の新スキルと状態異常経路（既存経路を再利用）
+M7-B で氷術師へ追加した新 active10種・進化5種も、**独自の凍結タイマーを持たず**、冷気（chill）/凍結（frozen）/凍結耐性（freeze_immunity）/粉砕（shatter）/
+ボス氷砕（frostbreak）はすべて既存の `StatusEffectManager` / `FreezeSystem` 経路を通す（`data/status-effects.json` の数値が正）。凍結判定は状態異常専用
+`SeededRandom` のままで **Math.random を使わず**、cursor 保存で再読込の引き直しを防ぐ。多段/広範囲の新スキルは低い `procCoefficient`（icicle_volley≈0.38 等）と
+`sameHitGroupMaxFreezeChecks` で永久凍結を防ぐ。粉砕/ボス氷砕/凍結の付与・上限は M7-A と同じ経路・同じ品質別 `skillCaps` に従う（新規に状態異常種別は追加しない）。
+
+- **`ice_prison`（氷牢封印）の条件付き凍結**: 対象の冷気が十分なら**短時間の凍結**、不足なら**大幅減速**にとどめる。凍結は既存経路で行うため
+  `freeze_immunity`（凍結耐性）を尊重し、耐性中は凍らせない。**ボスは通常凍結せず氷砕ゲージ**へ変換する（既存 `bossFrostbreak`）。
+- **`glacier_drop`（氷河墜落）／`avalanche`（雪崩奔流）／`cryo_mine`（氷結地雷）**: いずれも `frozen` 中の通常敵/エリートを既存の**粉砕**で砕く
+  （再帰なし・ボスは frostbreak で代替）。ボス直撃は氷砕ゲージへ加算する。
+- **`mirror_ice`（氷鏡結界）の敵弾吸収は状態異常ではない**: 既存 `bossBulletPool` の `absorbable` メタで敵弾を吸収して氷反撃弾を撃つ挙動であり、
+  `StatusEffectManager` の索引・上限とは無関係（冷気/凍結の付与経路には影響しない）。

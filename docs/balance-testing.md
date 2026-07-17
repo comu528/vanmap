@@ -171,6 +171,18 @@ M7-A で 2人目のジョブ **氷術師（frost_mage）** と汎用状態異常
 - 氷術師の抽選バランス（氷 active5/進化3）も本番の `SkillDraftManager` を直接駆動して確認する方針は同じ。氷スキルはジョブ別プールのため
   火の魔女の候補とは混ざらない（`multi-job-draft` で検証）。
 
+## Milestone 7-B の追記（氷術師ビルド拡張・第2波）
+氷術師を **active15 / 進化8**（新 active10種・進化5種）へ拡張したのに合わせ、検証基盤の対象も広げた（**save_version は v6 のまま**・外部送信なし・自動調整なし・数値は data が正）。
+
+- **Balance Playtest（F8）の対象**: 新 active10種・進化5種も検証プレイの抽選・取得・進化条件達成の対象に含まれる（氷術師を選んで素の手触りを確認）。**profile は不変・常に debugRun**。
+- **skillCaps の対象**: 氷スキル/進化の品質別上限 **29種を追加**（弾数/雹/地雷/精霊/波/凍結床/落下/吸収/反撃弾/氷牢 など・`low≤medium≤high≤ultra`・正）。上限到達でも凍結/粉砕/氷砕の判定は消さず装飾を先に削る。
+- **テレメトリの対象**: 新スキルの per-skill 追加キー（`skills.recordExtra`・ResultScene「Balance詳細」に表示）—
+  icicle_volley(volleys/iciclesFired) / frost_orbit(contactHits/maxOrbitCrystals) / freezing_ray(channelSeconds/beamTicks/maxRampReached) /
+  hailstorm(stormsCreated/hailImpacts) / cryo_mine(minesPlaced/minesTriggered) / frost_spirit(spiritsSummoned/spiritShots) /
+  ice_prison(prisonsCreated/targetsImprisoned) / avalanche(wavesCreated/enemiesPushed) / mirror_ice(projectilesBlocked/defensiveValue/counterShots) /
+  glacier_drop(glaciersDropped/pendingImpactsCompleted)。**外部送信なし**・テレメトリ失敗でゲーム/保存は失敗しない。debugRun は通常統計と分離。
+- 決定論は不変（Math.random 不使用・draft RNG cursor 不変）。検証は `frost-skills-wave2`/`frost-evolutions-wave2`/`frost-policy-audit`/`frost-runtime-save-wave2`/`frost-determinism-wave2`・`validate-data`（M7-B ブロック）で、**全34テストスイート通過**。
+
 ## 既知の制約（M6-F）
 - Node で検証したのは **カタログ整合・抽選シミュレーション・進化成立性・テレメトリ純ロジック・検証モードの profile 非変更** のみ。
 - テレメトリの**実収集値・FPS ヒストグラム・ResultScene の Balance詳細描画・F8 パネルの実挙動**は Phaser 依存のため
