@@ -25,7 +25,7 @@ function pointToSegment(px, py, x1, y1, x2, y2) {
 function triArea(a, b, c) { return Math.abs((b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y)) * 0.5; }
 function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
 
-const EDGE_W = 8; // 辺ヒット判定幅
+const EDGE_W_SAFE = 8; // 安全用 fallback（正は data/skills.json tri_flame_array.config.edgeWidth）。辺ヒット判定幅
 
 export class TriFlameArraySkill extends SkillBase {
   constructor(scene, id, level) {
@@ -132,7 +132,7 @@ export class TriFlameArraySkill extends SkillBase {
         pointToSegment(e.x, e.y, arr.b.x, arr.b.y, arr.c.x, arr.c.y),
         pointToSegment(e.x, e.y, arr.c.x, arr.c.y, arr.a.x, arr.a.y),
       );
-      if (de <= EDGE_W) {
+      if (de <= (this.def?.config?.edgeWidth ?? EDGE_W_SAFE)) {
         combat.dealDamage(e, s.edgeDamage, this.id, { tag: 'edge', color: 0xff5722 });
         if (!e.isBoss && e.applySlow) e.applySlow(s.edgeSlow || 0.5, 400);
         edgeHits++;

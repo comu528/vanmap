@@ -380,3 +380,44 @@ M6-B/M6-D の `skillRuntime` に、第3波スキルの再開に必要な最小�
 - **保存しない**: 個々の墓標/亀裂/陣/弾の位置、敵死亡イベント履歴（`recentDeathEvents`）、炎上索引（`_burningIndex`）。これらはランタイムの一時状態で、レベル＋ runtimeState と再開後の戦闘から自然に再構築する。
 - **再読込での悪用防止**: remaining 値（CD/熱量/オーバーヒート/終末/分身）を保存・復元することで、**炉心熱量の初期化・オーバーヒート解除・終末の再開始・CD全回復・墓標の二重生成** を防ぐ。一時停止中は update が止まるため CD/熱量も進まない。
 - `SkillManager.serializeRuntime()`／`restoreRuntime()` が各スキルの `serializeState/restoreState` を集約し、`BattleScene.restoreFromRun()` が復元する。加算的追加のため **`save_version` は 6 のまま**（構造変更が無いので明確な移行は不要）。転生でもリセットしない。
+
+## Milestone 6-F: 通常プレイ整備・バランス検証基盤（save_version は 6 のまま）
+**新スキルは追加しない**。`profile.balanceTelemetry`（ローカル戦闘テレメトリの集計）を**加算的に追加**し、`active_run.draftState` に
+`draftsSinceProgress`（抽選の pity カウンター）を足すだけで既存構造を変えない。そのため **`saveVersion` は 6 のまま**（不要な版上げをしない）。
+v1〜v6 からの移行は M6-A〜M6-E と同じ経路で、既存データを保持する。**テレメトリは外部送信しない**。
+
+### profile.balanceTelemetry（新規・任意フィールド・加算的追加）
+1周回ぶんの戦闘テレメトリを集計した開発向けデータ。無い（旧セーブ・未計測）場合は空として安全に扱う。`RunBalanceSummary` が
+**immutable に集計**し、通常周回と debugRun を**分離**して保持する（上限は `data/balance-thresholds.json` の `telemetry`）。
+```jsonc
+{
+  "balanceTelemetry": {
+    "enabled": true,
+    "summaryBySkill": {                 // 通常周回の集計（最大80スキル）
+      "fireball": {
+        "runs": 8, "casts": 1200, "hits": 3400, "kills": 900,
+        "damage": 152000, "dps": 84.4, "damageShare": 0.31,
+        "echo": 40, "clone": 6, "capReached": 12, "defensiveValue": 0
+      }
+    },
+    "recentRuns": [ /* 通常周回の周回サマリ（最大10・FPS平均/最低/p95・cap・seed 等） */ ],
+    "debugRuns":  [ /* F4〜F8 のデバッグ補正を使った周回（最大10・通常統計と分離） */ ]
+  }
+}
+```
+- **debugRun 分離**: F4〜F8 のデバッグ補正を使った周回（Balance Playtest=F8 は常に debugRun）は `debugRuns` へ振り分け、
+  `summaryBySkill`／`recentRuns`（通常統計）へは**混ぜない**。
+- **上限**: `summaryBySkill` は最大80スキル、`recentRuns`/`debugRuns` は各最大10周、全体の目安上限 `softMaxBytes=262144`。超過分は捨てる。
+- **型安全な取り込み**: `profileSchema.js` がプロトタイプ汚染キーを除外し、非有限/負数を安全化して取り込む（インポート/移行でも壊れない）。
+- **保存は低優先・失敗許容**: 周回終了時の集計→`profile.balanceTelemetry` 加算は**主要セーブより低優先**で try/catch し、
+  **失敗してもゲーム進行・主要セーブ（残り火/JobXP/profile 本体）を壊さない**。M5-B の `SaveCoordinator` 経由で保存する。
+
+### active_run.draftState の `draftsSinceProgress`（M6-A の拡張・既存 serialize 経由）
+シナジー補助の pity カウンター（進化に近づかないドラフトが続いた回数）。既存の `draft.serialize`（`active_run.draftState`）に含めて保存し、
+進化成立で `markProgress()` によりリセットする。無い場合は 0 として安全に再開する。決定論は不変で、`synergy=null`（補助なし）は旧挙動と byte 一致。
+
+### 保存フォーマットへの影響なし
+シナジー補助（`skill-config.json`）・バランス警告しきい値（`balance-thresholds.json`）・fallback→JSON 定数は **data 側の設定/メタ**で、
+セーブ payload には含めない（保存フォーマットに影響しない）。`SkillCatalog`/`DraftBalanceAnalyzer`/`CombatTelemetry`/`RunBalanceSummary`/
+`BalanceWarnings`/`BalancePlaytest` は純ロジックで、保存レイヤー（M5-B）を壊さない。エクスポート/インポート/バックアップ/競合解決は
+payload 全体を扱うため `balanceTelemetry` も自動的に保持される（インポートは `migrateProfile` を通す）。加算的追加のため **`save_version` は 6 のまま**・転生でもリセットしない。

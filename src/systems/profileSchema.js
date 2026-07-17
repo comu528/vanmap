@@ -50,6 +50,13 @@ export function defaultProfile(saveVersion, gameVersion) {
     jobProgress: {},               // jobId -> { runs, ... }（将来のジョブ育成特典用）
     passiveMastery: {},            // id -> { runsUsed, maxLevel, picks, appliedTimeMs }
     futureInheritanceSettings: {}, // 将来の継承枠設定（M6-A は未使用の拡張口）
+    // --- Milestone 6-F: ローカル戦闘バランス計測（外部送信なし・加算的・上限あり） ---
+    balanceTelemetry: {
+      enabled: true,
+      summaryBySkill: {},          // skillId -> 集計（runs/totalDamage/totalDps/...）
+      recentRuns: [],              // 最新の詳細周回（最大10件・古いものは集計後破棄）
+      debugRuns: [],               // デバッグ周回（通常統計と分離・最大10件）
+    },
   };
 }
 
@@ -138,7 +145,32 @@ export function migrateProfile(stored, sv, gv) {
   m.jobProgress = safeJobProgress(s.jobProgress);
   m.passiveMastery = safePassiveMastery(s.passiveMastery);
   m.futureInheritanceSettings = obj(s.futureInheritanceSettings);
+  m.balanceTelemetry = safeBalanceTelemetry(s.balanceTelemetry); // M6-F: 加算的・上限あり（save_version は v6 維持）
   return m;
+}
+
+// balanceTelemetry を型安全に取り込む（M6-F）。外部インポートでも既知フィールドのみ・件数上限・有限数のみ。
+// テレメトリの破損でゲーム進行や profile を壊さない（常に安全な既定へフォールバック）。
+function safeBalanceTelemetry(src) {
+  const s = obj(src);
+  const cap = (list, n) => (arr(list) || []).filter((v) => v && typeof v === 'object' && !Array.isArray(v)).slice(0, n);
+  const summary = {};
+  const bs = obj(s.summaryBySkill);
+  let count = 0;
+  for (const k of Object.keys(bs)) {
+    if (k === '__proto__' || k === 'prototype' || k === 'constructor') continue;
+    if (count++ >= 80) break; // 集計スキル数の上限
+    const e = obj(bs[k]);
+    const clean = {};
+    for (const [ek, ev] of Object.entries(e)) if (typeof ev === 'number' && Number.isFinite(ev)) clean[ek] = ev;
+    summary[k] = clean;
+  }
+  return {
+    enabled: typeof s.enabled === 'boolean' ? s.enabled : true,
+    summaryBySkill: summary,
+    recentRuns: cap(s.recentRuns, 10),
+    debugRuns: cap(s.debugRuns, 10),
+  };
 }
 
 // jobProgress を型安全に取り込む（Milestone 6-C）。ジョブごとの育成データ（totalXp が唯一の正）。
@@ -195,6 +227,7 @@ export function fillProfileDefaults(p, sv, gv) {
     ...d, ...obj(p),
     statistics: { ...d.statistics, ...obj(obj(p).statistics) },
     currentCycle: { ...d.currentCycle, ...obj(obj(p).currentCycle) },
+    balanceTelemetry: { ...d.balanceTelemetry, ...obj(obj(p).balanceTelemetry) },
   };
 }
 

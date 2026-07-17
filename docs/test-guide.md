@@ -285,3 +285,55 @@ GitHub Pages に公開後、Chrome 系ブラウザで公開 URL を開き、以�
 - [ ] `node tests/skill-tag-audit.mjs` が成功する（全 active30/進化18 の SkillAudit 解決・castMode/echo/clone/Lv80/タグの整合・forbidden と canTrigger の整合）
 - [ ] `node tests/cast-event-audit.mjs` が成功する（主発動イベントが攻撃サイクル単位のみ・DoTtick/連鎖/分裂/召喚通常射撃/共鳴連鎖/オーバーヒート開始終了では recordCast しない）
 - [ ] 既存11スイートも維持し、validate-data.mjs（castMode/mainCastEvent/echo・cloneDescription/共鳴閾値昇順/炉心熱量/新skillCaps/新進化条件/未知タグ）を含め**全15スイートが通過**する
+
+## 通常プレイ整備・バランス検証基盤（M6-F・実ブラウザ）
+（M6-F は**新スキルを追加しない**。Node テストはカタログ整合・抽選シミュレーション・進化成立性・テレメトリ純ロジック・
+検証モードの profile 非変更のみを検証する。以下の**戦闘挙動・UI 描画は実ブラウザでのみ確認**する項目で、
+**実行していない項目を「成功」「確認済み」と報告しない**方針。時間短縮は `?debug=1` の F8（Balance Playtest・F1〜F7 非競合）を使う。）
+
+### スキルカタログ・抽選（進化系統）
+- [ ] `?debug=1` の拠点「カタログ」タブ（開発用）で active30種/進化18レシピ/進化なし12種/Lv80対象6種/不整合0 が確認できる
+- [ ] 進化を持つ active（18種）で 基礎Lv8＋補助Lv4 を満たすと進化候補が出る。進化を持たない12種では進化候補が出ない
+- [ ] 各進化の条件（補助スキル・パッシブ補助を含む）が正しく、成立すると従来の進化演出→置換になる（枠は増えない・補助は消えない）
+- [ ] LevelUpScene のカードに 残響○/◑/× 分身○/◑/× Lv80+ ·主要タグ（`SkillAudit.skillSummaryLine`）が表示される
+
+### シナジー補助
+- [ ] シナジー補助 ON（既定）で、所持している基礎スキルの進化相手（補助スキル）がやや出やすくなる（極端には偏らない）
+- [ ] 進化に近づかないドラフトが続くと徐々に補助が増え、進化成立でリセットされる（pity）
+- [ ] 同 seed・同状態でリロードすると同じ候補が復元される（決定論・引き直せない）
+- [ ] `data/skill-config.json` の `synergyAssistEnabled:false`（またはブロック無し）で補助が無効化され、旧挙動と一致する
+
+### Balance Playtest（F8・通常プレイ検証モード）
+- [ ] `?debug=1` の戦闘で F8 を押すと Balance Playtest パネルが開く（F1〜F7 と非競合）
+- [ ] seed/難易度/品質/速度/Job Lv/active枠4-6-8/候補3-4/リロール等/恒久強化(通常profile|全無効)/熟練度(通常|無効)/Job補正(通常|無効)/戦闘時間(5分|1分|10分) を選べる
+- [ ] 「検証開始」で一時状態のみ初期化され、**スキルは自動付与されず・ゴッドモードにならない**。小さな「● Balance Playtest」表示が出る
+- [ ] Job Lv 1・50・70・80・100 を切り替えて開始でき、対応する補正（残響/発射数/抽選重み等）が反映される
+- [ ] active枠 4・6・8 と 候補 3・4 を切り替えて開始でき、抽選の枠数/候補数が変わる
+- [ ] 同 seed・同候補で開始すると同じ抽選になる（本番の SkillDraftManager を使用）
+- [ ] リロール・追放が検証モードでも機能する。通常レベルアップ選択も従来どおり動く
+- [ ] 5分/1分/10分 の周回長で戦闘が終了しリザルトへ進む
+- [ ] **Balance Playtest の周回で profile の JobXP・通貨・進行・クリアが増えない**（戻すと元のまま）
+
+### テレメトリ・Balance詳細（ResultScene）
+- [ ] リザルトの「Balance詳細」ボタンでスキル別 DPS/割合/残響/分身/上限到達/防御値 と 周回全体(FPS/cap/seed) が確認できる
+- [ ] スキル別 DPS・damageShare が表示され、火力の偏りが分かる
+- [ ] 防御スキル（不死鳥の羽/炎の障壁/弾喰い炉）の防御統計（防御値）が表示される
+- [ ] echo（残響）/ clone（分身）の発生数が記録される
+- [ ] FPS（平均/最低/p95）が記録される
+- [ ] **debugRun（F4〜F8 のデバッグ補正を使った周回）が通常統計へ混ざらない**（「通常統計へ記録していません」と明示される）
+- [ ] テレメトリを JSON エクスポート（データ管理の一式エクスポートに含まれる）でき、外部送信されない
+- [ ] テレメトリを削除（セーブ初期化/データ管理）でき、削除してもゲームは通常どおり動く
+
+### 通常周回・保存の非回帰
+- [ ] **通常周回（F4〜F8 を使わない）では JobXP・通貨が従来どおり正しく増える**（テレメトリ追加で非回帰）
+- [ ] 途中保存→再開で、抽選の pity（`draftsSinceProgress`）とテレメトリが概ね維持され、進行が壊れない
+- [ ] テレメトリ保存に失敗してもゲーム進行・主要セーブ（残り火/JobXP/profile）が壊れない
+- [ ] 上記いずれの操作でもコンソールに JS エラーが出ない
+
+### M6-F の Node テスト（CI・上の「データ検証（CI）」へ追加）
+- [ ] `node tests/skill-catalog.mjs` が成功する（active30/passive4/進化18のカタログ整合・孤立/未登録/参照不整合0・Lv80対象・レアリティ分布）
+- [ ] `node tests/draft-balance-simulation.mjs` が成功する（本番の SkillDraftManager を直接駆動・枠4/6/8の進化到達率・CI軽量200seed・`HEAVY=1` で2500seed）
+- [ ] `node tests/evolution-feasibility.mjs` が成功する（全18レシピが 4枠で成立可能・最小枠 minActiveSlots≤2/minPassiveSlots≤1）
+- [ ] `node tests/combat-telemetry.mjs` が成功する（DPS/防御値/FPS集計/damageShare/debugRun分離/上限）
+- [ ] `node tests/balance-playtest.mjs` が成功する（検証モードのオーバーライド解決・**profile 非変更**・常に debugRun）
+- [ ] `validate-data.mjs` に synergy 設定・balance-thresholds・castMode 等の検証が加わり、既存15スイート＋新5＝**全20スイートが通過**する

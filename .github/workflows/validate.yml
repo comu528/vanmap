@@ -61,3 +61,15 @@ jobs:
         run: node tests/skill-tag-audit.mjs
       - name: Cast event audit tests
         run: node tests/cast-event-audit.mjs
+
+      # 通常プレイ整備（M6-F・カタログ/抽選シミュ/進化成立性/テレメトリ/検証モード・Node.js 標準機能のみ・軽量）。
+      - name: Skill catalog tests
+        run: node tests/skill-catalog.mjs
+      - name: Draft balance simulation (light)
+        run: node tests/draft-balance-simulation.mjs
+      - name: Evolution feasibility tests
+        run: node tests/evolution-feasibility.mjs
+      - name: Combat telemetry tests
+        run: node tests/combat-telemetry.mjs
+      - name: Balance playtest tests
+        run: node tests/balance-playtest.mjs

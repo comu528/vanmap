@@ -90,3 +90,15 @@ export function castSummary(def) {
 export function isAttackMode(def) {
   return !!(def && ATTACK_CAST_MODES.includes(def.castMode));
 }
+
+// スキル説明用の短い1行サマリ（残響/分身/Lv80/主要タグ ＋ 進化先）。M6-F: UI 共通（LevelUpScene / BaseScene / デバッグ）。
+// UI ごとに別判定を作らず、この関数と castBadge を共有する。evoDef を渡すと「→進化名」を付す。
+export function skillSummaryLine(def, evoDef) {
+  if (!def) return '';
+  const b = castBadge(def);
+  const parts = [`残響${b.echoSym}`, `分身${b.cloneSym}`];
+  if (b.lv80) parts.push('Lv80+');
+  if (b.tags.length) parts.push('·' + b.tags.slice(0, 3).join('/'));
+  if (evoDef) parts.push('→' + (evoDef.displayName || '進化'));
+  return parts.join(' ');
+}

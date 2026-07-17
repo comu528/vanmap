@@ -641,6 +641,45 @@ if (jobProgData) {
   }
 }
 
+// --- M6-F: シナジー抽選補助設定の検証 ---
+{
+  const sc = loadJson('skill-config.json');
+  const syn = sc && sc.synergy;
+  if (syn) {
+    if (typeof syn.synergyAssistEnabled !== 'boolean') err('skill-config.json: synergy.synergyAssistEnabled が真偽値でない');
+    const posMult = ['evolutionPartnerWeightMultiplier', 'ownedSkillUpgradeWeightMultiplier', 'nearlyMaxedSkillWeightMultiplier', 'unrelatedNewSkillWeightMultiplier', 'synergyAssistMaxMultiplier', 'noProgressMaxMultiplier'];
+    for (const k of posMult) {
+      const v = syn[k];
+      if (typeof v !== 'number' || !Number.isFinite(v) || v <= 0) err(`skill-config.json: synergy.${k} が正の有限数でない (${v})`);
+    }
+    // 倍率は 1 以上（重みを下げる補助にはしない・legendary を common 並みに増やさない上限）。
+    for (const k of ['evolutionPartnerWeightMultiplier', 'ownedSkillUpgradeWeightMultiplier', 'nearlyMaxedSkillWeightMultiplier']) {
+      if (typeof syn[k] === 'number' && syn[k] < 1) err(`skill-config.json: synergy.${k} は1以上であること (${syn[k]})`);
+    }
+    if (typeof syn.synergyAssistMaxMultiplier === 'number' && syn.synergyAssistMaxMultiplier > 4) warn(`skill-config.json: synergy.synergyAssistMaxMultiplier が大きすぎる (${syn.synergyAssistMaxMultiplier})`);
+    if (typeof syn.noProgressDraftThreshold !== 'number' || syn.noProgressDraftThreshold < 1 || !Number.isInteger(syn.noProgressDraftThreshold)) err(`skill-config.json: synergy.noProgressDraftThreshold が正整数でない (${syn.noProgressDraftThreshold})`);
+    if (typeof syn.noProgressWeightBonus !== 'number' || syn.noProgressWeightBonus < 0) err(`skill-config.json: synergy.noProgressWeightBonus が非負でない (${syn.noProgressWeightBonus})`);
+    if (typeof syn.synergyAssistMinBattleLevel !== 'number' || syn.synergyAssistMinBattleLevel < 0) err(`skill-config.json: synergy.synergyAssistMinBattleLevel が非負でない (${syn.synergyAssistMinBattleLevel})`);
+  }
+}
+
+// --- M6-F: バランス警告しきい値・テレメトリ上限の検証 ---
+{
+  const th = loadJson('balance-thresholds.json');
+  if (th) {
+    const w = obj => (obj && typeof obj === 'object') ? obj : {};
+    const wa = w(th.warnings), te = w(th.telemetry);
+    for (const [k, v] of Object.entries(wa)) if (typeof v === 'number' && (!Number.isFinite(v) || v < 0)) err(`balance-thresholds.json: warnings.${k} が非負の有限数でない (${v})`);
+    for (const [k, v] of Object.entries(te)) if (typeof v === 'number' && (!Number.isFinite(v) || v < 0)) err(`balance-thresholds.json: telemetry.${k} が非負の有限数でない (${v})`);
+    if (typeof wa.minSamples === 'number' && (!Number.isInteger(wa.minSamples) || wa.minSamples < 1)) err(`balance-thresholds.json: warnings.minSamples が正整数でない (${wa.minSamples})`);
+    for (const k of ['maxRecentRuns', 'maxDebugRuns', 'maxSummarySkills']) {
+      if (te[k] != null && (!Number.isInteger(te[k]) || te[k] < 1)) err(`balance-thresholds.json: telemetry.${k} が正整数でない (${te[k]})`);
+    }
+  } else {
+    warn('balance-thresholds.json が見つからない（M6-F バランス警告のしきい値）');
+  }
+}
+
 // --- report ---
 if (warnings.length) {
   console.log('--- 警告 ---');

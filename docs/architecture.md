@@ -272,3 +272,41 @@ M6-A（抽選/枠/パッシブ/進化）・M6-B（戦闘挙動・`Projectile` �
 ### 性能上限・保存
 - **性能上限**: `balance.skillCaps` へ品質別の新キー（`maxDeathEventsTracked`/`maxDeathEventsPerFrame`/`maxFuneralPyres`/`maxPyreEruptionsPerFrame`/`maxMagmaVeins`/`maxMagmaSegments`/`maxMagmaIntersections`/`maxTriArrays`/`maxArrayTicksPerFrame`/`maxResonanceTargets`/`maxResonanceChains`/`maxResonanceExplosions`/`maxOverdriveProjectiles`/`maxOverdriveCastsPerFrame`/`maxMausoleums`/`maxHexagramArrays`/`maxHexagramBeams`/`maxDoomsdayProjectiles`/`maxDoomsdayExplosions`/`maxBurningEnemyIndex`/`maxMainCastEventsPerFrame`）を追加。`combat.frameBudget`/`DataManager.skillCap` で毎フレーム予算化。**上限到達でも攻撃判定は消さず、装飾を先に削る**。近傍/範囲/連鎖/交差/共鳴は M5-A SpatialGrid で候補を絞り、最終判定（点in三角形/線分距離/円/接続距離）は各挙動側で厳密に行う（ボスは個別追加）。
 - **保存**: 各スキルの runtimeState を `active_run.skillRuntime`（`SkillManager.serializeRuntime`）へ加算保存し `restoreFromRun` が復元（墓標=CD/炎脈=CD/三角=CD/共鳴=CD〈段階は再開時に再計算〉/炉心=heat/overheatLeft/cdLeft/終末=heat/overheatLeft/doomLeft/cdLeft）。個々の墓標/亀裂/陣/弾の位置は保存せず レベル＋runtimeState から再構築。再読込での悪用（熱量初期化/オーバーヒート解除/終末再開始/CD全回復/墓標二重生成）を remaining 値の保存復元で防止。**`save_version` は 6 のまま**。
+
+## 通常プレイ整備・バランス検証基盤（M6-F）
+火の魔女は M6-E で完成済み（active30/進化18/passive4/Job Lv1〜100）。M6-F は**新スキルを追加せず**、抽選/枠/パッシブ/進化・戦闘挙動・
+ジョブ育成・残響/分身（M6-A〜M6-E）を **現在の正** としたまま、検証基盤を追加する。すべて **Phaser 非依存の純ロジック**（Node テスト可能）で、
+**外部送信・自動調整はしない**。**`save_version` は 6 のまま**（`profile.balanceTelemetry` を加算的追加）。
+
+| 追加/変更 | 役割 | 依存 |
+|-----------|------|------|
+| `src/systems/SkillCatalog.js`（新規・純ロジック） | 実データから active30/passive4/進化18のカタログ生成（`buildCatalog`）・進化レシピ（`evolutionRecipes`）・進化相手 id（`evolutionPartnerIds`）・**孤立/未登録/参照不整合の検出**。SkillManager の `registeredSkillIds()`/`skillsWithRuntimeState()` を注入して実装/保存の有無を判定 | `DataManager`（skills/evolutions/passives/jobs）・`SkillAudit`（同ソース共有・UI 専用判定を作らない） |
+| `src/systems/DraftBalanceAnalyzer.js`（新規・純ロジック） | 決定論的な抽選シミュレーター。**本番の `SkillDraftManager`+`SeededRandom` を直接駆動**（抽選ロジックを複製しない）。方針・枠4/6/8・候補3/4・Job Lv・多数シードで進化到達を計測 | `SkillDraftManager`/`SeededRandom`/`SkillCatalog` |
+| `src/systems/CombatTelemetry.js`（新規・純ロジック） | 1周回のローカル戦闘テレメトリ（外部送信なし）。スキル別 casts/hits/kills/damage/DoT/爆発/projectile/summon/echo/clone/上限/防御値・DPS・damageShare・FPS（平均/最低/p95 は1ms刻みヒストグラム）。防御値 = blockedDamage+healed+absorbedBullets×25+lethalAvoided×1000 | `BattleScene`（`update` で noteFrame・スキル取得/進化を記録） |
+| `src/systems/RunBalanceSummary.js`（新規・純ロジック） | `profile.balanceTelemetry` の集計・整形（**immutable・例外を投げない**）。通常周回=summaryBySkill(上限80)＋recentRuns(最大10)、**debugRun=debugRuns(最大10) へ分離**・softMaxBytes=262144 | `CombatTelemetry` の出力・`profileSchema`（型安全な取り込み） |
+| `src/systems/BalanceWarnings.js`（新規・純ロジック） | 集計から**開発用の警告のみ**生成（**自動調整しない**）。しきい値 `data/balance-thresholds.json`・最低サンプル数 `minSamples` 未満は警告しない | `RunBalanceSummary`・`DataManager`（balance-thresholds） |
+| `src/systems/BalancePlaytest.js`（新規・純ロジック） | 通常プレイ検証モードの設定・オーバーライド解決（**profile を一切変更しない・常に debugRun**） | `BattleScene`（F8）・`DataManager` |
+| `SkillDraftManager`（M6-A 拡張・決定論維持） | `_synergyMult` がレアリティ重みへ乗算。`ctx.synergy={partnerIds,battleLevel}`。`draftsSinceProgress`（pity）を保持・保存、進化成立で `markProgress()` リセット。**`synergy=null` で旧挙動と完全一致（byte-identical）** | `data/skill-config.json` の `synergy`・`active_run.draftState` |
+| `BattleScene`（拡張） | 周回開始で SkillCatalog 構築・進化レシピ保持、`buildDraftCtx` に synergy 付与、進化成立で `markProgress()`。CombatTelemetry を保持し FPS/上限到達/スキル取得・進化を記録、周回終了で `finalizeTelemetry`→`RunBalanceSummary.applyRun`。**F8**（Balance Playtest）・F4〜F8 使用周回を `markDebugRun` | 上記モジュール・`ResultScene`・`BaseScene` |
+
+### シナジー補助の決定論
+`SkillDraftManager` はレアリティ重みへ `_synergyMult` を**乗算**するのみで、**乱数の消費順序を変えない**。同 seed・同状態なら
+補助 ON/OFF どちらでも決定論的に再現でき、`synergy=null`（補助なし）は旧挙動と **byte-identical**（`draft-balance-simulation` で検証）。
+補助上限（`synergyAssistMaxMultiplier=2.0`・pity `noProgressMaxMultiplier=1.5`）と、legendary を common 並みに増やさない設計により、
+「特定レシピを確定させない・レア出現率を壊さない」を保証する。`draftsSinceProgress` は既存の `draft.serialize` 経由で `active_run.draftState` に保存する。
+
+### debugRun 分離・テレメトリの低優先保存
+- **debugRun 分離**: F4〜F8 のデバッグ補正を使った周回は `markDebugRun` でマークし、`RunBalanceSummary` が `debugRuns`（通常統計と別）へ振り分ける。
+  Balance Playtest（F8）は**常に debugRun**。通常統計（summaryBySkill＋recentRuns）へは混ざらない。ResultScene で「通常統計へ記録していません」と明示する。
+- **低優先保存**: 周回終了時の `finalizeTelemetry`→`RunBalanceSummary.applyRun`→`profile.balanceTelemetry` 加算は、**主要セーブより低優先**で try/catch し、
+  失敗しても**ゲーム進行・主要セーブ（残り火/JobXP/profile）を壊さない**。上限（80スキル/各10周/262144B）を超える分は捨てる。**`save_version` は 6 のまま**。
+
+### F8（Balance Playtest）
+`?debug=1` の戦闘で F8（F1〜F7 と非競合）。`BalancePlaytest.resolve` が seed/難易度/品質/速度/Job Lv/active枠4-6-8/候補3-4/リロール/
+恒久強化(通常profile|全無効)/熟練度(通常|無効)/Job補正(通常|無効)/戦闘時間(5分|1分|10分) のオーバーライドを解決し、
+「検証開始」で**一時状態のみ初期化**（スキル自動付与なし・ゴッドモード無効）。**profile の通貨/進行/JobXP/クリアは不変**。
+
+### fallback 定数の JSON 移行
+`doomsday_core`（`overheat.heatAccelPct=0.5`/`config.doomFireMs=130`/`config.doomBlastMs=420`）・`tri_flame_array.config.edgeWidth=8`・
+`hexagram_inferno_array.area.outerWidth=10`/`beamWidth=12`・`orbiting_flame.config.castPulseMs=500`・`fire_spirit.config.summonPulseMs=900` を JSON へ移した。
+**コードに残る同名の `*_SAFE` 定数はゲームバランス値ではなく、「JSON 欠落時の NaN/undefined 回避のための安全既定」**であり、通常は JSON 側が使われる（重複定義ではない）。

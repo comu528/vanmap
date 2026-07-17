@@ -27,6 +27,10 @@ import { JobProgressionManager } from '../systems/JobProgressionManager.js';
 import { JobModifierManager } from '../systems/JobModifierManager.js';
 import { defaultCastContext, replayContext, canCastTriggerEcho, canCloneCopy } from '../systems/CastPolicy.js';
 import { echoStatus, cloneStatus, appliesLv80ProjectileCount, castSummary } from '../systems/SkillAudit.js';
+import { registeredSkillIds, skillsWithRuntimeState } from '../systems/SkillManager.js';
+import { buildCatalog, evolutionRecipes, evolutionPartnerIds } from '../systems/SkillCatalog.js';
+import { CombatTelemetry } from '../systems/CombatTelemetry.js';
+import { defaultPlaytestConfig, resolveOverrides } from '../systems/BalancePlaytest.js';
 import { HUD } from '../ui/HUD.js';
 import { PauseMenu } from '../ui/PauseMenu.js';
 import { distance, dist2, createRng } from '../utils/math.js';
@@ -181,11 +185,24 @@ export class BattleScene extends Phaser.Scene {
     this.draft = new SkillDraftManager({
       rarityWeights: DataManager.rarityWeights, baseRerolls: dcfg.baseRerolls, baseBanishes: dcfg.baseBanishes, baseSkips: dcfg.baseSkips,
       rarityWeightMult: { rare: this.jobMods.rarityWeightMult('rare'), legendary: this.jobMods.rarityWeightMult('legendary') },
+      synergy: DataManager.skillConfig.synergy || null, // M6-F: 進化相手の軽い抽選補助（data で無効化可能）
     });
+    // 進化レシピ（進化相手の抽選補助・成立性判定に使用）。周回開始時に一度だけ構築する。
+    this._catalog = buildCatalog({ skills: DataManager.skills, passives: DataManager.passives, evolutions: DataManager.evolutions, jobs: DataManager.jobs, jobId: this.jobId, registeredIds: registeredSkillIds(), runtimeStateIds: skillsWithRuntimeState() });
+    this._evoRecipes = evolutionRecipes(this._catalog);
     this.spawn = new SpawnManager(this);
     this.battle = new BattleManager(this);
     this.pauseMenu = new PauseMenu(this);
     this.buildCombatApi();
+
+    // M6-F: ローカル戦闘テレメトリ（外部送信なし）。デバッグ補正（F4〜F8）を使った周回は debugRun とし通常統計へ混ぜない。
+    this._debugRun = false;
+    this._acquireOrder = 0;
+    this._skillAcquiredAt = {}; // skillId -> 取得時 timeSec（activeSeconds ≒ DPS 分母の算出用）
+    this.telemetry = new CombatTelemetry({
+      seed: this.rngSeed || 0, difficulty: this.difficultyId, quality: this.settings.effectQuality,
+      speed: this.settings.speed || 1, jobId: this.jobId, jobLevelAtStart: this.jobMods.jobLevel, debugRun: false,
+    });
 
     // 進行状態
     this.timeSec = 0;
@@ -254,6 +271,7 @@ export class BattleScene extends Phaser.Scene {
       this.input.keyboard.on('keydown-F5', () => this.toggleSkillTuner());    // 個別スキル検証（M6-C）
       this.input.keyboard.on('keydown-F6', () => this.toggleWave2Debug());    // 新スキル検証（M6-D）
       this.input.keyboard.on('keydown-F7', () => this.toggleWave3Debug());    // 新スキル検証（M6-E）
+      this.input.keyboard.on('keydown-F8', () => this.toggleBalancePlaytest()); // 通常プレイ検証（M6-F）
       // ヘッドレス/実ブラウザからの検査・比較用に戦闘シーンを公開する。
       window.RFS_BATTLE = this;
       this.togglePerfOverlay(); // debug 時は性能パネルを既定表示
@@ -519,6 +537,8 @@ export class BattleScene extends Phaser.Scene {
     if (this._sktuner) { this._sktuner.destroy(true); this._sktuner = null; }
     if (this._w2dbg) { this._w2dbg.destroy(true); this._w2dbg = null; }
     if (this._w3dbg) { this._w3dbg.destroy(true); this._w3dbg = null; }
+    if (this._bpdbg) { this._bpdbg.destroy(true); this._bpdbg = null; }
+    if (this._bpBanner) { this._bpBanner.destroy(); this._bpBanner = null; }
     if (window.RFS_BATTLE === this) window.RFS_BATTLE = null;
   }
 
@@ -964,6 +984,7 @@ export class BattleScene extends Phaser.Scene {
     const dt = delta * (this.speedMult || 1); // 倍速はロジックdtへ反映（物理/タイマーは timeScale）
     this._perFrameReset();                     // 安全上限の予算を毎フレーム初期化
     this.timeSec += dt / 1000;
+    if (this.telemetry) this.telemetry.noteFrame(delta); // M6-F: FPS/フレーム時間の計測（実フレームms）
 
     this.handleInput(dt);
     this.updateEnemies(dt);
@@ -981,6 +1002,7 @@ export class BattleScene extends Phaser.Scene {
     if (this._autoSaveAccum >= AUTOSAVE_MS) { this._autoSaveAccum = 0; this.autoSave(); }
 
     this._mLast = this._m;                 // 直近フレームの計測を保持
+    if (this.telemetry && this._m && this._m.suppressed > 0) this.telemetry.noteCapReached('perfCap'); // M6-F: 性能上限到達
     if (window.RFS_DEBUG) this._accumulatePerf(delta); // 性能パネル（0.25〜1秒毎に更新）
   }
 
@@ -1111,7 +1133,9 @@ export class BattleScene extends Phaser.Scene {
   // ---------------- ボス ----------------
   checkBossTime() {
     if (this.bossSpawned) return;
-    if (this.timeSec >= DataManager.balance.run.bossAtSec) {
+    // M6-F: Balance Playtest の検証時間（1分/10分）を優先（通常は 5 分）。
+    const bossAt = this._playtestDurationSec || DataManager.balance.run.bossAtSec;
+    if (this.timeSec >= bossAt) {
       this.bossSpawned = true;
       this.spawnBoss();
       this.showBanner('ボス出現！撃破で勝利');
@@ -1275,11 +1299,12 @@ export class BattleScene extends Phaser.Scene {
   // 抽選コンテキスト（所持枠・所持スキル・進化候補・ジョブプール）。
   buildDraftCtx() {
     const activeUsed = this.skills.activeSlotCount();
+    const owned = { active: this.skills.activeLevels(), passive: this.passives.serialize() };
     return {
       catalog: DataManager.draftCatalog(),
       job: { activeSkillPool: this.job.activeSkillPool || [], passiveSkillPool: this.job.passiveSkillPool || [] },
       extraAllowedIds: (this.job.futureInheritanceSettings && this.job.futureInheritanceSettings.enabled) ? (this._inheritedIds || []) : [],
-      owned: { active: this.skills.activeLevels(), passive: this.passives.serialize() },
+      owned,
       slots: {
         active: { used: activeUsed, max: Math.max(this.activeSlotsMax, activeUsed) },
         passive: { used: this.passives.count(), max: this.passiveSlotsMax },
@@ -1287,6 +1312,8 @@ export class BattleScene extends Phaser.Scene {
       evolvables: this.computeEvolvables(),
       need: this.choicesPerLevel,
       unlock: { highestClearedDifficulty: this.profile.highestClearedDifficulty || 0 },
+      // M6-F: 進化相手の抽選補助（所持基礎の未達補助スキル）＋現在の battleLevel（決定論を壊さない付随情報）。
+      synergy: { partnerIds: evolutionPartnerIds(this._evoRecipes || [], owned), battleLevel: this.player.level || 1 },
     };
   }
 
@@ -1336,9 +1363,65 @@ export class BattleScene extends Phaser.Scene {
   }
 
   applyCandidate(c) {
-    if (c.kind === 'evolution') this.skills.evolve(c.baseId);
-    else if (c.category === 'passive') this.passives.acquireOrLevel(c.id);
-    else this.skills.acquireOrLevel(c.id);
+    if (c.kind === 'evolution') {
+      const evoId = this.skills.evolve(c.baseId);
+      if (this.draft.markProgress) this.draft.markProgress(); // M6-F: 進化成立で pity リセット
+      if (this.telemetry) this.telemetry.noteSkillEvolved(c.baseId, evoId || DataManager.getEvolutionForBase(c.baseId)?.id);
+    } else if (c.category === 'passive') {
+      this.passives.acquireOrLevel(c.id);
+    } else {
+      const isNew = c.kind === 'new_active';
+      this.skills.acquireOrLevel(c.id);
+      if (isNew && this.telemetry) { // 新規取得のみ取得時刻/順を記録（DPS 分母・取得順の統計）
+        this._skillAcquiredAt[c.id] = this.timeSec;
+        this.telemetry.noteSkillAcquired(c.id, this.player.level, ++this._acquireOrder);
+      }
+    }
+  }
+
+  // M6-F: この周回をデバッグ周回として扱う（F4〜F8 のデバッグ補正使用時）。通常バランス統計へ混ぜない。
+  markDebugRun() { this._debugRun = true; if (this.telemetry) this.telemetry.run.debugRun = true; }
+
+  // M6-F: 周回終了時にテレメトリを確定する（スキル別統計・DPS・防御値・FPS）。BattleManager から呼ぶ。
+  finalizeTelemetry(result) {
+    if (!this.telemetry) return null;
+    const t = this.telemetry;
+    // 防御系の extra キー → 防御統計へ写像（無い項目は 0 のまま）。
+    const mapDefensive = (id, ex) => {
+      const d = {};
+      if (ex.blockedDamageTotal != null || ex.blockedDamage != null) d.blockedDamage = ex.blockedDamageTotal || ex.blockedDamage;
+      if (ex.barrierBlockedTotal != null) d.blockedDamage = (d.blockedDamage || 0) + ex.barrierBlockedTotal;
+      if (ex.phoenixTriggers != null || ex.lethalAvoided != null) d.lethalAvoided = ex.phoenixTriggers || ex.lethalAvoided;
+      if (ex.bulletsAbsorbed != null) d.absorbedBullets = ex.bulletsAbsorbed;
+      if (ex.healedTotal != null || ex.healed != null) d.healed = ex.healedTotal || ex.healed;
+      if (ex.dashTrails != null || ex.dashBoosts != null) d.dashBoosts = ex.dashTrails || ex.dashBoosts;
+      if (ex.healthSpent != null) d.hpSpent = ex.healthSpent;
+      if (Object.keys(d).length) t.addDefensiveStat(id, d);
+    };
+    for (const st of result.skills || []) {
+      const ex = st.extra || {};
+      t.addSkillStat(st.id, {
+        casts: st.casts, hits: st.hits, kills: st.kills, damage: st.damage,
+        echoCasts: ex.echoCasts, cloneCasts: ex.cloneDamageCasts,
+        highestConcurrentObjects: ex.highestConcurrentObjects || ex.maxConcurrent,
+      });
+      t.setSkillLevel(st.id, st.level, !!DataManager.getEvolution(st.id));
+      // activeSeconds: 取得〜周回終了（DPS 分母）。取得時刻不明（初期スキル等）は 0 から。
+      const acq = this._skillAcquiredAt[st.id] != null ? this._skillAcquiredAt[st.id] : 0;
+      t.addActiveTime(st.id, Math.max(0, (result.timeSec - acq)) * 1000);
+      mapDefensive(st.id, ex);
+    }
+    t.noteRunResult({
+      survivalSeconds: result.timeSec, victory: result.win, battleLevel: result.battleLevel,
+      totalKills: result.kills, eliteKills: result.eliteKills, bossKills: result.bossKills,
+      totalDamage: (result.skills || []).reduce((a, s) => a + (s.damage || 0), 0),
+      damageTaken: this._damageTakenTotal || 0,
+      activeSlots: this.skills.activeSlotCount(), passiveSlots: this.passives.count(),
+      rerolls: (this._baseRerolls || 1) - (this.draft.rerollsRemaining || 0),
+      banishes: 0, skips: 0, evolutions: (result.evolvedBaseIds || []).length,
+    });
+    if (this._debugRun) t.run.debugRun = true;
+    return t.finalize();
   }
 
   draftPick(i) {
@@ -1563,6 +1646,7 @@ export class BattleScene extends Phaser.Scene {
 
   // ---------------- 新スキル確認（M6-B・?debug=1・F4） ----------------
   toggleSkillDebug() {
+    this.markDebugRun(); // M6-F: デバッグ補正の使用でこの周回を通常統計から除外
     if (this._skdbg) { this._skdbg.destroy(true); this._skdbg = null; return; }
     const cx = GAME_WIDTH / 2;
     const ui = this.add.container(0, 0).setScrollFactor(0).setDepth(4000);
@@ -1597,6 +1681,7 @@ export class BattleScene extends Phaser.Scene {
   // 複数スキルが同時強化されると挙動が見づらいため、1スキルを単独化し、各補正を一時無効化して検証する。
   // すべてデバッグ中のランタイムにのみ適用し、profile の購入済み強化・熟練度は削除・保存しない。
   toggleSkillTuner() {
+    this.markDebugRun(); // M6-F: デバッグ補正の使用でこの周回を通常統計から除外
     if (this._sktuner) { this._sktuner.destroy(true); this._sktuner = null; return; }
     this._tuner = this._tuner || { skill: 'fireball', jobLevel: null, noPassive: false, noPerm: false, noMastery: false, noJob: false };
     const JOB_LEVELS = [1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
@@ -1720,6 +1805,7 @@ export class BattleScene extends Phaser.Scene {
   // F1〜F5 と競合しない。新 active10種・新進化5種・複製/吸収/ダッシュ・上限到達を確認する。
   // すべてランタイムのみ。profile は破壊・保存しない。
   toggleWave2Debug() {
+    this.markDebugRun(); // M6-F: デバッグ補正の使用でこの周回を通常統計から除外
     if (this._w2dbg) { this._w2dbg.destroy(true); this._w2dbg = null; return; }
     this._w2 = this._w2 || { skill: 'scorching_ray', jobLevel: null };
     const NEW = ['scorching_ray', 'ember_minefield', 'flame_crescent', 'ricochet_ember', 'ash_doppelganger', 'bloodfire_pact', 'bullet_furnace', 'four_sided_inferno', 'molten_chains', 'blazing_step'];
@@ -1796,6 +1882,7 @@ export class BattleScene extends Phaser.Scene {
   // F1〜F6 と競合しない。新 active5種・新進化5種・死亡位置/墓標/共鳴/炉心熱量・監査一覧を確認する。
   // すべてランタイムのみ。profile は破壊・保存しない。
   toggleWave3Debug() {
+    this.markDebugRun(); // M6-F: デバッグ補正の使用でこの周回を通常統計から除外
     if (this._w3dbg) { this._w3dbg.destroy(true); this._w3dbg = null; return; }
     this._w3 = this._w3 || { skill: 'funeral_pyres', view: 'policy' };
     const NEW = ['funeral_pyres', 'magma_vein', 'tri_flame_array', 'scorching_resonance', 'core_overdrive'];
@@ -1909,6 +1996,110 @@ export class BattleScene extends Phaser.Scene {
     const heat = this.skills.skills.get('core_overdrive') || this.skills.skills.get('doomsday_core');
     if (heat && heat.serializeState) { const st = heat.serializeState(); if (st && 'heat' in st) L.push(`炉心:${JSON.stringify(st).slice(0, 46)}`); }
     return L.join('\n');
+  }
+
+  // ---------------- 通常プレイ検証モード（M6-F・?debug=1・F8） ----------------
+  // F5〜F7 のスキル付与/Job Lv変更で強くなりすぎる問題を避け、通常プレイに近い条件でバランスを検証する。
+  // スキルは自動付与せず、通常のレベルアップ候補からプレイヤーが選ぶ。ゴッドモードは初期状態で無効。
+  // profile の通貨・進行・Job XP・クリア状態は一切変更しない（この周回は debugRun として通常統計へ混ぜない）。
+  toggleBalancePlaytest() {
+    if (this._bpdbg) { this._bpdbg.destroy(true); this._bpdbg = null; return; }
+    this._bp = this._bp || defaultPlaytestConfig();
+    const cx = GAME_WIDTH / 2;
+    const ui = this.add.container(0, 0).setScrollFactor(0).setDepth(4000);
+    ui.add(this.add.rectangle(cx, GAME_HEIGHT / 2, 480, 340, 0x0d1017, 0.97).setScrollFactor(0).setStrokeStyle(1, 0x80cbc4));
+    ui.add(this.add.text(cx, 4, 'Balance Playtest（通常プレイ検証・F8）', { fontSize: '11px', color: '#80cbc4' }).setScrollFactor(0).setOrigin(0.5, 0));
+    const redraw = () => { this.toggleBalancePlaytest(); this.toggleBalancePlaytest(); };
+    const cyc = (key, list) => { const i = list.indexOf(this._bp[key]); this._bp[key] = list[(i + 1) % list.length]; };
+    const rows = [
+      [() => `seed: ${this._bp.seed}`, () => { this._bp.seed = (this._bp.seed % 9999) + 1; }],
+      [() => `難易度: ${this._bp.difficulty}`, () => cyc('difficulty', [1, 2, 3, 4, 5])],
+      [() => `品質: ${this._bp.quality}`, () => cyc('quality', ['low', 'medium', 'high', 'ultra'])],
+      [() => `速度: ${this._bp.speed}`, () => cyc('speed', [1, 1.5, 2])],
+      [() => `Job Lv: ${this._bp.jobLevel ?? '通常'}`, () => cyc('jobLevel', [null, 1, 50, 70, 80, 100])],
+      [() => `active枠: ${this._bp.activeSlots ?? '通常'}`, () => cyc('activeSlots', [null, 4, 6, 8])],
+      [() => `候補数: ${this._bp.choices ?? '通常'}`, () => cyc('choices', [null, 3, 4])],
+      [() => `恒久強化: ${this._bp.permUpgrades}`, () => cyc('permUpgrades', ['profile', 'none'])],
+      [() => `熟練度: ${this._bp.mastery}`, () => cyc('mastery', ['profile', 'none'])],
+      [() => `Job補正: ${this._bp.jobMods}`, () => cyc('jobMods', ['normal', 'off'])],
+      [() => `戦闘時間: ${this._bp.durationSec ? this._bp.durationSec + '秒' : '通常5分'}`, () => cyc('durationSec', [null, 60, 600])],
+    ];
+    let yy = 22;
+    for (const [label, fn] of rows) {
+      const b = this.add.text(cx - 228, yy, label(), { fontSize: '9px', color: '#fff', backgroundColor: '#12343a', padding: { x: 5, y: 1 } }).setScrollFactor(0).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+      b.on('pointerdown', () => { fn(); redraw(); });
+      ui.add(b); yy += 16;
+    }
+    const info = this.add.text(cx + 10, 22, 'スキルは自動付与しません。\n通常のレベルアップから選択します。\nゴッドモードは無効。\nprofile（通貨/進行/JobXP/クリア）は\n変更しません。\nこの周回は通常統計へ記録されず、\ndebugRuns へ保存されます。', { fontSize: '8px', color: '#a5d6a7', lineSpacing: 3, wordWrap: { width: 200 } }).setScrollFactor(0).setOrigin(0, 0);
+    ui.add(info);
+    const start = this.add.text(cx, GAME_HEIGHT - 30, '▶ 検証開始（周回をリセット）', { fontSize: '10px', color: '#0d1017', backgroundColor: '#80cbc4', padding: { x: 8, y: 3 } }).setScrollFactor(0).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    start.on('pointerdown', () => { this.startBalancePlaytest(this._bp); });
+    ui.add(start);
+    const close = this.add.text(cx, GAME_HEIGHT - 10, '閉じる (F8)', { fontSize: '9px', color: '#bcaaa4' }).setScrollFactor(0).setOrigin(0.5, 1).setInteractive({ useHandCursor: true });
+    close.on('pointerdown', () => this.toggleBalancePlaytest());
+    ui.add(close);
+    this._bpdbg = ui;
+  }
+
+  // 検証開始: 一時状態のみを初期化して新しい検証周回を始める（profile は不変・debugRun）。
+  startBalancePlaytest(cfg) {
+    const ov = resolveOverrides(cfg, this.profile);
+    this.markDebugRun();
+    if (this._bpdbg) { this._bpdbg.destroy(true); this._bpdbg = null; }
+
+    // 進行中のエンティティを一掃（新しい周回のため）。
+    this.enemyPool.forEachActive((e) => this.enemyPool.release(e));
+    this.projPool.forEachActive((p) => this.projPool.release(p));
+    this.bossBulletPool.forEachActive((p) => this.bossBulletPool.release(p));
+    this.gemPool.forEachActive((g) => this.gemPool.release(g));
+    if (this.boss) { this.boss.destroy(); this.boss = null; }
+    this.bossSpawned = false;
+
+    // スキル/パッシブを初期状態へ（自動付与しない・以後プレイヤーが選ぶ）。
+    this.skills.destroy();
+    this.skills = new SkillManager(this);
+    this.skills.setMasteryBonuses(ov.disableMastery ? null : this.masteryBonus);
+    for (const id of (this.job.initialActiveSkills && this.job.initialActiveSkills.length ? this.job.initialActiveSkills : ['fireball'])) this.skills.acquireOrLevel(id);
+    this.passives = new PassiveManager(this);
+    this.passives.setDefs(DataManager.passives, DataManager.skillConfig);
+    for (const id of (this.job.initialPassiveSkills || [])) this.passives.acquireOrLevel(id);
+    this._skillAcquiredAt = {}; this._acquireOrder = 0;
+
+    // プレイヤー進行リセット（HP/レベル/XP）。位置はそのまま。
+    this.player.hp = this.player.maxHp; this.player.level = 1; this.player.xp = 0;
+    this.player.xpToNext = DataManager.balance.leveling.baseXpToLevel || 5;
+    this.timeSec = 0; this.kills = 0; this.eliteKills = 0; this.bossKills = 0; this.maxHit = 0;
+
+    // 枠・候補・難易度・速度・seed・戦闘時間の上書き。
+    if (ov.activeSlots) this.activeSlotsMax = ov.activeSlots;
+    if (ov.choices) this.choicesPerLevel = ov.choices;
+    if (ov.difficulty) { this.difficultyId = ov.difficulty; this.difficulty = DataManager.getDifficulty(ov.difficulty) || this.difficulty; }
+    this.applySpeed(Math.min(ov.speed || 1, this.speedMax || 2));
+    this.rngSeed = ov.seed; this.rng = createRng(this.rngSeed);
+    this.draft.reset(this.rngSeed, {
+      rerolls: ov.rerolls != null ? ov.rerolls : undefined,
+      banishes: ov.banishes != null ? ov.banishes : undefined,
+      skips: ov.skips != null ? ov.skips : undefined,
+    });
+    this._playtestDurationSec = ov.durationSec || null;
+
+    // 恒久強化・Job補正の一時上書き（profile は不変）。恒久強化は none で火力倍率を素の1へ戻す。
+    if (this._realDamageMult == null) this._realDamageMult = this.bonus.damageMult;
+    this.bonus.damageMult = ov.permUpgrades && Object.keys(ov.permUpgrades).length === 0 ? 1 : this._realDamageMult;
+    if (ov.disableJobMods) this.jobMods.setResolved(JobModifierManager.identity());
+    else if (ov.jobLevel != null) this.jobMods.setResolved(JobModifierManager.resolve(DataManager.getJobProgression(this.jobId), ov.jobLevel));
+    else this.jobMods.setResolved(this.resolvedJobModifiers);
+    this.draft.setRarityWeightMult({ rare: this.jobMods.rarityWeightMult('rare'), legendary: this.jobMods.rarityWeightMult('legendary') });
+    for (const sk of this.skills.skills.values()) sk._cache = null;
+
+    // 新しいテレメトリ（debugRun）。通常統計へ混ぜない。
+    this.telemetry = new CombatTelemetry({ seed: this.rngSeed, difficulty: this.difficultyId, quality: this.settings.effectQuality, speed: ov.speed || 1, jobId: this.jobId, jobLevelAtStart: this.jobMods.jobLevel, debugRun: true });
+
+    // 小さな常時表示（Balance Playtest 中・seed・通常統計へ記録しない旨）。
+    if (this._bpBanner) this._bpBanner.destroy();
+    this._bpBanner = this.add.text(4, GAME_HEIGHT - 8, `● Balance Playtest  seed:${this.rngSeed}  debug補正:${this._debugRun ? 'あり' : 'なし'}  通常統計へ記録しません`, { fontSize: '8px', color: '#80cbc4', backgroundColor: '#0d1017' }).setScrollFactor(0).setDepth(3500).setOrigin(0, 1);
+    this.updateHudSkills();
+    this.showBanner('Balance Playtest 開始（通常のレベルアップから選択してください）');
   }
 
   // 進化条件（基礎Lv8＋補助スキル/パッシブLv4）を満たす状態を作る（?debug=1）。

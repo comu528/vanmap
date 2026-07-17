@@ -4,7 +4,7 @@
 import { SkillBase } from './SkillBase.js';
 import { TEX } from '../config/game-config.js';
 
-const SUMMON_PULSE_MS = 900; // M6-E: 召喚の主発動イベント(recordCast)スロットル。個々の通常射撃では記録しない。
+const SUMMON_PULSE_SAFE = 900; // 安全用 fallback（正は data/skills.json fire_spirit.config.summonPulseMs）。召喚の主発動(recordCast)スロットル。
 
 export class FireSpiritSkill extends SkillBase {
   constructor(scene, id, level) { super(scene, id, level); this.spirits = []; this._angle = 0; this._castPulse = 0; }
@@ -47,7 +47,7 @@ export class FireSpiritSkill extends SkillBase {
       }
     }
     // 主発動イベント: 召喚の一斉射撃サイクル単位で記録する（個々の通常射撃では記録しない＝残響カウンタを乱発しない）。
-    if (firedThisFrame && this._castPulse <= 0) { this.scene.skills.recordCast(this.id); this._castPulse = SUMMON_PULSE_MS; }
+    if (firedThisFrame && this._castPulse <= 0) { this.scene.skills.recordCast(this.id); this._castPulse = (this.def?.config?.summonPulseMs ?? SUMMON_PULSE_SAFE); }
   }
 
   // 精霊1体の通常射撃（実発動・echo/clone 再現で共有）。発射できたら true。

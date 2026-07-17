@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "warnings": {
+    "minSamples": 5,
+    "dpsLowPct": 0.25,
+    "dpsHighPct": 3.0,
+    "lowUsageDamageShare": 0.01,
+    "capReachedPerRun": 50,
+    "defensiveValueEpsilon": 1,
+    "evolutionFeasibilityMin": 0.15,
+    "appearanceMin": 0.02
+  },
+  "telemetry": {
+    "maxRecentRuns": 10,
+    "maxDebugRuns": 10,
+    "maxSummarySkills": 80,
+    "softMaxBytes": 262144
+  }
+}

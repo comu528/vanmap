@@ -532,7 +532,10 @@
       "canBeCopiedByClone": true,
       "isDefensive": false,
       "isReactive": false,
-      "usesResourceCost": false
+      "usesResourceCost": false,
+      "config": {
+        "castPulseMs": 500
+      }
     },
     {
       "id": "meteor",
@@ -1557,7 +1560,10 @@
       "canBeCopiedByClone": true,
       "isDefensive": false,
       "isReactive": false,
-      "usesResourceCost": false
+      "usesResourceCost": false,
+      "config": {
+        "summonPulseMs": 900
+      }
     },
     {
       "id": "phoenix_feather",
@@ -3624,7 +3630,10 @@
       "canBeCopiedByClone": true,
       "isDefensive": false,
       "isReactive": false,
-      "usesResourceCost": false
+      "usesResourceCost": false,
+      "config": {
+        "edgeWidth": 8
+      }
     },
     {
       "id": "scorching_resonance",

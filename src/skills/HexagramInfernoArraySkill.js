@@ -21,8 +21,8 @@ function pointToSegment(px, py, x1, y1, x2, y2) {
   return Math.hypot(px - cx, py - cy);
 }
 
-const OUTER_W = 10; // 外周辺の判定幅
-const BEAM_W = 12;  // ビームの判定幅
+const OUTER_W_SAFE = 10; // 安全用 fallback（正は data/skill-evolutions.json hexagram_inferno_array.area.outerWidth）。
+const BEAM_W_SAFE = 12;  // 安全用 fallback（正は area.beamWidth）。
 
 export class HexagramInfernoArraySkill extends EvolvedSkillBase {
   constructor(scene, id, level) {
@@ -141,7 +141,7 @@ export class HexagramInfernoArraySkill extends EvolvedSkillBase {
         const dd = pointToSegment(e.x, e.y, v1.x, v1.y, v2.x, v2.y);
         if (dd < od) od = dd;
       }
-      if (od <= OUTER_W) combat.dealDamage(e, (d.damage && d.damage.outer) || 20, this.id, { tag: 'dot', quiet: true, color: 0xff5722 });
+      if (od <= (this.evoDef?.area?.outerWidth ?? OUTER_W_SAFE)) combat.dealDamage(e, (d.damage && d.damage.outer) || 20, this.id, { tag: 'dot', quiet: true, color: 0xff5722 });
     }
   }
 
@@ -156,10 +156,10 @@ export class HexagramInfernoArraySkill extends EvolvedSkillBase {
       // 頂点→中心のビーム線に沿ってダメージ。
       const midx = (v.x + arr.center.x) / 2, midy = (v.y + arr.center.y) / 2;
       const len = Math.hypot(arr.center.x - v.x, arr.center.y - v.y);
-      const cand = combat.enemiesInRadius(midx, midy, len / 2 + BEAM_W);
+      const cand = combat.enemiesInRadius(midx, midy, len / 2 + (this.evoDef?.area?.beamWidth ?? BEAM_W_SAFE));
       for (const e of cand) {
         if (!e || !e.alive) continue;
-        if (pointToSegment(e.x, e.y, v.x, v.y, arr.center.x, arr.center.y) <= BEAM_W) {
+        if (pointToSegment(e.x, e.y, v.x, v.y, arr.center.x, arr.center.y) <= (this.evoDef?.area?.beamWidth ?? BEAM_W_SAFE)) {
           combat.dealDamage(e, bdmg, this.id, { tag: 'beam', color: 0xffab40, knockback: e.isBoss ? 0 : 10, from: { x: v.x, y: v.y } });
         }
       }

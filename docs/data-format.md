@@ -566,3 +566,70 @@ M6-B/M6-D の `skillCaps` へ品質別の新キーを加算的に追加する。
 - **未知タグ検証**: ダメージタグ/`castMode`/`echoPolicy`/`clonePolicy` に未知値が無いこと。
 - 新 active5種・進化5種の `id`/`rarity`/`levels`(1..8)/`evolutionBranches`・`baseSkillId`/`replacementSkillId`/`requiredSkills`(active∪passive に実在・Lv1..8)/`safetyCaps`(非負) の整合、新 skillCaps の品質順(`low<=medium<=high<=ultra`)・非負整数。
 - `fire-skills-wave3.mjs` は新 active のデータ整合・抽選出現・skillCaps 品質順を、`fire-evolutions-wave3.mjs` は新進化の `canEvolve`（パッシブ補助含む）と既存進化の非回帰を、`skill-tag-audit.mjs` は **全 active30/進化18** の `SkillAudit` 解決（castMode/echo/clone/Lv80/タグの整合・forbidden と canTrigger の整合）を、`cast-event-audit.mjs` は **主発動イベントが攻撃サイクル単位のみ**（DoTtick/連鎖/分裂/召喚通常射撃/共鳴連鎖/オーバーヒート開始終了では recordCast しない）を純ロジックで検証する。既存11スイートも維持し**全15スイートが通過**する。
+
+## Milestone 6-F: 通常プレイ整備・バランス検証基盤（`skill-config.json` 拡張／`balance-thresholds.json` 新規／fallback→JSON）
+
+**新スキルは追加しない**。抽選のシナジー補助・バランス警告のしきい値・一部 fallback 定数を data 側へ集約する。**`saveVersion` は 6 のまま**。
+
+### skill-config.json の `synergy` ブロック（進化相手の軽い抽選補助）
+active30種化に伴い進化相手（補助スキル）が候補へ極端に出にくくならないための軽い補助。レアリティ重みへ**乗算**する（無視しない）。
+**決定論は不変・data で無効化できる**（`synergyAssistEnabled:false`）。`synergy=null`（＝ブロック無し）扱いは旧挙動と byte 一致。
+```jsonc
+"synergy": {
+  "synergyAssistEnabled": true,
+  "synergyAssistMinBattleLevel": 3,            // これ未満の戦闘レベルでは補助しない
+  "synergyAssistMaxMultiplier": 2.0,           // 補助倍率の上限
+  "evolutionPartnerWeightMultiplier": 1.35,    // 所持基礎の未達な進化相手（補助スキル）
+  "ownedSkillUpgradeWeightMultiplier": 1.15,   // 所持スキルの強化
+  "nearlyMaxedSkillWeightMultiplier": 1.2,     // Lv8間近のスキル
+  "unrelatedNewSkillWeightMultiplier": 1.0,    // 無関係な新規（据え置き）
+  "noProgressDraftThreshold": 4,               // 進展のないドラフトがこの回数を超えると
+  "noProgressWeightBonus": 0.1,                //   pity として補助を少しずつ加算し
+  "noProgressMaxMultiplier": 1.5               //   この倍率まで増やす
+}
+```
+- `SkillDraftManager._synergyMult` がレアリティ重みへ乗算し、乱数の消費順序は変えない（決定論維持）。`ctx.synergy={partnerIds, battleLevel}`。
+- 進展のないドラフトが続くと pity（`draftsSinceProgress`）で補助が増え、進化成立で `markProgress()` によりリセットする（`draftsSinceProgress` は `active_run.draftState` に保存）。
+- 上限（`synergyAssistMaxMultiplier`／`noProgressMaxMultiplier`）と「legendary を common 並みに増やさない」設計で、特定レシピを確定させない。
+- 検証（`validate-data.mjs`）: 各倍率が正・上限 >=1・`synergyAssistMinBattleLevel`/`noProgressDraftThreshold` が非負整数・`synergyAssistEnabled` が真偽値。
+
+### balance-thresholds.json（新規・バランス警告しきい値＋テレメトリ上限）
+`BalanceWarnings`（開発用警告・**自動調整はしない**）と `RunBalanceSummary`（テレメトリ集計）が参照する。
+```jsonc
+{
+  "version": 1,
+  "warnings": {
+    "minSamples": 5,                 // これ未満のサンプルでは警告しない（1〜2周で断定しない）
+    "dpsLowPct": 0.25, "dpsHighPct": 3.0,   // 中央比 DPS の低火力/突出しきい値
+    "lowUsageDamageShare": 0.01,     // damageShare がこれ未満なら「使われていない」
+    "capReachedPerRun": 50,          // 1周の cap 到達がこれ以上なら「上限に当たりすぎ」
+    "defensiveValueEpsilon": 1,      // 防御値がほぼ0の防御スキルを検出
+    "evolutionFeasibilityMin": 0.15, // 進化成立率がこれ未満なら「到達しづらい」
+    "appearanceMin": 0.02            // 抽選出現率がこれ未満なら「出にくい」
+  },
+  "telemetry": {
+    "maxRecentRuns": 10, "maxDebugRuns": 10, // 通常/デバッグ周回の保持上限
+    "maxSummarySkills": 80,                  // summaryBySkill の上限
+    "softMaxBytes": 262144                   // balanceTelemetry の目安上限
+  }
+}
+```
+- 検証（`validate-data.mjs`）: `version` が正整数・`warnings`/`telemetry` の必須キー・各しきい値が有限数・`minSamples`/`max*` が正整数・
+  割合系（dpsLowPct/dpsHighPct/lowUsageDamageShare/evolutionFeasibilityMin/appearanceMin）が非負。
+
+### fallback 定数の JSON 移行（コード側 `*_SAFE` の位置づけ）
+これまでコードに fallback 定数として持っていた一部の値を `data/skills.json`・`data/skill-evolutions.json` へ移した。
+| スキル/進化 | JSON パス | 値 |
+|-------------|-----------|----|
+| `doomsday_core`（進化） | `overheat.heatAccelPct` | 0.5 |
+| `doomsday_core`（進化） | `config.doomFireMs` | 130 |
+| `doomsday_core`（進化） | `config.doomBlastMs` | 420 |
+| `tri_flame_array` | `config.edgeWidth` | 8 |
+| `hexagram_inferno_array`（進化） | `area.outerWidth` | 10 |
+| `hexagram_inferno_array`（進化） | `area.beamWidth` | 12 |
+| `orbiting_flame` | `config.castPulseMs` | 500 |
+| `fire_spirit` | `config.summonPulseMs` | 900 |
+
+- **コードに残る同名の `*_SAFE` 定数はゲームバランス値ではなく、「JSON 欠落時の NaN/undefined 回避のための安全既定」**である。
+  通常は JSON 側の値が使われる（**重複定義ではない**）。バランス調整は JSON 側で行う。
+- 検証: 上記キーが対象スキル/進化に存在し有限数・`castPulseMs`/`summonPulseMs`/`doomFireMs`/`doomBlastMs` が正、各 width が正。

@@ -115,6 +115,16 @@ const REGISTRY = {
   doomsday_core: DoomsdayCoreSkill,
 };
 
+// 実装クラスが登録されている全スキルID（active＋進化）。SkillCatalog / 監査テストが「実装の有無」を判定するのに使う。
+// 単一の正（REGISTRY）から導出し、別途 id 一覧を二重管理しない。
+export function registeredSkillIds() { return Object.keys(REGISTRY); }
+
+// runtimeState（serializeState）を実装するスキルID。途中再開で保存されるスキルの監査に使う。
+// SkillBase には serializeState が無いため、prototype に存在すれば固有 runtimeState を持つと判定できる。
+export function skillsWithRuntimeState() {
+  return Object.keys(REGISTRY).filter((id) => typeof REGISTRY[id].prototype.serializeState === 'function');
+}
+
 export class SkillManager {
   constructor(scene) {
     this.scene = scene;

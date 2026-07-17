@@ -23,5 +23,18 @@
   "passiveModifierDefaults": {
     "cooldownMinMult": 0.5,
     "note": "パッシブは共通 modifier 集計を通して適用する。cooldownMinMult はクールダウン倍率の安全下限。"
+  },
+  "synergy": {
+    "_comment": "Milestone 6-F: active30種化に伴い進化相手が候補へ極端に出にくくならないための軽い抽選補助。レアリティ重みへ乗算する（無視しない）。決定論は不変。data で無効化・調整できる。",
+    "synergyAssistEnabled": true,
+    "synergyAssistMinBattleLevel": 3,
+    "synergyAssistMaxMultiplier": 2.0,
+    "evolutionPartnerWeightMultiplier": 1.35,
+    "ownedSkillUpgradeWeightMultiplier": 1.15,
+    "nearlyMaxedSkillWeightMultiplier": 1.2,
+    "unrelatedNewSkillWeightMultiplier": 1.0,
+    "noProgressDraftThreshold": 4,
+    "noProgressWeightBonus": 0.1,
+    "noProgressMaxMultiplier": 1.5
   }
 }

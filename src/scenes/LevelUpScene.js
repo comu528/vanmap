@@ -8,19 +8,17 @@
 
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/game-config.js';
 import { DataManager } from '../systems/DataManager.js';
-import { castBadge } from '../systems/SkillAudit.js';
+import { skillSummaryLine } from '../systems/SkillAudit.js';
 
-// スキル説明カードへ出す「残響・分身・Lv80・主要タグ」の短い記号行（M6-E）。
-// 640×360 を圧迫しないよう1行に凝縮する。プレイヤーが「このスキルは残響するのか」を判断できるようにする。
+// スキル説明カードへ出す「残響・分身・Lv80・主要タグ・進化先」の短い記号行（M6-E/6-F）。
+// SkillAudit の共通判定（skillSummaryLine）を使い UI 専用の別判定を作らない。640×360 を圧迫しないよう1行に凝縮する。
 function castLine(id) {
   if (!id) return '';
-  const def = DataManager.getSkill(id) || DataManager.getEvolution(id);
+  const skill = DataManager.getSkill(id);
+  const def = skill || DataManager.getEvolution(id);
   if (!def) return '';
-  const b = castBadge(def);
-  const parts = [`残響${b.echoSym}`, `分身${b.cloneSym}`];
-  if (b.lv80) parts.push('Lv80+');
-  if (b.tags.length) parts.push('·' + b.tags.slice(0, 3).join('/'));
-  return parts.join(' ');
+  const evo = skill ? DataManager.getEvolutionForBase(id) : null; // 基礎 active のみ進化先を表示
+  return skillSummaryLine(def, evo);
 }
 
 export class LevelUpScene extends Phaser.Scene {

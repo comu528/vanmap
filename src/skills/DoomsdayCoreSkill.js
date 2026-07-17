@@ -6,9 +6,11 @@
 import { EvolvedSkillBase } from './EvolvedSkillBase.js';
 import { TEX } from '../config/game-config.js';
 
-const HEAT_ACCEL_FALLBACK = 0.5; // evoDef に heatAccelPct が無いため CD 短縮率の fallback。
-const DOOM_FIRE_MS = 130;        // 終末弾幕の発射間隔（毎フレーム乱射を避ける内部レート）。
-const DOOM_BLAST_MS = 420;       // 終末爆発の周期。
+// 以下は安全用 fallback（ゲームバランス値は data/skill-evolutions.json の doomsday_core が唯一の正）。
+// JSON が欠落・破損した場合に NaN/undefined を避けるための既定値であり、通常はJSON側の値が使われる。
+const HEAT_ACCEL_SAFE = 0.5;  // overheat.heatAccelPct 欠落時の安全既定（CD短縮率）。
+const DOOM_FIRE_SAFE = 130;   // config.doomFireMs 欠落時の安全既定（終末弾幕の内部発射間隔）。
+const DOOM_BLAST_SAFE = 420;  // config.doomBlastMs 欠落時の安全既定（終末爆発の周期）。
 
 export class DoomsdayCoreSkill extends EvolvedSkillBase {
   constructor(scene, id, level) {
@@ -43,8 +45,8 @@ export class DoomsdayCoreSkill extends EvolvedSkillBase {
       this._doomTick -= dt;
       this._doomBlastTick -= dt;
       this.scene.skills.recordExtra(this.id, 'timeAtHighHeat', dt, 'add');
-      if (this._doomTick <= 0) { this._doomTick = DOOM_FIRE_MS; this._doomVolley(); }
-      if (this._doomBlastTick <= 0) { this._doomBlastTick = DOOM_BLAST_MS; this._doomBlast(); }
+      if (this._doomTick <= 0) { this._doomTick = (cfg.doomFireMs != null ? cfg.doomFireMs : DOOM_FIRE_SAFE); this._doomVolley(); }
+      if (this._doomBlastTick <= 0) { this._doomBlastTick = (cfg.doomBlastMs != null ? cfg.doomBlastMs : DOOM_BLAST_SAFE); this._doomBlast(); }
       if (this._doomLeft <= 0) {
         this._doomLeft = 0;
         this._overheatLeft = oh.forcedOverheatMs || 2400; // 強制オーバーヒート。
@@ -80,7 +82,7 @@ export class DoomsdayCoreSkill extends EvolvedSkillBase {
     const target = this.scene.combat.nearestEnemy(p.x, p.y, 100000);
     if (!target) { this._heat = Math.max(0, this._heat - coolRate * dt / 1000); return; }
 
-    const eff = Math.max(oh.minCooldownMs || 120, (d.cooldown || 650) * (1 - HEAT_ACCEL_FALLBACK * heatFrac)) * this.passiveCooldownMult();
+    const eff = Math.max(oh.minCooldownMs || 120, (d.cooldown || 650) * (1 - (oh.heatAccelPct != null ? oh.heatAccelPct : HEAT_ACCEL_SAFE) * heatFrac)) * this.passiveCooldownMult();
     this._cd = eff;
 
     this.scene.skills.recordCast(this.id); // 主発動（熱量は通常発動のみで上昇）。

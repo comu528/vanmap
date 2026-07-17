@@ -10,6 +10,9 @@ import { JobProgressionManager } from '../systems/JobProgressionManager.js';
 import { JobModifierManager } from '../systems/JobModifierManager.js';
 import { DataManager } from '../systems/DataManager.js';
 import { formatTime } from '../utils/time.js';
+import { buildCatalog as buildSkillCatalog, evolutionRecipes } from '../systems/SkillCatalog.js';
+import { registeredSkillIds, skillsWithRuntimeState } from '../systems/SkillManager.js';
+import { skillSummaryLine } from '../systems/SkillAudit.js';
 
 const VIEW_TOP = 50;
 const VIEW_BOTTOM = GAME_HEIGHT - 34;
@@ -36,6 +39,7 @@ export class BaseScene extends Phaser.Scene {
       { key: 'difficulty', label: '難易度' },
       { key: 'reincarnation', label: '転生' },
       { key: 'soulflame', label: '魂炎強化' },
+      { key: 'catalog', label: 'カタログ' },
     ];
     this.menuTexts = {};
     let mx = 12;
@@ -134,7 +138,54 @@ export class BaseScene extends Phaser.Scene {
     else if (key === 'difficulty') this.buildDifficulty();
     else if (key === 'reincarnation') this.buildReincarnation();
     else if (key === 'soulflame') this.buildSoulflame();
+    else if (key === 'catalog') this.buildCatalogTab();
     this.setScroll(0);
+  }
+
+  // ---------------- スキルカタログ（M6-F・開発/確認用・実データ由来） ----------------
+  // 会話や手書きではなく data から正確に生成する。進化あり/なし・進化レシピ・残響/分身/Lv80/タグを一覧表示。
+  // SkillCatalog と SkillAudit を共有し UI 専用の別判定を作らない。未発見を隠す図鑑機能ではない。
+  buildCatalogTab() {
+    const cat = buildSkillCatalog({
+      skills: DataManager.skills, passives: DataManager.passives, evolutions: DataManager.evolutions,
+      jobs: DataManager.jobs, jobId: this.profile.selectedJobId || 'flame_witch',
+      registeredIds: registeredSkillIds(), runtimeStateIds: skillsWithRuntimeState(),
+    });
+    const s = cat.summary;
+    const RC = { common: '#bcaaa4', uncommon: '#80deea', rare: '#ce93d8', legendary: '#ffd54f' };
+    this.label(16, 54, `火の魔女カタログ  active${s.activeCount} / 進化${s.evolutionCount} / passive${s.passiveCount}`, { color: '#ffab40' });
+    this.label(16, 66, `レアリティ active: C${s.rarityActives.common} U${s.rarityActives.uncommon} R${s.rarityActives.rare} L${s.rarityActives.legendary}  役割: ${Object.entries(s.roleDist).map(([k, v]) => k + v).join(' ')}`, { fontSize: '8px', color: '#bcaaa4' });
+    if (cat.issues.length) this.label(16, 76, `⚠ データ不整合 ${cat.issues.length}件`, { fontSize: '8px', color: '#ff5252' });
+    else this.label(16, 76, '✓ データ不整合なし（孤立/未登録/参照ズレ 0）', { fontSize: '8px', color: '#a5d6a7' });
+
+    let y = 92;
+    this.label(16, y, '── active30種（★=進化あり） ──', { fontSize: '9px', color: '#ffab40' }); y += 13;
+    const acts = cat.actives.slice().sort((a, b) => (RC[a.rarity] ? 0 : 0) || (a.hasEvolution === b.hasEvolution ? (a.id < b.id ? -1 : 1) : (a.hasEvolution ? -1 : 1)));
+    for (const a of acts) {
+      this.label(20, y, `${a.hasEvolution ? '★' : '・'}${a.displayName}`, { fontSize: '8px', color: RC[a.rarity] || '#ffe0b2' });
+      this.label(150, y, `${a.rarity}`, { fontSize: '7px', color: RC[a.rarity] || '#bcaaa4' });
+      const def = DataManager.getSkill(a.id);
+      const evo = a.hasEvolution ? DataManager.getEvolution(a.evolutions[0]) : null;
+      this.label(210, y, skillSummaryLine(def, evo), { fontSize: '7px', color: '#80cbc4', wordWrap: { width: 410 } });
+      y += 12;
+    }
+
+    y += 6;
+    this.label(16, y, '── 進化レシピ18種（基礎Lv8 ＋ 補助条件） ──', { fontSize: '9px', color: '#ffab40' }); y += 13;
+    const recipes = evolutionRecipes(cat);
+    for (const r of recipes) {
+      const aux = [...r.auxActive.map((x) => `${x.skill}Lv${x.level}`), ...r.auxPassive.map((x) => `${x.skill}Lv${x.level}(P)`)].join(' + ') || '（補助なし）';
+      const tag = [r.needsLegendaryCondition ? 'L条件' : '', r.needsDefensiveCondition ? '防御条件' : '', `枠A${r.minActiveSkills}/P${r.minPassiveSkills}`].filter(Boolean).join(' ');
+      this.label(20, y, `${r.displayName}`, { fontSize: '8px', color: '#ffd54f' });
+      this.label(150, y, `← ${r.baseSkillId}Lv8 ＋ ${aux}`, { fontSize: '7px', color: '#a5d6a7', wordWrap: { width: 340 } });
+      this.label(560, y, tag, { fontSize: '7px', color: '#8d6e63' });
+      y += (aux.length > 46 ? 20 : 12);
+    }
+
+    y += 6;
+    this.label(16, y, `── 進化なし active（${s.withoutEvolution.length}） ──`, { fontSize: '9px', color: '#ffab40' }); y += 13;
+    this.label(20, y, s.withoutEvolution.join(', '), { fontSize: '8px', color: '#bcaaa4', wordWrap: { width: 600 } }); y += 24;
+    this.label(16, y, 'Lv80発射数+1対象: ' + s.lv80Targets.join(', '), { fontSize: '7px', color: '#80cbc4', wordWrap: { width: 600 } });
   }
 
   add2(obj) { this.content.add(obj); if (obj.y + 12 > this._maxY) this._maxY = obj.y + 12; return obj; }

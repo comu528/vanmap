@@ -2,6 +2,7 @@
 // BattleScene から責務分離（M3）。残り火・統計・熟練度・難易度解放は ProgressionManager へ委譲する。
 
 import { SaveManager } from './SaveManager.js';
+import { applyRun as applyTelemetryRun } from './RunBalanceSummary.js';
 import { ProgressionManager } from './ProgressionManager.js';
 import { JobProgressionManager } from './JobProgressionManager.js';
 
@@ -97,6 +98,21 @@ export class BattleManager {
     // ジョブ経験値付与（M6-C・二重獲得防止は awardRun 側の runId ガード）。UIアニメを待たず即付与・保存する。
     const jobOutcome = this._awardJobXp(result);
 
+    // ローカル戦闘テレメトリの確定・保存（M6-F）。主要セーブより低優先度・失敗しても進行/保存を壊さない。
+    // Balance Playtest / F4〜F8 のデバッグ補正を使った周回は debugRun として通常統計と分離する。
+    let balanceSummary = null;
+    try {
+      balanceSummary = s.finalizeTelemetry ? s.finalizeTelemetry({ ...result, resultId: result.resultId }) : null;
+      if (balanceSummary) {
+        if (balanceSummary.run) balanceSummary.run.runId = result.resultId;
+        const profile = SaveManager.loadProfile();
+        profile.balanceTelemetry = applyTelemetryRun(profile.balanceTelemetry, balanceSummary);
+        SaveManager.saveProfile(profile, 'balance_telemetry');
+      }
+    } catch (e) {
+      if (window.RFS_DEBUG) console.warn('[telemetry] 集計/保存に失敗（無視して続行）:', e);
+    }
+
     const payload = {
       ...result,
       ember: outcome.breakdown,
@@ -104,6 +120,7 @@ export class BattleManager {
       newlyUnlocked: outcome.newlyUnlocked,
       awarded: outcome.awarded,
       job: jobOutcome, // { jobId, displayName, awarded, xpGain, before, after, xp, milestonesUnlocked }
+      balanceSummary,  // M6-F: ResultScene の Balance Summary 表示用（debugRun 判定含む）
     };
     s.time.delayedCall(600, () => s.scene.start('ResultScene', payload));
   }

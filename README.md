@@ -7,7 +7,14 @@
 npm・ビルド処理・バックエンド・データベースは一切使いません。Phaser 3.90.0 を CDN から読み込み、
 すべての素材（プレイヤー・敵・弾・エフェクト等）は JavaScript 上で動的生成しています。
 
-> ⚠️ **開発状況**: 現在 **Milestone 6-E**（火の魔女ビルド完成・第3波: 新 active 5種・新進化5種＋全スキル監査）まで実装済みです。
+> ⚠️ **開発状況**: 現在 **Milestone 6-F**（通常プレイ整備・バランス検証基盤）まで実装済みです。火の魔女は M6-E で完成済み
+> （active 30種・進化 18種・passive 4種・Job Lv1〜100）で、M6-F は**新スキルを追加せず通常プレイできる状態へ整える**整備・検証基盤です。
+> スキルカタログの実データ検証（`SkillCatalog`）・抽選シミュレーター（`DraftBalanceAnalyzer`・本番の抽選ロジックを直接駆動）・
+> 軽いシナジー補助（進化相手が候補へ出にくくならない・決定論不変・data で無効化可）・ローカル戦闘テレメトリ（外部送信なし・profile 加算・debugRun 分離）・
+> 開発用バランス警告・通常プレイ検証モード（F8・profile 不変）を追加しました。**save_version は v6 のまま**（加算的追加）。
+> 詳細は `docs/skill-catalog.md`・`docs/balance-testing.md`。
+>
+> （M6-E まで: 火の魔女ビルド完成・第3波: 新 active 5種・新進化5種＋全スキル監査）まで実装済みです。
 > 火葬の墓標・炎脈走破・三角焔陣・灼熱共鳴・炉心暴走を追加し、**火の魔女を active 30種・進化 18種・passive 4種・Job Lv1〜100 に完成**させました。
 > あわせて全 active30種・進化18種を監査し、主発動イベント（残響/分身の起点）・残響（echo）/分身（clone）ポリシー・
 > ダメージタグ・Job Lv80発射数+1対象を各スキル定義へ明示し、`SkillAudit` で一元管理します。敵死亡イベント履歴（墓標）・
@@ -31,6 +38,7 @@ npm・ビルド処理・バックエンド・データベースは一切使い�
 | **M6-C** | ジョブ育成基盤: 戦闘レベルとジョブレベルの分離・火の魔女 Job Lv1-100（totalXp が正）・周回終了時 Job XP・レベル別 火火力/DoT/範囲 成長・到達報酬10種（Lv5〜100: 残響詠唱/爆炎/進化強化/抽選重み/発射数 等）・周回開始時レベル固定・拠点ジョブ育成タブ・リザルトXP表示・F5個別スキル検証・profile.jobProgress（save_version 6 維持・転生維持）・データ駆動（新ジョブ再利用可） | ✅ 実装済み |
 | **M6-D** | 火の魔女ビルド拡張・第2波: 新 active 10種（灼熱光線/火種地雷/炎月斬/跳炎弾/灰燼分身/血炎契約/弾喰い炉/四方炎獄/熔火鎖/爆炎歩法）＋新進化5種。継続レーザー・罠・近接・反射・分身複製・HP消費・敵弾吸収・画面端波・拘束・ダッシュ強化。castContext による残響/複製の再帰1世代制限・HP消費API・敵弾吸収・ダッシュフック・品質別性能上限・F6検証。active25種/進化13種 | ✅ 実装済み |
 | **M6-E** | 火の魔女ビルド完成・第3波: 新 active 5種（火葬の墓標/炎脈走破/三角焔陣/灼熱共鳴/炉心暴走）＋新進化5種（冥炎大霊廟/大地灼断/六芒煉獄陣/万象炎鳴/終末炉心）。**active 30種・進化 18種・passive 4種・Job Lv1〜100 に完成**。全 active30/進化18の監査（castMode・echo/clonePolicy・主発動イベント統一・ダメージタグ・Lv80発射数+1対象を明示、`SkillAudit` で一元管理）・敵死亡イベント履歴・炎上中敵の索引・共鳴段階/炉心熱量/オーバーヒート/終末状態・品質別 skillCaps 追加・F7検証。orbiting_flame/fire_spirit の主発動イベント監査修正（挙動不変） | ✅ 実装済み |
+| **M6-F** | 通常プレイ整備・バランス検証基盤（**新スキルなし**）: スキルカタログの実データ検証（`SkillCatalog`・孤立/未登録/参照不整合0）・抽選シミュレーター（`DraftBalanceAnalyzer`・本番の SkillDraftManager+SeededRandom を直接駆動）・軽いシナジー補助（`skill-config.synergy`・レアリティ重みへ乗算・決定論不変・data で無効化可）・ローカル戦闘テレメトリ（`CombatTelemetry`/`RunBalanceSummary`・外部送信なし・profile 加算・debugRun 分離・低優先保存）・開発用バランス警告（`BalanceWarnings`/`data/balance-thresholds.json`）・通常プレイ検証モード（`BalancePlaytest`・**F8**・profile 不変・常に debugRun）・fallback 定数の JSON 移行。既存15＋新5＝**全20スイート通過**。**save_version v6 維持** | ✅ 実装済み |
 
 ### 遊びの流れ（M4）
 タイトル →「はじめから / 拠点」→ **拠点**（恒久強化・難易度・熟練度・**転生**・**魂炎強化**）→「戦闘開始」→
@@ -385,6 +393,57 @@ maxMausoleums / maxHexagramArrays / maxHexagramBeams / maxDoomsdayProjectiles / 
 4. 灼熱共鳴の段階は**炎上数のみで決まり area 補正で増えない**。墓標数/陣頂点数は projectileCount 補正で増えない。炉心熱量上昇率/最大熱量は damage/cooldown 補正で変動しない。
 5. **save_version は v6 維持**（加算的 runtimeState）。
 
+## Milestone 6-F の要素（通常プレイ整備・バランス検証基盤）
+
+火の魔女は M6-E で完成済み（active30/進化18/passive4/Job Lv1〜100）です。M6-F は**新スキルを追加せず**、
+「通常プレイできる状態へ整える」整備・検証基盤を追加しました。すべて Phaser 非依存の純ロジックで Node テスト可能、
+**外部送信・自動調整は一切しません**（数値の最終判断は開発者）。詳細は `docs/skill-catalog.md`・`docs/balance-testing.md`。
+
+### 新規モジュール（`src/systems/`）
+- **`SkillCatalog.js`**: 実データから active30/passive4/進化18の正確なカタログを生成し、**孤立・未登録・参照不整合を検出**。
+  会話や手書き一覧ではなく実データが唯一の正。SkillManager の `registeredSkillIds()`/`skillsWithRuntimeState()` を注入して
+  「実装クラスの有無」「runtimeState 保存の有無」を判定。`SkillAudit`（M6-E）と同じソースを共有（UI 専用の別判定を作らない）。
+- **`DraftBalanceAnalyzer.js`**: 決定論的な抽選シミュレーター。**本番の `SkillDraftManager` + `SeededRandom` を直接駆動**し
+  （抽選ロジックを複製しない）、方針（random / evolution-first / build / diversity）・active枠4/6/8・候補3/4・Job Lv・シード多数で計測。
+- **`CombatTelemetry.js`**: 1周回ぶんのローカル戦闘テレメトリ（外部送信なし）。スキル別 DPS/damageShare/echo/clone/上限到達/防御値、
+  周回全体の FPS（平均/最低/p95）。**`RunBalanceSummary.js`** が `profile.balanceTelemetry` へ集計（通常周回は summaryBySkill＋recentRuns、
+  debugRun は debugRuns へ**分離**・上限あり・**低優先保存**で失敗してもゲーム/保存を壊さない）。
+- **`BalanceWarnings.js`**: 集計から**開発用の警告のみ**生成（自動調整しない）。しきい値は `data/balance-thresholds.json`。
+  最低サンプル数未満は警告しない（1〜2周で断定しない）。
+- **`BalancePlaytest.js`**: 「通常プレイ検証モード」の設定・オーバーライド解決（**profile を一切変更しない・常に debugRun**）。
+
+### シナジー補助（`data/skill-config.json` の `synergy`）
+active30種化で進化相手が候補へ極端に出にくくならないための**軽い抽選補助**。レアリティ重みへ**乗算**し（無視しない）、
+**決定論は不変・data で無効化できる**。`synergy=null` は旧挙動と byte 一致。ON でも legendary を common 並みには増やさない。
+進展のないドラフトが続くと pity（`draftsSinceProgress`）で少しずつ補助が増え、進化成立でリセットされる。
+
+### F8 = Balance Playtest（`?debug=1` 限定・F1〜F7 と非競合）
+seed/難易度/品質/速度/Job Lv/active枠4-6-8/候補3-4/リロール等/恒久強化(通常|全無効)/熟練度(通常|無効)/Job補正(通常|無効)/
+戦闘時間(5分|1分|10分) を選び「検証開始」で**一時状態のみ初期化**（スキル自動付与なし・ゴッドモード無効）。
+profile の通貨/進行/JobXP/クリアは不変。この周回は **debugRun** で通常統計へ記録しない。ResultScene に「Balance詳細」・
+BaseScene に「カタログ」タブ（開発用）を追加。
+
+### fallback 定数の JSON 移行
+`doomsday_core`（heatAccelPct/doomFireMs/doomBlastMs）・`tri_flame_array`（edgeWidth）・`hexagram_inferno_array`（outerWidth/beamWidth）・
+`orbiting_flame`（castPulseMs）・`fire_spirit`（summonPulseMs）を JSON へ移しました。コードに残る同名の `*_SAFE` 定数は
+**バランス値ではなく**「JSON 欠落時の NaN/undefined 回避のための安全既定」で、通常は JSON 側が使われます（重複定義ではない）。
+
+### カタログ結果（実データ由来）
+進化あり active18 / 進化なし active12 / **複数進化分岐なし**（各 active 最大1進化）。レアリティ active: common8/uncommon10/rare9/legendary3、
+passive: common2/uncommon2。役割: 攻撃25/防御3/移動1/資源1。Job Lv80発射数+1対象は6種（core_overdrive/fireball/flame_lance/
+homing_wisp/ricochet_ember/scatter_flame・進化は対象外）。孤立/未登録/参照不整合 **0件**。一覧は `docs/skill-catalog.md`。
+
+### 抽選シミュレーション結果（evolution-first・200 seed・levelUps=60）
+active4枠: 進化平均1.27・≥1=86.0%・≥2=36.5% / active6枠: 2.165・98.0%・78.0% / active8枠: 2.215・97.5%・78.0%
+（初期目標 4枠 ≥1:60%+/≥2:15%+、6枠 75%/35%、8枠 85%/50% をいずれも達成）。
+**注記**: 短周回（levelUps≈24）では傾向が逆転（枠が少ないほど1基礎へ強化が集中し Lv8 到達が早い）。「枠が多いほど進化が増える」は
+**長周回の上限効果**で、想定レベルアップ回数に依存する。最難関は `star_devouring_furnace`（全構成が伝説）。詳細は `docs/balance-testing.md`。
+
+### 自動テスト（`validate.yml` に追加済み）
+新規: `skill-catalog` / `draft-balance-simulation`（CI 軽量200seed・`HEAVY=1` で2500）/ `evolution-feasibility` /
+`combat-telemetry` / `balance-playtest`。`validate-data` に synergy 設定・balance-thresholds・castMode 等の検証を追加。
+既存15スイート＋新5＝**全20スイート通過**。
+
 ## セーブについて（M5-B）
 
 基本は **ブラウザの localStorage**（恒久データ profile / 設定 settings / 途中セーブ active_run）です。
@@ -451,14 +510,16 @@ src/
                       PoolManager / SkillManager / EffectManager / SpatialGrid(空間グリッド・M5-A) /
                       SeededRandom・SkillDraftManager・PassiveManager（スキル抽選基盤・M6-A）/
                       JobProgressionManager・JobModifierManager（ジョブ育成・M6-C）/ CastPolicy（残響/複製の再帰防止・M6-D）/
-                      SkillAudit（castMode/echo・clone/Lv80/タグの一元解決・M6-E）
+                      SkillAudit（castMode/echo・clone/Lv80/タグの一元解決・M6-E）/
+                      SkillCatalog・DraftBalanceAnalyzer・CombatTelemetry・RunBalanceSummary・BalanceWarnings・BalancePlaytest（バランス検証基盤・M6-F）
   storage/            StorageAdapter / BrowserStorageAdapter / FolderStorageAdapter / MemoryStorageAdapter /
                       SaveCoordinator / SaveValidator / SaveConflictResolver / SaveService / idb（保存レイヤー・M5-B）
   ui/                 HUD / PauseMenu
   utils/              math / time / validation
 data/                 skills / enemies / bosses / permanent-upgrades / skill-mastery /
                       skill-evolutions / reincarnation / balance / job-progression（JSON）
-docs/                 game-design / architecture / data-format / save-format / test-guide
+docs/                 game-design / architecture / data-format / save-format / test-guide /
+                      skill-catalog（火の魔女カタログ・M6-F）/ balance-testing（バランス検証基盤・M6-F）
 tests/validate-data.mjs        Node標準のみのデータ検証
 tests/spatial-nonregression.mjs 空間グリッドの決定論的非回帰＋負荷計測（Node標準のみ・M5-A）
 tests/save-system.mjs          保存システムのテスト（移行/検証/キュー/バックアップ/競合・Node標準のみ・M5-B）
@@ -474,10 +535,16 @@ tests/fire-skills-wave3.mjs    新 active 5種のデータ整合＋抽選＋cast
 tests/fire-evolutions-wave3.mjs 新進化5種のデータ整合＋進化条件＋既存13進化の非回帰（Node標準のみ・M6-E）
 tests/skill-tag-audit.mjs      全 active30/進化18の castMode/echo・clone/Lv80/タグ監査（SkillAudit・Node標準のみ・M6-E）
 tests/cast-event-audit.mjs     主発動イベントの統一（攻撃サイクル単位のみ recordCast）（Node標準のみ・M6-E）
-.github/workflows/    static.yml（公開） / validate.yml（データ検証＋各テスト・全15スイート）
+tests/skill-catalog.mjs        カタログ整合（active30/passive4/進化18・孤立/未登録/参照不整合0）（Node標準のみ・M6-F）
+tests/draft-balance-simulation.mjs 抽選シミュレーション（枠4/6/8の進化到達率・CI軽量200seed・HEAVY=1で2500）（Node標準のみ・M6-F）
+tests/evolution-feasibility.mjs 全18レシピが4枠で成立可能・最小枠（Node標準のみ・M6-F）
+tests/combat-telemetry.mjs     テレメトリ純ロジック（DPS/防御値/FPS集計/debugRun分離/上限）（Node標準のみ・M6-F）
+tests/balance-playtest.mjs     検証モードのオーバーライド解決・profile 非変更・常に debugRun（Node標準のみ・M6-F）
+.github/workflows/    static.yml（公開） / validate.yml（データ検証＋各テスト・全20スイート）
 data/                 ... / jobs.json・passives.json・skill-config.json（M6-A）／skills.json・skill-evolutions.json 拡張・balance.skillCaps（M6-B）／
                       job-progression.json・balance.combatCaps.maxEchoPerFrame（M6-C）／skills/evolutions 各10・5追加・cast メタ・skillCaps 26種追加（M6-D）／
-                      skills/evolutions 各5追加・castMode/mainCastEvent/lv80ProjectileTarget メタ・balance.skillCaps 20種追加（M6-E）
+                      skills/evolutions 各5追加・castMode/mainCastEvent/lv80ProjectileTarget メタ・balance.skillCaps 20種追加（M6-E）／
+                      skill-config.synergy・balance-thresholds.json（新規）・fallback定数のJSON移行（M6-F）
 ```
 
 保存レイヤー（`src/storage/*`）とデータ管理画面（`DataManagementScene`）は M5-B で実装済みです。今後の候補は `TODO.md` を参照してください。
@@ -592,6 +659,17 @@ echo→*・clone→* が発生しない・maxCopyGeneration=1）を `node tests/
 炉心暴走の加速/過熱/停止/再開・終末炉心の状態変化・echo/cloneで熱量が変わらないこと・Job Lv80が対象弾だけ増やすこと・敵死亡履歴/炎上索引の実挙動・
 途中再開/戦闘後の残留なし・F7）は Phaser 依存のためヘッドレスでは未検証**です。GitHub Pages を実ブラウザ（`?debug=1` の F7）で開き、
 `docs/test-guide.md` の M6-E 項目を手動確認してください（実行していない項目は「確認済み」と報告していません）。
+
+**Milestone 6-F の検証**: バランス検証基盤（`SkillCatalog`/`DraftBalanceAnalyzer`/`CombatTelemetry`/`RunBalanceSummary`/
+`BalanceWarnings`/`BalancePlaytest`）は Phaser 非依存の純ロジックのため、`node tests/skill-catalog.mjs`（カタログ整合・
+孤立/未登録/参照不整合0）・`node tests/draft-balance-simulation.mjs`（本番の SkillDraftManager を直接駆動した抽選シミュレーション・
+枠4/6/8の進化到達率・`HEAVY=1` で2500seed）・`node tests/evolution-feasibility.mjs`（全18レシピが4枠で成立可能）・
+`node tests/combat-telemetry.mjs`（DPS/防御値/FPS集計/debugRun分離/上限）・`node tests/balance-playtest.mjs`
+（検証モードの **profile 非変更**・常に debugRun）で検証済みです。`validate-data.mjs` に synergy 設定・`balance-thresholds.json`・
+castMode 等の検証を追加し、**既存15スイート＋新5＝全20スイートが通過**します。**シナジー補助 `synergy=null` は旧挙動と byte 一致・
+決定論を維持**することもテストで確認しています。**テレメトリの実収集値・FPS ヒストグラム・ResultScene の Balance詳細描画・
+F8 パネル・BaseScene カタログタブの実挙動は Phaser 依存のためヘッドレスでは未計測**です。GitHub Pages を実ブラウザ
+（`?debug=1` の F8）で開き、`docs/test-guide.md` の M6-F 項目を手動確認してください（実行していない項目は「確認済み」と報告していません）。
 
 > ヘッドレス環境の制約: `requestAnimationFrame` が断続的に間引かれ、また headless では
 > ページが非フォーカス扱いになり自動一時停止が働くため、「リザルト→再挑戦後の実時間ループ継続」や

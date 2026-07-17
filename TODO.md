@@ -335,11 +335,53 @@ Milestone 1 は実装済み。以下は **Milestone 2 以降の設計と作業�
 - [x] LevelUpScene カードに残響/分身/Lv80/主要タグの記号行を追加。`balance.skillCaps` に品質別20種追加。runtimeState（各CD・熱量・オーバーヒート・終末）を active_run へ加算保存（save_version v6 維持）。F7 デバッグ。
 - [x] `tests/fire-skills-wave3.mjs`／`tests/fire-evolutions-wave3.mjs`／`tests/skill-tag-audit.mjs`／`tests/cast-event-audit.mjs`＋validate-data（castMode/mainCastEvent/echo・cloneDescription/共鳴閾値昇順/炉心熱量/新skillCaps/新進化条件/未知タグ）＋CI（全15スイート）。
 
-### 今後の候補（未実装）
+### 今後の候補（M6-F で整備した抽選バランス／未実装は下記「今後」へ）
+- [x] 進化相手が候補へ極端に出にくくならない軽い抽選補助（M6-F の synergy で対応）
 - [ ] 進化を持たない active への進化系統追加（bloodfire_pact/four_sided_inferno/molten_chains/blazing_step/ash_doppelganger 等・現状 evolutionBranches は空）
 - [ ] 新ジョブ・ジョブ選択画面・他ジョブ継承・転生レガシー（`futureInheritanceSettings`/`extraAllowedIds` が拡張口）
 - [ ] 新 passive・legendary の追加、火の魔女スキル限界突破（Lv8超）・進化後スキルのレベルアップ
 - [ ] 新規敵/ボス/難易度、図鑑・実績の本実装、装備ドロップ
+
+---
+
+## Milestone 6-F — 通常プレイ整備・バランス検証基盤【実装済み】
+
+火の魔女は M6-E で完成済み（active30/進化18/passive4/Job Lv1〜100）。M6-F は**新スキルを追加せず**、通常プレイできる状態へ整える
+整備・検証基盤を実装した。すべて Phaser 非依存の純ロジック（Node テスト可能）で、**外部送信・自動調整はしない**。**save_version は v6 のまま**。
+
+### 新規モジュール（`src/systems/`・純ロジック）
+- [x] `SkillCatalog.js`: 実データから active30/passive4/進化18のカタログ生成・**孤立/未登録/参照不整合を検出**（`buildCatalog`/`evolutionRecipes`/`evolutionPartnerIds`）。SkillManager の `registeredSkillIds()`/`skillsWithRuntimeState()` を注入・`SkillAudit` と共有。
+- [x] `DraftBalanceAnalyzer.js`: 決定論的な抽選シミュレーター。**本番の `SkillDraftManager`+`SeededRandom` を直接駆動**（抽選ロジックを複製しない）。方針 random/evolution-first/build/diversity・枠4/6/8・候補3/4・Job Lv・多数シード。
+- [x] `CombatTelemetry.js`: 1周回のローカル戦闘テレメトリ（外部送信なし）。スキル別 DPS/damageShare/echo/clone/上限/防御値・周回FPS（平均/最低/p95）。
+- [x] `RunBalanceSummary.js`: `profile.balanceTelemetry` の集計・整形（immutable・例外を投げない）。通常周回=summaryBySkill＋recentRuns、debugRun=debugRuns へ分離・上限あり（80スキル/各10周/262144B）。
+- [x] `BalanceWarnings.js`: 集計から**開発用警告のみ**生成（自動調整しない）。しきい値 `data/balance-thresholds.json`・最低サンプル数未満は警告しない。
+- [x] `BalancePlaytest.js`: 通常プレイ検証モードの設定・オーバーライド解決（**profile 不変・常に debugRun**）。
+
+### データ・抽選
+- [x] `skill-config.json` に `synergy` ブロック追加（進化相手の軽い抽選補助）。レアリティ重みへ乗算・**決定論不変・data で無効化可**・`synergy=null` は旧挙動と byte 一致・legendary を common 並みに増やさない。
+- [x] `SkillDraftManager` に synergy 対応（`_synergyMult`）と `draftsSinceProgress`（進展なしの pity・保存・進化成立で `markProgress()` リセット）を追加。決定論維持。
+- [x] `data/balance-thresholds.json`（新規・警告しきい値＋テレメトリ上限）。
+- [x] fallback 定数の JSON 移行（doomsday_core の heatAccelPct/doomFireMs/doomBlastMs・tri_flame_array.edgeWidth・hexagram_inferno_array.outerWidth/beamWidth・orbiting_flame.castPulseMs・fire_spirit.summonPulseMs）。コードの `*_SAFE` は安全既定であってバランス値ではない。
+
+### BattleScene 統合・UI・デバッグ
+- [x] 周回開始で SkillCatalog 構築・進化レシピ保持・`buildDraftCtx` に synergy(partnerIds/battleLevel) 付与・進化成立で `markProgress()`。
+- [x] CombatTelemetry を保持し FPS/上限到達/スキル取得・進化を記録。周回終了で `finalizeTelemetry`→`RunBalanceSummary.applyRun`（**低優先保存**・失敗しても進行/保存を壊さない）。
+- [x] **F8 = Balance Playtest**（`?debug=1` 限定・F1〜F7 非競合）。seed/難易度/品質/速度/Job Lv/active枠4-6-8/候補3-4/リロール/恒久強化(通常|全無効)/熟練度(通常|無効)/Job補正(通常|無効)/戦闘時間(5分|1分|10分)。**profile 不変・debugRun・スキル自動付与なし・ゴッドモード無効**。
+- [x] F4〜F8 のデバッグ補正を使った周回は debugRun としてマーク（通常統計へ混ぜない）。
+- [x] ResultScene「Balance詳細」（スキル別 DPS/割合/残響/分身/上限/防御値＋周回 FPS/cap/seed・debugRun は「通常統計へ記録していません」明示）。BaseScene「カタログ」タブ（開発用）。LevelUpScene カードは `SkillAudit.skillSummaryLine` で統一。
+
+### 保存・テスト
+- [x] `profile.balanceTelemetry` を加算追加（enabled/summaryBySkill/recentRuns/debugRuns・型安全・上限あり）。**save_version v6 維持**。`draftsSinceProgress` は `active_run.draftState` に保存。テレメトリ保存失敗は profile 保存/進行を壊さない。
+- [x] 新規テスト: `skill-catalog`/`draft-balance-simulation`（CI軽量200seed・HEAVY=1で2500）/`evolution-feasibility`/`combat-telemetry`/`balance-playtest`。`validate-data` に synergy/balance-thresholds/castMode 検証追加。既存15＋新5＝**全20スイート通過**。
+
+### 今後の候補（未実装・次のマイルストーン候補）
+- [ ] **新ジョブ・ジョブ選択画面**（`jobs.json`/`job-progression.json` が拡張口・現在は flame_witch のみ）
+- [ ] **進化を持たない12種への進化系統追加**（blazing_step/bloodfire_pact/chain_flame/fire_spirit/flame_barrier/four_sided_inferno/meteor/molten_chains/orbiting_flame/phoenix_feather/ricochet_ember/scatter_flame・現状 evolutionBranches は空）
+- [ ] **限界突破**（火の魔女スキル Lv8超）・進化後スキルのレベルアップ
+- [ ] **図鑑・実績の本実装**（現状は拠点統計・カタログタブ＝開発用のみ）
+- [ ] **転生レガシー・他ジョブ継承**（複数ジョブ実装後・`futureInheritanceSettings`/`extraAllowedIds` が拡張口）
+- [ ] 新 active/passive/進化・新 legendary の追加
+- [ ] 新規敵/ボス/難易度、装備・ドロップ、クラウド保存/外部通信
 
 ---
 

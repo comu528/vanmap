@@ -89,6 +89,16 @@ export class ResultScene extends Phaser.Scene {
       y += 13;
     }
 
+    // M6-F: Balance Summary（詳細ボタン）。debugRun（Balance Playtest / F4〜F8 使用）は通常統計へ記録されない旨を明示。
+    const bs = r.balanceSummary;
+    if (bs && bs.run) {
+      if (bs.run.debugRun) {
+        this.add.text(cx, skillY - 12, '● 検証周回（debug補正）— 通常バランス統計へ記録していません', { fontSize: '8px', color: '#80cbc4' }).setOrigin(0.5, 0);
+      }
+      const btn = this.add.text(GAME_WIDTH - 8, skillY, 'Balance詳細 ▸', { fontSize: '9px', color: '#0d1017', backgroundColor: '#80cbc4', padding: { x: 5, y: 1 } }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+      btn.on('pointerdown', () => this.toggleBalanceOverlay(bs));
+    }
+
     // ボタン
     const retry = this.add.text(cx - 80, GAME_HEIGHT - 26, '再挑戦', {
       fontSize: '13px', color: '#fff', backgroundColor: '#5d2e1a', padding: { x: 10, y: 5 },
@@ -107,5 +117,44 @@ export class ResultScene extends Phaser.Scene {
 
     this.input.keyboard.on('keydown-ENTER', () => this.scene.start('BattleScene', { difficulty: r.difficultyId || 1, resume: null }));
     this.input.keyboard.on('keydown-ESC', () => this.scene.start('BaseScene'));
+  }
+
+  // M6-F: Balance Summary 詳細オーバーレイ（スキル別 DPS/割合/残響/分身/上限＋周回全体＋防御系）。
+  // 640×360 に収めるため上位スキルのみ表示し、全量は JSON エクスポート（データ管理画面）で確認する。
+  toggleBalanceOverlay(bs) {
+    if (this._bo) { this._bo.destroy(true); this._bo = null; return; }
+    const cx = GAME_WIDTH / 2;
+    const ui = this.add.container(0, 0).setDepth(5000);
+    ui.add(this.add.rectangle(cx, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x05070a, 0.96));
+    const run = bs.run || {};
+    ui.add(this.add.text(cx, 4, `Balance Summary${run.debugRun ? '（検証周回・通常統計外）' : ''}`, { fontSize: '11px', color: '#80cbc4' }).setOrigin(0.5, 0));
+    ui.add(this.add.text(cx, 18, `seed:${run.seed} 難:${run.difficulty} 品質:${run.quality} 速:${run.speed} | FPS平均${Math.round(run.avgFps || 0)} 最低${Math.round(run.minFps || 0)} p95:${Math.round(run.frameP95Ms || 0)}ms cap:${Object.values(run.caps || {}).reduce((a, b) => a + b, 0)}`, { fontSize: '8px', color: '#a5d6a7' }).setOrigin(0.5, 0));
+    ui.add(this.add.text(cx, 30, `総ダメージ${Math.round(run.totalDamage || 0)} 撃破${run.totalKills || 0}(精${run.eliteKills || 0}) 被弾${Math.round(run.damageTaken || 0)} 生存${Math.round(run.survivalSeconds || 0)}s 進化${run.evolutions || 0} 枠A${run.activeSlots || 0}/P${run.passiveSlots || 0} R${run.rerolls || 0}`, { fontSize: '8px', color: '#bcaaa4' }).setOrigin(0.5, 0));
+    // ヘッダ。
+    const cols = [[20, 'スキル'], [120, 'Lv'], [150, 'Dmg'], [210, 'DPS'], [255, '割%'], [290, '発'], [320, '命'], [350, '撃'], [378, '残'], [402, '分'], [426, '上限'], [456, '防御値']];
+    ui.add(this.add.text(20, 44, cols.map((c) => c[1]).join('  '), { fontSize: '7px', color: '#ffab40' }));
+    const skills = Object.entries(bs.skills || {}).map(([id, s]) => ({ id, ...s })).sort((a, b) => (b.damage || 0) - (a.damage || 0)).slice(0, 20);
+    let y = 54;
+    for (const s of skills) {
+      const row = ui.add(this.add.container(0, 0));
+      const put = (x, t, col) => row.add(this.add.text(x, y, String(t), { fontSize: '7px', color: col || '#ffe0b2' }));
+      put(20, (s.evolved ? '★' : '') + s.id.slice(0, 16), s.evolved ? '#ffd54f' : '#ffe0b2');
+      put(120, s.finalLevel || 0, '#80deea');
+      put(150, Math.round(s.damage || 0), '#ff8a65');
+      put(210, Math.round(s.estimatedDps || 0), '#ffab40');
+      put(255, ((s.damageShare || 0) * 100).toFixed(1), '#bcaaa4');
+      put(290, s.casts || 0); put(320, s.hits || 0); put(350, s.kills || 0);
+      put(378, s.echoCasts || 0, '#ce93d8'); put(402, s.cloneCasts || 0, '#ce93d8');
+      put(426, s.capReachedCount || 0, '#ff5252');
+      // 防御スキルはダメージ0だけを出さず defensiveValue（防いだ/回復/吸収/致死回避）を表示。
+      put(456, Math.round(s.defensiveValue || 0), '#80cbc4');
+      ui.add(row); y += 11;
+      if (y > GAME_HEIGHT - 30) break;
+    }
+    ui.add(this.add.text(cx, GAME_HEIGHT - 20, '全量は データ管理画面 → テレメトリ JSON エクスポート で確認できます', { fontSize: '7px', color: '#8d6e63' }).setOrigin(0.5, 0));
+    const close = this.add.text(cx, GAME_HEIGHT - 8, '閉じる', { fontSize: '9px', color: '#bcaaa4' }).setOrigin(0.5, 1).setInteractive({ useHandCursor: true });
+    close.on('pointerdown', () => this.toggleBalanceOverlay(bs));
+    ui.add(close);
+    this._bo = ui;
   }
 }

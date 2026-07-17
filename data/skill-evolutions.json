@@ -811,7 +811,9 @@
       "area": {
         "spread": 112,
         "corePull": 60,
-        "coreRadius": 34
+        "coreRadius": 34,
+        "outerWidth": 10,
+        "beamWidth": 12
       },
       "cooldown": 4200,
       "timing": {
@@ -928,14 +930,17 @@
       "config": {
         "heatPerCast": 8,
         "overheatResetHeat": 30,
-        "lowHpBonusMax": 0.25
+        "lowHpBonusMax": 0.25,
+        "doomFireMs": 130,
+        "doomBlastMs": 420
       },
       "overheat": {
         "maxHeat": 150,
         "doomMs": 2200,
         "forcedOverheatMs": 2400,
         "minCooldownMs": 120,
-        "cooldownRate": 18
+        "cooldownRate": 18,
+        "heatAccelPct": 0.5
       },
       "projectileCount": {
         "baseProjectiles": 3,

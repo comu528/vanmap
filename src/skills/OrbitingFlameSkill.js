@@ -7,7 +7,7 @@ import { TEX } from '../config/game-config.js';
 
 const HIT_INTERVAL = 400; // 同じ敵への連続ヒット間隔
 
-const CAST_PULSE_MS = 500; // M6-E: 主発動イベント(recordCast)の最小間隔。接触tick毎ではなく攻撃サイクル単位で記録する。
+const CAST_PULSE_SAFE = 500; // 安全用 fallback（正は data/skills.json orbiting_flame.config.castPulseMs）。主発動(recordCast)の最小間隔。
 
 export class OrbitingFlameSkill extends SkillBase {
   constructor(scene, id, level) {
@@ -64,7 +64,7 @@ export class OrbitingFlameSkill extends SkillBase {
       this.scene.combat.forEachEnemyInRadius(ox, oy, 10, (e) => {
         if (this._hitCooldown.has(e)) return;
         this._hitCooldown.set(e, HIT_INTERVAL);
-        if (this._castPulse <= 0) { this.scene.skills.recordCast(this.id); this._castPulse = CAST_PULSE_MS; }
+        if (this._castPulse <= 0) { this.scene.skills.recordCast(this.id); this._castPulse = (this.def?.config?.castPulseMs ?? CAST_PULSE_SAFE); }
         this.scene.combat.dealDamage(e, s.damage, this.id, { color: 0xff9800 });
       });
     }

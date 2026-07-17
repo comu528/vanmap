@@ -22,9 +22,16 @@ export class SkillDraftManager {
       // レアリティ別の実効抽選重み倍率（M6-C: 火の魔女 Lv70 で rare×1.15 / legendary×1.25）。
       // 周回開始時に凍結し周回中は不変＝同 seed・同状態で同一候補（決定論を壊さない）。
       rarityWeightMult: config.rarityWeightMult || null,
+      // シナジー補助設定（M6-F: skill-config.json の synergy）。null で完全無効（＝旧挙動と一致）。
+      synergy: config.synergy || null,
     };
     this.reset(1, {});
   }
+
+  // シナジー補助設定を差し替える（周回開始時・data で無効化可能）。
+  setSynergyConfig(cfg) { this.config.synergy = cfg || null; }
+  // 進化成立など「進展」があったら pity カウンタをリセットする（BattleScene が進化時に呼ぶ）。
+  markProgress() { this.draftsSinceProgress = 0; }
 
   // レアリティ別の実効重み倍率を設定する（ジョブ補正など・周回開始時に一度だけ）。
   setRarityWeightMult(map) { this.config.rarityWeightMult = map || null; }
@@ -39,6 +46,7 @@ export class SkillDraftManager {
     this.banishedSkillIds = [];
     this.currentDraftId = null;
     this.currentCandidates = [];
+    this.draftsSinceProgress = 0; // M6-F: 進化などの進展が無いまま重ねたドラフト数（pity 補助・決定論的に保存）
   }
 
   serialize() {
@@ -47,6 +55,7 @@ export class SkillDraftManager {
       currentDraftId: this.currentDraftId, currentCandidates: this.currentCandidates,
       rerollsRemaining: this.rerollsRemaining, banishesRemaining: this.banishesRemaining,
       skipsRemaining: this.skipsRemaining, banishedSkillIds: this.banishedSkillIds.slice(),
+      draftsSinceProgress: this.draftsSinceProgress,
     };
   }
 
@@ -61,6 +70,7 @@ export class SkillDraftManager {
     this.banishesRemaining = typeof s.banishesRemaining === 'number' ? s.banishesRemaining : this.config.baseBanishes;
     this.skipsRemaining = typeof s.skipsRemaining === 'number' ? s.skipsRemaining : this.config.baseSkips;
     this.banishedSkillIds = Array.isArray(s.banishedSkillIds) ? s.banishedSkillIds.slice() : [];
+    this.draftsSinceProgress = typeof s.draftsSinceProgress === 'number' ? s.draftsSinceProgress : 0;
   }
 
   _banishedSet() { return new Set(this.banishedSkillIds); }
@@ -70,6 +80,7 @@ export class SkillDraftManager {
   open(ctx) {
     this.levelUpSequence += 1;
     this.cursor += 1;
+    this.draftsSinceProgress += 1; // M6-F: 進展なしで重ねたドラフト数（pity 補助）。進化時は markProgress() でリセット。
     this.currentCandidates = this._generate(ctx, SeededRandom.derive(this.seed, this.levelUpSequence, this.cursor));
     this.currentDraftId = `${this.levelUpSequence}:${this.cursor}`;
     return this.currentCandidates;
@@ -183,23 +194,56 @@ export class SkillDraftManager {
       const lvl = owned[m.id] || 0;
       const maxLevel = m.maxLevel || 1;
       if (lvl > 0) {
-        if (lvl < maxLevel) out.push(this._desc(isActive ? 'up_active' : 'up_passive', m, lvl, lvl + 1));
+        if (lvl < maxLevel) out.push(this._desc(isActive ? 'up_active' : 'up_passive', m, lvl, lvl + 1, ctx));
         // 最大Lv到達は候補から除外（進化は別経路）
       } else {
         const slot = isActive ? slotA : slotP;
-        if ((slot.used || 0) < (slot.max || 0)) out.push(this._desc(isActive ? 'new_active' : 'new_passive', m, 0, 1));
+        if ((slot.used || 0) < (slot.max || 0)) out.push(this._desc(isActive ? 'new_active' : 'new_passive', m, 0, 1, ctx));
       }
     }
     return out;
   }
 
-  _desc(kind, m, from, to) {
+  _desc(kind, m, from, to, ctx) {
+    const rarityW = (this.config.rarityWeights[m.rarity] || 1) * ((this.config.rarityWeightMult && this.config.rarityWeightMult[m.rarity]) || 1) * (m.weight || 1);
+    const syn = this._synergyMult(kind, m, from, to, ctx);
     return {
       kind, id: m.id, category: m.category, rarity: m.rarity || 'common',
       fromLevel: from, toLevel: to, maxLevel: m.maxLevel || 1,
-      weight: (this.config.rarityWeights[m.rarity] || 1) * ((this.config.rarityWeightMult && this.config.rarityWeightMult[m.rarity]) || 1) * (m.weight || 1),
+      weight: rarityW * syn, baseWeight: rarityW, synergyMult: syn,
       conflicts: m.conflicts || [],
     };
+  }
+
+  // シナジー補助の重み倍率（M6-F）。レアリティ重みへ乗算する（無視しない）。決定論を壊さない（ctx と draft 状態のみに依存）。
+  // ctx.synergy = { partnerIds:(Set|Array), battleLevel }。partnerIds は所持基礎の進化補助スキル（SkillCatalog.evolutionPartnerIds）。
+  _synergyMult(kind, m, from, to, ctx) {
+    const cfg = this.config.synergy;
+    if (!cfg || cfg.synergyAssistEnabled === false) return 1;
+    const syn = (ctx && ctx.synergy) || {};
+    const battleLevel = syn.battleLevel || 0;
+    if (battleLevel < (cfg.synergyAssistMinBattleLevel || 0)) return 1;
+    const partners = syn.partnerIds instanceof Set ? syn.partnerIds : new Set(syn.partnerIds || []);
+    const isPartner = partners.has(m.id);
+    let mult = 1;
+    if (isPartner) mult *= (cfg.evolutionPartnerWeightMultiplier || 1);
+    if (kind === 'up_active' || kind === 'up_passive') {
+      mult *= (cfg.ownedSkillUpgradeWeightMultiplier || 1);
+      if (from === (m.maxLevel || 1) - 1) mult *= (cfg.nearlyMaxedSkillWeightMultiplier || 1); // Lv7→8 等
+    } else if (!isPartner) {
+      mult *= (cfg.unrelatedNewSkillWeightMultiplier || 1); // 既定 ×1.0（無関係な未取得は素通り）
+    }
+    // pity: 進展が無いまま閾値を超えたら、進化相手候補へ段階的な追加ボーナス（上限あり）。
+    if (isPartner) {
+      const th = cfg.noProgressDraftThreshold || Infinity;
+      if (this.draftsSinceProgress > th) {
+        const steps = this.draftsSinceProgress - th;
+        const bonus = Math.min((cfg.noProgressMaxMultiplier || 1.5), 1 + (cfg.noProgressWeightBonus || 0) * steps);
+        mult *= bonus;
+      }
+    }
+    const cap = cfg.synergyAssistMaxMultiplier || Infinity;
+    return Math.min(mult, cap);
   }
 
   _unlockOk(m, ctx) {
