@@ -235,11 +235,27 @@ Milestone 1 は実装済み。以下は **Milestone 2 以降の設計と作業�
 - [x] profile v6（selectedJobId/unlockedJobs/jobProgress/passiveMastery/futureInheritanceSettings）＋ active_run 拡張。v1〜v5 移行。
 - [x] `tests/skill-draft.mjs` と `validate-data.mjs`（skill/job/passive/rarity/枠/循環前提/自己conflict）。CI 追加。
 
-### M6-B 以降の候補（未実装）
-- [ ] 火の魔女へ約30種の魔法・進化分岐の大量追加
-- [ ] 複数ジョブ・ジョブ選択画面・ジョブ育成特典
-- [ ] 転生後に別ジョブ要素を継承する継承枠の実装
-- [ ] passive 熟練度の具体的報酬・条件付き共通スキル・legendary 実スキル
+---
+
+## Milestone 6-B — 火の魔女ビルド拡張【実装済み】
+
+### 新 active 10種（火の魔女専用・最大Lv8・skills.json）
+- [x] 炎槍/拡散火弾/追尾鬼火/連鎖炎/溶岩爆弾/火炎渦/火の精霊/不死鳥の羽/炎の障壁/起爆刻印。
+      各 SkillBase 派生クラス（データ駆動・戦闘数値は JSON）。REGISTRY 登録・jobs.json プール15種化・仮アイコン。
+### 新進化5種（skill-evolutions.json・枠非消費・補助はパッシブ可）
+- [x] 千条炎槍/百鬼燎乱/太陽核崩壊/煉獄大火輪/終焉連鎖。`EvolutionManager.canEvolve` をパッシブ補助対応に拡張。
+### 基盤対応（M6-A の抽選/枠/レアリティ/決定論を個別実装せず利用）
+- [x] Projectile 拡張（追尾/世代/連鎖/分裂/タグ・再利用時に全状態初期化）。dealDamage にダメージタグ・起爆刻印。
+- [x] `Player.takeDamage` の軽減パイプライン（無敵→障壁→HP→致死時不死鳥）。runtimeState を active_run に保存（save_version は据え置き v6）。
+- [x] `balance.skillCaps`（品質別）＋毎フレーム予算で分裂/連鎖/感染/起爆の上限。空間グリッド/プール対応。
+- [x] active/passive 区別統計＋スキル固有統計(extra)。F4 デバッグパネル。
+- [x] `tests/new-fire-skills.mjs`／`tests/new-evolutions.mjs`＋validate-data（skillCaps・進化のパッシブ補助）＋CI。
+
+### 今後の候補（未実装）
+- [ ] 拡散火弾/連鎖炎/火の精霊/不死鳥/炎の障壁 への進化追加（evolutionBranches は将来用に空）
+- [ ] ジョブレベル・ジョブ経験値・ジョブ育成特典（`profile.jobProgress` が拡張口）
+- [ ] 複数ジョブ・ジョブ選択画面・他ジョブ継承（`futureInheritanceSettings`/`extraAllowedIds` が拡張口）
+- [ ] passive 熟練度の具体的報酬・条件付き共通スキル・legendary の追加
 
 ---
 

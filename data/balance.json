@@ -32,6 +32,21 @@
     "maxRegistered": 4000,
     "enabledByDefault": true
   },
+  "skillCaps": {
+    "maxFlameLances":         { "low": 24, "medium": 48, "high": 80,  "ultra": 120 },
+    "maxHomingWisps":         { "low": 16, "medium": 30, "high": 50,  "ultra": 80 },
+    "maxSplitWisps":          { "low": 8,  "medium": 16, "high": 28,  "ultra": 40 },
+    "maxSummons":             { "low": 4,  "medium": 6,  "high": 8,   "ultra": 10 },
+    "maxSummonProjectiles":   { "low": 20, "medium": 40, "high": 70,  "ultra": 100 },
+    "maxActiveVortices":      { "low": 2,  "medium": 3,  "high": 4,   "ultra": 6 },
+    "maxMarks":               { "low": 10, "medium": 18, "high": 30,  "ultra": 40 },
+    "maxChainTargets":        { "low": 4,  "medium": 6,  "high": 8,   "ultra": 10 },
+    "maxChainDepth":          { "low": 4,  "medium": 6,  "high": 8,   "ultra": 10 },
+    "maxSimultaneousExplosions": { "low": 3, "medium": 5, "high": 8,  "ultra": 10 },
+    "maxEvolutionProjectiles":{ "low": 40, "medium": 80, "high": 140, "ultra": 220 },
+    "maxPhoenixEffects":      { "low": 1,  "medium": 1,  "high": 2,   "ultra": 2 },
+    "maxBarrierEffects":      { "low": 1,  "medium": 2,  "high": 2,   "ultra": 3 }
+  },
   "speedModes": [1, 1.5, 2],
   "player": {
     "maxHp": 100,

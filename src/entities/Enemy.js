@@ -28,6 +28,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this._slowFactor = 0;
     this._igniteUntil = 0;   // 永劫火界の炎上状態
     this._igniteGen = 0;
+    this._mark = null;       // 起爆刻印（M6-B）: { hitsNeeded, hits, until, ... }
     // dasher 用
     this._chargeState = 'idle'; // idle | telegraph | dash
     this._chargeTimer = 0;
@@ -55,6 +56,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this._slowFactor = 0;
     this._igniteUntil = 0;
     this._igniteGen = 0;
+    this._mark = null;
     this._chargeState = 'idle';
     this._chargeCd = 1200;
     this._chargeTimer = 0;

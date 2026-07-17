@@ -92,3 +92,44 @@
 - **パッシブ効果**: `PassiveManager` が modifier を共通集計し、active スキルが最終値を取得（各スキルへハードコードしない）。
   適用順=基礎値→熟練度→パッシブ(area/duration は stats、damage は dealDamage、cooldown は update)→恒久/魂炎。
   4種: 魔力増幅(ダメージ)/高速詠唱(クールダウン・下限あり)/焦熱拡張(範囲)/残火持続(持続)。パッシブ未取得なら M5-B 以前と同じ性能。
+
+## 火の魔女ビルド拡張（Milestone 6-B 実装済み）
+M6-A の抽選基盤の上に、火の魔女専用のアクティブ10種と進化5種を追加（プールは 5→15種）。抽選/枠/レアリティ/決定論/
+パッシブ適用は M6-A の共通経路をそのまま再利用し、スキルごとに再実装しない。データは `data/skills.json`・
+`data/jobs.json`・`data/skill-evolutions.json`・`data/balance.json(skillCaps)` に集約する。
+
+### 新アクティブ10種（すべて火の魔女専用・最大Lv8・毎レベル成長）
+| スキル | レアリティ | 役割 |
+|--------|-----------|------|
+| 炎槍 flame_lance | common | 直線貫通の火の槍。発射数/貫通/速度が伸びる |
+| 拡散火弾 scatter_flame | common | 扇状に複数弾。弾数/拡散角が伸びる |
+| 追尾鬼火 homing_wisp | uncommon | 敵を追尾し撃破後に再ターゲット。追尾速度/再標的数が伸びる |
+| 連鎖炎 chain_flame | rare | 命中から近隣へ連鎖（減衰）。連鎖数/範囲が伸びる |
+| 溶岩爆弾 lava_bomb | uncommon | 予告後に着弾爆発＋燃焼(DoT)。爆発範囲/燃焼が伸びる |
+| 火炎渦 flame_vortex | rare | 設置型の渦。持続ダメージ＋引き寄せ（ボスは弱く引く）。持続/範囲が伸びる |
+| 火の精霊 fire_spirit | uncommon | 追従する精霊が自動で撃つ。精霊数/弾性能が伸びる（精霊は被弾せず重ならない） |
+| 不死鳥の羽 phoenix_feather | legendary | 致死を1回だけ肩代わり（回復＋爆発＋一時無敵、長いCD） |
+| 炎の障壁 flame_barrier | uncommon | 一定回数被弾を軽減し、被弾ごとに反撃（1被弾1反撃） |
+| 起爆刻印 detonation_mark | rare | 敵に刻印。規定回数の火攻撃で起爆（範囲）。刻印自身の起爆では再刻印しない |
+
+### 新進化5種（枠を消費せず基礎 active を置換・補助条件スキルは消費しない）
+| 進化 | 条件 |
+|------|------|
+| 千条炎槍 thousand_flame_lances | 炎槍Lv8 ＋ 高速詠唱Lv4（パッシブ補助） |
+| 百鬼燎乱 hundred_wisp_parade | 追尾鬼火Lv8 ＋ 火の精霊Lv4 |
+| 太陽核崩壊 solar_core_collapse | 溶岩爆弾Lv8 ＋ 焦熱拡張Lv4（パッシブ補助） |
+| 煉獄大火輪 infernal_vortex_wheel | 火炎渦Lv8 ＋ 燃える軌跡Lv4 |
+| 終焉連鎖 apocalypse_chain | 起爆刻印Lv8 ＋ 魔力増幅Lv4（パッシブ補助） |
+
+進化条件の補助スキルは active／passive のどちらも指定でき、判定は `EvolutionManager.canEvolve` に `levelOf`
+（active→passive の順に所持Lvを解決）を渡して行う。進化しない新スキルの `evolutionBranches` は空（未実装進化を参照しない）。
+
+### 防御処理の順序
+被弾は **無敵判定 → 障壁（軽減＋反撃・被弾1回につき反撃1回）→ HP減算 → 致死なら不死鳥（1致死につき1回・回復＋一時無敵）** の順で処理する。
+不死鳥はリザルト確定後には発動しない。CD は一時停止中に進まず、再読込で CD を巻き戻せない（`active_run.skillRuntime` に保存）。
+
+### ダメージタグと安全上限
+`dealDamage` はダメージにタグ（発生源スキルID/属性/爆発/起爆/連鎖世代 等）を付与し、後方互換を保つ。刻印は「火攻撃で殴られた」ことを検出でき、
+起爆自身のダメージは刻印を再進行させない。連鎖/分裂/感染/起爆は visited 集合＋世代/拡散上限＋毎フレーム予算で無限再帰を防ぐ。
+性能上限は `balance.json` の `skillCaps`（品質low/medium/high/ultra 別）に集約する。低品質でも命中判定・刻印・不死鳥・障壁・ボス予告・
+プレイヤー/敵/敵弾は必ず視認できる（演出だけを削る）。

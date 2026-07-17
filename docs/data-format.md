@@ -265,3 +265,70 @@ evolutionBranches が既存進化を参照。前提条件の循環・自己 conf
 ### reincarnation.json: active_skill_slots（魂炎強化）
 `effectType:"activeSlots"`, `maxLevel:2`, `effectPerLevel:2`。アクティブ枠を **base4 → Lv1で6 → Lv2で8**。
 `REINC_EFFECT_TYPES` に `activeSlots` を追加。検証で 4→6→8 を確認。
+
+## Milestone 6-B: 火の魔女スキル拡張（新 active 10 / 新進化 5 / skillCaps）
+
+### skills.json（新 active 10種を追記）
+既存の active メタ（`category/iconKey/tags/rarity/weight/jobs/isCommon/prerequisites/conflicts/unlockCondition/
+evolutionBranches/displayOrder/modifiers/enabled`）に加え、各スキルは `maxLevel:8`・`initial:false`・
+`jobs:["flame_witch"]`・`isCommon:false` を持ち、8要素の `levels`（`level` は 1..8 の連番・毎レベルで変化）を持つ。
+`levels` のフィールドはスキルの役割ごとに異なる（値は JSON にのみ持ち、コードへ重複させない）。
+```jsonc
+// 例: 起爆刻印 detonation_mark（rare）
+{ "id": "detonation_mark", "category": "active", "rarity": "rare", "jobs": ["flame_witch"], "isCommon": false,
+  "maxLevel": 8, "evolutionBranches": ["apocalypse_chain"], "displayOrder": 15, "iconKey": "icon_detonation_mark",
+  "levels": [ { "level": 1, "cooldown": 3000, "markCount": 2, "hitsNeeded": 3, "detonateDamage": 24,
+                "detonateRadius": 40, "markDuration": 4000, "deathDamage": 12, "visual": "small" }, ... ] }
+```
+- 役割別の主な `levels` フィールド: flame_lance(damage/cooldown/count/pierce/speed/spread) / scatter_flame(count/spread/…) /
+  homing_wisp(homingSpeed/duration/retargets/wanderMs/…) / chain_flame(chainCount/chainRange/falloff/…) /
+  lava_bomb(radius/telegraph/burnDuration/burnDamage/…) / flame_vortex(radius/duration/pull/tickRate/maxActive/endBurst) /
+  fire_spirit(count/shotDamage/shotInterval/shotSpeed/range/pierce) / phoenix_feather(cooldown/healPercent/explosionDamage/
+  explosionRadius/invulnMs) / flame_barrier(cooldown/duration/hits/reduction/retaliateDamage/retaliateRadius) /
+  detonation_mark(markCount/hitsNeeded/detonateDamage/detonateRadius/markDuration/deathDamage)。
+- rarity: flame_lance/scatter_flame=common、homing_wisp/lava_bomb/fire_spirit/flame_barrier=uncommon、
+  chain_flame/flame_vortex/detonation_mark=rare、phoenix_feather=legendary（抽選重みは `skill-config.rarityWeights` を再利用）。
+- `evolutionBranches` は進化を持つ5種のみ非空（flame_lance/homing_wisp/lava_bomb/flame_vortex/detonation_mark）、他3種は空。
+- `jobs.json` の `flame_witch.activeSkillPool` へ10種を追加し **15種**にする。
+- 検証（`tests/new-fire-skills.mjs`）: 10種の存在/一意/active/maxLevel8/Lv連番/rarity一致/専用(isCommon:false)/プール所属/
+  負ダメージ・CD無し/毎レベル成長/`evolutionBranches` が実在進化のみ、および抽選出現（決定論・満枠/最大Lv除外・追放非再出現・
+  legendary も出現しうる）。
+
+### skill-evolutions.json（新進化5種を追記）
+既存の進化メタ（`id/displayName/description/baseSkillId/requiredSkills/requiredMasteryLevel/replacementSkillId/
+visualTier/icon/damage/cooldown/area/…/safetyCaps/displayOrder`）に準拠。**補助条件 `requiredSkills[].skill` は
+active に加え passive（`passives.json` の id）も指定できる**（例: `swift_cast`/`scorch_expand`/`power_amp`）。
+```jsonc
+{ "id": "apocalypse_chain", "baseSkillId": "detonation_mark", "replacementSkillId": "apocalypse_chain",
+  "requiredSkills": [ { "skill": "power_amp", "level": 4 } ],   // power_amp はパッシブ
+  "requiredMasteryLevel": 0,
+  "safetyCaps": { "maxChainDepth": 6, "maxSpreadPerChain": 4, "maxMarks": 40 }, "displayOrder": 8 }
+```
+- 5種: thousand_flame_lances(炎槍+高速詠唱) / hundred_wisp_parade(追尾鬼火+火の精霊) / solar_core_collapse(溶岩爆弾+焦熱拡張) /
+  infernal_vortex_wheel(火炎渦+燃える軌跡) / apocalypse_chain(起爆刻印+魔力増幅)。`replacementSkillId` は自身＝基礎スキルと衝突しない。
+- 検証（`validate-data.mjs`・`tests/new-evolutions.mjs`）: 補助 `requiredSkills[].skill` は active∪passive に実在
+  （`auxSkillIds = skillIds ∪ passiveIds`）、必要Lv1..8、`safetyCaps` 非負、`EvolutionManager.canEvolve` に `levelOf`
+  （active→passive 解決）を渡して 基礎Lv8＋補助Lv4 で可能・補助未達/基礎未達で不可、既存3進化の非回帰。
+
+### balance.skillCaps（性能上限・品質別）
+```jsonc
+"skillCaps": {
+  "maxFlameLances":      { "low": 24, "medium": 48, "high": 80, "ultra": 120 },
+  "maxHomingWisps":      { "low": 16, "medium": 30, "high": 50, "ultra": 80 },
+  "maxSplitWisps":       { "low": 8,  "medium": 16, "high": 28, "ultra": 40 },
+  "maxSummons":          { "low": 4,  "medium": 6,  "high": 8,  "ultra": 10 },
+  "maxSummonProjectiles":{ "low": 20, "medium": 40, "high": 70, "ultra": 100 },
+  "maxActiveVortices":   { "low": 2,  "medium": 3,  "high": 4,  "ultra": 6  },
+  "maxMarks":            { "low": 10, "medium": 18, "high": 30, "ultra": 40 },
+  "maxChainTargets":     { "low": 4,  "medium": 6,  "high": 8,  "ultra": 10 },
+  "maxChainDepth":       { "low": 4,  "medium": 6,  "high": 8,  "ultra": 10 },
+  "maxSimultaneousExplosions": { "low": 3, "medium": 5, "high": 8, "ultra": 10 },
+  "maxEvolutionProjectiles":   { "low": 40, "medium": 80, "high": 140, "ultra": 220 },
+  "maxPhoenixEffects":   { "low": 1,  "medium": 1,  "high": 2,  "ultra": 2  },
+  "maxBarrierEffects":   { "low": 1,  "medium": 2,  "high": 2,  "ultra": 3  }
+}
+```
+- スキル挙動（追尾/召喚/渦/刻印/連鎖/爆発）の同時数を品質別に制限する毎フレーム予算。`DataManager.skillCap(name, quality, fallback)` で取得。
+- 上限に達しても**戦闘ロジックは停止しない**（新規生成を抑えるだけ・命中判定は既存分に対して厳密に行う）。
+- 検証: 全キーが `low <= medium <= high <= ultra`（品質順で逆転しない）・非負整数。低品質でも命中/刻印/不死鳥/障壁/ボス予告/
+  プレイヤー/敵/敵弾は視認できる（`skillCaps` は演出でなく生成数の上限であり、視認性は別途保証）。

@@ -179,6 +179,11 @@ class ProgressionManagerClass {
         m.damage += s.damage || 0;
         m.maxLevel = Math.max(m.maxLevel || 0, s.level || 0);
         if (!runsCounted.has(masteryId)) { m.runsUsed = (m.runsUsed || 0) + 1; runsCounted.add(masteryId); }
+        // スキル固有統計（M6-B: 最高同時存在数・最大連鎖・防御スキル統計 等）を最大値で蓄積。
+        if (s.extra && typeof s.extra === 'object') {
+          m.extra = m.extra || {};
+          for (const [k, v] of Object.entries(s.extra)) if (typeof v === 'number') m.extra[k] = Math.max(m.extra[k] || 0, v);
+        }
         if (evo) {
           const es = profile.evolutionStatistics[s.id] || (profile.evolutionStatistics[s.id] = { casts: 0, hits: 0, kills: 0, damage: 0, times: 0 });
           es.casts += s.casts || 0; es.hits += s.hits || 0; es.kills += s.kills || 0; es.damage += s.damage || 0;

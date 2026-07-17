@@ -165,3 +165,24 @@ queryAABB / findNearest / size / usedCells`。セルサイズは `balance.spatia
 - **パッシブ適用**: `SkillBase.stats` が area/duration を、`dealDamage` が damage を、`SkillBase/EvolvedSkillBase.update` が cooldown を乗算。
   パッシブ未取得（倍率1）では M5-B 以前と完全に同一（キャッシュは熟練度＋パッシブ version で無効化）。
 - **進化**: 従来の EvolutionManager（条件判定）+ EvolutionScene（演出）は不変。抽選は canEvolve を満たす基礎スキルを高優先度の進化候補として提示。
+
+## 火の魔女スキル拡張（M6-B）
+既存の抽選/枠/パッシブ/進化基盤（M6-A）と空間グリッド/プール（M5-A）を再利用し、火の魔女専用 active 10種・進化5種を追加する。
+新しい戦闘挙動（追尾/連鎖/刻印/召喚/防御）は既存経路に**分岐を足すだけ**で、既存5 active・3進化のコードと性能は変更しない。
+
+| 追加/変更 | 役割 |
+|-----------|------|
+| `src/skills/*Skill.js`（15新規） | 各スキルの発動・命中判定は `combat.*`、演出は `effects.*`。データ駆動（`levels`/`skillCaps`）・cleanup 実装 |
+| `Projectile`（拡張） | homing/generation/chain/split/tag/element/behavior フィールドを追加。`_clearState()` で全消去し安全に再利用。`update` で追尾操舵＋撃破後の再ターゲット |
+| `Enemy._mark` | 起爆刻印の状態（プール再利用時にクリア）。`BattleScene` が刻印付与/起爆/連鎖拡散を管理（visited＋世代/拡散上限＋`_explosionBudget`） |
+| `Player.takeDamage`（改修） | 防御パイプライン（無敵→障壁→HP→致死時 不死鳥）。scene フック `onBarrierBlock`/`onPhoenixRevive` と状態オブジェクト `player._barrier`/`player._phoenix` をスキルと共有 |
+| `BattleScene`（拡張） | `dealDamage` タグ付与＋刻印進行、combat API 追加（`nearestEnemyExcept`/`enemiesInRadius`/`skillCap`/`markEnemy`/`markedCount`）、`chainDetonate`/`_spreadMark`/`_splitLance`/`_chainHit`、`computeEvolvables` が active→passive の `levelOf` を渡す、`restoreFromRun` が `skillRuntime` を復元、F4 デバッグ |
+| `DataManager.skillCap(name,quality,fallback)` | `balance.skillCaps`（品質別）を参照する共通アクセサ。上限をコードへ散在させない |
+| `EvolutionManager.canEvolve(...,levelOf)` | 補助条件に passive を含められるよう任意の `levelOf` を受け取る（未指定は従来どおり active のみ） |
+| `SkillManager` | 15新クラスを REGISTRY へ登録。`dispatchKill`/`serializeRuntime`/`restoreRuntime`/`recordExtra` を追加（新スキル統計・不死鳥/障壁CD の保存復元） |
+
+- **防御処理順**: 無敵 → 障壁（軽減＋反撃 1被弾1回）→ HP → 致死時 不死鳥（1致死1回・回復＋一時無敵）。一時停止中は CD が進まず、再読込で CD を巻き戻せない。
+- **無限再帰の防止**: 連鎖/分裂/感染/起爆は visited 集合＋明示的な世代・拡散上限＋毎フレーム `_explosionBudget` で必ず停止する。刻印起爆のダメージは `isMarkDetonation` タグで刻印を再進行させない。
+- **性能上限**: `balance.skillCaps`（`maxHomingWisps`/`maxFlameLances`/`maxSummons`/`maxActiveVortices`/`maxMarks`/`maxChainTargets`/`maxChainDepth`/… を品質別に）を毎フレーム予算化。到達しても戦闘ロジックは停止しない。低品質でも命中/刻印/不死鳥/障壁/ボス予告/プレイヤー/敵/敵弾は視認できる。
+- **保存**: 新スキル/レベル/進化/枠/候補/追放/不死鳥CD/障壁CD/ランタイム/統計は `active_run.skillRuntime`（`SkillManager.serializeRuntime`）で保持。追加フィールドのため **save_version は 6 のまま**（構造変更が無いので不要な版上げをしない）。
+- **拡張口（次のジョブレベル成長）**: ジョブごとの活性/受動プール・初期スキル・枠は `jobs.json` で拡張でき、`skillCaps` は品質別に増減できる。将来のジョブ育成特典は `profile.jobProgress`（M6-A 拡張口）に載せる想定。

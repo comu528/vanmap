@@ -27,6 +27,8 @@ export class BattleManager {
       passiveSkillSlots: s.passiveSlotsMax,
       passiveSkills: s.passives ? s.passives.serialize() : {},
       draftState: s.draft ? s.draft.serialize() : null,
+      // M6-B: スキル固有 runtimeState（不死鳥CD・障壁再使用 等）。再読込での不正回復を防ぐ。
+      skillRuntime: s.skills ? s.skills.serializeRuntime() : {},
       updated_at: new Date().toISOString(),
     };
   }

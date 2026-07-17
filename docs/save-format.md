@@ -256,3 +256,29 @@ bonus / cycleNumber / updated_at` を保存。自動保存は 20秒毎・レベ�
 ```
 JSON エクスポート/インポート・バックアップ・競合比較は payload 全体を扱うため、新フィールドも自動的に保持される
 （インポートは `migrateProfile` を通すため未知キーは採用されず、passiveMastery/jobs は既定へマッピングされる）。
+
+## Milestone 6-B: 火の魔女スキル拡張（save_version は 6 のまま）
+新 active 10種・進化5種の追加は **active_run へ加算的なフィールドを足すだけ**で、profile/active_run の既存構造を変えない。
+そのため **`saveVersion` は 6 のまま**（不要な版上げをしない）。v1〜v6 からの移行は M6-A と同じ経路で、既存データを保持する。
+
+### active_run.skillRuntime（新規・任意フィールド）
+新スキルの実行時状態（不死鳥/障壁のクールダウン・所持刻印・召喚など再開に必要な最小限）を保存する。
+無い（旧セーブ・新スキル未所持）場合は空として安全に再開する。
+```jsonc
+{
+  "skillRuntime": {
+    "phoenix_feather": { "ready": true, "cdLeft": 0 },       // 不死鳥: 準備状態と残りCD（再読込でCDを巻き戻さない）
+    "flame_barrier":   { "cdLeft": 0, "hitsLeft": 0 },        // 障壁: 残りCDと残り被弾回数
+    "fire_spirit":     { "spawned": 2 }                       // 召喚数など（スキル側 serializeState/restoreState）
+    // 追尾/渦/刻印など瞬間的な弾・敵状態は保存せず、時間経過から自然に再構築する
+  }
+}
+```
+- 保存対象: 新スキルの所持/レベル/進化（既存の `skills`/`evolvedBase`）・枠（`activeSkillSlots`）・候補/追放（既存の `draftState`）・
+  **不死鳥CD / 障壁CD・被弾残 / スキル固有ランタイム**（`skillRuntime`）。統計は profile 側 `skillMastery`（新スキル分も同形式）で保持。
+- `SkillManager.serializeRuntime()`／`restoreRuntime()` が各スキルの `serializeState/restoreState` を集約する。
+  `BattleManager` のスナップショットが `active_run.skillRuntime` に載せ、`BattleScene.restoreFromRun()` が復元する。
+- 一時停止中は CD が進まず、再読込で CD を巻き戻せない（不死鳥を再読込で再充填する不正を防ぐ）。
+- 敵に付いた起爆刻印（`Enemy._mark`）は敵個体を保存しないため復元しない（再開後の攻撃で付け直す）。
+- profile 側は M6-A の `skillMastery`（active）を新スキルにもそのまま使う（casts/hits/kills/damage/maxLevel/runsUsed/evolutions ＋
+  防御系の追加統計は `recordExtra` で同オブジェクトに格納）。新しい報酬体系や新通貨は追加しない。

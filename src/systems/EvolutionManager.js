@@ -42,7 +42,8 @@ class EvolutionManagerClass {
 
   // skills(SkillManager) と profile から、指定基礎スキルが進化可能かを判定する。
   // 基礎スキルが最大Lv、補助スキルが必要レベル以上（熟練度で軽減可）、当該周回で未進化。
-  canEvolve(skills, profile, baseSkillId) {
+  // levelOf: 補助スキル/パッシブのレベルを解決する任意の関数（M6-B: パッシブ条件に対応）。
+  canEvolve(skills, profile, baseSkillId, levelOf) {
     const ev = this.forBase(baseSkillId);
     if (!ev) return false;
     if (skills.hasEvolved(baseSkillId)) return false;
@@ -50,9 +51,10 @@ class EvolutionManagerClass {
     if (skills.getLevel(baseSkillId) < (DataManager.getSkill(baseSkillId)?.maxLevel || 8)) return false;
     if (this.masteryLevel(profile, baseSkillId) < (ev.requiredMasteryLevel || 0)) return false;
     const relax = this.relaxAmount(profile, baseSkillId);
+    const lvl = levelOf || ((id) => skills.getLevel(id));
     for (const req of ev.requiredSkills || []) {
       const need = Math.max(1, (req.level || 1) - relax);
-      if (skills.getLevel(req.skill) < need) return false;
+      if ((lvl(req.skill) || 0) < need) return false;
     }
     return true;
   }

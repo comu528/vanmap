@@ -7,10 +7,10 @@
 npm・ビルド処理・バックエンド・データベースは一切使いません。Phaser 3.90.0 を CDN から読み込み、
 すべての素材（プレイヤー・敵・弾・エフェクト等）は JavaScript 上で動的生成しています。
 
-> ⚠️ **開発状況**: 現在 **Milestone 6-A**（スキル抽選基盤: active/passive分類・所持枠・ジョブ別プール・
-> レアリティ・決定論抽選・リロール/追放/スキップ）まで実装済みです。今回は既存の攻撃スキル5種を新基盤へ移行し、
-> 動作確認用の共通パッシブ4種を追加しました（新しい攻撃魔法・新ジョブ・新進化はまだ追加していません）。
-> 保存は localStorage を基本に、対応ブラウザ（HTTPS＝GitHub Pages 前提）ではフォルダへもミラー保存できます（M5-B）。
+> ⚠️ **開発状況**: 現在 **Milestone 6-B**（火の魔女のビルド拡張: 新 active 10種・新進化5種）まで実装済みです。
+> M6-A のスキル抽選基盤（active/passive分類・所持枠・ジョブ別プール・レアリティ・決定論抽選・リロール/追放/スキップ）
+> の上に、抽選/枠処理を個別実装せずに新スキルを追加しました。防御スキル（不死鳥の羽・炎の障壁）、コンボ（起爆刻印/連鎖）、
+> 召喚（火の精霊）、設置（火炎渦）等を含みます。保存は localStorage＋（対応ブラウザで）フォルダ保存（M5-B）。
 
 ---
 
@@ -25,6 +25,7 @@ npm・ビルド処理・バックエンド・データベースは一切使い�
 | **M5-A** | 空間グリッド（Spatial Hash Grid）による近傍検索 / 総当たり O(敵×弾) の解消 / 性能計測パネル・グリッド可視化・グリッドON/OFF比較（`?debug=1`）/ オブジェクトプール整理 / 品質別エフェクト上限の集約 / 決定論的な非回帰テスト | ✅ 実装済み |
 | **M5-B** | 保存アダプター分離 / フォルダ保存（File System Access API）＋ブラウザミラー / manifest＋安全書き込み / バックアップ（自動10・手動5世代）/ JSON エクスポート・インポート（検証・プロトタイプ汚染ガード）/ 競合検出・解決 / 複数タブ制御 / profile v5 移行 / データ管理画面 | ✅ 実装済み |
 | **M6-A** | スキル抽選基盤: active/passive分類・所持枠(Active4→6→8/Passive4)・ジョブ別スキルプール(flame_witch)・レアリティ・重み付き**決定論**抽選・リロール/追放/スキップ・共通パッシブ4種(共通modifier集計)・既存5active移行・profile v6 | ✅ 実装済み |
+| **M6-B** | 新 active 10種（炎槍/拡散火弾/追尾鬼火/連鎖炎/溶岩爆弾/火炎渦/火の精霊/不死鳥の羽/炎の障壁/起爆刻印）＋新進化5種。防御パイプライン・ダメージタグ・起爆刻印コンボ・召喚/設置・品質別性能上限・空間グリッド/プール対応・runtimeState 保存 | ✅ 実装済み |
 
 ### 遊びの流れ（M4）
 タイトル →「はじめから / 拠点」→ **拠点**（恒久強化・難易度・熟練度・**転生**・**魂炎強化**）→「戦闘開始」→
@@ -167,6 +168,61 @@ npm・ビルド処理・バックエンド・データベースは一切使い�
    ※ 抽選・所持枠・レアリティ・決定論・リロール/追放/スキップは基盤側が処理するため、スキル追加時に抽選コードは触りません。
 新パッシブは `data/passives.json` に modifier 付きで追加、新ジョブは `data/jobs.json` に追加するだけで抽選対象になります。
 
+## Milestone 6-B の要素（火の魔女ビルド拡張）
+
+M6-A の基盤（`SkillDraftManager`/`PassiveManager`/jobs.json/skills.json/skill-evolutions.json）を**現在の正**として使い、
+抽選・所持枠・レアリティ・決定論を個別実装せずに新スキルを追加しました。新規周回の枠は 4 のまま（魂炎で 6→8）。
+
+### 新 active 10種（すべて火の魔女専用・最大Lv8）
+| スキル | 役割 | レアリティ | 進化 |
+|---|---|---|---|
+| 炎槍 flame_lance | 細く高速な貫通槍（1本1体1命中） | common | 千条炎槍 |
+| 拡散火弾 scatter_flame | 扇状の複数弾（近接集中/遠距離拡散） | common | — |
+| 追尾鬼火 homing_wisp | 漂ってから追尾・死亡時に再捕捉 | uncommon | 百鬼燎乱 |
+| 連鎖炎 chain_flame | 命中後に近くの敵へ連鎖（visited共有） | rare | — |
+| 溶岩爆弾 lava_bomb | 予告→遅延起爆＋短い燃焼地帯 | uncommon | 太陽核崩壊 |
+| 火炎渦 flame_vortex | 設置DoT＋中心へ吸引（ボス弱め）＋終了時小爆発 | rare | 煉獄大火輪 |
+| 火の精霊 fire_spirit | 追従召喚が自動射撃（精霊は無敵・攻撃対象外） | uncommon | — |
+| 不死鳥の羽 phoenix_feather | 致死を一度防ぎ回復＋大爆発＋一時無敵（長CD） | legendary | — |
+| 炎の障壁 flame_barrier | 一定間隔で障壁展開・軽減/無効化＋反撃（1被弾1回） | uncommon | — |
+| 起爆刻印 detonation_mark | 刻印し火属性が規定回数命中で起爆（コンボ） | rare | 終焉連鎖 |
+
+### 新進化5種（枠を消費せず基礎 active を置換・補助条件は消費しない）
+- 千条炎槍（炎槍Lv8＋高速詠唱Lv4）: 多方向連射・連続命中で威力上昇・貫通後に分裂（世代上限）
+- 百鬼燎乱（追尾鬼火Lv8＋火の精霊Lv4）: 大量鬼火＋防衛鬼火＋撃破分裂（上限）
+- 太陽核崩壊（溶岩爆弾Lv8＋焦熱拡張Lv4）: 引き寄せ＋予告→巨大爆発＋大型溶岩地帯
+- 煉獄大火輪（火炎渦Lv8＋燃える軌跡Lv4）: 移動する複数竜巻＋燃焼地帯＋感染＋終了時同時爆発
+- 終焉連鎖（起爆刻印Lv8＋魔力増幅Lv4）: 連鎖起爆＋未刻印へ拡散＋一定連鎖で最終爆発（1連鎖1回）
+
+進化の補助条件は**パッシブも指定可能**（`EvolutionManager.canEvolve` が active/passive 両方のレベルを解決）。
+
+### 防御スキルのダメージ処理順（`Player.takeDamage`）
+`1) 無敵確認 → 2) 炎の障壁で軽減/無効化（＋反撃1回） → 3) 通常HPダメージ → 4) 致死時のみ不死鳥判定`。
+無敵中は多重被弾しない／反撃は1被弾1回／不死鳥は同じ被弾で複数回復活しない／リザルト確定後は復活しない。
+不死鳥CD・障壁再使用は `active_run.skillRuntime` に保存し、再読み込みで不正回復しません。
+
+### ダメージタグと起爆刻印
+`dealDamage` に `element`/`isMarkDetonation` 等のタグを後方互換で付与。火属性攻撃（＝skillId 付きの非起爆ダメージ）が
+刻印敵に命中すると刻印が進み、規定回数で起爆します。**起爆ダメージ自身は刻印を進めない**（`isMarkDetonation`）ため
+無限再起爆しません。連鎖は `visited` 集合＋`maxChainDepth`／`maxSpread` で明示的に制限します。
+
+### 性能上限（`data/balance.json` の `skillCaps`・品質別）
+`maxHomingWisps/maxSplitWisps/maxFlameLances/maxSummons/maxSummonProjectiles/maxActiveVortices/maxMarks/
+maxChainTargets/maxChainDepth/maxSimultaneousExplosions/maxEvolutionProjectiles/maxPhoenixEffects/maxBarrierEffects`
+を品質別(low≤medium≤high≤ultra)で管理。上限到達時は見た目を減らし、攻撃判定・不死鳥復活・障壁・予告・刻印・ボス攻撃・
+自機・敵は必ず維持します。分裂/連鎖/感染/起爆は再帰でも上限で必ず停止します。
+
+### 空間グリッド・オブジェクトプール
+新スキルの範囲/最寄り/密集検索は M5-A の空間グリッド経由（`combat.nearestEnemy(Except)/forEachEnemyInRadius/
+densestPoint/enemiesInRadius`）。弾は既存 `projPool` を再利用（追尾/連鎖/分裂/タグを含め reset で全状態を初期化）。
+召喚/設置/竜巻は各スキルが配列管理し、Scene終了・進化置換で `destroy` により確実に破棄します。
+
+### 次にジョブレベルを追加する際の拡張点
+`profile.jobProgress`（jobId→進捗）と `jobs.json` の `futureInheritanceSettings` が拡張口です。ジョブ経験値/レベルは
+`completeRun` で jobProgress を更新し、`SkillDraftManager` の `extraAllowedIds`（継承枠）や `unlockCondition` を使って
+解放スキルを制御できます（M6-B では未実装）。新スキル追加は「skills.json＋jobs.json＋挙動クラス＋REGISTRY登録」のみで、
+抽選・枠・レアリティ・決定論コードは変更不要です。
+
 ## セーブについて（M5-B）
 
 基本は **ブラウザの localStorage**（恒久データ profile / 設定 settings / 途中セーブ active_run）です。
@@ -219,7 +275,10 @@ src/
                       DataManagement(データ管理・M5-B)
   entities/           Player / Enemy(炎上対応) / Boss / Projectile(貫通減衰) / ExperienceGem
   skills/             SkillBase / Fireball / FlamePillar / BurningTrail / OrbitingFlame / Meteor /
-                      EvolvedSkillBase / InfernalBarrage / PurgatoryEruption / EternalPyre
+                      EvolvedSkillBase / InfernalBarrage / PurgatoryEruption / EternalPyre /
+                      （M6-B）FlameLance / ScatterFlame / HomingWisp / ChainFlame / LavaBomb / FlameVortex /
+                      FireSpirit / PhoenixFeather / FlameBarrier / DetonationMark ＋進化 ThousandFlameLances /
+                      HundredWispParade / SolarCoreCollapse / InfernalVortexWheel / ApocalypseChain
   systems/            DataManager / SaveManager / profileSchema(v6移行) / ProgressionManager /
                       ReincarnationManager / EvolutionManager / SpawnManager / BattleManager /
                       PoolManager / SkillManager / EffectManager / SpatialGrid(空間グリッド・M5-A) /
@@ -235,8 +294,10 @@ tests/validate-data.mjs        Node標準のみのデータ検証
 tests/spatial-nonregression.mjs 空間グリッドの決定論的非回帰＋負荷計測（Node標準のみ・M5-A）
 tests/save-system.mjs          保存システムのテスト（移行/検証/キュー/バックアップ/競合・Node標準のみ・M5-B）
 tests/skill-draft.mjs          スキル抽選のテスト（枠/決定論/リロール/追放/スキップ/進化/旧セーブ/パッシブ・Node標準のみ・M6-A）
+tests/new-fire-skills.mjs      新 active 10種のデータ整合＋抽選＋上限（Node標準のみ・M6-B）
+tests/new-evolutions.mjs       新進化5種のデータ整合＋進化条件（実ロジック）＋既存3進化の非回帰（Node標準のみ・M6-B）
 .github/workflows/    static.yml（公開） / validate.yml（データ検証＋各テスト）
-data/                 ... / jobs.json・passives.json・skill-config.json（スキル抽選基盤・M6-A）
+data/                 ... / jobs.json・passives.json・skill-config.json（M6-A）／skills.json・skill-evolutions.json 拡張・balance.skillCaps（M6-B）
 ```
 
 保存レイヤー（`src/storage/*`）とデータ管理画面（`DataManagementScene`）は M5-B で実装済みです。今後の候補は `TODO.md` を参照してください。
@@ -262,6 +323,9 @@ data/                 ... / jobs.json・passives.json・skill-config.json（ス�
 - **原子的な差し替え不可**: ブラウザ API に原子的 rename が無いため、フォルダ保存はバックアップ＋書込後検証で
   破損リスクを下げますが、書き込み中の電源断等に対する完全な保証はありません（`docs/save-format.md`）。
 - **複数タブは事故軽減のみ**: 厳密な排他制御はブラウザ API の制約で不可能です。後発タブは読み取り専用にして上書きを避けます。
+- **新スキルの実挙動は未計測（M6-B）**: 追尾/連鎖/召喚/設置/刻印/防御などの戦闘ランタイムはヘッドレスで未検証です
+  （純ロジック=データ/抽選/進化条件は Node で検証済み）。極端負荷（大量敵＋進化＋2倍速＋ultra）で 60FPS は保証しませんが、
+  `skillCaps` と毎フレーム予算で分裂/連鎖/感染/起爆が上限で必ず停止し、攻撃判定・不死鳥・障壁・予告は維持される設計です。
 - **設定は簡易版**: エフェクト品質・ダメージ数字・画面揺れの切替は一時停止メニューにあります。
   パーティクル数の個別スライダーや専用設定画面は M5 予定。
 - **戦闘バランス**: M4 でも戦闘バランスの全面調整は行っていません（転生由来の倍率・上限のみ追加）。
@@ -311,6 +375,13 @@ data/                 ... / jobs.json・passives.json・skill-config.json（ス�
 ジョブ外/前提未達/conflict/重複なし・4→6→8枠・旧セーブ超過時の新規禁止・パッシブ modifier(未取得=恒等/取得で反映)を確認。
 `profile v5→v6 移行`は `node tests/save-system.mjs` で確認。**レベルアップUIの実描画・進化演出・実プレイでの体感・
 パッシブ適用後の実数値はヘッドレスでは未計測**のため、GitHub Pages を実ブラウザで開いて最終確認してください（`docs/test-guide.md` の M6-A 項目）。
+
+**Milestone 6-B の検証**: 新スキルのデータ整合・抽選出現・性能上限の品質順・進化条件（`EvolutionManager.canEvolve` の実ロジック・
+パッシブ補助対応・既存3進化の非回帰）を `node tests/new-fire-skills.mjs`（142項目）・`node tests/new-evolutions.mjs`（70項目）で
+検証済みです。**戦闘ランタイム（追尾/連鎖/召喚/設置/刻印起爆/防御パイプライン/分裂・感染・連鎖の上限/追尾のすり抜け有無/
+不死鳥の致死回避/障壁と不死鳥の処理順/倍速時のタイマー/再読込での不正回復防止/Scene終了後の残留なし/仮アイコン表示）は
+Phaser 依存のためヘッドレスでは未検証**です。GitHub Pages を実ブラウザ（`?debug=1` の F4 新スキルパネル）で開き、
+`docs/test-guide.md` の M6-B 項目を手動確認してください（実行していない項目は「確認済み」と報告していません）。
 
 > ヘッドレス環境の制約: `requestAnimationFrame` が断続的に間引かれ、また headless では
 > ページが非フォーカス扱いになり自動一時停止が働くため、「リザルト→再挑戦後の実時間ループ継続」や

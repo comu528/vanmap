@@ -10,6 +10,23 @@ import { MeteorSkill } from '../skills/MeteorSkill.js';
 import { InfernalBarrageSkill } from '../skills/InfernalBarrageSkill.js';
 import { PurgatoryEruptionSkill } from '../skills/PurgatoryEruptionSkill.js';
 import { EternalPyreSkill } from '../skills/EternalPyreSkill.js';
+// M6-B: 新 active 10種
+import { FlameLanceSkill } from '../skills/FlameLanceSkill.js';
+import { ScatterFlameSkill } from '../skills/ScatterFlameSkill.js';
+import { HomingWispSkill } from '../skills/HomingWispSkill.js';
+import { ChainFlameSkill } from '../skills/ChainFlameSkill.js';
+import { LavaBombSkill } from '../skills/LavaBombSkill.js';
+import { FlameVortexSkill } from '../skills/FlameVortexSkill.js';
+import { FireSpiritSkill } from '../skills/FireSpiritSkill.js';
+import { PhoenixFeatherSkill } from '../skills/PhoenixFeatherSkill.js';
+import { FlameBarrierSkill } from '../skills/FlameBarrierSkill.js';
+import { DetonationMarkSkill } from '../skills/DetonationMarkSkill.js';
+// M6-B: 新進化5種
+import { ThousandFlameLancesSkill } from '../skills/ThousandFlameLancesSkill.js';
+import { HundredWispParadeSkill } from '../skills/HundredWispParadeSkill.js';
+import { SolarCoreCollapseSkill } from '../skills/SolarCoreCollapseSkill.js';
+import { InfernalVortexWheelSkill } from '../skills/InfernalVortexWheelSkill.js';
+import { ApocalypseChainSkill } from '../skills/ApocalypseChainSkill.js';
 
 const REGISTRY = {
   fireball: FireballSkill,
@@ -21,6 +38,23 @@ const REGISTRY = {
   infernal_barrage: InfernalBarrageSkill,
   purgatory_eruption: PurgatoryEruptionSkill,
   eternal_pyre: EternalPyreSkill,
+  // M6-B: 新 active
+  flame_lance: FlameLanceSkill,
+  scatter_flame: ScatterFlameSkill,
+  homing_wisp: HomingWispSkill,
+  chain_flame: ChainFlameSkill,
+  lava_bomb: LavaBombSkill,
+  flame_vortex: FlameVortexSkill,
+  fire_spirit: FireSpiritSkill,
+  phoenix_feather: PhoenixFeatherSkill,
+  flame_barrier: FlameBarrierSkill,
+  detonation_mark: DetonationMarkSkill,
+  // M6-B: 新進化
+  thousand_flame_lances: ThousandFlameLancesSkill,
+  hundred_wisp_parade: HundredWispParadeSkill,
+  solar_core_collapse: SolarCoreCollapseSkill,
+  infernal_vortex_wheel: InfernalVortexWheelSkill,
+  apocalypse_chain: ApocalypseChainSkill,
 };
 
 export class SkillManager {
@@ -117,6 +151,30 @@ export class SkillManager {
 
   update(dt, ctx) {
     for (const sk of this.skills.values()) sk.update(dt, ctx);
+  }
+
+  // 撃破フック（M6-B: 百鬼燎乱の分裂など）。スキルが onEnemyKilled を実装していれば呼ぶ。
+  dispatchKill(enemy, skillId) {
+    for (const sk of this.skills.values()) { if (sk.onEnemyKilled) sk.onEnemyKilled(enemy, skillId); }
+  }
+
+  // スキル固有 runtimeState の直列化/復元（M6-B: 不死鳥CD・障壁再使用 等）。
+  serializeRuntime() {
+    const out = {};
+    for (const [id, sk] of this.skills) { if (sk.serializeState) { const s = sk.serializeState(); if (s) out[id] = s; } }
+    return out;
+  }
+  restoreRuntime(obj) {
+    if (!obj) return;
+    for (const [id, state] of Object.entries(obj)) { const sk = this.skills.get(id); if (sk && sk.restoreState) sk.restoreState(state); }
+  }
+
+  // スキル固有統計（M6-B: 最高同時存在数・防御スキル統計 等）。
+  recordExtra(id, key, value, mode = 'max') {
+    const st = this._ensureStats(id);
+    st.extra = st.extra || {};
+    if (mode === 'max') st.extra[key] = Math.max(st.extra[key] || 0, value);
+    else st.extra[key] = (st.extra[key] || 0) + value;
   }
 
   // ---- 統計 ----

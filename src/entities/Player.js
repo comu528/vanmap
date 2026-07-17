@@ -80,11 +80,42 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.setAlpha(this.isInvulnerable && !this.isDashing ? 0.5 : 1);
   }
 
+  // 被弾処理（M6-B のダメージ軽減パイプライン）。処理順:
+  //   1) 無敵確認 → 2) 炎の障壁による軽減/無効化(＋反撃1回) → 3) 通常HPダメージ → 4) 致死時に不死鳥判定。
+  // 障壁/不死鳥の状態(_barrier/_phoenix)は各スキルが設定し、AoE 演出は scene のフックが担う。
   takeDamage(amount) {
-    if (!this.alive || this.isInvulnerable) return false;
-    this.hp = clamp(this.hp - amount, 0, this.maxHp);
+    if (!this.alive || this.isInvulnerable) return false; // 1) 無敵中は多重被弾しない
+    let dmg = amount;
+
+    // 2) 炎の障壁: 有効かつ耐久が残っていれば軽減/無効化し、1被弾につき1回だけ反撃。
+    const b = this._barrier;
+    if (b && b.active && b.hitsLeft > 0) {
+      if (this.scene.onBarrierBlock) this.scene.onBarrierBlock(b);
+      b.hitsLeft -= 1;
+      const blocked = dmg * (b.reduction || 0);
+      b.blockedTotal = (b.blockedTotal || 0) + blocked;
+      b.blocks = (b.blocks || 0) + 1;
+      dmg -= blocked;
+      if (b.hitsLeft <= 0) b.active = false;
+    }
+
+    // 3) 通常HPダメージ
+    if (dmg > 0) this.hp = clamp(this.hp - dmg, 0, this.maxHp);
     this._invulnUntil = this.scene.time.now + this.invulnMs;
+
+    // 4) 致死時のみ不死鳥判定（使用可能状態のときだけ・同じ被弾で複数回復活しない）
     if (this.hp <= 0) {
+      const ph = this._phoenix;
+      if (ph && ph.ready) {
+        ph.ready = false;
+        ph.cdLeft = ph.cooldownMs;
+        ph.triggers = (ph.triggers || 0) + 1;
+        this.hp = clamp(this.maxHp * (ph.healPercent || 0.3), 1, this.maxHp);
+        ph.healedTotal = (ph.healedTotal || 0) + this.hp;
+        this._invulnUntil = this.scene.time.now + (ph.invulnMs || 1000);
+        if (this.scene.onPhoenixRevive) this.scene.onPhoenixRevive(ph);
+        return true; // 死亡を防いだ
+      }
       this.alive = false;
       this.setVelocity(0, 0);
     }

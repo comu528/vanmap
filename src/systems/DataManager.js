@@ -60,6 +60,13 @@ class DataManagerClass {
   get reincarnationNodes() { return asArray(this.data.reincarnation?.nodes); }
   get combatCaps() { return this.balance.combatCaps || {}; }
   get saveConfig() { return this.balance.save || {}; }
+  get skillCaps() { return this.balance.skillCaps || {}; }
+  // 品質別のスキル上限（M6-B）。未定義は fallback。
+  skillCap(name, quality = 'high', fallback = 9999) {
+    const c = this.skillCaps[name];
+    if (!c) return fallback;
+    return c[quality] ?? c.high ?? fallback;
+  }
 
   // ---- Milestone 6-A: ジョブ / パッシブ / スキル抽選 ----
   get jobs() { return asArray(this.data.jobs?.jobs); }

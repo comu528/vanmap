@@ -216,6 +216,7 @@ export class BattleScene extends Phaser.Scene {
       this.input.keyboard.on('keydown-F1', () => this.toggleDebug());
       this.input.keyboard.on('keydown-F2', () => this.togglePerfOverlay()); // 性能パネル（M5-A）
       this.input.keyboard.on('keydown-F3', () => this.toggleGridViz());      // グリッド可視化（M5-A）
+      this.input.keyboard.on('keydown-F4', () => this.toggleSkillDebug());   // 新スキル確認（M6-B）
       // ヘッドレス/実ブラウザからの検査・比較用に戦闘シーンを公開する。
       window.RFS_BATTLE = this;
       this.togglePerfOverlay(); // debug 時は性能パネルを既定表示
@@ -273,6 +274,8 @@ export class BattleScene extends Phaser.Scene {
     // ドラフト状態: v6 の active_run なら復元、無ければ現在シードで初期化。
     if (r.draftState) this.draft.restore(r.draftState);
     else this.draft.reset(this._draftSeed, {});
+    // M6-B: スキル固有 runtimeState（不死鳥CD・障壁再使用 等）を復元（再読込での不正回復を防ぐ）。
+    if (r.skillRuntime) this.skills.restoreRuntime(r.skillRuntime);
   }
 
   cleanup() {
@@ -284,6 +287,7 @@ export class BattleScene extends Phaser.Scene {
     if (this.gemGrid) this.gemGrid.clear();
     if (this._perfText) { this._perfText.destroy(); this._perfText = null; }
     if (this._gridGfx) { this._gridGfx.destroy(); this._gridGfx = null; }
+    if (this._skdbg) { this._skdbg.destroy(true); this._skdbg = null; }
     if (window.RFS_BATTLE === this) window.RFS_BATTLE = null;
   }
 
@@ -291,13 +295,163 @@ export class BattleScene extends Phaser.Scene {
   buildCombatApi() {
     this.combat = {
       nearestEnemy: (x, y, range) => this.nearestTarget(x, y, range),
+      nearestEnemyExcept: (x, y, range, exclude) => this.nearestTargetExcept(x, y, range, exclude),
       randomEnemies: (n) => this.randomTargets(n),
+      enemiesInRadius: (x, y, r) => this.targetsInRadius(x, y, r),
       forEachEnemyInRadius: (x, y, r, fn) => { for (const t of this.targetsInRadius(x, y, r)) fn(t); },
       densestPoint: (radius, idx) => this.densestPoint(radius, idx),
       dealDamage: (t, amt, id, opts) => this.dealDamage(t, amt, id, opts),
       damageArea: (x, y, r, amt, id, opts) => this.damageArea(x, y, r, amt, id, opts),
       spawnPlayerProjectile: (x, y, a, sp, o) => this.projPool.spawn(x, y, a, sp, o),
+      // M6-B: スキル上限（品質別）・起爆刻印の付与。
+      skillCap: (name, fallback) => DataManager.skillCap(name, this.settings?.effectQuality || 'high', fallback),
+      markEnemy: (e, mark) => { e._mark = mark; },
+      markedCount: () => this.markedEnemyCount(),
     };
+  }
+
+  // 除外集合を考慮した最寄り対象（連鎖炎などで使用・空間グリッド利用）。
+  nearestTargetExcept(x, y, range, exclude) {
+    let best = null, bestD = Infinity;
+    const brute = this.enemyPool.activeCount;
+    const scan = (e) => {
+      if (!e.alive || (exclude && exclude.has(e))) return;
+      const d = distance(x, y, e.x, e.y);
+      if (d < bestD && d <= range) { bestD = d; best = e; }
+    };
+    if (this._useSpatial) {
+      const cand = this.enemyGrid.queryCircle(x, y, range);
+      cand.sort(SEQ_CMP);
+      for (const e of cand) scan(e);
+      this._recordQuery(brute, cand.length, best ? 1 : 0);
+    } else {
+      this.enemyPool.forEachActive(scan);
+      this._recordQuery(brute, brute, best ? 1 : 0);
+    }
+    if (this.boss && this.boss.alive && !(exclude && exclude.has(this.boss))) {
+      const d = distance(x, y, this.boss.x, this.boss.y);
+      if (d < bestD && d <= range) best = this.boss;
+    }
+    return best;
+  }
+
+  markedEnemyCount() {
+    let n = 0;
+    const now = this.time.now;
+    this.enemyPool.forEachActive((e) => { if (e._mark && now < e._mark.until) n++; });
+    return n;
+  }
+
+  // 指定スキル由来の生存弾数（M6-B: 同時存在数の上限判定に使用）。
+  countProjBySkill(id) {
+    let n = 0;
+    this.projPool.forEachActive((p) => { if (p.alive && p.skillId === id) n++; });
+    return n;
+  }
+
+  // ---- 起爆刻印（M6-B） ----
+  detonateMark(e) {
+    const m = e._mark; if (!m) return;
+    e._mark = null;
+    this._doMarkExplosion(e.x, e.y, m.detonateRadius, m.detonateDamage, m.skillId, 0xff5722);
+    if (m.chain) this.chainDetonate(e.x, e.y, m, { visited: new Set([e]), spread: 0, depth: 0, finalDone: false });
+  }
+
+  markDeathDetonate(e) {
+    const m = e._mark; if (!m || !m.deathDamage) return;
+    e._mark = null;
+    this._doMarkExplosion(e.x, e.y, (m.detonateRadius || 40) * 0.7, m.deathDamage, m.skillId, 0xff7043);
+    if (m.chain) this.chainDetonate(e.x, e.y, m, { visited: new Set([e]), spread: 0, depth: 0, finalDone: false });
+  }
+
+  _doMarkExplosion(x, y, radius, dmg, skillId, color) {
+    if (this._explosionBudget <= 0) { this._m.suppressed++; return; }
+    this._explosionBudget--;
+    this.effects.explosion(x, y, radius || 40, color);
+    // isMarkDetonation:true で刻印カウントを進めない（無限再起爆の防止）。
+    this.aoe(x, y, radius || 40, dmg || 0, skillId, { quiet: true, isMarkDetonation: true });
+  }
+
+  // 連鎖起爆（終焉連鎖）。visited集合・最大連鎖深度・最大拡散でループを明示的に制限する。
+  chainDetonate(x, y, m, ctx) {
+    if (ctx.depth >= (m.maxDepth || 8)) return;
+    ctx.depth++;
+    for (const o of this.targetsInRadius(x, y, m.chainRadius || 90)) {
+      if (o.isBoss || ctx.visited.has(o)) continue;
+      if (o._mark && this.time.now < o._mark.until) {
+        ctx.visited.add(o);
+        const om = o._mark; o._mark = null;
+        this._doMarkExplosion(o.x, o.y, om.detonateRadius || m.detonateRadius, om.detonateDamage || m.detonateDamage, m.skillId, 0xff8a65);
+        if (ctx.spread < (m.maxSpread || 6)) this._spreadMark(o.x, o.y, m, ctx);
+        this.chainDetonate(o.x, o.y, m, ctx);
+      }
+    }
+    // 最終爆発は1連鎖につき1回だけ。
+    if (!ctx.finalDone && m.finalBlast && ctx.visited.size >= 5) {
+      ctx.finalDone = true;
+      const spot = this.densestPoint(m.finalRadius || 120, 0) || { x, y };
+      this.effects.meteorImpact(spot.x, spot.y, m.finalRadius || 120);
+      this.aoe(spot.x, spot.y, m.finalRadius || 120, m.finalBlast, m.skillId, { crit: true, isMarkDetonation: true });
+    }
+  }
+
+  _spreadMark(x, y, m, ctx) {
+    for (const o of this.targetsInRadius(x, y, m.chainRadius || 90)) {
+      if (ctx.spread >= (m.maxSpread || 6)) break;
+      if (o.isBoss || o._mark || ctx.visited.has(o)) continue;
+      o._mark = { skillId: m.skillId, hits: 0, hitsNeeded: m.hitsNeeded || 2, until: this.time.now + (m.markDuration || 6000), detonateDamage: m.detonateDamage, detonateRadius: m.detonateRadius, deathDamage: m.deathDamage, chain: m.chain, chainRadius: m.chainRadius, maxDepth: m.maxDepth, maxSpread: m.maxSpread, finalBlast: m.finalBlast, finalRadius: m.finalRadius, markDuration: m.markDuration };
+      ctx.spread++;
+    }
+  }
+
+  // ---- 防御スキルの scene フック（Player.takeDamage から呼ばれる） ----
+  onBarrierBlock(b) {
+    this.effects.explosion(this.player.x, this.player.y, b.retaliateRadius || 40, 0xff9800);
+    this.aoe(this.player.x, this.player.y, b.retaliateRadius || 40, b.retaliateDamage || 0, 'flame_barrier', { quiet: true });
+    b.retaliations = (b.retaliations || 0) + 1;
+    b.retaliateTotal = (b.retaliateTotal || 0) + (b.retaliateDamage || 0);
+  }
+
+  onPhoenixRevive(ph) {
+    const q = this.settings?.effectQuality || 'high';
+    if (DataManager.skillCap('maxPhoenixEffects', q, 2) > 0) {
+      this.effects.explosion(this.player.x, this.player.y, ph.explosionRadius || 100, 0xffd54f);
+      this.effects.whiteFlash();
+      this.effects.screenShake(300, 0.012);
+    }
+    this.aoe(this.player.x, this.player.y, ph.explosionRadius || 100, ph.explosionDamage || 0, 'phoenix_feather', { crit: true });
+    this.showBanner('不死鳥の羽が発動！');
+  }
+
+  // 連鎖炎: 命中後に visited を共有しつつ次の敵へ。generation と品質別上限で無限往復を防止。
+  _chainHit(proj, e) {
+    const cap = Math.min(proj.chainCount || 0, this.combat.skillCap('maxChainDepth', 8));
+    if (proj.generation >= cap) return;
+    const visited = proj.chainVisited || (proj.chainVisited = new Set());
+    visited.add(e);
+    const t = this.nearestTargetExcept(e.x, e.y, proj.chainRange || 140, visited);
+    if (!t || !t.alive) return;
+    const ang = Math.atan2(t.y - e.y, t.x - e.x);
+    this.projPool.spawn(e.x, e.y, ang, proj.speed || 340, {
+      skillId: proj.skillId, damage: proj.damage * (proj.chainFalloff || 0.85), pierce: 0,
+      behavior: 'chain', chainCount: proj.chainCount, chainRange: proj.chainRange, chainFalloff: proj.chainFalloff,
+      generation: proj.generation + 1, chainVisited: visited, scale: Math.max(0.6, (proj.scaleX || 1) * 0.94),
+      lifeMs: 1000, tint: 0xff7043, element: 'fire',
+    });
+  }
+
+  // 千条炎槍: 貫通を使い切ったら小型炎槍へ分裂（splitGen で世代を明示制限＝無限増殖なし）。
+  _splitLance(proj) {
+    if (this.projPool.activeCount >= this.projPool.maxSize) return;
+    const n = Math.max(1, proj.splitCount || 2);
+    for (let i = 0; i < n; i++) {
+      const ang = (this.rng() * Math.PI * 2);
+      this.projPool.spawn(proj.x, proj.y, ang, (proj.speed || 500) * 0.85, {
+        skillId: proj.skillId, damage: proj.damage * (proj.splitFactor || 0.55), pierce: Math.max(1, Math.floor((proj.pierce || 0) / 2)),
+        behavior: 'split_lance', splitGen: proj.splitGen - 1, splitCount: proj.splitCount, splitFactor: proj.splitFactor,
+        scale: Math.max(0.5, (proj.scaleX || 1) * 0.7), lifeMs: 900, tint: 0xffca28, element: 'fire',
+      });
+    }
   }
 
   // 進化後スキルの熟練度Lv20 追加効果を集める。
@@ -313,6 +467,8 @@ export class BattleScene extends Phaser.Scene {
     this._aoeBudget = caps.maxAoePerFrame ?? 8;
     this._extraFbBudget = caps.maxExtraFireballs ?? 40;
     this._deathExpBudget = caps.maxDeathExplosionChain ?? 3;
+    // M6-B: 同時起爆の毎フレーム予算（品質別）。上限到達でも戦闘ロジックは停止しない。
+    this._explosionBudget = DataManager.skillCap('maxSimultaneousExplosions', this.settings?.effectQuality || 'high', 8);
     if (this.effects) this.effects.beginFrame(caps.maxDamageNumbersPerFrame ?? 24, this.particleBudget ?? 200);
     this._resetMetrics();
   }
@@ -476,6 +632,11 @@ export class BattleScene extends Phaser.Scene {
       if (skillId) this.skills.recordKill(skillId);
       if (target.isBoss) this.onBossKilled(target);
       else this.onEnemyKilled(target, skillId);
+    } else if (!opts.isMarkDetonation && skillId && !target.isBoss && target._mark && this.time.now < target._mark.until) {
+      // 起爆刻印（M6-B）: 火属性攻撃/炎上が命中したら刻印を進め、規定回数で起爆。
+      // 起爆自身のダメージ(isMarkDetonation)ではカウントしない＝無限再起爆を防止。
+      target._mark.hits += 1;
+      if (target._mark.hits >= target._mark.hitsNeeded) this.detonateMark(target);
     }
     return died;
   }
@@ -486,6 +647,7 @@ export class BattleScene extends Phaser.Scene {
       this.dealDamage(t, amount, skillId, {
         knockback: opts.knockback || 0, from: { x, y },
         crit: opts.crit, quiet: opts.quiet, color: opts.color,
+        isMarkDetonation: opts.isMarkDetonation, element: opts.element, tag: opts.tag,
       });
     }
   }
@@ -690,14 +852,19 @@ export class BattleScene extends Phaser.Scene {
         const rad = rr + e.displayWidth * 0.4;
         if (distance(proj.x, proj.y, e.x, e.y) <= rad) {
           if (!proj.registerHit(e)) continue;
-          this.dealDamage(e, proj.damage, proj.skillId, { knockback: proj.knockback, from: { x: this.player.x, y: this.player.y } });
+          this.dealDamage(e, proj.damage, proj.skillId, { knockback: proj.knockback, from: { x: this.player.x, y: this.player.y }, element: proj.element });
           if (proj.explosionRadius > 0) {
             this.effects.explosion(proj.x, proj.y, proj.explosionRadius);
             this.aoe(proj.x, proj.y, proj.explosionRadius, proj.damage * 0.5, proj.skillId, { exclude: e, quiet: true });
           }
+          // M6-B: ラム威力上昇（千条炎槍）・連鎖（連鎖炎）。
+          if (proj.ramp > 0) proj.damage = Math.min(proj.damage * (1 + proj.ramp), (proj._rampBase || proj.damage) * 1.6);
+          if (proj.behavior === 'chain') this._chainHit(proj, e);
           proj.consumePierce();
           // 貫通後の威力減衰（進化弾は減衰が緩い）。
           if (proj.alive && proj.pierceFalloff < 1) proj.damage *= proj.pierceFalloff;
+          // 貫通を使い切ったら分裂（千条炎槍・世代上限あり）。
+          if (!proj.alive && proj.behavior === 'split_lance' && proj.splitGen > 0) this._splitLance(proj);
         }
       }
     });
@@ -760,6 +927,10 @@ export class BattleScene extends Phaser.Scene {
         });
       }
     }
+    // 起爆刻印: 刻印されたまま死亡した場合は小規模な死亡時起爆（M6-B）。
+    if (e._mark) this.markDeathDetonate(e);
+    // スキルの撃破フック（百鬼燎乱の分裂 等）。e はまだ有効（release 前）。
+    this.skills.dispatchKill(e, skillId);
     this.enemyPool.release(e);
   }
 
@@ -809,9 +980,11 @@ export class BattleScene extends Phaser.Scene {
   computeEvolvables() {
     const out = [];
     const seen = new Set();
+    // 補助条件は active(SkillManager) と passive(PassiveManager) の両方から解決する（M6-B の進化はパッシブも要求）。
+    const levelOf = (id) => (this.skills.getLevel(id) || this.passives.getLevel(id) || 0);
     for (const base of this.skills.baseActiveIds()) {
       if (seen.has(base)) continue; seen.add(base);
-      if (EvolutionManager.canEvolve(this.skills, this.profile, base)) {
+      if (EvolutionManager.canEvolve(this.skills, this.profile, base, levelOf)) {
         const ev = EvolutionManager.forBase(base);
         if (ev) out.push({ evolutionId: ev.id, baseId: base, rarity: 'legendary', order: DataManager.getSkill(base)?.displayOrder || 0 });
       }
@@ -1062,6 +1235,63 @@ export class BattleScene extends Phaser.Scene {
   // 負荷テスト用: 画面外の各方向に敵をまとめて生成する（?debug=1 のみ）。
   debugSpawnEnemies(n) {
     for (let i = 0; i < n; i++) this.spawn.spawnEnemy();
+  }
+
+  // 敵をプレイヤー周囲へ密集配置する（?debug=1）。
+  debugClusterEnemies(n) {
+    const p = this.player;
+    for (let i = 0; i < n; i++) {
+      const ang = this.rng() * Math.PI * 2, r = 40 + this.rng() * 60;
+      const x = Phaser.Math.Clamp(p.x + Math.cos(ang) * r, 20, WORLD_W - 20);
+      const y = Phaser.Math.Clamp(p.y + Math.sin(ang) * r, 20, WORLD_H - 20);
+      this.enemyPool.spawn(DataManager.getEnemy('slime'), x, y, this.spawn.enemyMult());
+    }
+  }
+
+  // ---------------- 新スキル確認（M6-B・?debug=1・F4） ----------------
+  toggleSkillDebug() {
+    if (this._skdbg) { this._skdbg.destroy(true); this._skdbg = null; return; }
+    const cx = GAME_WIDTH / 2;
+    const ui = this.add.container(0, 0).setScrollFactor(0).setDepth(4000);
+    ui.add(this.add.rectangle(cx, GAME_HEIGHT / 2, 340, 300, 0x101820, 0.96).setScrollFactor(0).setStrokeStyle(1, 0x80deea));
+    ui.add(this.add.text(cx, GAME_HEIGHT / 2 - 134, 'DEBUG（M6-B 新スキル）', { fontSize: '11px', color: '#80deea' }).setScrollFactor(0).setOrigin(0.5));
+    const newIds = ['flame_lance', 'scatter_flame', 'homing_wisp', 'chain_flame', 'lava_bomb', 'flame_vortex', 'fire_spirit', 'phoenix_feather', 'flame_barrier', 'detonation_mark'];
+    const acts = [
+      ['新10種を全取得(Lv1)', () => { for (const id of newIds) this.skills.acquireOrLevel(id); this.updateHudSkills(); }],
+      ['新10種を全Lv8', () => { for (const id of newIds) { this.skills.acquireOrLevel(id); this.skills.setLevel(id, 8); } this.updateHudSkills(); }],
+      ['進化条件を全達成(補助passive含む)', () => this.debugSetupEvolutions()],
+      ['不死鳥を使用可能に', () => { if (this.player._phoenix) { this.player._phoenix.ready = true; this.player._phoenix.cdLeft = 0; } }],
+      ['不死鳥の致死テスト', () => { this.player.hp = 1; this.player._invulnUntil = 0; this.player.takeDamage(9999); }],
+      ['障壁を即展開', () => { const s = this.skills.skills.get('flame_barrier'); if (s) { s._state.active = true; s._state.durLeft = 3000; s._state.hitsLeft = 5; s._state.cdLeft = 0; } }],
+      ['敵+100体', () => this.debugSpawnEnemies(100)],
+      ['敵を密集配置+40', () => this.debugClusterEnemies(40)],
+      [() => `状態: 刻印${this.markedEnemyCount()} 弾${this.projPool.activeCount} 抑制/f${(this._mLast || this._m).suppressed}`, () => {}],
+    ];
+    let yy = GAME_HEIGHT / 2 - 110;
+    for (const [label, fn] of acts) {
+      const text = typeof label === 'function' ? label() : label;
+      const b = this.add.text(cx, yy, text, { fontSize: '10px', color: '#fff', backgroundColor: '#1a3a3e', padding: { x: 6, y: 2 } }).setScrollFactor(0).setOrigin(0.5).setInteractive({ useHandCursor: true });
+      b.on('pointerdown', () => { fn(); if (this._skdbg) this.toggleSkillDebug(); });
+      ui.add(b); yy += 22;
+    }
+    const close = this.add.text(cx, yy + 4, '閉じる (F4)', { fontSize: '9px', color: '#bcaaa4' }).setScrollFactor(0).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    close.on('pointerdown', () => this.toggleSkillDebug());
+    ui.add(close);
+    this._skdbg = ui;
+  }
+
+  // 進化条件（基礎Lv8＋補助スキル/パッシブLv4）を満たす状態を作る（?debug=1）。
+  debugSetupEvolutions() {
+    const setup = [
+      ['flame_lance', 'swift_cast'], ['homing_wisp', 'fire_spirit'], ['lava_bomb', 'scorch_expand'],
+      ['flame_vortex', 'burning_trail'], ['detonation_mark', 'power_amp'],
+    ];
+    for (const [base, aux] of setup) {
+      this.skills.acquireOrLevel(base); this.skills.setLevel(base, 8);
+      if (DataManager.getPassive(aux)) this.passives.acquireOrLevel(aux), this.passives.setLevel(aux, 4);
+      else { this.skills.acquireOrLevel(aux); this.skills.setLevel(aux, 4); }
+    }
+    this.updateHudSkills();
   }
 
   // 実ブラウザでの非回帰確認フック（?debug=1）: 現在の生存敵に対し、空間グリッド経由と

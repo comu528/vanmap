@@ -274,6 +274,12 @@ const REINC_EFFECT_TYPES = new Set([
   'effectCap', 'permCap', 'speedMode', 'autoDash', 'startEmber', 'activeSlots',
 ]);
 const evoData = loadJson('skill-evolutions.json');
+// 補助スキルは active(skills) と passive(passives) の両方を許容する（M6-B: 進化条件にパッシブを使用）。
+const auxSkillIds = new Set(skillIds);
+{
+  const pv = loadJson('passives.json');
+  for (const p of (pv && pv.passives) || []) auxSkillIds.add(p.id);
+}
 if (evoData) {
   requireFields('skill-evolutions.json', evoData, ['evolutions']);
   const evoIds = checkDuplicateIds('skill-evolutions.json', evoData.evolutions);
@@ -285,7 +291,7 @@ if (evoData) {
     baseIds.add(ev.baseSkillId);
     if (typeof ev.requiredMasteryLevel !== 'number' || ev.requiredMasteryLevel < 0) err(`skill-evolutions.json: 進化 ${ev.id} の requiredMasteryLevel が不正`);
     for (const req of ev.requiredSkills || []) {
-      if (!skillIds.has(req.skill)) err(`skill-evolutions.json: 進化 ${ev.id} が存在しない補助スキル "${req.skill}" を参照`);
+      if (!auxSkillIds.has(req.skill)) err(`skill-evolutions.json: 進化 ${ev.id} が存在しない補助スキル/パッシブ "${req.skill}" を参照`);
       if (typeof req.level !== 'number' || req.level < 1 || req.level > 8) err(`skill-evolutions.json: 進化 ${ev.id} の補助スキル要求レベルが不正 (${req.level})`);
     }
     // 循環参照: 進化先が別の進化の基礎スキルになっていない（進化の連鎖ループ防止）
@@ -414,6 +420,21 @@ if (reincData && skillCfg) {
     if (node.effectType !== 'activeSlots') err('reincarnation.json: active_skill_slots の effectType が activeSlots でない');
     if (base + (node.effectPerLevel || 0) * 1 !== 6 || base + (node.effectPerLevel || 0) * (node.maxLevel || 0) !== 8) {
       err(`reincarnation.json: active_skill_slots が 4→6→8 にならない (base ${base}, perLevel ${node.effectPerLevel}, maxLevel ${node.maxLevel})`);
+    }
+  }
+}
+
+// --- skillCaps（M6-B）: 各上限は品質別(low<=medium<=high<=ultra)の非負整数 ---
+if (balance && balance.skillCaps) {
+  const Q = ['low', 'medium', 'high', 'ultra'];
+  for (const [name, c] of Object.entries(balance.skillCaps)) {
+    if (!c || typeof c !== 'object') { err(`balance.json: skillCaps.${name} がオブジェクトでない`); continue; }
+    let prev = -Infinity;
+    for (const q of Q) {
+      const v = c[q];
+      if (typeof v !== 'number' || v < 0 || !Number.isInteger(v)) { err(`balance.json: skillCaps.${name}.${q} が非負整数でない (${v})`); continue; }
+      if (v < prev) err(`balance.json: skillCaps.${name} が品質順で逆転 (${q}=${v} < 前=${prev})`);
+      prev = v;
     }
   }
 }

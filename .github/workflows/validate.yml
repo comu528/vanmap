@@ -31,3 +31,9 @@ jobs:
       # スキル抽選基盤のテスト（M6-A・Node.js 標準機能のみ）。
       - name: Skill draft tests
         run: node tests/skill-draft.mjs
+
+      # 新スキル/新進化のテスト（M6-B・Node.js 標準機能のみ）。
+      - name: New fire skills tests
+        run: node tests/new-fire-skills.mjs
+      - name: New evolutions tests
+        run: node tests/new-evolutions.mjs

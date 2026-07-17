@@ -58,6 +58,7 @@ export class BootScene extends Phaser.Scene {
     this.makeParticle();
     this.makeGround();
     this.makeSkillIcons();
+    this.makeNewSkillIcons();
   }
 
   // ピクセルグリッド（文字列配列）からテクスチャを生成するヘルパー。
@@ -235,5 +236,28 @@ export class BootScene extends Phaser.Scene {
       g.generateTexture(key, 16, 16);
       g.destroy();
     }
+  }
+
+  // M6-B: 新スキル10種の仮アイコン。色＋形（記号）で区別する（正式画像は使わない）。
+  makeNewSkillIcons() {
+    const base = (color) => {
+      const g = this.make.graphics({ x: 0, y: 0, add: false });
+      g.fillStyle(0x1a1420, 1); g.fillRect(0, 0, 16, 16);
+      g.lineStyle(1, 0xffe0b2, 0.6); g.strokeRect(0, 0, 16, 16);
+      g.fillStyle(color, 1);
+      return g;
+    };
+    const done = (g, key) => { g.generateTexture(key, 16, 16); g.destroy(); };
+
+    let g = base(0xffab40); g.fillRect(7, 2, 2, 12); g.fillTriangle(8, 1, 6, 4, 10, 4); done(g, 'icon_flame_lance');          // 炎槍: 縦の槍
+    g = base(0xff7043); g.fillCircle(4, 11, 2); g.fillCircle(8, 8, 2); g.fillCircle(12, 11, 2); done(g, 'icon_scatter_flame'); // 拡散: 3点扇
+    g = base(0xffd54f); g.fillCircle(9, 8, 3); g.fillStyle(0xffd54f, 0.6); g.fillCircle(4, 11, 1.5); done(g, 'icon_homing_wisp'); // 追尾: 鬼火＋尾
+    g = base(0xffee58); g.fillRect(3, 5, 4, 2); g.fillRect(7, 8, 4, 2); g.fillRect(11, 5, 3, 2); done(g, 'icon_chain_flame');   // 連鎖: 稲妻
+    g = base(0xff5722); g.fillCircle(8, 9, 5); g.fillStyle(0xffca28, 1); g.fillCircle(8, 9, 2); done(g, 'icon_lava_bomb');      // 溶岩: 塊
+    g = base(0xff9800); g.lineStyle(2, 0xff9800, 1); g.strokeCircle(8, 8, 5); g.strokeCircle(8, 8, 2); done(g, 'icon_flame_vortex'); // 渦: 同心円
+    g = base(0xffca28); g.fillRect(7, 2, 2, 12); g.fillRect(2, 7, 12, 2); done(g, 'icon_fire_spirit');                          // 精霊: 十字星
+    g = base(0xffd54f); g.fillTriangle(8, 2, 2, 13, 14, 13); done(g, 'icon_phoenix_feather');                                   // 不死鳥: 上三角
+    g = base(0x80d8ff); g.lineStyle(2, 0x80d8ff, 1); g.strokeCircle(8, 8, 5); done(g, 'icon_flame_barrier');                    // 障壁: 環
+    g = base(0xff5252); g.lineStyle(2, 0xff5252, 1); g.lineBetween(4, 4, 12, 12); g.lineBetween(12, 4, 4, 12); done(g, 'icon_detonation_mark'); // 刻印: X
   }
 }
