@@ -29,4 +29,8 @@ export class HeavenPiercingGlacierSkill extends EvolvedSkillBase {
       });
     }
   }
+
+  // 途中再開でクールダウンを維持（再読込での CD 全回復・即時再発動を防ぐ）。
+  serializeState() { return { cdLeft: this._cd }; }
+  restoreState(s) { if (s && typeof s.cdLeft === 'number') this._cd = s.cdLeft; }
 }

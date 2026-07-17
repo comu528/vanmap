@@ -74,5 +74,10 @@ export class AbsoluteZeroDomainSkill extends EvolvedSkillBase {
   cloneCast() { this.echoCast(); }
 
   _remove(i) { const d = this.domains[i]; if (d && d.gfx) d.gfx.destroy(); this.domains.splice(i, 1); }
+
+  // 途中再開でクールダウンのみ維持（領域の位置は保存せず再開後に安全再構築＝二重生成しない）。
+  serializeState() { return { cdLeft: this._cd }; }
+  restoreState(s) { if (s && typeof s.cdLeft === 'number') this._cd = s.cdLeft; }
+
   destroy() { for (const d of this.domains) if (d.gfx) d.gfx.destroy(); this.domains = []; }
 }

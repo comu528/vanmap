@@ -63,12 +63,13 @@ section('3. ボス氷砕状態の round-trip（gauge/breaks/vulnRemain）');
   ok(snap.breaks > 0, 'break が発生していた（テスト前提）');
 }
 
-section('4. 氷スキルは個別 runtimeState を持たない（再開時に安全再構築・悪用防止）');
+section('4. 氷スキルはクールダウンを runtimeState で保存する（再読込での CD 全回復防止）');
 {
   const rt = new Set(skillsWithRuntimeState());
   for (const id of ['frost_shard', 'frost_nova', 'glacial_lance', 'permafrost_field', 'ice_wall', 'diamond_blizzard', 'absolute_zero_domain', 'heaven_piercing_glacier']) {
-    ok(!rt.has(id), `${id} は serializeState を持たない（氷弾/凍土/氷壁位置は保存せず再構築）`);
+    ok(rt.has(id), `${id} は serializeState でクールダウンを保存する`);
   }
+  // 弾/凍土/氷壁/領域の位置は保存しない（cdLeft のみ）。詳細な CD round-trip は frost-cooldown-save.mjs で検証。
 }
 
 section('5. 旧 profile を壊さない・save_version は v6 維持');

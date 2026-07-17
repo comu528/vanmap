@@ -49,5 +49,9 @@ export class DiamondBlizzardSkill extends EvolvedSkillBase {
     }
   }
 
+  // 途中再開でクールダウンのみ維持（予約中の波・弾は保存せず再開後に安全再構築＝二重生成しない）。
+  serializeState() { return { cdLeft: this._cd }; }
+  restoreState(s) { if (s && typeof s.cdLeft === 'number') this._cd = s.cdLeft; }
+
   destroy() { this._waves = []; }
 }

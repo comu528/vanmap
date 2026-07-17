@@ -106,5 +106,9 @@ export class IceWallSkill extends SkillBase {
   // 複製（custom）: 破壊爆発部分のみ（壁の多重生成をしない＝危険な回避不能地形を作らない）。
   cloneCast() { this.echoCast(); }
 
+  // 途中再開でクールダウンのみ維持（氷壁の位置は保存せず再開後に安全再構築＝二重生成しない）。
+  serializeState() { return { cdLeft: this._cd }; }
+  restoreState(s) { if (s && typeof s.cdLeft === 'number') this._cd = s.cdLeft; }
+
   destroy() { for (const w of this.walls) for (const seg of w.segs) if (seg.gfx) seg.gfx.destroy(); this.walls = []; }
 }

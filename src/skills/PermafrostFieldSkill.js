@@ -57,5 +57,10 @@ export class PermafrostFieldSkill extends SkillBase {
   cloneCast() { this.echoCast(); }
 
   _removeField(i) { const f = this.fields[i]; if (f && f.gfx) f.gfx.destroy(); this.fields.splice(i, 1); }
+
+  // 途中再開でクールダウンのみ維持（凍土の位置は保存せず再開後に安全再構築＝二重生成しない）。
+  serializeState() { return { cdLeft: this._cd }; }
+  restoreState(s) { if (s && typeof s.cdLeft === 'number') this._cd = s.cdLeft; }
+
   destroy() { for (const f of this.fields) if (f.gfx) f.gfx.destroy(); this.fields = []; }
 }

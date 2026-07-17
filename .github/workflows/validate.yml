@@ -91,3 +91,5 @@ jobs:
         run: node tests/multi-job-draft.mjs
       - name: Status save non-regression tests
         run: node tests/status-save-nonregression.mjs
+      - name: Frost cooldown persistence tests
+        run: node tests/frost-cooldown-save.mjs

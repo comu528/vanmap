@@ -485,7 +485,8 @@ fire 専用から複数ジョブ・複数属性へ拡張。**primaryElement 一�
 
 ### 保存・デバッグ・属性反応
 `active_run` へ `jobId`/`jobElement`/`resolvedJobModifiers`/`statusRng`（状態RNGの cursor）/ボス frostbreak 状態（gauge/breaks/vulnRemain）を保存
-（個々の敵の冷気/凍結/氷弾位置は保存せず再開時に安全再構築）。`?debug=1` の **F9** で状態異常・氷術師検証パネル（既存 F1〜F8 と非競合）。
+（個々の敵の冷気/凍結/氷弾位置は保存せず再開時に安全再構築）。氷スキル8種は既存の `skillRuntime`（`serializeState={cdLeft}`）へ**残りCDだけ**を保存し、
+**再読込での CD 全回復・即時再発動・凍土/氷壁/領域の二重生成を防ぐ**（火の runtimeState には影響しない）。`?debug=1` の **F9** で状態異常・氷術師検証パネル（既存 F1〜F8 と非競合）。
 **火と氷の属性反応は M7-A では未実装**（火で凍結解除/氷で消火/蒸発/融解なし・炎上と冷気/凍結は独立共存）。将来のため付与時に source element を保持します。
 
 ## セーブについて（M5-B）

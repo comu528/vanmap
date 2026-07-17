@@ -459,6 +459,9 @@ v1〜v6 からの移行は M6-A〜M6-F と同じ経路で既存データを保�
 ```
 - `statusRng` は `StatusEffectManager.serialize()/restore()` 経由。候補抽選用の `draftState.seed` とは独立で、**再読込で凍結判定を引き直せない**。
 - `bossFrost` は再読込での**ゲージ初期化・脆弱延長の悪用を防ぐ**ため保存する（`vulnRemainMs` から復元）。ボス不在時は保存しない。
-- 氷スキルの runtimeState（各 CD 等）は既存の `active_run.skillRuntime`（`SkillManager.serializeRuntime`）へ加算的に保存する。
+- 氷スキル8種はすべて `serializeState()`＝`{ cdLeft: this._cd }` / `restoreState()` を実装し、既存の `active_run.skillRuntime`
+  （`SkillManager.serializeRuntime`／`restoreRuntime`）へ**残りクールダウンだけ**を加算的に保存・復元する。これにより
+  **再読込で CD が全回復して即時再発動する不正を防ぐ**（火の魔女の M6-D/E スキルと同じ `cdLeft` パターン・火の runtimeState には影響しない）。
+  凍土/氷壁/絶対零度領域/弾の**位置は保存せず**、再開後は空から安全に再構築するため**二重生成しない**（`tests/frost-cooldown-save.mjs` で検証）。
 - JSON エクスポート/インポート・バックアップ・競合比較は payload 全体を扱うため新フィールドも自動保持される（インポートは `migrateProfile` を通す）。
   加算的追加のため **`save_version` は 6 のまま**・転生でもリセットしない。
