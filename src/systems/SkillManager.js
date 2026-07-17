@@ -66,6 +66,23 @@ import { IceWallSkill } from '../skills/IceWallSkill.js';
 import { DiamondBlizzardSkill } from '../skills/DiamondBlizzardSkill.js';
 import { AbsoluteZeroDomainSkill } from '../skills/AbsoluteZeroDomainSkill.js';
 import { HeavenPiercingGlacierSkill } from '../skills/HeavenPiercingGlacierSkill.js';
+// M7-B: 氷術師 active10種
+import { IcicleVolleySkill } from '../skills/IcicleVolleySkill.js';
+import { FrostOrbitSkill } from '../skills/FrostOrbitSkill.js';
+import { FreezingRaySkill } from '../skills/FreezingRaySkill.js';
+import { HailstormSkill } from '../skills/HailstormSkill.js';
+import { CryoMineSkill } from '../skills/CryoMineSkill.js';
+import { FrostSpiritSkill } from '../skills/FrostSpiritSkill.js';
+import { IcePrisonSkill } from '../skills/IcePrisonSkill.js';
+import { AvalancheSkill } from '../skills/AvalancheSkill.js';
+import { MirrorIceSkill } from '../skills/MirrorIceSkill.js';
+import { GlacierDropSkill } from '../skills/GlacierDropSkill.js';
+// M7-B: 氷術師 進化5種
+import { CrystalTempestSkill } from '../skills/CrystalTempestSkill.js';
+import { AbsoluteZeroRaySkill } from '../skills/AbsoluteZeroRaySkill.js';
+import { WhiteoutCataclysmSkill } from '../skills/WhiteoutCataclysmSkill.js';
+import { FrostQueenCourtSkill } from '../skills/FrostQueenCourtSkill.js';
+import { WorldEndAvalancheSkill } from '../skills/WorldEndAvalancheSkill.js';
 
 const REGISTRY = {
   fireball: FireballSkill,
@@ -133,6 +150,23 @@ const REGISTRY = {
   diamond_blizzard: DiamondBlizzardSkill,
   absolute_zero_domain: AbsoluteZeroDomainSkill,
   heaven_piercing_glacier: HeavenPiercingGlacierSkill,
+  // M7-B: 氷術師 active10種
+  icicle_volley: IcicleVolleySkill,
+  frost_orbit: FrostOrbitSkill,
+  freezing_ray: FreezingRaySkill,
+  hailstorm: HailstormSkill,
+  cryo_mine: CryoMineSkill,
+  frost_spirit: FrostSpiritSkill,
+  ice_prison: IcePrisonSkill,
+  avalanche: AvalancheSkill,
+  mirror_ice: MirrorIceSkill,
+  glacier_drop: GlacierDropSkill,
+  // M7-B: 氷術師 進化5種
+  crystal_tempest: CrystalTempestSkill,
+  absolute_zero_ray: AbsoluteZeroRaySkill,
+  whiteout_cataclysm: WhiteoutCataclysmSkill,
+  frost_queen_court: FrostQueenCourtSkill,
+  world_end_avalanche: WorldEndAvalancheSkill,
 };
 
 // 実装クラスが登録されている全スキルID（active＋進化）。SkillCatalog / 監査テストが「実装の有無」を判定するのに使う。

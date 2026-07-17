@@ -64,8 +64,8 @@ ok(skills.find((x) => x.id === 'frost_shard').procCoefficient >= 0.8, 'frost_sha
 section('4. カタログ（氷術師）: active5/passive/進化3・不整合0');
 {
   const cat = buildCatalog({ skills, passives, evolutions, jobs, jobId: 'frost_mage', registeredIds: registeredSkillIds(), runtimeStateIds: skillsWithRuntimeState() });
-  ok(cat.summary.activeCount === 5, `active5種 (${cat.summary.activeCount})`);
-  ok(cat.summary.evolutionCount === 3, `進化3種 (${cat.summary.evolutionCount})`);
+  ok(cat.summary.activeCount === 15, `氷術師 active15種 (${cat.summary.activeCount})`); // M7-B で 5→15
+  ok(cat.summary.evolutionCount === 8, `氷術師 進化8種 (${cat.summary.evolutionCount})`); // M7-B で 3→8
   ok(cat.element === 'ice', 'カタログの element が ice');
   ok(cat.issues.length === 0, `不整合0 (${cat.issues.map((i) => i.type).join(',')})`);
   for (const a of cat.actives) ok(a.element === 'ice', `${a.id} の element が ice`);

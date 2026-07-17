@@ -1141,6 +1141,296 @@
       "isDefensive": false,
       "isReactive": false,
       "usesResourceCost": false
+    },
+    {
+      "id": "crystal_tempest",
+      "displayName": "天晶氷嵐",
+      "description": "icicle_volley の進化。敵密集地点を複数選び、時間差で大量の氷晶を発射する。一部は最寄り敵を追尾し、冷気を帯びた敵を優先。凍結中の敵へ追加ダメージ。",
+      "baseSkillId": "icicle_volley",
+      "requiredSkills": [
+        {
+          "skill": "frost_amplification",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "crystal_tempest",
+      "visualTier": "evolved",
+      "icon": "icon_crystal_tempest",
+      "element": "ice",
+      "procCoefficient": 0.28,
+      "safetyCaps": {
+        "maxProjectilesPerCast": 28,
+        "maxWaves": 3,
+        "maxFreezeChecksPerCast": 10
+      },
+      "displayOrder": 104,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "fire",
+      "echoDescription": "氷晶の連射サイクルを追加",
+      "cloneDescription": "氷晶波を複製",
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "cooldown": 1000,
+      "damage": {
+        "base": 22,
+        "frozenBonus": 0.45
+      },
+      "chill": {
+        "amount": 9
+      },
+      "freeze": {
+        "baseChance": 0.05
+      },
+      "projectileCount": {
+        "base": 7,
+        "perWaveMax": 10,
+        "waves": 3,
+        "waveDelayMs": 100,
+        "homingFraction": 0.4
+      }
+    },
+    {
+      "id": "absolute_zero_ray",
+      "displayName": "絶対零光",
+      "description": "freezing_ray の進化。主光線に加え近隣の敵へ分岐光線を伸ばす。主対象の冷気量が高いほど分岐数と威力が上がり、凍結中の敵へ高い追加ダメージ。指定間隔でのみ粉砕する。",
+      "baseSkillId": "freezing_ray",
+      "requiredSkills": [
+        {
+          "skill": "rapid_freezing",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "absolute_zero_ray",
+      "visualTier": "evolved",
+      "icon": "icon_absolute_zero_ray",
+      "element": "ice",
+      "procCoefficient": 0.12,
+      "safetyCaps": {
+        "maxBranches": 6,
+        "maxTicksPerFrame": 6,
+        "maxShattersPerFrame": 3
+      },
+      "displayOrder": 105,
+      "lv80ProjectileTarget": false,
+      "castMode": "continuous",
+      "mainCastEvent": "fire",
+      "echoDescription": "追加照射を1回",
+      "cloneDescription": "短い追加光線のみ複製",
+      "echoPolicy": "custom",
+      "clonePolicy": "custom",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "cooldown": 2400,
+      "damage": {
+        "perTick": 13,
+        "frozenBonus": 0.6
+      },
+      "chill": {
+        "perTick": 8
+      },
+      "duration": 2200,
+      "tickRate": 150,
+      "beamWidth": 16,
+      "branch": {
+        "maxBranches": 4,
+        "chillDivisor": 40,
+        "damageBoostPerChill": 0.004
+      },
+      "shatter": {
+        "intervalMs": 480,
+        "multiplier": 1.4
+      },
+      "bossGauge": {
+        "multiplier": 1.5
+      }
+    },
+    {
+      "id": "whiteout_cataclysm",
+      "displayName": "白魔大氷災",
+      "description": "hailstorm の進化。大型の吹雪領域を展開し、領域内へ継続的な冷気、一定間隔で巨大な雹を落とす。巨大雹が凍結中の敵へ命中すると粉砕する。",
+      "baseSkillId": "hailstorm",
+      "requiredSkills": [
+        {
+          "skill": "lingering_cold",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "whiteout_cataclysm",
+      "visualTier": "evolved",
+      "icon": "icon_whiteout_cataclysm",
+      "element": "ice",
+      "procCoefficient": 0.22,
+      "safetyCaps": {
+        "maxDomains": 2,
+        "maxTicksPerFrame": 6,
+        "maxHailImpactsPerFrame": 4,
+        "maxShattersPerFrame": 3
+      },
+      "displayOrder": 106,
+      "lv80ProjectileTarget": false,
+      "castMode": "periodic",
+      "mainCastEvent": "fire",
+      "echoDescription": "吹雪パルスを1回追加",
+      "cloneDescription": "吹雪ダメージのみ複製（領域は多重生成しない）",
+      "echoPolicy": "custom",
+      "clonePolicy": "custom",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "cooldown": 5000,
+      "damage": {
+        "blizzardTick": 8,
+        "giantHail": 30,
+        "frozenBonus": 0.5
+      },
+      "chill": {
+        "perTick": 10,
+        "perHail": 16
+      },
+      "freeze": {
+        "baseChance": 0.08
+      },
+      "area": {
+        "radius": 140,
+        "duration": 4200,
+        "tickRate": 520,
+        "giantHailIntervalMs": 700
+      },
+      "shatter": {
+        "multiplier": 1.5
+      },
+      "giantHailProc": 0.6
+    },
+    {
+      "id": "frost_queen_court",
+      "displayName": "雪后氷霊陣",
+      "description": "frost_spirit の進化。複数の上位氷霊を従え、各霊が異なる敵を狙う。冷気を帯びた敵を優先し、一定間隔で小型のNovaを放つ。通常射撃は粉砕しない。",
+      "baseSkillId": "frost_spirit",
+      "requiredSkills": [
+        {
+          "skill": "frozen_expansion",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "frost_queen_court",
+      "visualTier": "evolved",
+      "icon": "icon_frost_queen_court",
+      "element": "ice",
+      "procCoefficient": 0.42,
+      "safetyCaps": {
+        "maxSpirits": 6,
+        "maxProjectiles": 70,
+        "maxNovaTargetsPerFrame": 12,
+        "maxShattersPerFrame": 3
+      },
+      "displayOrder": 107,
+      "lv80ProjectileTarget": false,
+      "castMode": "continuous",
+      "mainCastEvent": "fire",
+      "echoDescription": "氷霊が追加の一斉射撃",
+      "cloneDescription": "一斉射撃のみ複製（氷霊を増やさない）",
+      "echoPolicy": "custom",
+      "clonePolicy": "custom",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "shotDamage": 16,
+      "shotCooldownMs": 620,
+      "projectileSpeed": 370,
+      "chill": {
+        "amount": 9,
+        "perNova": 18
+      },
+      "frozenBonus": 0.5,
+      "summon": {
+        "count": 4
+      },
+      "nova": {
+        "intervalMs": 1400,
+        "damage": 18,
+        "radius": 70,
+        "baseChance": 0.1,
+        "multiplier": 1.3
+      }
+    },
+    {
+      "id": "world_end_avalanche",
+      "displayName": "終末氷河奔流",
+      "description": "avalanche の進化。複数方向から巨大な氷河波を時間差で流す。通常敵を大きく押し流し、凍結中の敵を粉砕する。粉砕地点へ短命の氷片／冷気領域を残すが完全には閉じ込めない。",
+      "baseSkillId": "avalanche",
+      "requiredSkills": [
+        {
+          "skill": "ice_wall",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "world_end_avalanche",
+      "visualTier": "evolved",
+      "icon": "icon_world_end_avalanche",
+      "element": "ice",
+      "procCoefficient": 0.55,
+      "safetyCaps": {
+        "maxWaves": 4,
+        "maxHitsPerFrame": 60,
+        "maxShattersPerFrame": 3,
+        "maxResidues": 6
+      },
+      "displayOrder": 108,
+      "lv80ProjectileTarget": false,
+      "castMode": "periodic",
+      "mainCastEvent": "fire",
+      "echoDescription": "追加の氷河波を1本",
+      "cloneDescription": "波の接触ダメージのみ複製",
+      "echoPolicy": "custom",
+      "clonePolicy": "custom",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "cooldown": 4800,
+      "damage": {
+        "base": 20,
+        "frozenBonus": 0.35
+      },
+      "chill": {
+        "amount": 13
+      },
+      "knockback": 70,
+      "wave": {
+        "count": 3,
+        "width": 120,
+        "speed": 240,
+        "duration": 1900,
+        "delayMs": 260
+      },
+      "shatter": {
+        "multiplier": 1.5
+      },
+      "residue": {
+        "durationMs": 1200,
+        "damage": 4,
+        "radius": 34,
+        "proc": 0.15
+      }
     }
   ]
 }

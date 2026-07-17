@@ -512,6 +512,180 @@
       "medium": 1,
       "high": 1,
       "ultra": 1
+    },
+    "maxIcicleVolleyProjectiles": {
+      "low": 28,
+      "medium": 52,
+      "high": 84,
+      "ultra": 130
+    },
+    "maxIcicleVolleyBurstsPerFrame": {
+      "low": 3,
+      "medium": 5,
+      "high": 8,
+      "ultra": 12
+    },
+    "maxFrostOrbitCrystals": {
+      "low": 3,
+      "medium": 4,
+      "high": 6,
+      "ultra": 8
+    },
+    "maxFrostOrbitHitsPerFrame": {
+      "low": 12,
+      "medium": 24,
+      "high": 40,
+      "ultra": 64
+    },
+    "maxFreezingRayTargets": {
+      "low": 10,
+      "medium": 18,
+      "high": 28,
+      "ultra": 44
+    },
+    "maxFreezingRayTicksPerFrame": {
+      "low": 6,
+      "medium": 10,
+      "high": 16,
+      "ultra": 26
+    },
+    "maxHailstorms": {
+      "low": 2,
+      "medium": 3,
+      "high": 4,
+      "ultra": 6
+    },
+    "maxHailImpactsPerFrame": {
+      "low": 6,
+      "medium": 12,
+      "high": 20,
+      "ultra": 32
+    },
+    "maxCryoMines": {
+      "low": 16,
+      "medium": 30,
+      "high": 48,
+      "ultra": 72
+    },
+    "maxCryoMineExplosionsPerFrame": {
+      "low": 3,
+      "medium": 5,
+      "high": 8,
+      "ultra": 12
+    },
+    "maxFrostSpirits": {
+      "low": 3,
+      "medium": 4,
+      "high": 6,
+      "ultra": 8
+    },
+    "maxFrostSpiritProjectiles": {
+      "low": 24,
+      "medium": 44,
+      "high": 72,
+      "ultra": 110
+    },
+    "maxIcePrisons": {
+      "low": 1,
+      "medium": 2,
+      "high": 3,
+      "ultra": 4
+    },
+    "maxIcePrisonTargetsPerFrame": {
+      "low": 6,
+      "medium": 10,
+      "high": 16,
+      "ultra": 24
+    },
+    "maxAvalancheWaves": {
+      "low": 2,
+      "medium": 3,
+      "high": 4,
+      "ultra": 6
+    },
+    "maxAvalancheHitsPerFrame": {
+      "low": 20,
+      "medium": 40,
+      "high": 60,
+      "ultra": 90
+    },
+    "maxMirrorIceBarriers": {
+      "low": 2,
+      "medium": 3,
+      "high": 4,
+      "ultra": 5
+    },
+    "maxMirrorIceInterceptsPerFrame": {
+      "low": 4,
+      "medium": 8,
+      "high": 14,
+      "ultra": 22
+    },
+    "maxMirrorIceCounterProjectiles": {
+      "low": 6,
+      "medium": 12,
+      "high": 20,
+      "ultra": 32
+    },
+    "maxGlacierDrops": {
+      "low": 1,
+      "medium": 2,
+      "high": 2,
+      "ultra": 3
+    },
+    "maxGlacierImpactsPerFrame": {
+      "low": 1,
+      "medium": 2,
+      "high": 3,
+      "ultra": 4
+    },
+    "maxCrystalTempestProjectiles": {
+      "low": 32,
+      "medium": 56,
+      "high": 90,
+      "ultra": 140
+    },
+    "maxAbsoluteZeroRayBranches": {
+      "low": 4,
+      "medium": 5,
+      "high": 6,
+      "ultra": 8
+    },
+    "maxWhiteoutCataclysms": {
+      "low": 1,
+      "medium": 2,
+      "high": 2,
+      "ultra": 3
+    },
+    "maxWhiteoutHailImpactsPerFrame": {
+      "low": 4,
+      "medium": 6,
+      "high": 8,
+      "ultra": 12
+    },
+    "maxFrostQueenSpirits": {
+      "low": 4,
+      "medium": 5,
+      "high": 6,
+      "ultra": 8
+    },
+    "maxFrostQueenProjectiles": {
+      "low": 24,
+      "medium": 44,
+      "high": 72,
+      "ultra": 110
+    },
+    "maxWorldEndAvalancheWaves": {
+      "low": 2,
+      "medium": 3,
+      "high": 4,
+      "ultra": 6
+    },
+    "maxWorldEndAvalancheShattersPerFrame": {
+      "low": 3,
+      "medium": 4,
+      "high": 5,
+      "ultra": 8
     }
   },
   "speedModes": [

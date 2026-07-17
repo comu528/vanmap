@@ -415,11 +415,40 @@ Milestone 1 は実装済み。以下は **Milestone 2 以降の設計と作業�
 - [ ] **転生レガシー・他ジョブへの効果持ち越し**（複数ジョブが揃ったので次に設計候補）
 - [ ] プレイヤー側の状態異常（被凍結など）・氷属性の敵/ボス・新難易度
 
+## Milestone 7-B（実装済み）— 氷術師のスキル拡張（active15 / 進化8）
+
+氷術師の active を10種・進化を5種追加し、氷ビルドの多様性を増やした。**passive は4種のまま**。全て `data/skills.json` の Lv1〜8 データ駆動で、
+冷気/凍結/粉砕/ボス氷砕は既存 `StatusEffectManager` 経路を使用（独自凍結タイマーなし）。**Math.random 不使用（決定論）**・**save_version は v6 のまま**。
+
+### 新 active10種（frost_mage 専用・element ice・maxLevel8）
+- [x] 氷柱斉射 `icicle_volley`（common・cooldown・projectile・**Lv80発射数対象**・連射）/ 氷晶環 `frost_orbit`（common・continuous・周回接触）/ 凍結光線 `freezing_ray`（uncommon・continuous・beam・冷気ランプ・指定間隔粉砕）。
+- [x] 雹嵐 `hailstorm`（uncommon・periodic・範囲）/ 氷結地雷 `cryo_mine`（common・reactive・trap・粉砕）/ 雪精霊 `frost_spirit`（uncommon・continuous・召喚）。
+- [x] 氷牢封印 `ice_prison`（rare・cooldown・control・条件付き凍結／ボスは氷砕ゲージ）/ 雪崩奔流 `avalanche`（uncommon・periodic・wave・押し流し）。
+- [x] 氷鏡結界 `mirror_ice`（rare・defensive・敵弾吸収＋反撃・runtimeState cdLeft/activeLeft/durabilityLeft）/ 氷河墜落 `glacier_drop`（legendary・cooldown・遅延大範囲・runtimeState pendingImpactLeft/X/Y）。
+
+### 新進化5種（EvolvedSkillBase・単一形態・**Job Lv80対象外**）
+- [x] 天晶氷嵐 `crystal_tempest`（icicle_volley + frost_amplification Lv4）/ 絶対零光 `absolute_zero_ray`（freezing_ray + rapid_freezing Lv4）/ 白魔大氷災 `whiteout_cataclysm`（hailstorm + lingering_cold Lv4）。
+- [x] 雪后氷霊陣 `frost_queen_court`（frost_spirit + frozen_expansion Lv4）/ 終末氷河奔流 `world_end_avalanche`（avalanche + ice_wall Lv4）。
+
+### 監査・保存・テスト
+- [x] castMode/mainCastEvent/echoPolicy/clonePolicy/lv80ProjectileTarget/procCoefficient/tags を全15active・8進化で宣言。主発動のみ recordCast（各弾/tick/命中/雹/地雷/精霊射撃/波接触では記録しない）。echo/clone は再帰せず、防御 `mirror_ice` は echo forbidden・複製なし。
+- [x] 全CD/周期/設置/防御/遅延型に必要な runtimeState を保存し、再開直後の無料再発動・常設物/召喚/地雷/領域/落下の二重生成を防止。常設型（氷晶環/雪精霊/雪后氷霊陣）は CD を持たず再構築で復元。
+- [x] 品質別 skillCaps を29種追加（low≤medium≤high≤ultra）。Job Lv80対象は `SkillAudit` で一元管理（新規 active は `icicle_volley` のみ）。
+- [x] 新規テスト5種: `frost-skills-wave2` / `frost-evolutions-wave2` / `frost-policy-audit` / `frost-runtime-save-wave2`（実クラスのランタイムスモーク＋保存round-trip）/ `frost-determinism-wave2`（Math.random不使用＋同一状態で同一攻撃パターン）。`validate.yml` にステップ追加。`validate-data.mjs` に M7-B 検証を追加。
+- [x] **非回帰**: 火の魔女 active30/進化18・同seed抽選、氷術師既存 active5/進化3、冷気/凍結/免疫/粉砕/ボス氷砕、selectedJobId/active_run固定、M5-B保存・M6-Fテレメトリ・M7-A状態異常・氷CD保存（全34テストスイート通過）。
+
+### M7-B で**実装しない**もの（対象外）
+- [ ] 氷術師 active 16種目以降・進化9種目以降・**新 passive**・氷 legendary の追加・限界突破（Lv8超）・進化後レベルアップ。
+- [ ] 3人目のジョブ・ジョブ間継承・**火と氷の属性反応**・転生レガシー・新敵/新ボス/新難易度・装備/ドロップ・正式図鑑/実績。
+
+> **実ブラウザ未確認**: 本環境では Phaser 実プレイ確認を行っていない。データ検証・純ロジック・最小 Phaser モックによるランタイムスモークは通過済みだが、
+> 実際の描画・当たり判定・体感バランス・60FPS 維持はブラウザでの確認が必要（`docs/test-guide.md` の M7-B 項目参照）。
+
 ### 次のマイルストーン候補
-- [ ] **氷術師の拡張**（active/passive/進化の追加・氷ビルドの多様化）
 - [ ] **3人目のジョブ**（雷/毒 など新属性・`StatusEffectManager` に新状態を追加）
 - [ ] **属性反応**（火⇄氷 など状態異常間の相互作用・付与時の source element を活用）
 - [ ] **転生レガシー**（複数ジョブをまたぐ恒久継承の設計）
+- [ ] **氷術師 passive の拡張 / 限界突破**（Lv8超の成長軸）
 
 ---
 

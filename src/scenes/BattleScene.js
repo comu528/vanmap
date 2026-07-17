@@ -626,7 +626,11 @@ export class BattleScene extends Phaser.Scene {
       chillOf: (e) => this.statusFx.chillOf(e),
       chillRatio: (e) => this.statusFx.chillRatio(e),
       shatterEnemy: (e, ctx) => this.shatterEnemy(e, ctx),
+      // 氷牢封印などの制御スキル用: 凍結耐性/凍結中/ボスでなければ強制凍結する（共通経路・独自タイマーを作らない）。
+      freezeEnemy: (e) => this.freezeEnemy(e),
       addBossGauge: (amount) => { const ev = this.boss && this.boss.alive ? this.statusFx.addBossGauge(this.boss, amount * this.jobMods.statusPowerMult()) : null; if (ev) this._onBossFrostbreak(ev, null); return ev; },
+      // 指定エンティティ（氷牢の対象がボスの場合）へ氷砕ゲージを付与する。
+      addBossGaugeTo: (e, amount) => { if (!e || !e.alive || !e.isBoss) return null; const ev = this.statusFx.addBossGauge(e, amount * this.jobMods.statusPowerMult()); if (ev) this._onBossFrostbreak(ev, null); return ev; },
       entitiesWithStatus: (id, limit) => this.statusFx.entitiesWithStatus(id, limit),
       countStatus: (id) => this.statusFx.countStatus(id),
       jobElement: () => this._defaultElement,
@@ -1088,6 +1092,20 @@ export class BattleScene extends Phaser.Scene {
       if (target._mark.hits >= target._mark.hitsNeeded) this.detonateMark(target);
     }
     return died;
+  }
+
+  // 強制凍結（制御スキル用・通常敵/エリートのみ・freeze_immunity/凍結中は不可・noExtend）。
+  // 独自の凍結タイマーは持たず StatusEffectManager.freeze を使う。凍結できたら統計/テレメトリへ記録して true。
+  freezeEnemy(e) {
+    const sfx = this.statusFx;
+    if (!e || !e.alive || e.isBoss || !sfx) return false;
+    if (sfx.isFrozen(e) || sfx.isFreezeImmune(e)) return false;
+    const ok = sfx.freeze(e);
+    if (ok && this.telemetry) {
+      this.telemetry.noteStatusEvent('freezes', 1);
+      this.telemetry.noteStatusEvent('frozenSecondsApplied', this.freezeSys.freezeDuration(sfx.entityType(e)) / 1000);
+    }
+    return ok;
   }
 
   // ボス氷砕の発生（短い硬直＋脆弱表示＋演出）。同一フレーム複数回は予算で抑制。
@@ -2216,13 +2234,19 @@ export class BattleScene extends Phaser.Scene {
     this.markDebugRun();
     if (this._frostdbg) { this._frostdbg.destroy(true); this._frostdbg = null; return; }
     this._fd = this._fd || { skill: 'frost_shard', passive: 'frost_amplification', lv: 8, chill: 100, jobLv: 100 };
-    const ACT = ['frost_shard', 'frost_nova', 'glacial_lance', 'permafrost_field', 'ice_wall'];
+    // M7-B: 氷術師 active15種・進化8種すべてを F9 で検証できる（新10active・新5進化を含む）。
+    const ACT = ['frost_shard', 'frost_nova', 'glacial_lance', 'permafrost_field', 'ice_wall',
+      'icicle_volley', 'frost_orbit', 'freezing_ray', 'hailstorm', 'cryo_mine', 'frost_spirit', 'ice_prison', 'avalanche', 'mirror_ice', 'glacier_drop'];
     const PAS = ['frost_amplification', 'rapid_freezing', 'frozen_expansion', 'lingering_cold'];
-    const EVO = { frost_shard: ['diamond_blizzard', 'rapid_freezing'], frost_nova: ['absolute_zero_domain', 'frozen_expansion'], glacial_lance: ['heaven_piercing_glacier', 'frost_amplification'] };
+    const EVO = {
+      frost_shard: ['diamond_blizzard', 'rapid_freezing'], frost_nova: ['absolute_zero_domain', 'frozen_expansion'], glacial_lance: ['heaven_piercing_glacier', 'frost_amplification'],
+      icicle_volley: ['crystal_tempest', 'frost_amplification'], freezing_ray: ['absolute_zero_ray', 'rapid_freezing'], hailstorm: ['whiteout_cataclysm', 'lingering_cold'],
+      frost_spirit: ['frost_queen_court', 'frozen_expansion'], avalanche: ['world_end_avalanche', 'ice_wall'],
+    };
     const cx = GAME_WIDTH / 2;
     const ui = this.add.container(0, 0).setScrollFactor(0).setDepth(4000);
     ui.add(this.add.rectangle(cx, GAME_HEIGHT / 2, 512, 356, 0x08131a, 0.97).setScrollFactor(0).setStrokeStyle(1, 0x4fc3f7));
-    ui.add(this.add.text(cx, 4, 'DEBUG（M7-A 状態異常・氷術師・F9）', { fontSize: '11px', color: '#4fc3f7' }).setScrollFactor(0).setOrigin(0.5, 0));
+    ui.add(this.add.text(cx, 4, 'DEBUG（M7-A/B 状態異常・氷術師 active15/進化8・F9）', { fontSize: '11px', color: '#4fc3f7' }).setScrollFactor(0).setOrigin(0.5, 0));
     const redraw = () => { this.toggleFrostDebug(); this.toggleFrostDebug(); };
     const applyFrostJob = (lv) => { this.jobMods.setResolved(JobModifierManager.resolve(DataManager.getJobProgression('frost_mage'), lv)); this._applyFreezeThresholdMods(); this._refreshStatusPassives(); };
     const acts = [
@@ -2230,7 +2254,7 @@ export class BattleScene extends Phaser.Scene {
       [() => `検証active: ${this._fd.skill}（切替）`, () => { const i = ACT.indexOf(this._fd.skill); this._fd.skill = ACT[(i + 1) % ACT.length]; }],
       [() => `Lv: ${this._fd.lv}（切替）`, () => { this._fd.lv = this._fd.lv >= 8 ? 1 : this._fd.lv + 1; }],
       ['選択activeを取得/そのLvへ', () => { this.skills.acquireOrLevel(this._fd.skill); this.skills.setLevel(this._fd.skill, this._fd.lv); this.updateHudSkills(); }],
-      ['選択activeの進化条件を達成', () => { const e = EVO[this._fd.skill]; if (!e) return; this.skills.acquireOrLevel(this._fd.skill); this.skills.setLevel(this._fd.skill, 8); this.passives.acquireOrLevel(e[1]); this.passives.setLevel(e[1], 4); this._refreshStatusPassives(); this.updateHudSkills(); }],
+      ['選択activeの進化条件を達成', () => { const e = EVO[this._fd.skill]; if (!e) return; this.skills.acquireOrLevel(this._fd.skill); this.skills.setLevel(this._fd.skill, 8); const aux = e[1]; if (DataManager.getSkill(aux)) { this.skills.acquireOrLevel(aux); this.skills.setLevel(aux, 4); } else { this.passives.acquireOrLevel(aux); this.passives.setLevel(aux, 4); } this._refreshStatusPassives(); this.updateHudSkills(); }],
       [() => `検証passive: ${this._fd.passive}（切替）`, () => { const i = PAS.indexOf(this._fd.passive); this._fd.passive = PAS[(i + 1) % PAS.length]; }],
       ['選択passive Lv+1', () => { this.passives.acquireOrLevel(this._fd.passive); this._refreshStatusPassives(); this.updateHudSkills(); }],
       [() => `最寄り敵へ冷気 ${this._fd.chill}（切替付与）`, () => { const seq = [0, 25, 50, 75, 100]; this._fd.chill = seq[(seq.indexOf(this._fd.chill) + 1) % seq.length]; const e = this._debugNearestEnemy(); if (e) { e._chill = this._fd.chill; e._chillSlow = this.freezeSys.slowFactor(this.statusFx.entityType(e), e._chill); if (e._chill > 0) this.statusFx.register('chill', e); } }],

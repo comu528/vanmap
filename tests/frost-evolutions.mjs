@@ -49,9 +49,10 @@ section('2. 進化レシピ（枠1・補助passive・活性数）');
 {
   const cat = buildCatalog({ skills, passives, evolutions, jobs, jobId: 'frost_mage', registeredIds: registeredSkillIds(), runtimeStateIds: skillsWithRuntimeState() });
   const recipes = evolutionRecipes(cat);
-  ok(recipes.length === 3, '氷術師の進化レシピは3種');
+  ok(recipes.length === 8, '氷術師の進化レシピは8種'); // M7-B で 3→8
   for (const r of recipes) {
     const e = EVO[r.evolutionId];
+    if (!e) continue; // M7-B の新規5種は frost-evolutions-wave2 で検証（本スイートは M7-A 3種を対象）
     ok(r.baseSkillId === e.base, `${r.evolutionId} の基礎が ${e.base}`);
     // 各進化は「基礎Lv8 ＋ 補助passive Lv4」で成立（active補助はなし＝枠を余計に消費しない）。
     ok(r.auxPassive.length === 1 && r.auxActive.length === 0, `${r.evolutionId} は補助passive1・補助active0`);

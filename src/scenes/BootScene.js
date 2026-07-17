@@ -309,5 +309,24 @@ export class BootScene extends Phaser.Scene {
     g = evi(0x9fe8ff); for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + 0.3; g.fillTriangle(8, 8, 8 + Math.cos(a) * 6, 8 + Math.sin(a) * 6, 8 + Math.cos(a + 0.5) * 5, 8 + Math.sin(a + 0.5) * 5); } done(g, 'icon_diamond_blizzard'); // ブリザード: 放射結晶
     g = evi(0x4fc3f7); g.lineStyle(2, 0x4fc3f7, 1); g.strokeCircle(8, 8, 6); g.strokeCircle(8, 8, 3); g.fillStyle(0xe1f5fe, 1); g.fillCircle(8, 8, 1.5); done(g, 'icon_absolute_zero_domain'); // 絶対零度: 大領域
     g = evi(0x80d8ff); g.fillRect(7, 1, 2, 14); g.fillTriangle(8, 0, 4, 5, 12, 5); g.fillStyle(0xe1f5fe, 1); g.fillCircle(5, 11, 1.5); g.fillCircle(11, 12, 1.5); done(g, 'icon_heaven_piercing_glacier'); // 天穿: 巨大槍＋氷片
+
+    // --- M7-B: 氷術師 active10種 ---
+    g = base(0xbde8ff); g.fillRect(4, 3, 1.5, 10); g.fillRect(8, 2, 1.5, 11); g.fillRect(12, 4, 1.5, 9); done(g, 'icon_icicle_volley');       // 氷柱斉射: 細柱3本
+    g = base(0x9fe8ff); g.lineStyle(1, 0x9fe8ff, 1); g.strokeCircle(8, 8, 6); for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2; g.fillStyle(0xe1f5fe, 1); g.fillCircle(8 + Math.cos(a) * 6, 8 + Math.sin(a) * 6, 1.6); } done(g, 'icon_frost_orbit'); // 氷晶環: 環＋氷晶
+    g = base(0x80d8ff); g.fillRect(2, 7, 12, 2); g.fillTriangle(14, 8, 10, 5, 10, 11); done(g, 'icon_freezing_ray');                          // 凍結光線: 横ビーム
+    g = base(0x4fc3f7); for (let i = 0; i < 5; i++) { const x = 3 + (i * 3) % 11; g.fillTriangle(x, 3 + (i % 2) * 2, x - 1.5, 7 + (i % 2) * 2, x + 1.5, 7 + (i % 2) * 2); } g.fillStyle(0x9fe8ff, 0.5); g.fillRect(2, 12, 12, 2); done(g, 'icon_hailstorm'); // 雹嵐: 降る粒＋地面
+    g = base(0x80d8ff); g.lineStyle(1, 0x80d8ff, 1); g.strokeCircle(8, 8, 5); g.fillStyle(0xe1f5fe, 1); g.fillCircle(8, 8, 2); g.lineStyle(1, 0xe1f5fe, 0.6); g.strokeCircle(8, 8, 7); done(g, 'icon_cryo_mine'); // 氷結地雷: 起爆感知
+    g = base(0xe1f5fe); g.fillCircle(8, 6, 3); g.fillTriangle(5, 8, 11, 8, 8, 14); g.fillStyle(0x80d8ff, 1); g.fillCircle(6, 5, 1); g.fillCircle(10, 5, 1); done(g, 'icon_frost_spirit'); // 雪精霊: 精霊
+    g = base(0x4dd0e1); g.lineStyle(1.5, 0xe1f5fe, 1); g.strokeRect(4, 3, 8, 11); g.fillStyle(0x80deea, 0.4); g.fillRect(6, 6, 4, 6); done(g, 'icon_ice_prison'); // 氷牢封印: 檻
+    g = base(0xb3e5fc); g.fillTriangle(2, 12, 8, 3, 14, 12); g.fillStyle(0xe1f5fe, 0.7); g.fillTriangle(5, 12, 8, 7, 11, 12); done(g, 'icon_avalanche'); // 雪崩奔流: 崩れ落ちる三角
+    g = base(0x80d8ff); g.lineStyle(1.5, 0xe1f5fe, 1); g.strokeCircle(8, 8, 6); g.beginPath(); g.moveTo(4, 8); g.lineTo(12, 8); g.strokePath(); done(g, 'icon_mirror_ice'); // 氷鏡結界: 鏡面
+    g = base(0x4fc3f7); g.fillStyle(0x80d8ff, 1); g.fillTriangle(8, 2, 3, 10, 13, 10); g.fillStyle(0xe1f5fe, 1); g.fillTriangle(8, 5, 5, 10, 11, 10); g.fillStyle(0x9fe8ff, 0.5); g.fillCircle(8, 13, 3); done(g, 'icon_glacier_drop'); // 氷河墜落: 落下氷塊＋予告
+
+    // --- M7-B: 氷術師 進化5種（二重輪郭で進化を示す） ---
+    g = evi(0xbde8ff); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; g.fillTriangle(8, 8, 8 + Math.cos(a) * 6, 8 + Math.sin(a) * 6, 8 + Math.cos(a + 0.3) * 5, 8 + Math.sin(a + 0.3) * 5); } done(g, 'icon_crystal_tempest'); // 天晶氷嵐: 放射結晶多数
+    g = evi(0x80d8ff); g.fillRect(2, 7, 12, 2); g.fillTriangle(14, 8, 10, 5, 10, 11); g.fillStyle(0xe1f5fe, 1); g.fillRect(6, 3, 1, 3); g.fillRect(10, 10, 1, 3); done(g, 'icon_absolute_zero_ray'); // 絶対零光: ビーム＋分岐
+    g = evi(0x4fc3f7); g.fillStyle(0xe1f5fe, 0.6); g.fillCircle(8, 8, 6); for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; g.fillStyle(0x80d8ff, 1); g.fillCircle(8 + Math.cos(a) * 4, 8 + Math.sin(a) * 4, 1.4); } done(g, 'icon_whiteout_cataclysm'); // 白魔大氷災: 大吹雪
+    g = evi(0xe1f5fe); g.lineStyle(1, 0x80deea, 1); g.strokeCircle(8, 8, 6); g.fillStyle(0xe1f5fe, 1); g.fillCircle(8, 5, 2); g.fillCircle(5, 10, 1.5); g.fillCircle(11, 10, 1.5); done(g, 'icon_frost_queen_court'); // 雪后氷霊陣: 陣＋霊
+    g = evi(0xb3e5fc); g.fillTriangle(1, 13, 6, 3, 11, 13); g.fillTriangle(6, 13, 11, 4, 15, 13); done(g, 'icon_world_end_avalanche'); // 終末氷河奔流: 二重の巨大波
   }
 }

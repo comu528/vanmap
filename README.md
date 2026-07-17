@@ -7,7 +7,7 @@
 npm・ビルド処理・バックエンド・データベースは一切使いません。Phaser 3.90.0 を CDN から読み込み、
 すべての素材（プレイヤー・敵・弾・エフェクト等）は JavaScript 上で動的生成しています。
 
-> ⚠️ **開発状況**: 現在 **Milestone 7-A**（2人目のジョブ「氷術師」＋汎用状態異常/凍結基盤）まで実装済みです。
+> ⚠️ **開発状況**: 現在 **Milestone 7-B**（氷術師のスキル拡張: active15種・進化8種）まで実装済みです。
 > M7-A では 2人目のジョブ **氷術師（frost_mage・氷属性）** と、火の魔女の炎上を含む**汎用の状態異常フレームワーク**
 > （`StatusEffectRegistry`/`StatusEffectManager`/`FreezeSystem`）・**冷気→凍結→粉砕**と**ボス氷砕（frostbreak）**を追加し、
 > 拠点のジョブ育成タブを**ジョブ選択画面**へ拡張しました。火の魔女（active30/進化18/passive4）は不変で、火と氷の**属性反応は未実装**
@@ -46,6 +46,7 @@ npm・ビルド処理・バックエンド・データベースは一切使い�
 | **M6-E** | 火の魔女ビルド完成・第3波: 新 active 5種（火葬の墓標/炎脈走破/三角焔陣/灼熱共鳴/炉心暴走）＋新進化5種（冥炎大霊廟/大地灼断/六芒煉獄陣/万象炎鳴/終末炉心）。**active 30種・進化 18種・passive 4種・Job Lv1〜100 に完成**。全 active30/進化18の監査（castMode・echo/clonePolicy・主発動イベント統一・ダメージタグ・Lv80発射数+1対象を明示、`SkillAudit` で一元管理）・敵死亡イベント履歴・炎上中敵の索引・共鳴段階/炉心熱量/オーバーヒート/終末状態・品質別 skillCaps 追加・F7検証。orbiting_flame/fire_spirit の主発動イベント監査修正（挙動不変） | ✅ 実装済み |
 | **M6-F** | 通常プレイ整備・バランス検証基盤（**新スキルなし**）: スキルカタログの実データ検証（`SkillCatalog`・孤立/未登録/参照不整合0）・抽選シミュレーター（`DraftBalanceAnalyzer`・本番の SkillDraftManager+SeededRandom を直接駆動）・軽いシナジー補助（`skill-config.synergy`・レアリティ重みへ乗算・決定論不変・data で無効化可）・ローカル戦闘テレメトリ（`CombatTelemetry`/`RunBalanceSummary`・外部送信なし・profile 加算・debugRun 分離・低優先保存）・開発用バランス警告（`BalanceWarnings`/`data/balance-thresholds.json`）・通常プレイ検証モード（`BalancePlaytest`・**F8**・profile 不変・常に debugRun）・fallback 定数の JSON 移行。既存15＋新5＝**全20スイート通過**。**save_version v6 維持** | ✅ 実装済み |
 | **M7-A** | 2人目のジョブ **氷術師（frost_mage）** ＋汎用状態異常/凍結基盤: 氷術師（active5/passive4/進化3・Job Lv1〜100）・拠点ジョブ育成タブを**ジョブ選択画面**へ拡張（`profile.selectedJobId`・進行中周回はジョブ変更不可）・**汎用状態異常フレームワーク**（`StatusEffectRegistry`/`StatusEffectManager`/`FreezeSystem`・`data/status-effects.json`）・**冷気(chill)→凍結(frozen)→粉砕(shatter)**・**ボス氷砕(frostbreak)**・凍結耐性/氷砕脆弱・炎上(burning)の汎用索引への移行（数値不変・`Enemy.ignite` 互換）・`JobModifierManager` を複数属性へ拡張（primaryElement 一致時のみ属性補正）・状態異常専用 SeededRandom（`active_run.statusRng`）・HUD 氷砕ゲージ・F9 状態デバッグ・氷統計テレメトリ。**火の魔女は不変**・**火氷の属性反応は未実装**・**save_version v6 維持**。詳細は `docs/jobs.md`・`docs/status-effects.md` | ✅ 実装済み |
+| **M7-B** | **氷術師のスキル拡張**: active を10種追加して**計15種**、進化を5種追加して**計8種**（passive は4種のまま）。新 active10種（氷柱斉射/氷晶環/凍結光線/雹嵐/氷結地雷/雪精霊/氷牢封印/雪崩奔流/氷鏡結界/氷河墜落）・新進化5種（天晶氷嵐/絶対零光/白魔大氷災/雪后氷霊陣/終末氷河奔流）。全て `data/skills.json` の Lv1〜8 データ駆動・冷気/凍結/粉砕/ボス氷砕は既存 `StatusEffectManager` 経路・独自凍結タイマーなし・**Math.random 不使用（決定論）**・castMode/mainCastEvent/echo/clonePolicy/lv80/runtimeState を宣言・品質別 skillCaps 追加。**Lv80発射数対象は新規で `icicle_volley` のみ・新進化5種は対象外**。全CD/周期/設置/防御/遅延型に必要な runtimeState を保存（`glacier_drop`=pendingImpact / `mirror_ice`=durability・再開の無料再発動/二重生成を防止）。**火の魔女30/18・氷術師既存5/3は非回帰・save_version v6 維持**。詳細は `docs/jobs.md`・`docs/skill-catalog.md` | ✅ 実装済み |
 
 ### 遊びの流れ（M4）
 タイトル →「はじめから / 拠点」→ **拠点**（恒久強化・難易度・熟練度・**転生**・**魂炎強化**）→「戦闘開始」→
@@ -457,11 +458,16 @@ active4枠: 進化平均1.27・≥1=86.0%・≥2=36.5% / active6枠: 2.165・98.
 火の魔女（active30/進化18/passive4/Job Lv1〜100）は**不変**で、抽選/枠/パッシブ/進化/ジョブ育成（M6-A〜M6-F）の共通経路を
 そのまま再利用しています。詳細は `docs/jobs.md`・`docs/status-effects.md`・`docs/data-format.md`。**save_version は v6 のまま**。
 
-### 氷術師（frost_mage）
-- active5: 氷晶弾 `frost_shard`（初期）/ 氷輪爆 `frost_nova` / 氷河槍 `glacial_lance` / 永久凍土 `permafrost_field` / 氷壁 `ice_wall`。
-- passive4（氷専用）: 氷晶増幅 `frost_amplification`（氷Dmg）/ 急速冷却 `rapid_freezing`（氷CD）/ 凍域拡張 `frozen_expansion`（範囲）/ 余寒残留 `lingering_cold`（氷状態持続＋冷気減衰緩和）。
-- 進化3: ダイヤモンドブリザード（氷晶弾+急速冷却）/ 絶対零度領域（氷輪爆+凍域拡張）/ 天穿氷河槍（氷河槍+氷晶増幅）。
+### 氷術師（frost_mage・active15/passive4/進化8・Job Lv1〜100）
+- active15（M7-A の5種＋M7-B の10種）:
+  - M7-A: 氷晶弾 `frost_shard`（初期）/ 氷輪爆 `frost_nova` / 氷河槍 `glacial_lance` / 永久凍土 `permafrost_field` / 氷壁 `ice_wall`。
+  - M7-B: 氷柱斉射 `icicle_volley`（連射 projectile・Lv80発射数対象）/ 氷晶環 `frost_orbit`（周回接触）/ 凍結光線 `freezing_ray`（ビーム・冷気ランプ）/ 雹嵐 `hailstorm`（周期範囲）/ 氷結地雷 `cryo_mine`（反応起爆・粉砕）/ 雪精霊 `frost_spirit`（召喚）/ 氷牢封印 `ice_prison`（制御・条件付き凍結）/ 雪崩奔流 `avalanche`（波・押し流し）/ 氷鏡結界 `mirror_ice`（防御・敵弾吸収＋反撃）/ 氷河墜落 `glacier_drop`（遅延大範囲・legendary）。
+- passive4（氷専用・**M7-B で追加なし**）: 氷晶増幅 `frost_amplification`（氷Dmg）/ 急速冷却 `rapid_freezing`（氷CD）/ 凍域拡張 `frozen_expansion`（範囲）/ 余寒残留 `lingering_cold`（氷状態持続＋冷気減衰緩和）。
+- 進化8（M7-A の3種＋M7-B の5種）:
+  - M7-A: ダイヤモンドブリザード（氷晶弾+急速冷却）/ 絶対零度領域（氷輪爆+凍域拡張）/ 天穿氷河槍（氷河槍+氷晶増幅）。
+  - M7-B: 天晶氷嵐 `crystal_tempest`（氷柱斉射+氷晶増幅）/ 絶対零光 `absolute_zero_ray`（凍結光線+急速冷却）/ 白魔大氷災 `whiteout_cataclysm`（雹嵐+余寒残留）/ 雪后氷霊陣 `frost_queen_court`（雪精霊+凍域拡張）/ 終末氷河奔流 `world_end_avalanche`（雪崩奔流+氷壁）。**新規進化5種は Job Lv80発射数増加の対象外**。
 - 基本成長: 氷Dmg +0.35%/Lv・冷気 +0.30%/Lv・粉砕 +0.40%/Lv。到達報酬 Lv5〜100（凍結狩り/氷砕連鎖/氷弾増殖/絶対零度 等）。
+- **Job Lv80「発射数+1」の対象は明示管理**（`lv80ProjectileTarget`）: 氷では `frost_shard`/`glacial_lance`/`icicle_volley` のみ（projectile タグだけで自動適用しない）。
 
 ### ジョブ選択
 拠点「ジョブ育成」タブが火の魔女／氷術師の**カード表示＋選択画面**へ拡張。`profile.selectedJobId`（既定 `flame_witch`）。
@@ -485,8 +491,10 @@ fire 専用から複数ジョブ・複数属性へ拡張。**primaryElement 一�
 
 ### 保存・デバッグ・属性反応
 `active_run` へ `jobId`/`jobElement`/`resolvedJobModifiers`/`statusRng`（状態RNGの cursor）/ボス frostbreak 状態（gauge/breaks/vulnRemain）を保存
-（個々の敵の冷気/凍結/氷弾位置は保存せず再開時に安全再構築）。氷スキル8種は既存の `skillRuntime`（`serializeState={cdLeft}`）へ**残りCDだけ**を保存し、
-**再読込での CD 全回復・即時再発動・凍土/氷壁/領域の二重生成を防ぐ**（火の runtimeState には影響しない）。`?debug=1` の **F9** で状態異常・氷術師検証パネル（既存 F1〜F8 と非競合）。
+（個々の敵の冷気/凍結/氷弾位置は保存せず再開時に安全再構築）。氷スキルは既存の `skillRuntime`（`serializeState`）へ**残りCD等だけ**を保存し、
+**再読込での CD 全回復・即時再発動・凍土/氷壁/領域/地雷/召喚/落下の二重生成を防ぐ**（火の runtimeState には影響しない）。M7-B ではさらに
+`glacier_drop` が落下待機（`pendingImpactLeft/X/Y`）を、`mirror_ice` が `cdLeft/activeLeft/durabilityLeft` を保存します。常設型（`frost_orbit`/`frost_spirit`/`frost_queen_court`）は
+CDを持たず**再開時にレベル数へ一度だけ再構築**（二重生成しない）。`?debug=1` の **F9** で状態異常・氷術師検証パネル（active15/進化8を切替・取得・進化条件達成・既存 F1〜F8 と非競合）。
 **火と氷の属性反応は M7-A では未実装**（火で凍結解除/氷で消火/蒸発/融解なし・炎上と冷気/凍結は独立共存）。将来のため付与時に source element を保持します。
 
 ## セーブについて（M5-B）

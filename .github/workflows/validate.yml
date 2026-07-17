@@ -93,3 +93,15 @@ jobs:
         run: node tests/status-save-nonregression.mjs
       - name: Frost cooldown persistence tests
         run: node tests/frost-cooldown-save.mjs
+
+      # 氷術師 第2波（M7-B・active10種・進化5種・ポリシー監査・runtime保存・決定論・Node.js 標準機能のみ）。
+      - name: Frost skills wave2 tests
+        run: node tests/frost-skills-wave2.mjs
+      - name: Frost evolutions wave2 tests
+        run: node tests/frost-evolutions-wave2.mjs
+      - name: Frost policy audit tests
+        run: node tests/frost-policy-audit.mjs
+      - name: Frost runtime save wave2 tests
+        run: node tests/frost-runtime-save-wave2.mjs
+      - name: Frost determinism wave2 tests
+        run: node tests/frost-determinism-wave2.mjs

@@ -6,7 +6,9 @@
       "displayName": "火の魔女",
       "element": "fire",
       "iconKey": "icon_fireball",
-      "statusEffects": ["burning"],
+      "statusEffects": [
+        "burning"
+      ],
       "description": "火属性の自動攻撃を主体とする基本ジョブ。近接を避けつつ大量の敵を焼き払う。",
       "initialActiveSkills": [
         "fireball"
@@ -89,7 +91,12 @@
       "displayName": "氷術師",
       "element": "ice",
       "iconKey": "icon_frost_shard",
-      "statusEffects": ["chill", "frozen", "freeze_immunity", "frostbreak_vulnerability"],
+      "statusEffects": [
+        "chill",
+        "frozen",
+        "freeze_immunity",
+        "frostbreak_vulnerability"
+      ],
       "description": "冷気を蓄積して敵を凍結し、凍った敵を粉砕する制圧型ジョブ。ボスには氷砕ゲージを溜めて硬直と氷弱点を突く。",
       "initialActiveSkills": [
         "frost_shard"
@@ -100,7 +107,17 @@
         "frost_nova",
         "glacial_lance",
         "permafrost_field",
-        "ice_wall"
+        "ice_wall",
+        "icicle_volley",
+        "frost_orbit",
+        "freezing_ray",
+        "hailstorm",
+        "cryo_mine",
+        "frost_spirit",
+        "ice_prison",
+        "avalanche",
+        "mirror_ice",
+        "glacier_drop"
       ],
       "passiveSkillPool": [
         "frost_amplification",
@@ -111,7 +128,12 @@
       "evolutionPool": [
         "diamond_blizzard",
         "absolute_zero_domain",
-        "heaven_piercing_glacier"
+        "heaven_piercing_glacier",
+        "crystal_tempest",
+        "absolute_zero_ray",
+        "whiteout_cataclysm",
+        "frost_queen_court",
+        "world_end_avalanche"
       ],
       "baseActiveSlots": 4,
       "basePassiveSlots": 4,
