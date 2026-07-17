@@ -44,6 +44,10 @@ export class HUD {
     this.bossName = scene.add.text(GAME_WIDTH / 2, 44, '', { fontSize: '9px', color: '#ff8a80' }).setOrigin(0.5, 0).setScrollFactor(0).setVisible(false);
     this.bossBg = scene.add.rectangle(GAME_WIDTH / 2, 56, 280, 8, 0x3e2723).setScrollFactor(0).setVisible(false);
     this.bossBar = scene.add.rectangle(GAME_WIDTH / 2 - 139, 56, 278, 6, 0xff5252).setOrigin(0, 0.5).setScrollFactor(0).setVisible(false);
+    // M7-A: ボス氷砕ゲージ（氷術師でボス出現時のみ・HP バー直下）。ボス不在時は非表示。
+    this.bossFrostBg = scene.add.rectangle(GAME_WIDTH / 2, 65, 280, 6, 0x14343e).setScrollFactor(0).setVisible(false);
+    this.bossFrostBar = scene.add.rectangle(GAME_WIDTH / 2 - 139, 65, 278, 4, 0x4fc3f7).setOrigin(0, 0.5).setScrollFactor(0).setVisible(false);
+    this.bossFrostText = scene.add.text(GAME_WIDTH / 2, 71, '', { fontSize: '7px', color: '#9fe8ff' }).setOrigin(0.5, 0).setScrollFactor(0).setVisible(false);
   }
 
   showBoss(name) {
@@ -60,6 +64,17 @@ export class HUD {
     this.bossName.setVisible(false);
     this.bossBg.setVisible(false);
     this.bossBar.setVisible(false);
+    this.hideBossFrost();
+  }
+
+  // M7-A: ボス氷砕ゲージ表示（現在値/必要値・脆弱中は色変化・break回数）。
+  showBossFrost() { this.bossFrostBg.setVisible(true); this.bossFrostBar.setVisible(true); this.bossFrostText.setVisible(true); }
+  hideBossFrost() { this.bossFrostBg.setVisible(false); this.bossFrostBar.setVisible(false); this.bossFrostText.setVisible(false); }
+  updateBossFrost(gauge, threshold, breaks, vuln) {
+    const ratio = threshold > 0 ? Math.max(0, Math.min(1, gauge / threshold)) : 0;
+    this.bossFrostBar.width = 278 * ratio;
+    this.bossFrostBar.fillColor = vuln ? 0x80deea : 0x4fc3f7;
+    this.bossFrostText.setText(vuln ? `氷砕脆弱中！ break${breaks}` : `氷砕 ${Math.round(gauge)}/${Math.round(threshold)}  break${breaks}`);
   }
 
   setJob(name, level) { this.jobText.setText(`${name} Job Lv.${level}`); }

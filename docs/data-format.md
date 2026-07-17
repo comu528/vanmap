@@ -633,3 +633,146 @@ active30種化に伴い進化相手（補助スキル）が候補へ極端に出
 - **コードに残る同名の `*_SAFE` 定数はゲームバランス値ではなく、「JSON 欠落時の NaN/undefined 回避のための安全既定」**である。
   通常は JSON 側の値が使われる（**重複定義ではない**）。バランス調整は JSON 側で行う。
 - 検証: 上記キーが対象スキル/進化に存在し有限数・`castPulseMs`/`summonPulseMs`/`doomFireMs`/`doomBlastMs` が正、各 width が正。
+
+## Milestone 7-A: 2人目のジョブ・状態異常/凍結（`status-effects.json` 新規／`jobs`・`job-progression`・`skills`・`passives`・`skill-evolutions`・`balance.skillCaps` を加算拡張）
+
+火の魔女は不変のまま、氷術師（frost_mage）と汎用状態異常フレームワークを追加する。数値は `data/status-effects.json` に集約し、
+コードへ散在させない。**`saveVersion` は 6 のまま**。属性反応は未実装。
+
+### status-effects.json（新規）
+```jsonc
+{
+  "version": 1,
+  "statusEffects": [                        // 状態異常の定義（将来 poison/bleed/shock… を追加できる構造）
+    {
+      "id": "chill", "displayName": "冷気",
+      "kind": "scalar",                     // timed|scalar|damageOverTime|control|immunity|vulnerability
+      "element": "ice", "tags": ["ice","slow"],
+      "duration": 0, "maxDuration": 0,      // scalar は蓄積値で時間管理しない
+      "stackMode": "accumulate",            // accumulate|refresh
+      "refreshPolicy": "accumulate",        // accumulate|refresh|noExtend|extendIfLonger
+      "tickRate": 0, "decayRate": 12,       // decayRate: 毎秒の自然減衰（冷気）
+      "indexable": true,                    // StatusEffectManager が索引する
+      "affectedEntityTypes": ["normal","elite"], // 未指定は全種別。ボスは含めない
+      "bossPolicy": "convertToGauge",       // normal|immune|convertToGauge
+      "dispelPolicy": "onDeath", "iconKey": "status_chill", "enabled": true
+    }
+    // burning / frozen / freeze_immunity / frostbreak_vulnerability も同形式
+  ],
+  "freeze": {                               // 冷気→減速→凍結判定の設定（通常敵/エリートで別プロファイル）
+    "chanceFromChill": 0.45,                // (chill/chillCap) に掛かる凍結寄与
+    "sameHitGroupMaxFreezeChecks": 1,       // 同 hitGroup×同対象の凍結判定回数上限（永久凍結防止）
+    "slowCurveExponent": 1.0, "chillDecayGraceMs": 350,
+    "normal": {
+      "chillCap": 100, "guaranteedFreezeThreshold": 100, "maxSlow": 0.50,
+      "baseFreezeDuration": 1250, "freezeChanceCap": 0.45, "postFreezeImmunity": 1200,
+      "immunityChillGainMultiplier": 0.25, "chillGainMultiplier": 1.0,
+      "freezeDurationMultiplier": 1.0, "freezeOnUnfreezeChill": 0, "decayRate": 12
+    },
+    "elite": { "chillCap": 130, "guaranteedFreezeThreshold": 130, "maxSlow": 0.35,
+      "freezeChanceCap": 0.25, "postFreezeImmunity": 2000, "chillGainMultiplier": 0.65,
+      "freezeDurationMultiplier": 0.60, ... }        // エリートは冷気獲得/凍結時間/最大減速を軽減
+  },
+  "bossFrostbreak": {                       // ボス専用の氷砕ゲージ（冷気を変換して溜める）
+    "baseThreshold": 250, "thresholdGrowthPerBreak": 1.30, "maximumThresholdMultiplier": 3.0,
+    "breakStaggerDuration": 350, "vulnerabilityDuration": 4000,
+    "iceDamageTakenMultiplierDuringVulnerability": 1.15, "cooldownAfterBreak": 1500,
+    "gaugeConversionMultiplier": 1.0, "minThreshold": 120
+  },
+  "shatter": {                              // 凍結敵の粉砕ダメージ（固定＋スキル威力＋最大HP係数・上限つき）
+    "baseDamage": 30, "skillPowerCoefficient": 1.4,
+    "maxHpCoefficient": 0.10, "maxHpDamageCap": 120, "absoluteCap": 600,
+    "explosionRadius": 44, "explosionDamageFactor": 0.5, "recursionForbidden": true
+  }
+}
+```
+- **凍結確率式**: `freezeChance = baseFreezeChance×procCoefficient + (chill/chillCap)×chanceFromChill×procCoefficient`、
+  対象別 `freezeChanceCap` でクランプ、`chill >= guaranteedFreezeThreshold` で確定凍結。
+- **粉砕**: `baseDamage + skillPower×skillPowerCoefficient + min(maxHp×maxHpCoefficient, maxHpDamageCap)`、`absoluteCap` でクランプ。
+- 検証（`validate-data.mjs`）: `statusEffects[].kind` が既知 enum・`element`・`bossPolicy` が既知値・`indexable`/`enabled` が真偽値、
+  `freeze.normal`/`freeze.elite` の必須項目が正・`maxSlow`/`freezeChanceCap` が 0..1・`bossFrostbreak`/`shatter` の各係数が正/非負。
+  数値は非有限（NaN）を拒否。詳細な意味は `docs/status-effects.md`。
+
+### jobs.json（frost_mage を追加）
+既存の `flame_witch` に加え `frost_mage` を追加。各ジョブへ `element` と、そのジョブが扱う `statusEffects`（id 配列）を持たせる。
+```jsonc
+{
+  "id": "frost_mage", "displayName": "氷術師", "element": "ice", "iconKey": "icon_frost_shard",
+  "statusEffects": ["chill", "frozen", "freeze_immunity", "frostbreak_vulnerability"],
+  "initialActiveSkills": ["frost_shard"], "initialPassiveSkills": [],
+  "activeSkillPool": ["frost_shard","frost_nova","glacial_lance","permafrost_field","ice_wall"],
+  "passiveSkillPool": ["frost_amplification","rapid_freezing","frozen_expansion","lingering_cold"],
+  "evolutionPool": ["diamond_blizzard","absolute_zero_domain","heaven_piercing_glacier"],
+  "baseActiveSlots": 4, "basePassiveSlots": 4, "tags": ["ice","mage","control"], "unlockCondition": null
+}
+```
+検証: `element`/`statusEffects` が存在・初期スキルが各プールに存在・プール ID がカタログ/進化に存在・`statusEffects` の id が status-effects.json に実在。
+
+### job-progression.json（frost_mage を追加）
+`jobs.frost_mage` を追加。XP曲線/周回報酬は火の魔女と同構造で、`perLevelBonuses` と `milestones` が氷用。
+```jsonc
+"frost_mage": {
+  "jobId": "frost_mage", "element": "ice", "levelCap": 100,
+  "xpCurve": { "quad": 25, "lin": 75 }, "xpReward": { /* 火の魔女と同じ係数 */ },
+  "perLevelBonuses": {
+    "iceDamagePerLevel": 0.0035,   // 氷属性ダメージ +0.35%/Lv（elementDamageMult）
+    "chillPerLevel": 0.0030,       // 冷気付与量 +0.30%/Lv（statusPowerMult）
+    "shatterPerLevel": 0.0040      // 粉砕 +0.40%/Lv（shatterDamageMult）
+  },
+  "milestones": [
+    { "level": 5,  "type": "elementDamageMult", "value": 0.05 },   // 氷Dmg +5%
+    { "level": 10, "type": "statusPowerMult",   "value": 0.10 },   // 冷気 +10%
+    { "level": 40, "type": "statusTargetDamage", "chilled": 0.10, "frozen": 0.20 }, // 凍結狩り（frozen 優先）
+    { "level": 50, "type": "shatterOnFrozenKill", "radiusFactor": 1.0, "powerFactor": 0.6 }, // 氷砕連鎖
+    { "level": 80, "type": "projectileCount", "value": 1 },        // 氷弾増殖（projectile タグのみ）
+    { "level": 100,"type": "absoluteZero", "normalThresholdReduction": 0.20,
+      "bossThresholdReduction": 0.15, "frozenDurationMult": 0.20 } // 絶対零度（安全下限維持）
+    // Lv20/30/60/70/90 は cooldownMult/rerollBonus/evolvedDamageMult/rarityWeight/cooldownMult（火と共通 type）
+  ]
+}
+```
+検証: `jobId` が jobs.json と整合・`element` が既知・新 milestone type（`elementDamageMult`/`statusPowerMult`/`statusTargetDamage`/
+`shatterOnFrozenKill`/`absoluteZero`）が既知 enum・type 固有フィールドの型/範囲（`absoluteZero` の各 reduction が 0..1 等）。
+
+### skills.json（氷 active5種）／passives.json（氷 passive4種）／skill-evolutions.json（氷進化3種）
+氷 active は既存の active メタ（`category`/`element:"ice"`/`rarity`/`levels`/`evolutionBranches`/cast・監査フィールド）に加え、
+**スキル単位の `procCoefficient`**（凍結寄与係数・永久凍結防止）を持ち、`levels[]` に氷用フィールドを持つ。
+```jsonc
+{ "id": "frost_shard", "element": "ice", "rarity": "common", "jobs": ["frost_mage"],
+  "procCoefficient": 0.9,                 // 命中1回あたりの凍結寄与（多段/広範囲ほど低く）
+  "lv80ProjectileTarget": true,           // 氷 Lv80 発射数+1 対象（独立弾のみ）
+  "evolutionBranches": ["diamond_blizzard"],
+  "levels": [ { "level": 1, "damage": 9, "cooldown": 850, "count": 1, "projectileSpeed": 300,
+                "chillAmount": 12,          // 命中で加える冷気量
+                "baseFreezeChance": 0.05,   // 冷気0でも凍る基礎確率
+                "pierce": 0 }, ... ] }
+```
+- 役割別 `levels` フィールド例: frost_shard/glacial_lance(projectileSpeed/pierce/chillAmount/baseFreezeChance) /
+  frost_nova(radius/chillAmount/shatterMultiplier/…) / permafrost_field(radius/duration/tickChill/…) / ice_wall(segments/duration/hp/…)。
+  `shatterMultiplier` は粉砕系スキルの威力倍率。値は JSON にのみ持つ。
+- 氷 passive4（`passives.json`）: 氷晶増幅（`iceDamage` +6%/Lv・addMult）/ 急速冷却（`cooldown` −4%/Lv・subMult）/
+  凍域拡張（`area` +5%/Lv・addMult）/ 余寒残留（`iceStatusDuration` +8%/Lv・addMult ＋ `chillDecay` −5%/Lv・subMult＝冷気減衰緩和）。
+  `iceDamage`/`iceStatusDuration`/`chillDecay` を `skill-config.modifierKeys` に追加。
+- 氷進化3（`skill-evolutions.json`）: `diamond_blizzard`（frost_shard Lv8 ＋ rapid_freezing Lv4）/
+  `absolute_zero_domain`（frost_nova Lv8 ＋ frozen_expansion Lv4）/ `heaven_piercing_glacier`（glacial_lance Lv8 ＋ frost_amplification Lv4）。
+  補助条件は active∪passive（`auxSkillIds`）に実在・`replacementSkillId` は基礎と衝突しない。
+- 検証（`frost-skills.mjs`/`frost-evolutions.mjs`/`multi-job-draft.mjs`）: 氷 active の `element:"ice"`・`procCoefficient` が 0<..≤1・
+  毎レベル成長・`jobs:["frost_mage"]`・プール所属、氷進化の `canEvolve`、**火スキルが氷術師の抽選候補に出ない/氷スキルが火の魔女に出ない**（ジョブ別プール）。
+
+### balance.skillCaps（状態異常/氷スキルの品質別上限を追加）
+M6-E までの `skillCaps` へ品質別（`low ≤ medium ≤ high ≤ ultra`・非負整数）の新キーを加算する。
+```jsonc
+"skillCaps": {
+  /* …既存キー… */
+  "maxStatusApplicationsPerFrame": {...}, "maxFreezeChecksPerFrame": {...}, "maxFrozenEnemies": {...},
+  "maxShattersPerFrame": {...}, "maxShatterProjectiles": {...}, "maxStatusIndexEntries": {...},
+  "maxFrostShards": {...}, "maxFrostNovaTargetsPerFrame": {...}, "maxGlacialLances": {...},
+  "maxPermafrostFields": {...}, "maxPermafrostTicksPerFrame": {...}, "maxIceWalls": {...},
+  "maxIceWallSegments": {...}, "maxIceWallCollisionsPerFrame": {...}, "maxDiamondBlizzardProjectiles": {...},
+  "maxAbsoluteZeroDomains": {...}, "maxAbsoluteZeroShattersPerFrame": {...},
+  "maxHeavenGlacierFragments": {...}, "maxBossFrostbreaksPerFrame": {...}
+}
+```
+- `maxStatusIndexEntries` は状態索引の登録上限（到達時は新規付与をスキップ・**burning は上限なし**）。
+  `maxBossFrostbreaksPerFrame` は 1（同一フレームに複数の氷砕を起こさない）。`DataManager.skillCap(name, quality, fallback)` で取得。
+- 検証: 全キーが品質順で単調非減少・非負整数。**上限到達でも凍結/粉砕/氷砕の判定は消さず、装飾を先に削る**。

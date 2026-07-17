@@ -385,6 +385,44 @@ Milestone 1 は実装済み。以下は **Milestone 2 以降の設計と作業�
 
 ---
 
+## Milestone 7-A — 2人目のジョブ「氷術師」＋状態異常/凍結基盤【実装済み】
+
+火の魔女（active30/進化18/passive4/Job Lv1〜100）を**不変**のまま、2人目のジョブ **氷術師（frost_mage・氷属性）** と、
+火の魔女の炎上を含む**汎用の状態異常フレームワーク**を追加した。抽選/枠/パッシブ/進化/ジョブ育成（M6-A〜M6-F）の共通経路を
+再利用し、**火氷の属性反応は実装しない**（炎上と冷気/凍結は独立共存）。**save_version は v6 のまま**。詳細は `docs/jobs.md`・`docs/status-effects.md`。
+
+### 氷術師（frost_mage・氷属性・Job Lv1〜100）
+- [x] active5（氷晶弾/氷輪爆/氷河槍/永久凍土/氷壁）・passive4（氷晶増幅/急速冷却/凍域拡張/余寒残留）・進化3（ダイヤモンドブリザード/絶対零度領域/天穿氷河槍）。`jobs.json` に frost_mage、REGISTRY へ各挙動クラス登録・仮アイコン。
+- [x] 基本成長（氷Dmg+0.35%/Lv・冷気+0.30%/Lv・粉砕+0.40%/Lv）・到達報酬 Lv5〜100（凍結狩り/氷砕連鎖/氷弾増殖/絶対零度 等）を `job-progression.json` に集約。
+
+### ジョブ選択・分離
+- [x] 拠点「ジョブ育成」タブを火の魔女／氷術師の**カード表示＋選択画面**へ拡張。`profile.selectedJobId`（既定 flame_witch）。**進行中周回はジョブ変更不可**（次の新規周回から有効）。
+- [x] `active_run.jobId`/`jobElement` で周回ジョブを固定。ジョブごとにスキルプール／Job XP／Job Lv／統計を**完全分離**。
+
+### 汎用状態異常フレームワーク（`data/status-effects.json`）
+- [x] `StatusEffectRegistry`（照会）/`StatusEffectManager`（適用・索引・更新・解除・状態異常専用 SeededRandom）/`FreezeSystem`（凍結確率・冷気減速・ボス氷砕ゲージ・粉砕の純計算）。M7-A の正式状態: burning/chill/frozen/freeze_immunity/frostbreak_vulnerability。
+- [x] 既存の炎上(burning)を汎用索引へ移行（ダメージ/持続/灼熱共鳴/万象炎鳴/統計は不変・`Enemy.ignite` 互換経路維持・burning は索引上限なし）。
+- [x] 冷気→減速（通常最大50%/エリート35%・ボスは減速なし）・自然減衰（余寒残留で緩和・下限あり）。凍結（確率式＋確定閾値・多段は低 procCoefficient＋判定回数上限で永久凍結防止・noExtend・凍結中もダメージ可・解除後 freeze_immunity）。
+- [x] ボス氷砕(frostbreak)（冷気をゲージへ変換・閾値で硬直＋氷砕脆弱×1.15＋ゲージリセット・break 毎に閾値×1.30 上限×3.0・HUD ゲージ表示）。粉砕(shatter)（凍結中の通常敵/エリートへ・固定+スキル威力+最大HP係数・上限つき・再帰なし・ボスは frostbreak で代替）。
+- [x] `JobModifierManager` を複数ジョブ・複数属性へ拡張（primaryElement 一致時のみ属性補正・火の魔女の補正は同値維持）。
+- [x] `active_run` へ jobElement/statusRng(cursor)/ボス frostbreak 状態 を保存。品質別 skillCaps に状態異常/氷スキル上限追加。F9 状態デバッグ。テレメトリへ氷統計フィールド追加（ResultScene に表示・debugRun 分離）。
+- [x] 新規テスト: status-effects/freeze-system/multi-job-selection/frost-job-progression/frost-skills/frost-evolutions/multi-job-draft/status-save-nonregression（`validate.yml` にステップ追加）。
+
+### M7-A で**実装しない**もの（明示的に対象外）
+- [ ] 氷術師の active 6種目以降・氷 passive の追加・氷 legendary・限界突破（Lv8超）
+- [ ] 3人目以降のジョブ・ジョブ間継承（`futureInheritanceSettings`/`extraAllowedIds` は拡張口のみ）
+- [ ] **火と氷の属性反応**（火で凍結解除／氷で消火／蒸発／融解・炎上と冷気/凍結は独立共存のまま。付与時の source element のみ保持）
+- [ ] **転生レガシー・他ジョブへの効果持ち越し**（複数ジョブが揃ったので次に設計候補）
+- [ ] プレイヤー側の状態異常（被凍結など）・氷属性の敵/ボス・新難易度
+
+### 次のマイルストーン候補
+- [ ] **氷術師の拡張**（active/passive/進化の追加・氷ビルドの多様化）
+- [ ] **3人目のジョブ**（雷/毒 など新属性・`StatusEffectManager` に新状態を追加）
+- [ ] **属性反応**（火⇄氷 など状態異常間の相互作用・付与時の source element を活用）
+- [ ] **転生レガシー**（複数ジョブをまたぐ恒久継承の設計）
+
+---
+
 ## 拡張余地（今後）
 - [ ] 周回長の拡張（10分/15分/無限モード）
 - [ ] 追加の敵・ボス

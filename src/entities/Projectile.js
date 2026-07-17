@@ -27,6 +27,17 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     this.element = 'fire';
     this.tag = null;            // ダメージタグ（sourceCategory/isExplosion 等）
     this.speed = 0;
+    // M7-A: 氷属性の状態異常（命中時に冷気付与→凍結判定）。
+    this.chillAmount = 0;
+    this.baseFreezeChance = 0;
+    this.procCoefficient = 1;
+    this.hitGroupId = null;      // 同一発動の凍結判定回数上限に使う
+    this.bonusPerChill = 0;      // 冷気1あたりの追加ダメージ倍率（氷槍）
+    this.frozenBonus = 0;        // 凍結中の敵への追加ダメージ倍率（ダイヤモンドブリザード）
+    this.shatterOnFrozen = false;// 凍結中の敵へ命中したら粉砕（氷槍・氷河槍）
+    this.shatterMultiplier = 1;
+    this.fragmentCount = 0;      // 粉砕地点から飛散する小型氷片の数（天穿氷河槍・氷片から再粉砕しない）
+    this.fragmentDamageFactor = 0;
     // 追尾
     this.homingRate = 0;        // rad/ms
     this.homingSpeed = 0;
@@ -85,6 +96,17 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     this.owner = opts.owner || null;
     this.tag = opts.tag || null;
     this.speed = speed;
+    // M7-A: 氷属性の状態異常フィールド（弾ごとに保持）。
+    this.chillAmount = opts.chillAmount || 0;
+    this.baseFreezeChance = opts.baseFreezeChance || 0;
+    this.procCoefficient = opts.procCoefficient != null ? opts.procCoefficient : 1;
+    this.hitGroupId = opts.hitGroupId != null ? opts.hitGroupId : null;
+    this.bonusPerChill = opts.bonusPerChill || 0;
+    this.frozenBonus = opts.frozenBonus || 0;
+    this.shatterOnFrozen = !!opts.shatterOnFrozen;
+    this.shatterMultiplier = opts.shatterMultiplier || 1;
+    this.fragmentCount = opts.fragmentCount || 0;
+    this.fragmentDamageFactor = opts.fragmentDamageFactor || 0;
     // 追尾
     this.homingRate = opts.homingRate || 0;
     this.homingSpeed = (opts.homingSpeed || speed) * spdMul;

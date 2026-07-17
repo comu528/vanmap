@@ -37,6 +37,15 @@ export class BattleManager {
       resolvedJobModifiers: s.resolvedJobModifiers || null,
       jobProgressionVersion: s.jobProgressionVersion || 1,
       jobRuntime: s.jobMods ? s.jobMods.serialize() : null, // 残響カウンター
+      jobElement: s.jobElement || null,
+      // M7-A: 状態異常専用 RNG の cursor（再読込で凍結判定を引き直せないようにする）。
+      statusRng: s.statusFx ? s.statusFx.serialize().rng : null,
+      // M7-A: ボス氷砕状態（ゲージ/break回数/脆弱残り時間）。再読込でのゲージ初期化・脆弱延長の悪用を防ぐ。
+      bossFrost: (s.boss && s.boss.alive) ? {
+        gauge: s.boss._frostGauge || 0,
+        breaks: s.boss._frostBreaks || 0,
+        vulnRemainMs: Math.max(0, (s.boss._frostbreakVulnUntil || 0) - s.time.now),
+      } : null,
       updated_at: new Date().toISOString(),
     };
   }

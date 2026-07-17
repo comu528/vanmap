@@ -90,6 +90,10 @@ export class PassiveManager {
   getProjectileCountBonus() { return Math.round(this.getFlat('projectileCount')); }
   getProjectileSpeedMultiplier() { return this.getMult('projectileSpeed'); }
   getMovementSpeedMultiplier() { return this.getMult('movementSpeed'); }
+  // M7-A: 氷術師パッシブの共通経路（スキルクラスから passive レベルを直接参照しない）。
+  getIceDamageMultiplier() { return this.getMult('iceDamage'); }             // 氷晶増幅（氷ダメージ）
+  getIceStatusDurationMultiplier() { return this.getMult('iceStatusDuration'); } // 余寒残留（氷系状態の持続）
+  getChillDecayMultiplier() { return Math.max(0.5, this.getMult('chillDecay')); } // 余寒残留（冷気減衰低下・下限0.5倍）
 
   // ---- セーブ/復元 ----
   serialize() { const o = {}; for (const [id, level] of this.levels) o[id] = level; return o; }

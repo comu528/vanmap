@@ -310,3 +310,47 @@ M6-A（抽選/枠/パッシブ/進化）・M6-B（戦闘挙動・`Projectile` �
 `doomsday_core`（`overheat.heatAccelPct=0.5`/`config.doomFireMs=130`/`config.doomBlastMs=420`）・`tri_flame_array.config.edgeWidth=8`・
 `hexagram_inferno_array.area.outerWidth=10`/`beamWidth=12`・`orbiting_flame.config.castPulseMs=500`・`fire_spirit.config.summonPulseMs=900` を JSON へ移した。
 **コードに残る同名の `*_SAFE` 定数はゲームバランス値ではなく、「JSON 欠落時の NaN/undefined 回避のための安全既定」**であり、通常は JSON 側が使われる（重複定義ではない）。
+
+## 2人目のジョブ・汎用状態異常/凍結基盤（M7-A）
+火の魔女（active30/進化18/passive4/Job Lv1〜100）を**不変**のまま、2人目のジョブ **氷術師（frost_mage・氷属性）** と、
+**汎用の状態異常フレームワーク**を追加する。M6-A〜M6-F の抽選/枠/パッシブ/進化/ジョブ育成/検証基盤を**現在の正**として再利用し、
+新しい状態異常（冷気/凍結/耐性/氷砕脆弱）と氷スキルの挙動を共通経路へ**分岐を足すだけ**で実装する。すべて Phaser 非依存の純ロジックを
+中核に置き、Node でテスト可能。**火と氷の属性反応は未実装**（炎上と冷気/凍結は独立共存）。**`save_version` は 6 のまま**。詳細は
+`docs/jobs.md`・`docs/status-effects.md`。
+
+| 追加/変更 | 役割 | 再利用元 |
+|-----------|------|----------|
+| `src/systems/StatusEffectRegistry.js`（新規・純ロジック） | `data/status-effects.json` の状態定義・設定（freeze/bossFrostbreak/shatter）を保持し、kind/索引可否/対象エンティティ/ボス方針/冷気プロファイルを照会する。数値はデータが正 | 新規（M6-E の炎上索引を汎用化） |
+| `src/systems/StatusEffectManager.js`（新規・純ロジック） | 状態のランタイム適用・**索引**（`entitiesWithStatus`/`countStatus`）・更新（冷気減衰/期限切れ）・解除を集約。**状態異常専用 `SeededRandom`** で凍結判定（cursor を `active_run` へ保存）。索引上限（`maxStatusIndexEntries`）到達時は新規付与をスキップ | M6-E の `_burningIndex` を共通 Set 索引へ一般化 |
+| `src/systems/FreezeSystem.js`（新規・純ロジック） | 冷気→減速率・凍結確率式・確定閾値・凍結持続・ボス氷砕ゲージ成長/上限・粉砕ダメージ（上限つき）の純計算。絶対零度(Lv100)の閾値低下/凍結延長を反映 | 新規（Math.random 不使用） |
+| `JobModifierManager`（拡張） | fire 専用から**複数ジョブ・複数属性**へ拡張。`primaryElement`（火=fire/氷=ice）一致時のみ属性ダメージ補正を適用。氷用フィールド（`statusPowerMult`/`shatterDamageMult`/`chilledDamageMult`/`frozenDamageMult`/`shatterOnFrozenKill`/`absoluteZero`）を追加。旧 `fireDamageMult`/`fireAreaMult` は `coerceResolved` で移行（火は非回帰） | M6-C の `JobModifierManager` を一般化 |
+| `Enemy`/`Boss`/エリート（拡張） | 状態フィールド（`_chill`/`_chillSlow`/`_frozenUntil`/`_freezeImmuneUntil`／ボス `_frostGauge`/`_frostBreaks`/`_frostbreakVulnUntil`）を保持。`effectiveSpeed` が `_chillSlow` を読む。`onFreezeStart`/`onFreezeEnd` フック。プール返却/死亡で `StatusEffectManager.onRelease`/`onDeath` が索引・状態を掃除 | 既存の炎上実装へ冷気/凍結を追加 |
+| `BattleScene`（拡張） | 周回開始で registry/freezeSystem/statusManager を構築（品質別 cap を注入）、氷命中を `applyIceHit` へ、毎フレーム `update`、粉砕/ボス氷砕を per-frame 予算で処理。氷ダメージへ氷パッシブ・ボス氷砕脆弱(×1.15)を追加乗算。`jobElement`/`statusRng`/ボス frostbreak を保存・復元。F9 デバッグ | M6-E の combat 拡張・skillCaps 予算に同居 |
+| `src/ui/HUD.js`（拡張） | ボス HP バー付近の**氷砕ゲージ**（氷術師のみ・ボス不在時は非表示・脆弱中は色変化） | 既存 HUD へ表示追加 |
+
+### 状態異常索引と炎上の移行（互換ラッパー）
+- **索引**: `StatusEffectManager` が `statusId -> Set<entity>` の索引を持ち、`chill`/`frozen`/`freeze_immunity`/`frostbreak_vulnerability` を
+  登録・掃除する。灼熱共鳴/万象炎鳴が全敵走査を避けるための M6-E の炎上索引を一般化したもの。
+- **炎上(burning)の移行**: 既存の火の魔女の炎上は `Enemy.ignite`/`combat.ignite` 互換経路を維持したまま、**索引だけ**を共通化する
+  （`registerBurning`/`unregisterBurning` が `burning` 索引 Set を共有）。**burning は索引上限を課さない**（M6-E 挙動維持）。ダメージ/持続/
+  灼熱共鳴/万象炎鳴/統計は不変。炎上と冷気/凍結は独立共存し、属性反応は行わない（M7-A では未実装）。
+
+### 状態異常専用 SeededRandom（決定論）
+凍結判定は `StatusEffectManager` が保持する専用 `SeededRandom` で行い、**cursor を `active_run.statusRng` へ保存**する。
+候補抽選用の `draftState.seed` とは独立。再読込しても凍結の判定列が再現され、引き直しの不正ができない。`serialize()`/`restore()` で保存・復元。
+
+### ダメージ適用順（M7-A で追記・氷属性を含む一般化）
+1. JSON 基礎値 → 2. スキル Lv → 3. passive → 4. 熟練度 → 5. Job Lv 基本成長 → 6. Job 到達報酬 →
+7. **状態対象ボーナス（chilled/frozen・氷 Lv40 凍結狩り）** → 8. 進化補正 → 9. echo/clone 倍率 → 10. 安全下限/上限。
+- 乗算はすべて乗算合成。**氷ダメージには氷パッシブ（氷晶増幅）とボス氷砕脆弱（×1.15）を追加乗算**し、**火ダメージには適用しない**。
+- `JobModifierManager.damageMultiplier(tags)` は `tags.element !== primaryElement` のとき 1 を返す（火補正を氷へ／氷補正を火へ誤適用しない）。
+  凍結狩りは `frozen`/氷砕脆弱を優先し `chilled` と二重適用しない。
+
+### 性能上限・保存
+- **性能上限**: `balance.skillCaps` へ品質別の状態異常/氷スキルキー（`maxStatusApplicationsPerFrame`/`maxFreezeChecksPerFrame`/
+  `maxFrozenEnemies`/`maxShattersPerFrame`/`maxShatterProjectiles`/`maxStatusIndexEntries`/`maxFrostShards`/
+  `maxFrostNovaTargetsPerFrame`/`maxGlacialLances`/`maxPermafrostFields`/`maxPermafrostTicksPerFrame`/`maxIceWalls`/
+  `maxIceWallSegments`/`maxIceWallCollisionsPerFrame`/`maxDiamondBlizzardProjectiles`/`maxAbsoluteZeroDomains`/
+  `maxAbsoluteZeroShattersPerFrame`/`maxHeavenGlacierFragments`/`maxBossFrostbreaksPerFrame`）を追加。**到達しても判定・主要挙動は消さず装飾を先に削る**。
+- **保存**: `active_run` へ `jobId`/`jobElement`/`resolvedJobModifiers`/`statusRng`（状態RNGの cursor）/ボス frostbreak 状態
+  （`gauge`/`breaks`/`vulnRemainMs`）を保存。個々の敵の冷気/凍結/氷弾位置/凍土位置/氷壁位置は保存せず、再開時に安全に再構築する。加算的追加のため **`save_version` は 6 のまま**。

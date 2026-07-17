@@ -23,7 +23,9 @@ const ok = (c, m) => { if (c) pass++; else { fail++; console.error('  ✗ ' + m)
 const section = (t) => console.log(t);
 
 const skills = DataManager.data.skills.skills;
-const evolutions = DataManager.data.skillEvolutions.evolutions;
+// M7-A: 火の魔女の進化のみを対象にする（氷術師の進化3種は別ジョブ・frost-evolutions.mjs で検証）。
+const fireBaseIds = new Set(skills.filter((s) => (s.jobs || []).includes('flame_witch')).map((s) => s.id));
+const evolutions = DataManager.data.skillEvolutions.evolutions.filter((e) => fireBaseIds.has(e.baseSkillId));
 const passiveIds = new Set(DataManager.data.passives.passives.map((p) => p.id));
 const skillIds = new Set(skills.map((s) => s.id));
 
@@ -58,7 +60,8 @@ section('1. 新進化5種のデータ整合');
     ok(typeof ev.castMode === 'string', `${id} に castMode がある`);
     ok(ev.lv80ProjectileTarget !== true, `${id} は Lv80発射数対象外（単一形態）`);
   }
-  const allEvoIds = new Set(evolutions.map((e) => e.id));
+  // 参照実在チェックは全ジョブの進化ID（火18＋氷3）で行う（火の魔女以外の進化も未実装参照でないこと）。
+  const allEvoIds = new Set(DataManager.data.skillEvolutions.evolutions.map((e) => e.id));
   for (const s of skills) for (const eb of s.evolutionBranches || []) ok(allEvoIds.has(eb), `${s.id} の evolutionBranches "${eb}" が実在（未実装参照なし）`);
 }
 

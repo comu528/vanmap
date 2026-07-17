@@ -73,3 +73,21 @@ jobs:
         run: node tests/combat-telemetry.mjs
       - name: Balance playtest tests
         run: node tests/balance-playtest.mjs
+
+      # 状態異常基盤・氷術師（M7-A・Node.js 標準機能のみ）。
+      - name: Status effects tests
+        run: node tests/status-effects.mjs
+      - name: Freeze system tests
+        run: node tests/freeze-system.mjs
+      - name: Multi-job selection tests
+        run: node tests/multi-job-selection.mjs
+      - name: Frost job progression tests
+        run: node tests/frost-job-progression.mjs
+      - name: Frost skills tests
+        run: node tests/frost-skills.mjs
+      - name: Frost evolutions tests
+        run: node tests/frost-evolutions.mjs
+      - name: Multi-job draft tests
+        run: node tests/multi-job-draft.mjs
+      - name: Status save non-regression tests
+        run: node tests/status-save-nonregression.mjs

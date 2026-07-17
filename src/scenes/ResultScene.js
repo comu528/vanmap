@@ -130,11 +130,15 @@ export class ResultScene extends Phaser.Scene {
     ui.add(this.add.text(cx, 4, `Balance Summary${run.debugRun ? '（検証周回・通常統計外）' : ''}`, { fontSize: '11px', color: '#80cbc4' }).setOrigin(0.5, 0));
     ui.add(this.add.text(cx, 18, `seed:${run.seed} 難:${run.difficulty} 品質:${run.quality} 速:${run.speed} | FPS平均${Math.round(run.avgFps || 0)} 最低${Math.round(run.minFps || 0)} p95:${Math.round(run.frameP95Ms || 0)}ms cap:${Object.values(run.caps || {}).reduce((a, b) => a + b, 0)}`, { fontSize: '8px', color: '#a5d6a7' }).setOrigin(0.5, 0));
     ui.add(this.add.text(cx, 30, `総ダメージ${Math.round(run.totalDamage || 0)} 撃破${run.totalKills || 0}(精${run.eliteKills || 0}) 被弾${Math.round(run.damageTaken || 0)} 生存${Math.round(run.survivalSeconds || 0)}s 進化${run.evolutions || 0} 枠A${run.activeSlots || 0}/P${run.passiveSlots || 0} R${run.rerolls || 0}`, { fontSize: '8px', color: '#bcaaa4' }).setOrigin(0.5, 0));
+    // M7-A: 状態異常（周回全体）。氷術師では冷気/凍結/粉砕/ボス氷砕を表示。
+    const st = run.status || {};
+    const hasStatus = (run.jobId === 'frost_mage') || st.freezes > 0 || st.shatters > 0 || st.bossFrostbreaks > 0;
+    if (hasStatus) ui.add(this.add.text(cx, 41, `ジョブ:${run.jobId || '-'} 氷Dmg${Math.round(st.iceDamage || 0)} 冷気${Math.round(st.chillApplied || 0)} 凍結${st.freezes || 0}/${st.freezeAttempts || 0} 粉砕${st.shatters || 0}(${Math.round(st.shatterDamage || 0)}) 氷砕${st.bossFrostbreaks || 0}`, { fontSize: '8px', color: '#80deea' }).setOrigin(0.5, 0));
     // ヘッダ。
     const cols = [[20, 'スキル'], [120, 'Lv'], [150, 'Dmg'], [210, 'DPS'], [255, '割%'], [290, '発'], [320, '命'], [350, '撃'], [378, '残'], [402, '分'], [426, '上限'], [456, '防御値']];
-    ui.add(this.add.text(20, 44, cols.map((c) => c[1]).join('  '), { fontSize: '7px', color: '#ffab40' }));
+    ui.add(this.add.text(20, 52, cols.map((c) => c[1]).join('  '), { fontSize: '7px', color: '#ffab40' }));
     const skills = Object.entries(bs.skills || {}).map(([id, s]) => ({ id, ...s })).sort((a, b) => (b.damage || 0) - (a.damage || 0)).slice(0, 20);
-    let y = 54;
+    let y = 62;
     for (const s of skills) {
       const row = ui.add(this.add.container(0, 0));
       const put = (x, t, col) => row.add(this.add.text(x, y, String(t), { fontSize: '7px', color: col || '#ffe0b2' }));

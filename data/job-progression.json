@@ -44,6 +44,51 @@
         { "level": 90, "id": "fw_haste2", "type": "cooldownMult", "value": 0.10, "label": "炎帝の詠唱", "description": "火属性activeのクールダウンを追加で-10%" },
         { "level": 100, "id": "fw_echo_full", "type": "echoUpgrade", "interval": 8, "power": 1.0, "label": "完全残響", "description": "残響詠唱を強化（8回発動ごと・威力100%）" }
       ]
+    },
+    "frost_mage": {
+      "jobId": "frost_mage",
+      "displayName": "氷術師",
+      "description": "冷気を操る術師。ジョブレベルを上げるほど氷属性の火力・冷気付与・粉砕が伸び、到達レベルで凍結・氷砕の技巧を解放する（効果は氷術師を使用中の周回のみ有効）。",
+      "element": "ice",
+      "enabled": true,
+      "levelCap": 100,
+      "xpCurve": {
+        "quad": 25,
+        "lin": 75
+      },
+      "xpReward": {
+        "perSurvivalSecond": 1.2,
+        "perNormalKill": 0.08,
+        "normalKillCap": 2000,
+        "perEliteKill": 4,
+        "perBossKill": 60,
+        "victoryBonus": 200,
+        "difficultyMult": {
+          "1": 1.0,
+          "2": 1.25,
+          "3": 1.55,
+          "4": 1.9,
+          "5": 2.3
+        }
+      },
+      "perLevelBonuses": {
+        "iceDamagePerLevel": 0.0035,
+        "chillPerLevel": 0.0030,
+        "shatterPerLevel": 0.0040
+      },
+      "milestones": [
+        { "level": 5, "id": "fm_power_base", "type": "elementDamageMult", "value": 0.05, "label": "氷晶強化", "description": "氷属性ダメージ+5%" },
+        { "level": 10, "id": "fm_chill_amp", "type": "statusPowerMult", "value": 0.10, "label": "冷気増幅", "description": "冷気付与量+10%" },
+        { "level": 20, "id": "fm_haste", "type": "cooldownMult", "value": 0.05, "label": "急速詠唱", "description": "氷属性activeのクールダウン-5%" },
+        { "level": 30, "id": "fm_reroll", "type": "rerollBonus", "value": 1, "label": "選択の余地", "description": "周回開始時のリロール+1" },
+        { "level": 40, "id": "fm_frost_hunt", "type": "statusTargetDamage", "chilled": 0.10, "frozen": 0.20, "label": "凍結狩り", "description": "冷気状態の敵への氷ダメージ+10%・frozen/氷砕脆弱の敵へは+20%（重複せずfrozen優先）" },
+        { "level": 50, "id": "fm_shatter_chain", "type": "shatterOnFrozenKill", "radiusFactor": 1.0, "powerFactor": 0.6, "label": "氷砕連鎖", "description": "凍結中の通常敵・エリートが氷ダメージで死亡すると小規模な粉砕爆発（1体1回・ボス対象外・再帰なし）" },
+        { "level": 60, "id": "fm_evolved", "type": "evolvedDamageMult", "value": 0.20, "label": "進化魔法強化", "description": "氷術師の進化スキルの全ダメージ+20%" },
+        { "level": 70, "id": "fm_rarity", "type": "rarityWeight", "rare": 1.15, "legendary": 1.25, "label": "高位氷術適性", "description": "rare抽選重み×1.15・legendary×1.25" },
+        { "level": 80, "id": "fm_extra_projectile", "type": "projectileCount", "value": 1, "label": "氷弾増殖", "description": "projectileタグを持つ氷属性activeの発射数+1" },
+        { "level": 90, "id": "fm_haste2", "type": "cooldownMult", "value": 0.10, "label": "極低温詠唱", "description": "氷属性activeのクールダウンを追加で-10%" },
+        { "level": 100, "id": "fm_absolute_zero", "type": "absoluteZero", "normalThresholdReduction": 0.20, "bossThresholdReduction": 0.15, "frozenDurationMult": 0.20, "label": "絶対零度", "description": "通常敵・エリートの確定凍結閾値-20%・ボス氷砕閾値-15%・凍結持続+20%（安全下限は維持・完全な永久凍結は発生しない）" }
+      ]
     }
   }
 }

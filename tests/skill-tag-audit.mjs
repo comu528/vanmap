@@ -9,7 +9,8 @@ const dir = join(dirname(fileURLToPath(import.meta.url)), '..', 'data');
 const load = (n) => JSON.parse(readFileSync(join(dir, n), 'utf8'));
 const skills = load('skills.json').skills;
 const evolutions = load('skill-evolutions.json').evolutions;
-const actives = skills.filter((s) => (s.category || 'active') === 'active');
+// M7-A: 本監査は火の魔女（火属性）を対象とする（氷術師は frost-skills.mjs で個別検証）。
+const actives = skills.filter((s) => (s.category || 'active') === 'active' && (s.jobs || []).includes('flame_witch'));
 
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.error('  ✗ ' + m); } };

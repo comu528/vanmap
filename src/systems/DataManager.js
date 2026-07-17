@@ -16,6 +16,7 @@ const FILES = {
   passives: './data/passives.json',
   skillConfig: './data/skill-config.json',
   jobProgression: './data/job-progression.json',
+  statusEffects: './data/status-effects.json',
 };
 
 class DataManagerClass {
@@ -103,6 +104,13 @@ class DataManagerClass {
   // ---- Milestone 6-C: ジョブ育成（ジョブレベル・経験値・到達報酬） ----
   get jobProgression() { return this.data.jobProgression || {}; }
   getJobProgression(id) { return (this.jobProgression.jobs && this.jobProgression.jobs[id]) || null; }
+
+  // ---- Milestone 7-A: 汎用状態異常基盤 ----
+  get statusEffectsData() { return this.data.statusEffects || {}; }
+  get statusEffectDefs() { return asArray(this.data.statusEffects?.statusEffects); }
+  get freezeConfig() { return this.statusEffectsData.freeze || {}; }
+  get bossFrostbreakConfig() { return this.statusEffectsData.bossFrostbreak || {}; }
+  get shatterConfig() { return this.statusEffectsData.shatter || {}; }
 
   getEvolution(id) { return this.evolutions.find((e) => e.id === id) || null; }
   getEvolutionForBase(baseId) { return this.evolutions.find((e) => e.baseSkillId === baseId) || null; }

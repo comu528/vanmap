@@ -18,7 +18,19 @@ function castLine(id) {
   const def = skill || DataManager.getEvolution(id);
   if (!def) return '';
   const evo = skill ? DataManager.getEvolutionForBase(id) : null; // 基礎 active のみ進化先を表示
-  return skillSummaryLine(def, evo);
+  let line = skillSummaryLine(def, evo);
+  // M7-A: 氷属性スキルは冷気/凍結/procCoefficient/粉砕対応を短く追記（640×360 を圧迫しない1行）。
+  const el = def.element || (Array.isArray(def.tags) && def.tags.includes('ice') ? 'ice' : null);
+  if (el === 'ice') {
+    const lv1 = (Array.isArray(def.levels) && def.levels[0]) || {};
+    const parts = ['氷'];
+    if (lv1.chillAmount != null) parts.push(`冷気${lv1.chillAmount}`);
+    if (lv1.baseFreezeChance != null) parts.push(`凍${Math.round(lv1.baseFreezeChance * 100)}%`);
+    if (def.procCoefficient != null) parts.push(`proc${def.procCoefficient}`);
+    if (def.shatterMultiplier != null || (def.tags || []).includes('projectile') && def.shatterOnFrozen) parts.push('粉砕');
+    line += '\n' + parts.join(' ');
+  }
+  return line;
 }
 
 export class LevelUpScene extends Phaser.Scene {

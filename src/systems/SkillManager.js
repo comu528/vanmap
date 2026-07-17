@@ -56,6 +56,16 @@ import { WorldScorchingRiftSkill } from '../skills/WorldScorchingRiftSkill.js';
 import { HexagramInfernoArraySkill } from '../skills/HexagramInfernoArraySkill.js';
 import { UniversalFlameResonanceSkill } from '../skills/UniversalFlameResonanceSkill.js';
 import { DoomsdayCoreSkill } from '../skills/DoomsdayCoreSkill.js';
+// M7-A: 氷術師 active5種
+import { FrostShardSkill } from '../skills/FrostShardSkill.js';
+import { FrostNovaSkill } from '../skills/FrostNovaSkill.js';
+import { GlacialLanceSkill } from '../skills/GlacialLanceSkill.js';
+import { PermafrostFieldSkill } from '../skills/PermafrostFieldSkill.js';
+import { IceWallSkill } from '../skills/IceWallSkill.js';
+// M7-A: 氷術師 進化3種
+import { DiamondBlizzardSkill } from '../skills/DiamondBlizzardSkill.js';
+import { AbsoluteZeroDomainSkill } from '../skills/AbsoluteZeroDomainSkill.js';
+import { HeavenPiercingGlacierSkill } from '../skills/HeavenPiercingGlacierSkill.js';
 
 const REGISTRY = {
   fireball: FireballSkill,
@@ -113,6 +123,16 @@ const REGISTRY = {
   hexagram_inferno_array: HexagramInfernoArraySkill,
   universal_flame_resonance: UniversalFlameResonanceSkill,
   doomsday_core: DoomsdayCoreSkill,
+  // M7-A: 氷術師 active5種
+  frost_shard: FrostShardSkill,
+  frost_nova: FrostNovaSkill,
+  glacial_lance: GlacialLanceSkill,
+  permafrost_field: PermafrostFieldSkill,
+  ice_wall: IceWallSkill,
+  // M7-A: 氷術師 進化3種
+  diamond_blizzard: DiamondBlizzardSkill,
+  absolute_zero_domain: AbsoluteZeroDomainSkill,
+  heaven_piercing_glacier: HeavenPiercingGlacierSkill,
 };
 
 // 実装クラスが登録されている全スキルID（active＋進化）。SkillCatalog / 監査テストが「実装の有無」を判定するのに使う。

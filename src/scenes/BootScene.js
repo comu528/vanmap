@@ -296,5 +296,18 @@ export class BootScene extends Phaser.Scene {
     g = evo(0xffca28); g.lineStyle(2, 0xffca28, 1); g.strokeTriangle(8, 2, 3, 11, 13, 11); g.strokeTriangle(8, 14, 3, 5, 13, 5); done(g, 'icon_hexagram_inferno_array'); // 六芒星
     g = evo(0xffab40); g.lineStyle(1, 0xffab40, 1); g.strokeCircle(5, 8, 2); g.strokeCircle(11, 8, 2); g.strokeCircle(8, 8, 5); done(g, 'icon_universal_flame_resonance'); // 複数波紋
     g = evo(0xff5252); g.fillStyle(0xffee58, 1); for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; g.fillTriangle(8, 8, 8 + Math.cos(a) * 6, 8 + Math.sin(a) * 6, 8 + Math.cos(a + 0.4) * 5, 8 + Math.sin(a + 0.4) * 5); } g.fillStyle(0x1a1420, 1); g.fillCircle(8, 8, 2); done(g, 'icon_doomsday_core'); // 破裂した炉心
+
+    // --- M7-A: 氷術師 active5種（氷色・結晶/波/槍/床/壁） ---
+    g = base(0x9fe8ff); g.fillTriangle(8, 2, 5, 8, 11, 8); g.fillTriangle(8, 14, 5, 8, 11, 8); done(g, 'icon_frost_shard');              // 氷晶: 上下三角
+    g = base(0x4fc3f7); g.lineStyle(2, 0x4fc3f7, 1); g.strokeCircle(8, 8, 5); g.strokeCircle(8, 8, 2); done(g, 'icon_frost_nova');        // 氷輪: 同心円
+    g = base(0x80d8ff); g.fillRect(7, 2, 2, 12); g.fillTriangle(8, 1, 5, 5, 11, 5); done(g, 'icon_glacial_lance');                       // 氷槍: 縦の槍
+    g = base(0x4dd0e1); g.lineStyle(1, 0x4dd0e1, 1); g.strokeRect(2, 6, 12, 8); g.fillStyle(0x4dd0e1, 0.5); g.fillRect(4, 8, 3, 3); g.fillRect(9, 9, 3, 3); done(g, 'icon_permafrost_field'); // 凍土: 床＋霜
+    g = base(0xb3e5fc); g.fillRect(3, 4, 3, 9); g.fillRect(7, 4, 3, 9); g.fillRect(11, 4, 2, 9); done(g, 'icon_ice_wall');                // 氷壁: 縦柱3本
+
+    // --- M7-A: 氷術師 進化3種（二重輪郭で進化を示す） ---
+    const evi = (color) => { const gg = base(color); gg.lineStyle(1, 0x80deea, 0.9); gg.strokeRect(1, 1, 14, 14); return gg; };
+    g = evi(0x9fe8ff); for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + 0.3; g.fillTriangle(8, 8, 8 + Math.cos(a) * 6, 8 + Math.sin(a) * 6, 8 + Math.cos(a + 0.5) * 5, 8 + Math.sin(a + 0.5) * 5); } done(g, 'icon_diamond_blizzard'); // ブリザード: 放射結晶
+    g = evi(0x4fc3f7); g.lineStyle(2, 0x4fc3f7, 1); g.strokeCircle(8, 8, 6); g.strokeCircle(8, 8, 3); g.fillStyle(0xe1f5fe, 1); g.fillCircle(8, 8, 1.5); done(g, 'icon_absolute_zero_domain'); // 絶対零度: 大領域
+    g = evi(0x80d8ff); g.fillRect(7, 1, 2, 14); g.fillTriangle(8, 0, 4, 5, 12, 5); g.fillStyle(0xe1f5fe, 1); g.fillCircle(5, 11, 1.5); g.fillCircle(11, 12, 1.5); done(g, 'icon_heaven_piercing_glacier'); // 天穿: 巨大槍＋氷片
   }
 }

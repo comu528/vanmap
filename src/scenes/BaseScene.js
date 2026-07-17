@@ -153,7 +153,8 @@ export class BaseScene extends Phaser.Scene {
     });
     const s = cat.summary;
     const RC = { common: '#bcaaa4', uncommon: '#80deea', rare: '#ce93d8', legendary: '#ffd54f' };
-    this.label(16, 54, `火の魔女カタログ  active${s.activeCount} / 進化${s.evolutionCount} / passive${s.passiveCount}`, { color: '#ffab40' });
+    const jname = DataManager.getJob(this.profile.selectedJobId || 'flame_witch')?.displayName || 'ジョブ';
+    this.label(16, 54, `${jname}カタログ  active${s.activeCount} / 進化${s.evolutionCount} / passive${s.passiveCount}`, { color: '#ffab40' });
     this.label(16, 66, `レアリティ active: C${s.rarityActives.common} U${s.rarityActives.uncommon} R${s.rarityActives.rare} L${s.rarityActives.legendary}  役割: ${Object.entries(s.roleDist).map(([k, v]) => k + v).join(' ')}`, { fontSize: '8px', color: '#bcaaa4' });
     if (cat.issues.length) this.label(16, 76, `⚠ データ不整合 ${cat.issues.length}件`, { fontSize: '8px', color: '#ff5252' });
     else this.label(16, 76, '✓ データ不整合なし（孤立/未登録/参照ズレ 0）', { fontSize: '8px', color: '#a5d6a7' });
@@ -299,52 +300,85 @@ export class BaseScene extends Phaser.Scene {
   // ---------------- ジョブ育成（M6-C） ----------------
   // 戦闘レベル（周回ごとにLv1・経験値ジェムで上昇・周回終了でリセット）とは別の、恒久的なジョブレベルを表示する。
   // 今回は火の魔女1ジョブのみ。他ジョブ選択画面は実装しない。
+  // M7-A: ジョブ選択＋育成状況。火の魔女／氷術師のカードを表示し、選択・Job Lv報酬・現在補正を確認する。
+  // 進行中周回がある間はジョブ変更を無効化し、変更は次の新規周回から有効であることを明示する。
   buildJob() {
     const p = this.profile;
-    const jobId = p.selectedJobId || 'flame_witch';
-    const jdef = DataManager.getJob(jobId);
-    const jp = DataManager.getJobProgression(jobId);
-    const entry = (p.jobProgress && p.jobProgress[jobId]) || JobProgressionManager.emptyEntry();
-    const prog = JobProgressionManager.progress(jobId, entry.totalXp || 0);
-    const mods = JobModifierManager.resolve(jp, prog.level);
+    const selId = p.selectedJobId || 'flame_witch';
+    const jobs = DataManager.jobs.filter((j) => j.enabled !== false || j.id === 'flame_witch');
+    const hasRun = SaveManager.hasActiveRun();
+    const activeRunJob = hasRun ? (SaveManager.loadActiveRun()?.jobId || null) : null;
 
-    // ヘッダ: 仮アイコン（既存生成テクスチャ）＋ジョブ名＋Lv
-    this.add2(this.add.image(30, 68, 'icon_fireball').setScale(1.5));
-    this.label(46, 54, `${jdef?.displayName || jobId}`, { color: '#ffd54f', fontSize: '12px' });
-    this.label(46, 70, `Job Lv.${prog.level} / ${prog.cap}`, { fontSize: '10px', color: '#80deea' });
+    this.label(16, 54, 'ジョブ選択（周回開始時に確定・効果はそのジョブ使用中のみ有効）', { color: '#ffab40', fontSize: '10px' });
+    if (hasRun) this.label(16, 66, `⚠ 進行中周回（${DataManager.getJob(activeRunJob)?.displayName || activeRunJob}）があります。ジョブ変更は次の新規周回から有効です。`, { fontSize: '8px', color: '#ff8a80', wordWrap: { width: 500 } });
 
-    // XPバー（戦闘レベルとは別物）
-    this.label(210, 54, `Job XP（累計）: ${Math.round(prog.totalXp)}`, { fontSize: '9px', color: '#ffab40' });
-    this.label(210, 68, prog.atCap ? '最大Lv100 到達' : `次のLvまで ${Math.round(prog.xpToNext)}（${Math.round(prog.xpIntoLevel)}/${Math.round(prog.xpForNext)}）`, { fontSize: '9px', color: '#bcaaa4' });
-    const bx = 210, by = 82, bw = 250;
-    this.add2(this.add.rectangle(bx, by, bw, 6, 0x3e2723).setOrigin(0, 0));
-    this.add2(this.add.rectangle(bx + 1, by + 1, (bw - 2) * prog.ratio, 4, 0x29b6f6).setOrigin(0, 0));
-
-    // 統計
-    this.label(20, 96, `出撃 ${entry.runs || 0}（勝 ${entry.wins || 0} / 敗 ${entry.losses || 0}）  最高難易度クリア ${entry.highestDifficultyCleared || 0}  進化 ${entry.totalEvolutions || 0}回`, { fontSize: '9px', color: '#bcaaa4' });
-
-    // 現在の基本補正
-    this.label(16, 112, '現在の基本補正（火の魔女を使用している周回のみ有効）', { color: '#ffab40', fontSize: '10px' });
-    const pct = (m) => `${Math.round((m - 1) * 1000) / 10}%`;
-    const cd = Math.round((1 - mods.cooldownMult()) * 1000) / 10;
-    this.label(24, 126, `火ダメージ +${pct(mods.damageMultiplier({ element: 'fire' }))}  /  DoT追加 +${pct(mods.dotDamageMult)}  /  火範囲 +${pct(mods.fireAreaMult())}${cd ? `  /  CD -${cd}%` : ''}`, { fontSize: '8px' });
-
-    // 次の到達報酬
-    const next = JobProgressionManager.nextMilestone(jobId, prog.level);
-    this.label(16, 142, next ? `次の到達報酬: Lv${next.level} ${next.label} — ${next.description}` : '到達報酬: すべて解放済み', { color: '#a5d6a7', fontSize: '9px', wordWrap: { width: 470 } });
-
-    // 到達報酬一覧（解放済み／未解放）
-    this.label(16, 160, '到達報酬（Lv5〜Lv100）', { color: '#ffab40', fontSize: '10px' });
-    let y = 176;
-    for (const m of JobProgressionManager.milestones(jobId)) {
-      const unlocked = prog.level >= m.level;
-      this.label(24, y, `Lv${m.level}`, { fontSize: '9px', color: unlocked ? '#a5d6a7' : '#8d6e63' });
-      this.label(66, y, `${m.label}`, { fontSize: '9px', color: unlocked ? '#ffe0b2' : '#8d6e63' });
-      this.label(168, y, m.description, { fontSize: '8px', color: unlocked ? '#bcaaa4' : '#6d5b52', wordWrap: { width: 290 } });
-      this.label(474, y, unlocked ? '解放' : '🔒', { fontSize: '8px', color: unlocked ? '#a5d6a7' : '#8d6e63' });
-      y += 16;
+    // ジョブカード（横並び）。
+    const cardW = 240, cardH = 116, gap = 16;
+    let cx = 16;
+    for (const jdef of jobs) {
+      const jid = jdef.id;
+      const jp = DataManager.getJobProgression(jid);
+      const entry = (p.jobProgress && p.jobProgress[jid]) || JobProgressionManager.emptyEntry();
+      const prog = JobProgressionManager.progress(jid, entry.totalXp || 0);
+      const cat = buildSkillCatalog({ skills: DataManager.skills, passives: DataManager.passives, evolutions: DataManager.evolutions, jobs: DataManager.jobs, jobId: jid, registeredIds: registeredSkillIds(), runtimeStateIds: skillsWithRuntimeState() });
+      const s = cat.summary;
+      const sel = jid === selId;
+      const y0 = 80;
+      this.add2(this.add.rectangle(cx, y0, cardW, cardH, sel ? 0x1e2b1a : 0x1a1420).setOrigin(0, 0).setStrokeStyle(2, sel ? 0xa5d6a7 : (jdef.element === 'ice' ? 0x4fc3f7 : 0xff7043)));
+      this.add2(this.add.image(cx + 18, y0 + 18, jdef.iconKey || 'icon_fireball').setScale(1.5));
+      this.label(cx + 34, y0 + 8, jdef.displayName || jid, { color: sel ? '#a5d6a7' : '#ffd54f', fontSize: '11px' });
+      this.label(cx + 34, y0 + 22, `属性: ${jdef.element || '-'}${sel ? '   ● 選択中' : ''}`, { fontSize: '8px', color: jdef.element === 'ice' ? '#80deea' : '#ffab91' });
+      this.label(cx + 8, y0 + 38, `Job Lv.${prog.level}/${prog.cap}  XP累計 ${Math.round(prog.totalXp)}`, { fontSize: '8px', color: '#80deea' });
+      this.label(cx + 8, y0 + 50, prog.atCap ? '最大Lv100 到達' : `次まで ${Math.round(prog.xpToNext)}`, { fontSize: '7px', color: '#bcaaa4' });
+      this.add2(this.add.rectangle(cx + 8, y0 + 62, cardW - 16, 5, 0x3e2723).setOrigin(0, 0));
+      this.add2(this.add.rectangle(cx + 9, y0 + 63, (cardW - 18) * prog.ratio, 3, jdef.element === 'ice' ? 0x29b6f6 : 0xffa726).setOrigin(0, 0));
+      this.label(cx + 8, y0 + 70, `active${s.activeCount} / passive${s.passiveCount} / 進化${s.evolutionCount}`, { fontSize: '8px', color: '#ffe0b2' });
+      this.label(cx + 8, y0 + 82, `状態異常: ${(jdef.statusEffects || []).join('/') || '-'}`, { fontSize: '7px', color: '#b39ddb', wordWrap: { width: cardW - 16 } });
+      this.label(cx + 8, y0 + 92, jdef.description || '', { fontSize: '7px', color: '#8d6e63', wordWrap: { width: cardW - 16 } });
+      // 選択ボタン
+      const canSelect = !sel && !hasRun;
+      const btn = this.add2(this.add.text(cx + cardW - 8, y0 + cardH - 4, sel ? '選択中' : (hasRun ? '変更不可' : '▶ 選択'), {
+        fontSize: '9px', color: sel ? '#a5d6a7' : (canSelect ? '#fff' : '#6d5b52'), backgroundColor: canSelect ? '#5d2e1a' : '#241a20', padding: { x: 6, y: 2 },
+      }).setOrigin(1, 1));
+      if (canSelect) { btn.setInteractive({ useHandCursor: true }); btn.on('pointerdown', () => this.selectJob(jid)); }
+      cx += cardW + gap;
     }
-    this.label(16, y + 6, 'ジョブレベルは周回終了時の Job XP で上昇し、周回・転生をまたいで維持されます。効果は火の魔女を使用中の周回のみ有効です。', { fontSize: '8px', color: '#8d6e63', wordWrap: { width: 480 } });
+
+    // 選択中ジョブの詳細（現在補正＋到達報酬一覧）。
+    const jp = DataManager.getJobProgression(selId);
+    const entry = (p.jobProgress && p.jobProgress[selId]) || JobProgressionManager.emptyEntry();
+    const prog = JobProgressionManager.progress(selId, entry.totalXp || 0);
+    const jm = new JobModifierManager(); jm.setResolved(JobModifierManager.resolve(jp, prog.level));
+    const elem = DataManager.getJob(selId)?.element || 'fire';
+    const pct = (m) => `${Math.round((m - 1) * 1000) / 10}%`;
+    const cd = Math.round((1 - jm.cooldownMult()) * 1000) / 10;
+    this.label(16, 204, `現在の基本補正（${DataManager.getJob(selId)?.displayName || selId}・使用中の周回のみ有効）`, { color: '#ffab40', fontSize: '9px' });
+    if (elem === 'ice') this.label(24, 217, `氷ダメージ +${pct(jm.damageMultiplier({ element: 'ice' }))}  /  冷気付与 +${pct(jm.statusPowerMult())}  /  粉砕 +${pct(jm.shatterDamageMult())}${cd ? `  /  CD -${cd}%` : ''}`, { fontSize: '8px' });
+    else this.label(24, 217, `火ダメージ +${pct(jm.damageMultiplier({ element: 'fire' }))}  /  DoT追加 +${pct(jm.resolved.dotDamageMult)}  /  火範囲 +${pct(jm.fireAreaMult())}${cd ? `  /  CD -${cd}%` : ''}`, { fontSize: '8px' });
+    this.label(20, 230, `出撃 ${entry.runs || 0}（勝 ${entry.wins || 0}/敗 ${entry.losses || 0}）  最高難易度クリア ${entry.highestDifficultyCleared || 0}  進化 ${entry.totalEvolutions || 0}回`, { fontSize: '8px', color: '#bcaaa4' });
+
+    this.label(16, 246, '到達報酬（Lv5〜Lv100）', { color: '#ffab40', fontSize: '9px' });
+    let y = 260;
+    for (const m of JobProgressionManager.milestones(selId)) {
+      const unlocked = prog.level >= m.level;
+      this.label(24, y, `Lv${m.level}`, { fontSize: '8px', color: unlocked ? '#a5d6a7' : '#8d6e63' });
+      this.label(60, y, `${m.label}`, { fontSize: '8px', color: unlocked ? '#ffe0b2' : '#8d6e63' });
+      this.label(150, y, m.description, { fontSize: '7px', color: unlocked ? '#bcaaa4' : '#6d5b52', wordWrap: { width: 330 } });
+      this.label(490, y, unlocked ? '解放' : '🔒', { fontSize: '7px', color: unlocked ? '#a5d6a7' : '#8d6e63' });
+      y += 14;
+    }
+    this.label(16, y + 6, 'Job Lv は周回終了時の Job XP で上昇し、周回・転生をまたいでジョブごとに維持されます。ジョブ変更で他ジョブの育成は消えません。', { fontSize: '7px', color: '#8d6e63', wordWrap: { width: 500 } });
+  }
+
+  // ジョブを選択して保存する（進行中周回があるときは呼ばない＝他ジョブの育成データは削除・初期化しない）。
+  selectJob(jobId) {
+    if (SaveManager.hasActiveRun()) return; // 進行中周回のジョブは変更しない
+    if (!DataManager.getJob(jobId)) return;
+    this.profile.selectedJobId = jobId;
+    if (!Array.isArray(this.profile.unlockedJobs)) this.profile.unlockedJobs = ['flame_witch'];
+    if (!this.profile.unlockedJobs.includes(jobId)) this.profile.unlockedJobs.push(jobId);
+    SaveManager.saveProfile(this.profile, 'job_select');
+    this.refresh();
   }
 
   // ---------------- 難易度 ----------------

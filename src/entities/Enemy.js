@@ -28,6 +28,12 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this._slowFactor = 0;
     this._igniteUntil = 0;   // 永劫火界の炎上状態
     this._igniteGen = 0;
+    // M7-A: 汎用状態異常（冷気/凍結/凍結耐性）。値は StatusEffectManager が管理する。
+    this._chill = 0;               // 冷気蓄積（0..chillCap）
+    this._chillSlow = 0;           // 冷気による減速率（0..maxSlow）
+    this._chillDecayGraceUntil = 0;
+    this._frozenUntil = 0;         // 凍結の終了時刻（ms）
+    this._freezeImmuneUntil = 0;   // 凍結耐性の終了時刻（ms）
     this._mark = null;       // 起爆刻印（M6-B）: { hitsNeeded, hits, until, ... }
     // dasher 用
     this._chargeState = 'idle'; // idle | telegraph | dash
@@ -56,6 +62,12 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this._slowFactor = 0;
     this._igniteUntil = 0;
     this._igniteGen = 0;
+    // M7-A: 状態異常の残留防止（プール再利用時に確実にクリア）。
+    this._chill = 0;
+    this._chillSlow = 0;
+    this._chillDecayGraceUntil = 0;
+    this._frozenUntil = 0;
+    this._freezeImmuneUntil = 0;
     this._mark = null;
     this._chargeState = 'idle';
     this._chargeCd = 1200;
@@ -69,10 +81,20 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.setScale(def.elite ? 1.15 : 1);
   }
 
+  // 凍結中は完全停止（移動・AI・攻撃）。
+  get frozen() { return this.alive && this._frozenUntil > 0 && this.scene.time.now < this._frozenUntil; }
+
   effectiveSpeed() {
     const now = this.scene.time.now;
-    return now < this._slowUntil ? this.speed * (1 - this._slowFactor) : this.speed;
+    let spd = now < this._slowUntil ? this.speed * (1 - this._slowFactor) : this.speed;
+    // M7-A: 冷気による減速（既存の減速と乗算合成・攻撃/アニメ速度は変えない）。
+    if (this._chillSlow > 0) spd *= (1 - this._chillSlow);
+    return Math.max(0, spd);
   }
+
+  // M7-A: 凍結の見た目（氷結色）。凍結中は update で停止するため tint は維持される。
+  onFreezeStart() { if (this.alive) this.setTint(0x8fd8ff); }
+  onFreezeEnd() { if (this.alive) this.clearTint(); }
 
   // 炎上（永劫火界／M6-E 灼熱共鳴・万象炎鳴）。gen は感染世代。
   // 炎上索引（BattleScene._burningIndex）へ登録し、灼熱共鳴系が全敵走査せず炎上数を得られるようにする。
@@ -85,6 +107,9 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
 
   update(px, py, dt) {
     if (!this.alive) return;
+
+    // M7-A: 凍結中は移動・AI・攻撃・突進開始をすべて停止（発射済みの敵弾は消さない）。
+    if (this.frozen) { this.setVelocity(0, 0); return; }
 
     if (this._knockbackTimer > 0) {
       this._knockbackTimer -= dt;
@@ -102,6 +127,10 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
 
     const ang = Math.atan2(py - this.y, px - this.x);
     this.setVelocity(Math.cos(ang) * spd, Math.sin(ang) * spd);
+
+    // M7-A: 冷気蓄積が高いとき薄い氷色（凍結手前の視覚フィードバック）。フラッシュ/予告と競合しないよう最小限。
+    if (this._chillSlow > 0.18) { this.setTint(0xbfefff); this._chillTinted = true; }
+    else if (this._chillTinted) { this.clearTint(); this._chillTinted = false; }
   }
 
   // 骸骨: 一定距離まで近づき、短い予告のあと突進する。

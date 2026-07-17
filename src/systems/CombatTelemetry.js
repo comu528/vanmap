@@ -37,6 +37,12 @@ export class CombatTelemetry {
     this.skills = new Map(); // skillId -> stat object
     this.caps = Object.create(null); // capName -> count（run 全体で到達したキャップ）
     this.result = null;      // noteRunResult で設定
+    // M7-A: 状態異常（周回全体）の集計。外部送信なし。
+    this.status = {
+      chillApplied: 0, freezeAttempts: 0, freezes: 0, frozenSecondsApplied: 0,
+      shatters: 0, shatterDamage: 0, bossFrostbreaks: 0, frostbreakVulnerabilitySeconds: 0,
+      iceDamage: 0, burningDamage: 0, statusApplicationCapsReached: 0,
+    };
     // フレーム集計
     this._frameCount = 0;
     this._frameSumMs = 0;
@@ -60,6 +66,9 @@ export class CombatTelemetry {
         // 防御系
         blockedDamage: 0, lethalAvoided: 0, absorbedBullets: 0,
         healed: 0, dashBoosts: 0, hpSpent: 0,
+        // M7-A: 状態異常（スキル別）
+        chillApplied: 0, freezeAttempts: 0, freezesCaused: 0, shatters: 0, shatterDamage: 0,
+        bossFrostGaugeApplied: 0, damageToChilled: 0, damageToFrozen: 0, damageToFrostbreakTarget: 0,
       };
       this.skills.set(key, s);
     }
@@ -87,7 +96,9 @@ export class CombatTelemetry {
     const s = this._skill(skillId); if (!s || !delta) return;
     // 加算系
     for (const k of ['casts', 'hits', 'kills', 'damage', 'dotDamage', 'explosionDamage',
-      'projectileDamage', 'summonDamage', 'echoCasts', 'cloneCasts', 'capReachedCount']) {
+      'projectileDamage', 'summonDamage', 'echoCasts', 'cloneCasts', 'capReachedCount',
+      'chillApplied', 'freezeAttempts', 'freezesCaused', 'shatters', 'shatterDamage',
+      'bossFrostGaugeApplied', 'damageToChilled', 'damageToFrozen', 'damageToFrostbreakTarget']) {
       if (isNum(delta[k])) s[k] += delta[k];
     }
     // max 系
@@ -129,6 +140,12 @@ export class CombatTelemetry {
     if (name == null) return;
     const k = String(name);
     this.caps[k] = (this.caps[k] || 0) + 1;
+  }
+
+  // M7-A: 状態異常イベント（周回全体の集計）。既知キーのみ加算・NaN 無視。
+  noteStatusEvent(key, amount = 1) {
+    if (key == null || !isNum(amount)) return;
+    if (Object.prototype.hasOwnProperty.call(this.status, key)) this.status[key] += amount;
   }
 
   noteRunResult(r) {
@@ -189,6 +206,10 @@ export class CombatTelemetry {
         dashBoosts: num(s.dashBoosts), hpSpent: num(s.hpSpent),
         estimatedDps: num(estimatedDps), damageShare: num(damageShare),
         defensiveValue: num(defensiveValue),
+        // M7-A: 状態異常（スキル別）
+        chillApplied: num(s.chillApplied), freezeAttempts: num(s.freezeAttempts), freezesCaused: num(s.freezesCaused),
+        shatters: num(s.shatters), shatterDamage: num(s.shatterDamage), bossFrostGaugeApplied: num(s.bossFrostGaugeApplied),
+        damageToChilled: num(s.damageToChilled), damageToFrozen: num(s.damageToFrozen), damageToFrostbreakTarget: num(s.damageToFrostbreakTarget),
       };
     }
     const avgFps = this._frameCount > 0 ? 1000 / (this._frameSumMs / this._frameCount) : 0;
@@ -197,6 +218,7 @@ export class CombatTelemetry {
       ...this.run,
       ...(this.result || {}),
       caps: { ...this.caps },
+      status: { ...this.status }, // M7-A: 状態異常（周回全体）
       avgFps: num(avgFps), minFps: num(minFps), frameP95Ms: num(this._frameP95Ms()),
       frameCount: this._frameCount,
     };

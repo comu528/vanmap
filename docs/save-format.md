@@ -421,3 +421,44 @@ v1〜v6 からの移行は M6-A〜M6-E と同じ経路で、既存データを�
 セーブ payload には含めない（保存フォーマットに影響しない）。`SkillCatalog`/`DraftBalanceAnalyzer`/`CombatTelemetry`/`RunBalanceSummary`/
 `BalanceWarnings`/`BalancePlaytest` は純ロジックで、保存レイヤー（M5-B）を壊さない。エクスポート/インポート/バックアップ/競合解決は
 payload 全体を扱うため `balanceTelemetry` も自動的に保持される（インポートは `migrateProfile` を通す）。加算的追加のため **`save_version` は 6 のまま**・転生でもリセットしない。
+
+## Milestone 7-A: 2人目のジョブ・状態異常/凍結（save_version は 6 のまま）
+2人目のジョブ **氷術師（frost_mage）** と汎用状態異常フレームワークを追加する。profile へ `selectedJobId`/`jobProgress.frost_mage` を、
+`active_run` へ `jobElement`/`statusRng`/ボス frostbreak 状態を**加算的に足すだけ**で既存構造を変えない。そのため **`saveVersion` は 6 のまま**。
+v1〜v6 からの移行は M6-A〜M6-F と同じ経路で既存データを保持し、転生でもリセットしない。詳細は `docs/jobs.md`・`docs/status-effects.md`。
+
+### profile（v6・複数ジョブ）
+`unlockedJobs` の既定に `frost_mage` を含め、`jobProgress` へ `frost_mage` エントリを加算的に足す。`selectedJobId` は M6-A から存在（既定 `flame_witch`）。
+```jsonc
+{
+  "selectedJobId": "flame_witch",                    // 選択中ジョブ（進行中周回があるときは変更不可）
+  "unlockedJobs": ["flame_witch", "frost_mage"],     // M7-A: frost_mage を既定で選択可能（加算的）
+  "jobProgress": {
+    "flame_witch": { "totalXp": 63700, /* …M6-C の形式… */ },
+    "frost_mage":  { "totalXp": 0, "runs": 0, /* 同形式・ジョブごとに完全分離 */ }
+  }
+}
+```
+- `profileSchema.js` の移行: 旧セーブで `unlockedJobs` に `flame_witch`/`frost_mage` が無ければ加算的に補い、`selectedJobId` が未設定なら `flame_witch`。
+  `jobProgress` はジョブ id ごとに独立（`safeJobProgress` がプロトタイプ汚染キー除外・負数/非有限を安全化）。Job Lv は保存せず `totalXp` から算出する。
+- 拠点のジョブ育成タブは `unlockedJobs` を**選択画面**として表示し、選んだ id を `selectedJobId` に保存する。
+
+### active_run（v6・氷術師の周回で使う追加フィールド）
+周回開始時に固定するジョブ情報（M6-C の `jobId`/`jobLevelAtStart`/`resolvedJobModifiers`/`jobRuntime` 等）に加え、M7-A で次を足す。
+```jsonc
+{
+  "jobId": "frost_mage",
+  "jobElement": "ice",                    // 周回ジョブの属性（fire/ice。ダメージタグの既定 element）
+  "resolvedJobModifiers": { /* JobModifierManager.resolve の凍結結果（氷用フィールドを含む） */ },
+  "statusRng": { "seed": 12345, "cursor": 87 },  // 状態異常専用 SeededRandom の cursor（凍結判定を引き直せない）
+  "bossFrost": {                          // ボス在戦時のみ。氷砕ゲージ/break回数/脆弱残り時間
+    "gauge": 180, "breaks": 2, "vulnRemainMs": 1200
+  }
+  // 個々の敵の冷気/凍結/氷弾位置/凍土位置/氷壁位置は保存しない（再開時に安全に再構築）
+}
+```
+- `statusRng` は `StatusEffectManager.serialize()/restore()` 経由。候補抽選用の `draftState.seed` とは独立で、**再読込で凍結判定を引き直せない**。
+- `bossFrost` は再読込での**ゲージ初期化・脆弱延長の悪用を防ぐ**ため保存する（`vulnRemainMs` から復元）。ボス不在時は保存しない。
+- 氷スキルの runtimeState（各 CD 等）は既存の `active_run.skillRuntime`（`SkillManager.serializeRuntime`）へ加算的に保存する。
+- JSON エクスポート/インポート・バックアップ・競合比較は payload 全体を扱うため新フィールドも自動保持される（インポートは `migrateProfile` を通す）。
+  加算的追加のため **`save_version` は 6 のまま**・転生でもリセットしない。

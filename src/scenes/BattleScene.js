@@ -31,6 +31,9 @@ import { registeredSkillIds, skillsWithRuntimeState } from '../systems/SkillMana
 import { buildCatalog, evolutionRecipes, evolutionPartnerIds } from '../systems/SkillCatalog.js';
 import { CombatTelemetry } from '../systems/CombatTelemetry.js';
 import { defaultPlaytestConfig, resolveOverrides } from '../systems/BalancePlaytest.js';
+import { StatusEffectRegistry } from '../systems/StatusEffectRegistry.js';
+import { FreezeSystem } from '../systems/FreezeSystem.js';
+import { StatusEffectManager } from '../systems/StatusEffectManager.js';
 import { HUD } from '../ui/HUD.js';
 import { PauseMenu } from '../ui/PauseMenu.js';
 import { distance, dist2, createRng } from '../utils/math.js';
@@ -133,7 +136,7 @@ export class BattleScene extends Phaser.Scene {
     // プール（onSpawn/onRelease でグリッド登録・解除を共通化する）
     this.enemyPool = new Pool(this, () => new Enemy(this), (e, def, x, y, m) => e.reset(def, x, y, m), this.effSettings.maxEnemies, {
       onSpawn: (e) => { e._seq = this._enemySeq++; if (this._useSpatial) this.enemyGrid.insert(e); },
-      onRelease: (e) => { this.enemyGrid.remove(e); this.unregisterBurning(e); }, // M6-E: 炎上索引の残留防止
+      onRelease: (e) => { this.enemyGrid.remove(e); if (this.statusFx) this.statusFx.onRelease(e); else this.unregisterBurning(e); }, // M6-E/M7-A: 状態異常索引の残留防止（プール返却）
 
     });
     this.projPool = new Pool(this, () => new Projectile(this), (p, x, y, a, s, o) => p.reset(x, y, a, s, o), this.effSettings.maxProjectiles);
@@ -143,8 +146,10 @@ export class BattleScene extends Phaser.Scene {
       onRelease: (g) => this.gemGrid.remove(g),
     });
 
-    // ジョブ・所持枠（M6-A）
-    this.job = DataManager.getJob(this.profile.selectedJobId) || DataManager.getJob('flame_witch') || DataManager.jobs[0] || { id: 'flame_witch', initialActiveSkills: ['fireball'], initialPassiveSkills: [], activeSkillPool: DataManager.skills.map((s) => s.id), passiveSkillPool: [], baseActiveSlots: 4, basePassiveSlots: 4 };
+    // ジョブ・所持枠（M6-A / M7-A: 複数ジョブ）。途中再開時は active_run.jobId を優先し、
+    // profile.selectedJobId の途中変更を進行中周回へ持ち込まない（周回ジョブは固定）。
+    const runJobId = this.resumeData?.jobId;
+    this.job = DataManager.getJob(runJobId) || DataManager.getJob(this.profile.selectedJobId) || DataManager.getJob('flame_witch') || DataManager.jobs[0] || { id: 'flame_witch', initialActiveSkills: ['fireball'], initialPassiveSkills: [], activeSkillPool: DataManager.skills.map((s) => s.id), passiveSkillPool: [], baseActiveSlots: 4, basePassiveSlots: 4 };
     const slotCfg = DataManager.skillConfig.slots || {};
     this.activeSlotsMax = (this.job.baseActiveSlots ?? slotCfg.baseActiveSlots ?? 4) + (this.reincStats.activeSlotBonus || 0);
     this.passiveSlotsMax = (this.job.basePassiveSlots ?? slotCfg.basePassiveSlots ?? 4);
@@ -152,8 +157,9 @@ export class BattleScene extends Phaser.Scene {
     // ジョブ育成（M6-C）: 周回開始時のジョブレベルを解決し、補正を「凍結」する（周回中は不変）。
     // 効果は「そのジョブを使用中の周回のみ」有効。途中再開時は restoreFromRun で保存済み凍結値を使う。
     this.jobId = this.job.id || 'flame_witch';
-    // 火の魔女は全 active ダメージを fire として扱う（ジョブ火属性補正の既定属性）。将来の非火ジョブは null。
-    this._defaultElement = (this.jobId === 'flame_witch') ? 'fire' : null;
+    // ジョブの主属性（火の魔女=fire / 氷術師=ice）。全 active ダメージの既定属性としてタグ解決に使う。
+    this.jobElement = this.job.element || (this.jobId === 'flame_witch' ? 'fire' : (this.jobId === 'frost_mage' ? 'ice' : null));
+    this._defaultElement = this.jobElement;
     this._echoScale = 1;
     this._inEcho = false;
     // M6-D: 発動文脈（残響/分身の再帰防止）・複製元・毎フレーム予算。
@@ -167,7 +173,10 @@ export class BattleScene extends Phaser.Scene {
     this._deathEmitsThisFrame = 0;
     this._frameId = 0;
     this._deathTrackers = 0;     // 死亡履歴を必要とするスキルの参照カウント（>0 のときだけ記録）
-    this._burningIndex = new Set(); // 炎上中の敵（ignite で登録・消火/死亡/返却で解除）
+    // M7-A: 汎用状態異常基盤（burning/chill/frozen/freeze_immunity/frostbreak_vulnerability）。
+    // 炎上の索引は StatusEffectManager と同じ Set を共有し（後段で alias）、M6-E 挙動を維持する。
+    this.statusReg = new StatusEffectRegistry(DataManager.statusEffectsData);
+    this.freezeSys = new FreezeSystem(this.statusReg);
     this.jobMods = new JobModifierManager();
     this._resolveJobModsFromProfile();
 
@@ -237,6 +246,16 @@ export class BattleScene extends Phaser.Scene {
     // ドラフト用シード（周回内で決定論。途中再開時は restoreFromRun で上書き）。
     this._draftSeed = ((this.rngSeed >>> 0) ^ 0x5ca1ab1e) >>> 0 || 1;
 
+    // M7-A: 状態異常マネージャ（状態異常専用の決定論 RNG を持つ）。炎上索引は同じ Set を共有する。
+    const statusSeed = ((this.rngSeed >>> 0) ^ 0x51ce9e11) >>> 0 || 1;
+    this.statusFx = new StatusEffectManager({
+      registry: this.statusReg, freezeSystem: this.freezeSys,
+      now: () => this.time.now, seed: statusSeed,
+      cap: (name, fb) => DataManager.skillCap(name, this.settings?.effectQuality || 'high', fb),
+    });
+    this._burningIndex = this.statusFx.indexOf('burning'); // M6-E 炎上索引と共有（挙動不変）
+    this._pendingBossFrost = null; // 途中再開時のボス氷砕状態（spawnBoss 後に適用）
+
     // 途中再開 or 新規
     if (this.resumeData) {
       this.restoreFromRun(this.resumeData, bal);
@@ -250,6 +269,7 @@ export class BattleScene extends Phaser.Scene {
       const startAdd = (up.startSkillLevel || 0) + (reinc.startSkillLevel || 0);
       if (startAdd > 0 && this.skills.has('fireball')) this.skills.setLevel('fireball', this.skills.getLevel('fireball') + startAdd);
     }
+    this._refreshStatusPassives(); // 氷系パッシブの乗率（再開時は復元済みパッシブから・新規は初期値）
     this.player.moveSpeed = bal.player.moveSpeed * this.bonus.moveMult;
 
     // 倍速モードの初期適用（設定値を speedMax でクランプ）。
@@ -272,6 +292,7 @@ export class BattleScene extends Phaser.Scene {
       this.input.keyboard.on('keydown-F6', () => this.toggleWave2Debug());    // 新スキル検証（M6-D）
       this.input.keyboard.on('keydown-F7', () => this.toggleWave3Debug());    // 新スキル検証（M6-E）
       this.input.keyboard.on('keydown-F8', () => this.toggleBalancePlaytest()); // 通常プレイ検証（M6-F）
+      this.input.keyboard.on('keydown-F9', () => this.toggleFrostDebug());       // 状態異常・氷術師検証（M7-A）
       // ヘッドレス/実ブラウザからの検査・比較用に戦闘シーンを公開する。
       window.RFS_BATTLE = this;
       this.togglePerfOverlay(); // debug 時は性能パネルを既定表示
@@ -335,6 +356,10 @@ export class BattleScene extends Phaser.Scene {
     if (r.skillRuntime) this.skills.restoreRuntime(r.skillRuntime);
     // M6-C: ジョブ補正の凍結値・残響カウンターを復元（周回途中に profile 側レベルが変わっても反映しない）。
     this._restoreJobMods(r);
+    // M7-A: 状態異常専用 RNG の cursor を復元（再読込で凍結判定を引き直せないようにする）。
+    if (r.statusRng) this.statusFx.restore({ rng: r.statusRng });
+    // ボス氷砕状態は spawnBoss 後に適用（個々の敵の冷気/凍結は保存せず安全に再構築）。
+    if (r.bossFrost) this._pendingBossFrost = r.bossFrost;
   }
 
   // 現在の profile からジョブレベル補正を解決して凍結する（新規周回）。
@@ -346,6 +371,22 @@ export class BattleScene extends Phaser.Scene {
     this.resolvedJobModifiers = JobModifierManager.resolve(jp, this.jobLevelAtStart);
     this.jobProgressionVersion = DataManager.jobProgression.version || 1;
     this.jobMods.setResolved(this.resolvedJobModifiers);
+    this._applyFreezeThresholdMods();
+  }
+
+  // 絶対零度（氷術師 Lv100）の閾値低下・凍結延長を FreezeSystem へ反映する（周回開始時に凍結）。
+  _applyFreezeThresholdMods() {
+    const az = this.jobMods.absoluteZero();
+    this.freezeSys.setThresholdMods(az || { normalThresholdReduction: 0, bossThresholdReduction: 0, frozenDurationMult: 0 });
+  }
+
+  // 余寒残留など氷系パッシブの乗率を StatusEffectManager へ反映する（パッシブ取得のたびに呼ぶ）。
+  _refreshStatusPassives() {
+    if (!this.statusFx || !this.passives) return;
+    this.statusFx.setPassiveMods({
+      chillDecayMult: this.passives.getChillDecayMultiplier(),
+      iceStatusDurationMult: this.passives.getIceStatusDurationMultiplier(),
+    });
   }
 
   // 途中再開: active_run に凍結された補正・残響カウンターを使う（profile 側の変更を持ち込まない）。
@@ -360,6 +401,7 @@ export class BattleScene extends Phaser.Scene {
     }
     if (r.jobRuntime) this.jobMods.restore(r.jobRuntime); // 残響カウンター
     this.draft.setRarityWeightMult({ rare: this.jobMods.rarityWeightMult('rare'), legendary: this.jobMods.rarityWeightMult('legendary') });
+    this._applyFreezeThresholdMods();
   }
 
   // ---------------- 残響詠唱（M6-C）・灰燼分身の複製（M6-D）: castContext 統合 ----------------
@@ -525,9 +567,9 @@ export class BattleScene extends Phaser.Scene {
     document.removeEventListener('visibilitychange', this._onVisibility);
     this.game.events.off('blur', this._onBlur);
     if (this.skills) this.skills.destroy();
-    // M6-E: 死亡履歴・炎上索引を破棄（Scene終了で古い参照を残さない）。
+    // M6-E/M7-A: 死亡履歴・状態異常索引を破棄（Scene終了で古い参照を残さない）。
     this._deathEvents.length = 0; this._deathTrackers = 0;
-    if (this._burningIndex) this._burningIndex.clear();
+    if (this.statusFx) this.statusFx.clearAll();
     // 空間グリッドを破棄（古い参照を残さない）。
     if (this.enemyGrid) this.enemyGrid.clear();
     if (this.gemGrid) this.gemGrid.clear();
@@ -539,6 +581,7 @@ export class BattleScene extends Phaser.Scene {
     if (this._w3dbg) { this._w3dbg.destroy(true); this._w3dbg = null; }
     if (this._bpdbg) { this._bpdbg.destroy(true); this._bpdbg = null; }
     if (this._bpBanner) { this._bpBanner.destroy(); this._bpBanner = null; }
+    if (this._frostdbg) { this._frostdbg.destroy(true); this._frostdbg = null; }
     if (window.RFS_BATTLE === this) window.RFS_BATTLE = null;
   }
 
@@ -575,7 +618,53 @@ export class BattleScene extends Phaser.Scene {
       ignite: (e, ms, gen) => this.igniteEnemy(e, ms, gen),
       registerBurning: (e) => this.registerBurning(e),
       worldBounds: () => ({ w: this.worldW, h: this.worldH }),
+      // M7-A: 汎用状態異常 / 冷気・凍結・粉砕（スキルは個別タイマーを持たず共通経路を使う）。
+      statusFx: () => this.statusFx,
+      applyChill: (e, amount) => this.statusFx.addChill(e, amount * this.jobMods.statusPowerMult()),
+      isFrozen: (e) => this.statusFx.isFrozen(e),
+      isChilled: (e) => this.statusFx.isChilled(e),
+      chillOf: (e) => this.statusFx.chillOf(e),
+      chillRatio: (e) => this.statusFx.chillRatio(e),
+      shatterEnemy: (e, ctx) => this.shatterEnemy(e, ctx),
+      addBossGauge: (amount) => { const ev = this.boss && this.boss.alive ? this.statusFx.addBossGauge(this.boss, amount * this.jobMods.statusPowerMult()) : null; if (ev) this._onBossFrostbreak(ev, null); return ev; },
+      entitiesWithStatus: (id, limit) => this.statusFx.entitiesWithStatus(id, limit),
+      countStatus: (id) => this.statusFx.countStatus(id),
+      jobElement: () => this._defaultElement,
+      // 同一発動を識別する ID（凍結判定回数の上限に使う。多段攻撃で同じ敵を毎tick凍結しない）。
+      nextHitGroupId: () => this.nextHitGroupId(),
     };
+  }
+
+  nextHitGroupId() { this._hitGroupSeq = (this._hitGroupSeq || 0) + 1; return this._hitGroupSeq; }
+
+  // 天穿氷河槍: 粉砕地点から小型氷片を飛散させる（氷片は粉砕を再発生させない＝shatterOnFrozen:false・fragmentCount:0）。
+  _spawnIceFragments(x, y, proj) {
+    const cap = this.combat.skillCap('maxHeavenGlacierFragments', 8);
+    const n = Math.min(proj.fragmentCount || 0, cap);
+    const hg = this.nextHitGroupId();
+    for (let i = 0; i < n; i++) {
+      const a = (Math.PI * 2 * i) / n + 0.3;
+      this.projPool.spawn(x, y, a, 220, {
+        skillId: proj.skillId, element: 'ice', damage: (proj.damage || 0) * (proj.fragmentDamageFactor || 0.35),
+        pierce: 0, chillAmount: (proj.chillAmount || 0) * 0.4, procCoefficient: 0.3, hitGroupId: hg,
+        scale: 0.7, lifeMs: 700, tint: 0xe1f5fe,
+      });
+    }
+  }
+
+  // 凍結中の敵を粉砕する共通経路（スキル/Job Lv報酬から呼ぶ）。ボスは対象外・粉砕から粉砕を再帰しない。
+  // ctx: { skillPower, powerMult, multiplier, quiet, color }。
+  shatterEnemy(target, ctx = {}) {
+    if (this._shatterBudget <= 0) { this._m.suppressed++; return false; }
+    const res = this.statusFx.shatter(target, { skillPower: ctx.skillPower || 0, powerMult: ctx.powerMult || 1, multiplier: ctx.multiplier || 1 });
+    if (!res) return false;
+    this._shatterBudget--;
+    const x = target.x, y = target.y;
+    this.effects.explosion(x, y, res.radius, ctx.color || 0x9fe8ff);
+    // isShatter:true で粉砕から粉砕を再帰させない。氷属性ダメージとして計上。
+    this.damageArea(x, y, res.radius, res.damage, ctx.skillId || 'frost_shatter', { quiet: true, isShatter: true, element: 'ice', exclude: null });
+    if (this.telemetry) { this.telemetry.noteStatusEvent('shatters', 1); this.telemetry.noteStatusEvent('shatterDamage', res.damage); if (ctx.skillId) { this.skills.recordExtra(ctx.skillId, 'shatters', 1, 'add'); this.skills.recordExtra(ctx.skillId, 'shatterDamage', res.damage, 'add'); } }
+    return true;
   }
 
   // 除外集合を考慮した最寄り対象（連鎖炎などで使用・空間グリッド利用）。
@@ -769,6 +858,10 @@ export class BattleScene extends Phaser.Scene {
     // M6-E: 死亡イベントの毎フレーム発行数リセット＋フレームID更新。
     this._deathEmitsThisFrame = 0;
     this._frameId++;
+    // M7-A: 氷砕・粉砕の毎フレーム予算（品質別・上限到達でも戦闘ロジックは停止しない）。
+    const q = this.settings?.effectQuality || 'high';
+    this._frostbreakBudget = DataManager.skillCap('maxBossFrostbreaksPerFrame', q, 1);
+    this._shatterBudget = DataManager.skillCap('maxShattersPerFrame', q, 8);
     if (this.effects) this.effects.beginFrame(caps.maxDamageNumbersPerFrame ?? 24, this.particleBudget ?? 200);
     this._resetMetrics();
   }
@@ -918,29 +1011,76 @@ export class BattleScene extends Phaser.Scene {
     // 基礎ダメージ恒久強化（damageMult）＋パッシブ「魔力増幅」を全プレイヤーダメージへ適用。
     // パッシブ未取得なら getDamageMultiplier()=1（＝M5-B 以前と同じ）。
     amount = amount * (this.bonus.damageMult || 1) * (this.passives ? this.passives.getDamageMultiplier() : 1);
-    // ジョブレベル（M6-C）: 火属性ダメージ補正（基本成長＋Lv5/Lv40爆発/Lv60進化）をタグに応じて適用。
+    // ジョブレベル: 主属性ダメージ補正（基本成長＋到達報酬）をタグに応じて適用（属性一致時のみ）。
     // fire 以外・Lv1・非対象ジョブでは 1（恒等＝M6-B と一致）。適用順は最後（カテゴリ間の乗算）。
-    const _tags = this._damageTags(skillId, opts);
+    const element = opts.element || this._defaultElement || null;
+    const sfx = this.statusFx;
+    // M7-A: 氷術師 Lv40「凍結狩り」用に対象の状態を解決（frozen/氷砕脆弱を優先し chilled と二重適用しない）。
+    const frozenT = !!(sfx && sfx.isFrozen(target));
+    const frostbreakT = !!(target.isBoss && sfx && sfx.bossVulnActive(target));
+    const chilledT = !!(sfx && sfx.isChilled(target));
+    const wasFrozen = frozenT; // Lv50 死亡粉砕の判定用（takeDamage 前の状態）
+    const _tags = this._damageTags(skillId, opts, element, { chilledT, frozenT: frozenT || frostbreakT });
     amount *= this.jobMods.damageMultiplier(_tags);
+    // M7-A: 氷ダメージへは氷パッシブ（氷晶増幅）とボス氷砕脆弱の被ダメージ増加を追加適用（火へは適用しない）。
+    if (element === 'ice') {
+      if (this.passives) amount *= this.passives.getIceDamageMultiplier();
+      if (target.isBoss && sfx) amount *= sfx.bossIceVulnMultiplier(target);
+    }
     if (window.RFS_DEBUG) this._lastDamageInfo = { skillId: skillId || '(none)', tags: _tags, echo: this._echoScale }; // F7 表示用
     // 残響の追加発動ぶんの威力（同期ダメージ用・弾は spawn 時に反映済み）。
     if (this._echoScale && this._echoScale !== 1) amount *= this._echoScale;
+    const dx = target.x, dy = target.y; // 死亡・返却前に座標を確保（死亡粉砕/演出用）
     const died = target.takeDamage(amount);
     const dealt = target.lastDamage || amount;
     if (skillId) { this.skills.recordDamage(skillId, dealt); this.skills.recordHit(skillId); }
     if (dealt > this.maxHit) this.maxHit = dealt;
+    if (element === 'ice' && this.telemetry) this.telemetry.noteStatusEvent('iceDamage', dealt);
 
     if (!opts.quiet) this.effects.damageNumber(target.x, target.y - (target.isBoss ? 20 : 6), Math.round(dealt), !!opts.crit);
     if (!target.isBoss) this.effects.enemyFlash(target);
-    if (!opts.quiet) this.effects.hitBurst(target.x, target.y, opts.color || 0xffe082);
+    if (!opts.quiet) this.effects.hitBurst(target.x, target.y, opts.color || (element === 'ice' ? 0x9fe8ff : 0xffe082));
 
     if (opts.knockback && target.applyKnockback) {
       target.applyKnockback(opts.from?.x ?? this.player.x, opts.from?.y ?? this.player.y, opts.knockback);
     }
+    // M7-A: 氷属性命中の状態異常（冷気付与→凍結判定 or ボス氷砕ゲージ）。粉砕/刻印起爆自身は状態を発生させない。
+    if (!died && element === 'ice' && sfx && !opts.isShatter && !opts.isMarkDetonation && (opts.chillAmount || opts.applyStatus)) {
+      const spMult = this.jobMods.statusPowerMult();
+      const res = sfx.applyIceHit(target, {
+        chillAmount: opts.chillAmount || 0, baseFreezeChance: opts.baseFreezeChance || 0,
+        procCoefficient: opts.procCoefficient != null ? opts.procCoefficient : 1,
+        hitGroupId: opts.hitGroupId, canFreeze: opts.canFreeze !== false,
+        statusPowerMult: spMult,
+      });
+      const appliedChill = (opts.chillAmount || 0) * spMult;
+      if (this.telemetry) {
+        this.telemetry.noteStatusEvent('chillApplied', appliedChill);
+        if (skillId) this.skills.recordExtra(skillId, 'chillApplied', appliedChill, 'add');
+        if (res.boss) { if (skillId) this.skills.recordExtra(skillId, 'bossFrostGaugeApplied', appliedChill, 'add'); }
+        else {
+          this.telemetry.noteStatusEvent('freezeAttempts', 1);
+          if (skillId) this.skills.recordExtra(skillId, 'freezeAttempts', 1, 'add');
+          if (res.froze) {
+            this.telemetry.noteStatusEvent('freezes', 1);
+            this.telemetry.noteStatusEvent('frozenSecondsApplied', this.freezeSys.freezeDuration(sfx.entityType(target)) / 1000);
+            if (skillId) this.skills.recordExtra(skillId, 'freezesCaused', 1, 'add');
+          }
+        }
+      }
+      if (res.frostbreak) this._onBossFrostbreak(res.frostbreak, skillId);
+    }
     if (died) {
       if (skillId) this.skills.recordKill(skillId);
       if (target.isBoss) this.onBossKilled(target);
-      else this.onEnemyKilled(target, skillId);
+      else {
+        this.onEnemyKilled(target, skillId);
+        // 氷術師 Lv50「氷砕連鎖」: 凍結中の通常敵・エリートが氷ダメージで死亡したら小規模な粉砕爆発（1体1回・再帰なし）。
+        if (element === 'ice' && wasFrozen && !opts.isShatter) {
+          const cfg = this.jobMods.shatterOnFrozenKill();
+          if (cfg) this._deathShatter(dx, dy, skillId, cfg);
+        }
+      }
     } else if (!opts.isMarkDetonation && skillId && !target.isBoss && target._mark && this.time.now < target._mark.until) {
       // 起爆刻印（M6-B）: 火属性攻撃/炎上が命中したら刻印を進め、規定回数で起爆。
       // 起爆自身のダメージ(isMarkDetonation)ではカウントしない＝無限再起爆を防止。
@@ -948,6 +1088,31 @@ export class BattleScene extends Phaser.Scene {
       if (target._mark.hits >= target._mark.hitsNeeded) this.detonateMark(target);
     }
     return died;
+  }
+
+  // ボス氷砕の発生（短い硬直＋脆弱表示＋演出）。同一フレーム複数回は予算で抑制。
+  _onBossFrostbreak(ev, skillId) {
+    if (!this.boss || !this.boss.alive) return;
+    if (this._frostbreakBudget <= 0) { this._m.suppressed++; return; }
+    this._frostbreakBudget--;
+    this.boss.applyFrostStagger(ev.staggerMs); // chase 中のみ硬直（中断不可能な行動は壊さない）
+    this.effects.explosion(this.boss.x, this.boss.y, 48, 0x9fe8ff);
+    this.effects.whiteFlash?.();
+    this.showBanner('氷砕！ボスが硬直し氷属性ダメージが増加');
+    if (this.telemetry) this.telemetry.noteStatusEvent('bossFrostbreaks', 1);
+  }
+
+  // 氷術師 Lv50 の死亡粉砕（固定/威力/最大HP係数の安全構造・再帰なし・ボス対象外）。
+  _deathShatter(x, y, skillId, cfg) {
+    if (this._shatterBudget <= 0) { this._m.suppressed++; return; }
+    this._shatterBudget--;
+    const s = DataManager.shatterConfig;
+    const radius = (s.explosionRadius || 44) * (cfg.radiusFactor || 1);
+    const dmg = this.freezeSys.shatterDamage({ skillPower: 0, maxHp: 0, powerMult: cfg.powerFactor || 0.6 });
+    this.effects.explosion(x, y, radius, 0x9fe8ff);
+    // isShatter:true で粉砕から粉砕を再帰させない。属性 ice で氷ダメージとして計上。
+    this.damageArea(x, y, radius, dmg, skillId || 'frost_shatter', { quiet: true, isShatter: true, element: 'ice' });
+    if (this.telemetry) { this.telemetry.noteStatusEvent('shatters', 1); this.telemetry.noteStatusEvent('shatterDamage', dmg); }
   }
 
   damageArea(x, y, radius, amount, skillId, opts = {}) {
@@ -958,18 +1123,25 @@ export class BattleScene extends Phaser.Scene {
         crit: opts.crit, quiet: opts.quiet, color: opts.color,
         isMarkDetonation: opts.isMarkDetonation, element: opts.element, tag: opts.tag,
         isDoT: opts.isDoT, isExplosion: opts.isExplosion,
+        // M7-A: 氷属性の状態異常（冷気/凍結判定）を範囲攻撃へも伝播する。
+        chillAmount: opts.chillAmount, baseFreezeChance: opts.baseFreezeChance,
+        procCoefficient: opts.procCoefficient, hitGroupId: opts.hitGroupId,
+        canFreeze: opts.canFreeze, applyStatus: opts.applyStatus, isShatter: opts.isShatter,
       });
     }
   }
 
-  // ダメージタグを解決する（M6-C: ジョブ火属性補正の適用判定）。
-  // 火の魔女の全 active ダメージは fire として扱う（他ジョブは opts.element で明示・未指定は非火＝補正なし）。
-  _damageTags(skillId, opts) {
+  // ダメージタグを解決する（ジョブ属性補正の適用判定）。
+  // 各ジョブの主属性（火の魔女=fire / 氷術師=ice）を既定とし、opts.element で明示可能。
+  // status: { chilledT, frozenT }（氷術師 Lv40「凍結狩り」の対象ボーナス。frozen/氷砕脆弱を frozenT に集約済み）。
+  _damageTags(skillId, opts, element, status = {}) {
     return {
-      element: opts.element || this._defaultElement || 'fire',
+      element: element !== undefined ? element : (opts.element || this._defaultElement || null),
       isDoT: !!(opts.isDoT || opts.tag === 'dot' || opts.tag === 'burn'),
       isExplosion: !!(opts.isExplosion || opts.tag === 'explosion' || opts.isMarkDetonation),
       isEvolved: !!(skillId && DataManager.getEvolution(skillId)),
+      isChilledTarget: !!status.chilledT,
+      isFrozenTarget: !!status.frozenT,
     };
   }
 
@@ -987,6 +1159,7 @@ export class BattleScene extends Phaser.Scene {
     if (this.telemetry) this.telemetry.noteFrame(delta); // M6-F: FPS/フレーム時間の計測（実フレームms）
 
     this.handleInput(dt);
+    this.statusFx.update(dt); // M7-A: 冷気減衰・凍結/耐性/氷砕脆弱の期限切れ
     this.updateEnemies(dt);
     if (this.boss && this.boss.alive) this.boss.update(dt, this.player);
     this.updateProjectiles(dt);
@@ -1149,13 +1322,21 @@ export class BattleScene extends Phaser.Scene {
     const bx = Phaser.Math.Clamp(this.player.x + 160, 60, WORLD_W - 60);
     const by = Phaser.Math.Clamp(this.player.y, 60, WORLD_H - 60);
     this.boss = new Boss(this, bx, by, def, this.difficulty.bossHp);
+    // M7-A: 途中再開時のボス氷砕状態を適用（ゲージ初期化や脆弱延長の悪用を防ぐ）。
+    if (this._pendingBossFrost) {
+      const bf = this._pendingBossFrost; this._pendingBossFrost = null;
+      this.boss._frostGauge = Math.max(0, +bf.gauge || 0);
+      this.boss._frostBreaks = Math.max(0, Math.floor(+bf.breaks || 0));
+      if (bf.vulnRemainMs > 0) { this.boss._frostbreakVulnUntil = this.time.now + bf.vulnRemainMs; this.statusFx.register('frostbreak_vulnerability', this.boss, 'maxStatusIndexEntries'); }
+    }
     this.hud.showBoss(def.name);
+    if (this._defaultElement === 'ice') this.hud.showBossFrost(); // 氷術師のみ氷砕ゲージを表示
   }
 
   onBossKilled(boss) {
     this.bossKills++;
     this._recordDeathEvent(boss, 'boss'); // M6-E: ボス死亡も墓標の死亡位置として扱える
-    this.unregisterBurning(boss);
+    this.statusFx.onDeath(boss); // M7-A: 炎上/氷砕脆弱の索引から除去
     this.effects.deathBurst(boss.x, boss.y, 0xff5722);
     this.effects.screenShake(300, 0.01);
     this.effects.whiteFlash();
@@ -1186,7 +1367,24 @@ export class BattleScene extends Phaser.Scene {
             continue;
           }
           if (!proj.registerHit(e)) continue;
-          this.dealDamage(e, proj.damage, proj.skillId, { knockback: proj.knockback, from: { x: this.player.x, y: this.player.y }, element: proj.element });
+          // M7-A: 氷弾は「冷気高蓄積ボーナス＋凍結中の粉砕」を処理してから通常ダメージ＆冷気/凍結判定を行う。
+          // registerHit により同じ弾が同じ敵を複数回粉砕しない。粉砕は氷弾のダメージ命中前（凍結状態のうち）に行う。
+          let projDmg = proj.damage;
+          if (proj.element === 'ice') {
+            if (proj.bonusPerChill > 0) projDmg = proj.damage * (1 + proj.bonusPerChill * this.statusFx.chillOf(e));
+            if (proj.frozenBonus > 0 && this.statusFx.isFrozen(e)) projDmg *= (1 + proj.frozenBonus);
+            if (proj.shatterOnFrozen && this.statusFx.isFrozen(e)) {
+              const px = e.x, py = e.y;
+              if (this.shatterEnemy(e, { skillId: proj.skillId, multiplier: proj.shatterMultiplier, skillPower: proj.damage }) && proj.fragmentCount > 0) {
+                this._spawnIceFragments(px, py, proj);
+              }
+            }
+          }
+          this.dealDamage(e, projDmg, proj.skillId, {
+            knockback: proj.knockback, from: { x: this.player.x, y: this.player.y }, element: proj.element,
+            chillAmount: proj.chillAmount, baseFreezeChance: proj.baseFreezeChance,
+            procCoefficient: proj.procCoefficient, hitGroupId: proj.hitGroupId,
+          });
           if (proj.explosionRadius > 0) {
             this.effects.explosion(proj.x, proj.y, proj.explosionRadius);
             this.aoe(proj.x, proj.y, proj.explosionRadius, proj.damage * 0.5, proj.skillId, { exclude: e, quiet: true, isExplosion: true, element: proj.element });
@@ -1233,7 +1431,7 @@ export class BattleScene extends Phaser.Scene {
     this.kills++;
     if (e.isElite) this.eliteKills++; // M6-C: エリート撃破数（ジョブXP）
     this._recordDeathEvent(e, skillId); // M6-E: 死亡位置履歴（墓標系スキル所持時のみ）
-    this.unregisterBurning(e);          // M6-E: 炎上索引から除去（死亡）
+    this.statusFx.onDeath(e);           // M6-E/M7-A: 状態異常索引から除去（死亡・凍結解除tintも）
     // 永劫火界: 炎上中の敵の死亡で小爆発（安全上限内・連鎖暴走防止）。
     // 死亡直後は alive=false のため .ignited ではなく点火タイマーで判定する。
     const wasIgnited = e._igniteUntil && this.time.now < e._igniteUntil;
@@ -1404,6 +1602,9 @@ export class BattleScene extends Phaser.Scene {
         casts: st.casts, hits: st.hits, kills: st.kills, damage: st.damage,
         echoCasts: ex.echoCasts, cloneCasts: ex.cloneDamageCasts,
         highestConcurrentObjects: ex.highestConcurrentObjects || ex.maxConcurrent,
+        // M7-A: 状態異常（スキル別）
+        chillApplied: ex.chillApplied, freezeAttempts: ex.freezeAttempts, freezesCaused: ex.freezesCaused,
+        shatters: ex.shatters, shatterDamage: ex.shatterDamage, bossFrostGaugeApplied: ex.bossFrostGaugeApplied,
       });
       t.setSkillLevel(st.id, st.level, !!DataManager.getEvolution(st.id));
       // activeSeconds: 取得〜周回終了（DPS 分母）。取得時刻不明（初期スキル等）は 0 から。
@@ -1501,7 +1702,11 @@ export class BattleScene extends Phaser.Scene {
 
   updateHud() {
     this.hud.update({ player: this.player, timeSec: this.timeSec, kills: this.kills, difficultyName: this.difficulty.name, autoMove: this.autoMove });
-    if (this.boss && this.boss.alive) this.hud.updateBoss(this.boss.hpRatio());
+    if (this.boss && this.boss.alive) {
+      this.hud.updateBoss(this.boss.hpRatio());
+      // M7-A: 氷術師のボス氷砕ゲージ（現在値/必要値・脆弱・break回数）。
+      if (this._defaultElement === 'ice') this.hud.updateBossFrost(this.boss._frostGauge || 0, this.statusFx.bossThreshold(this.boss), this.boss._frostBreaks || 0, this.statusFx.bossVulnActive(this.boss));
+    }
   }
 
   showBanner(text) {
@@ -1995,6 +2200,91 @@ export class BattleScene extends Phaser.Scene {
     L.push(`残響:${this.jobMods.echoEnabled() ? this.jobMods.echoInterval() + '回' : '無効'}現${this.jobMods.echoCount()} 抑制/f:${(this._mLast || this._m).suppressed}`);
     const heat = this.skills.skills.get('core_overdrive') || this.skills.skills.get('doomsday_core');
     if (heat && heat.serializeState) { const st = heat.serializeState(); if (st && 'heat' in st) L.push(`炉心:${JSON.stringify(st).slice(0, 46)}`); }
+    return L.join('\n');
+  }
+
+  // ---------------- 状態異常・氷術師検証（M7-A・?debug=1・F9） ----------------
+  // 既存 F1〜F8 と競合しない。冷気/凍結/耐性/粉砕/ボス氷砕・氷術師 Job Lv/スキル/進化を確認する。
+  // すべてランタイムのみ。profile は破壊・保存しない（デバッグ操作でこの周回は debugRun）。
+  _debugNearestEnemy() {
+    let best = null, bd = Infinity;
+    this.enemyPool.forEachActive((e) => { if (!e.alive) return; const d = distance(this.player.x, this.player.y, e.x, e.y); if (d < bd) { bd = d; best = e; } });
+    return best;
+  }
+
+  toggleFrostDebug() {
+    this.markDebugRun();
+    if (this._frostdbg) { this._frostdbg.destroy(true); this._frostdbg = null; return; }
+    this._fd = this._fd || { skill: 'frost_shard', passive: 'frost_amplification', lv: 8, chill: 100, jobLv: 100 };
+    const ACT = ['frost_shard', 'frost_nova', 'glacial_lance', 'permafrost_field', 'ice_wall'];
+    const PAS = ['frost_amplification', 'rapid_freezing', 'frozen_expansion', 'lingering_cold'];
+    const EVO = { frost_shard: ['diamond_blizzard', 'rapid_freezing'], frost_nova: ['absolute_zero_domain', 'frozen_expansion'], glacial_lance: ['heaven_piercing_glacier', 'frost_amplification'] };
+    const cx = GAME_WIDTH / 2;
+    const ui = this.add.container(0, 0).setScrollFactor(0).setDepth(4000);
+    ui.add(this.add.rectangle(cx, GAME_HEIGHT / 2, 512, 356, 0x08131a, 0.97).setScrollFactor(0).setStrokeStyle(1, 0x4fc3f7));
+    ui.add(this.add.text(cx, 4, 'DEBUG（M7-A 状態異常・氷術師・F9）', { fontSize: '11px', color: '#4fc3f7' }).setScrollFactor(0).setOrigin(0.5, 0));
+    const redraw = () => { this.toggleFrostDebug(); this.toggleFrostDebug(); };
+    const applyFrostJob = (lv) => { this.jobMods.setResolved(JobModifierManager.resolve(DataManager.getJobProgression('frost_mage'), lv)); this._applyFreezeThresholdMods(); this._refreshStatusPassives(); };
+    const acts = [
+      [() => `氷術師 Job Lv: ${this._fd.jobLv}（切替・補正適用）`, () => { const seq = [1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]; this._fd.jobLv = seq[(seq.indexOf(this._fd.jobLv) + 1) % seq.length]; applyFrostJob(this._fd.jobLv); }],
+      [() => `検証active: ${this._fd.skill}（切替）`, () => { const i = ACT.indexOf(this._fd.skill); this._fd.skill = ACT[(i + 1) % ACT.length]; }],
+      [() => `Lv: ${this._fd.lv}（切替）`, () => { this._fd.lv = this._fd.lv >= 8 ? 1 : this._fd.lv + 1; }],
+      ['選択activeを取得/そのLvへ', () => { this.skills.acquireOrLevel(this._fd.skill); this.skills.setLevel(this._fd.skill, this._fd.lv); this.updateHudSkills(); }],
+      ['選択activeの進化条件を達成', () => { const e = EVO[this._fd.skill]; if (!e) return; this.skills.acquireOrLevel(this._fd.skill); this.skills.setLevel(this._fd.skill, 8); this.passives.acquireOrLevel(e[1]); this.passives.setLevel(e[1], 4); this._refreshStatusPassives(); this.updateHudSkills(); }],
+      [() => `検証passive: ${this._fd.passive}（切替）`, () => { const i = PAS.indexOf(this._fd.passive); this._fd.passive = PAS[(i + 1) % PAS.length]; }],
+      ['選択passive Lv+1', () => { this.passives.acquireOrLevel(this._fd.passive); this._refreshStatusPassives(); this.updateHudSkills(); }],
+      [() => `最寄り敵へ冷気 ${this._fd.chill}（切替付与）`, () => { const seq = [0, 25, 50, 75, 100]; this._fd.chill = seq[(seq.indexOf(this._fd.chill) + 1) % seq.length]; const e = this._debugNearestEnemy(); if (e) { e._chill = this._fd.chill; e._chillSlow = this.freezeSys.slowFactor(this.statusFx.entityType(e), e._chill); if (e._chill > 0) this.statusFx.register('chill', e); } }],
+      ['最寄り敵を確定凍結', () => { const e = this._debugNearestEnemy(); if (e) { e._freezeImmuneUntil = 0; this.statusFx.freeze(e); } }],
+      ['最寄り敵へ凍結耐性 / 解除', () => { const e = this._debugNearestEnemy(); if (e) { if (this.statusFx.isFreezeImmune(e)) { e._freezeImmuneUntil = 0; this.statusFx.unregister('freeze_immunity', e); } else { e._freezeImmuneUntil = this.time.now + 1500; this.statusFx.register('freeze_immunity', e); } } }],
+      ['最寄り敵を凍結解除', () => { const e = this._debugNearestEnemy(); if (e) this.statusFx.unfreeze(e, { immunity: false }); }],
+      ['最寄り敵を粉砕', () => { const e = this._debugNearestEnemy(); if (e) { if (!this.statusFx.isFrozen(e)) this.statusFx.freeze(e); this.shatterEnemy(e, { skillId: 'frost_shard', multiplier: 1 }); } }],
+      ['エリート×3を密集生成', () => { this.debugClusterEnemies(3); this.enemyPool.forEachActive((e) => { if (e.alive) { e.isElite = true; e.maxHp = e.maxHp * 4; e.hp = e.maxHp; e.setScale(1.15); } }); }],
+      ['ボス出現 / 氷砕ゲージ50% / 100%', () => { if (!this.boss || !this.boss.alive) { this.spawnBoss(); this.bossSpawned = true; } if (this.boss) { const th = this.statusFx.bossThreshold(this.boss); this.boss._frostGauge = this.boss._frostGauge < th * 0.5 ? th * 0.5 : (this.boss._frostGauge < th ? th : 0); } }],
+      ['ボス氷砕を強制発生', () => { if (this.boss && this.boss.alive) { const ev = this.statusFx.frostbreak(this.boss); if (ev) this._onBossFrostbreak(ev, null); } }],
+      ['全状態異常を解除', () => { this.enemyPool.forEachActive((e) => { if (e.alive) this.statusFx.clearEntity(e); }); if (this.boss) this.statusFx.clearEntity(this.boss); }],
+      ['通常状態へ戻す（補正リセット）', () => { this.jobMods.setResolved(this.resolvedJobModifiers); this._applyFreezeThresholdMods(); }],
+    ];
+    let yy = 20;
+    for (const [label, fn] of acts) {
+      const text = typeof label === 'function' ? label() : label;
+      const b = this.add.text(cx - 252, yy, text, { fontSize: '8px', color: '#fff', backgroundColor: '#123642', padding: { x: 4, y: 1 } }).setScrollFactor(0).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+      b.on('pointerdown', () => { fn(); redraw(); });
+      ui.add(b); yy += 14.5;
+    }
+    ui.add(this.add.text(cx + 8, 20, this._frostReport(), { fontSize: '8px', color: '#b2ebf2', lineSpacing: 2, wordWrap: { width: 236 } }).setScrollFactor(0).setOrigin(0, 0));
+    const close = this.add.text(cx, GAME_HEIGHT - 10, '閉じる (F9)', { fontSize: '9px', color: '#bcaaa4' }).setScrollFactor(0).setOrigin(0.5, 1).setInteractive({ useHandCursor: true });
+    close.on('pointerdown', () => this.toggleFrostDebug());
+    ui.add(close);
+    this._frostdbg = ui;
+  }
+
+  _frostReport() {
+    const L = [];
+    const sfx = this.statusFx, jm = this.jobMods;
+    L.push(`ジョブ: ${this.jobId} 属性: ${this._defaultElement || 'なし'}`);
+    L.push('— Job補正 —');
+    L.push(`属性Dmg×${(jm.damageMultiplier({ element: this._defaultElement })).toFixed(3)} 冷気×${jm.statusPowerMult().toFixed(3)} 粉砕×${jm.shatterDamageMult().toFixed(3)}`);
+    L.push(`進化×${jm.resolved.evolvedDamageMult.toFixed(2)} CD×${jm.cooldownMult().toFixed(3)} 発射+${jm.projectileCountBonus()}`);
+    const az = jm.absoluteZero();
+    L.push(`Lv40狩り chilled×${jm.resolved.chilledDamageMult.toFixed(2)}/frozen×${jm.resolved.frozenDamageMult.toFixed(2)}  Lv50連鎖:${jm.shatterOnFrozenKill() ? '有' : '無'} Lv100絶対零度:${az ? '有' : '無'}`);
+    L.push('— 状態異常索引 —');
+    L.push(`炎上${sfx.countStatus('burning')} 冷気${sfx.countStatus('chill')} 凍結${sfx.countStatus('frozen')} 耐性${sfx.countStatus('freeze_immunity')} 脆弱${sfx.countStatus('frostbreak_vulnerability')}`);
+    const rng = sfx.rng.serialize();
+    L.push(`状態RNG seed:${rng.seed} cursor:${rng.cursor}`);
+    L.push('— 最寄り敵 —');
+    const e = this._debugNearestEnemy();
+    if (e) {
+      const t = sfx.entityType(e);
+      const def = DataManager.getSkill(this._fd.skill) || {};
+      const proc = def.procCoefficient != null ? def.procCoefficient : 1;
+      const base = (def.levels && def.levels[this._fd.lv - 1] && def.levels[this._fd.lv - 1].baseFreezeChance) || 0;
+      const fc = this.freezeSys.computeFreezeChance(t, { baseFreezeChance: base, procCoefficient: proc, chill: sfx.chillOf(e) });
+      L.push(`種別:${t} 冷気:${Math.round(sfx.chillOf(e))} 減速:${Math.round((e._chillSlow || 0) * 100)}%`);
+      L.push(`凍結:${sfx.isFrozen(e) ? '中' : '×'} 耐性:${sfx.isFreezeImmune(e) ? '中' : '×'}`);
+      L.push(`freezeChance(${this._fd.skill}L${this._fd.lv}): ${fc.guaranteed ? '確定' : (fc.chance * 100).toFixed(1) + '%'} proc:${proc}`);
+    } else L.push('(敵なし)');
+    if (this.boss && this.boss.alive) L.push(`ボス氷砕: ${Math.round(this.boss._frostGauge || 0)}/${Math.round(sfx.bossThreshold(this.boss))} break${this.boss._frostBreaks || 0} 脆弱:${sfx.bossVulnActive(this.boss) ? '中' : '×'}`);
+    L.push(`抑制/f:${(this._mLast || this._m).suppressed} 索引上限:${JSON.stringify(sfx.capReached())}`);
     return L.join('\n');
   }
 

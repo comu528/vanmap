@@ -968,6 +968,179 @@
       "isDefensive": false,
       "isReactive": false,
       "usesResourceCost": false
+    },
+    {
+      "id": "diamond_blizzard",
+      "displayName": "ダイヤモンドブリザード",
+      "description": "大量の氷晶弾を時間差で連射する。敵密集地点を優先し、冷気蓄積と凍結を狙う。凍結中の敵へは追加ダメージ。",
+      "baseSkillId": "frost_shard",
+      "requiredSkills": [
+        {
+          "skill": "rapid_freezing",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "diamond_blizzard",
+      "visualTier": "evolved",
+      "icon": "icon_diamond_blizzard",
+      "element": "ice",
+      "damage": {
+        "base": 26,
+        "frozenBonus": 0.4
+      },
+      "cooldown": 900,
+      "procCoefficient": 0.35,
+      "chill": {
+        "amount": 10
+      },
+      "freeze": {
+        "baseChance": 0.05
+      },
+      "projectileCount": {
+        "base": 5,
+        "perWaveMax": 8,
+        "waves": 3,
+        "waveDelayMs": 90
+      },
+      "safetyCaps": {
+        "maxProjectilesPerCast": 24,
+        "maxWaves": 3,
+        "maxFreezeChecksPerCast": 8
+      },
+      "displayOrder": 101,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "fire",
+      "echoDescription": "連射サイクルを追加",
+      "cloneDescription": "氷晶弾波を複製",
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
+    },
+    {
+      "id": "absolute_zero_domain",
+      "displayName": "絶対零度領域",
+      "description": "プレイヤー中心か敵密集地点へ大型氷結領域を展開し、周期的にNovaを発生。冷気が高い敵ほど凍結しやすく、領域内の通常敵を強く制圧する。",
+      "baseSkillId": "frost_nova",
+      "requiredSkills": [
+        {
+          "skill": "frozen_expansion",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "absolute_zero_domain",
+      "visualTier": "evolved",
+      "icon": "icon_absolute_zero_domain",
+      "element": "ice",
+      "damage": {
+        "base": 20,
+        "novaDamage": 16
+      },
+      "cooldown": 5200,
+      "procCoefficient": 0.5,
+      "chill": {
+        "perNova": 22
+      },
+      "freeze": {
+        "baseChance": 0.1,
+        "chillFreezeBoost": 0.6
+      },
+      "area": {
+        "radius": 120,
+        "duration": 4200,
+        "novaIntervalMs": 620
+      },
+      "shatter": {
+        "intervalMs": 900,
+        "perTickMax": 3
+      },
+      "safetyCaps": {
+        "maxDomains": 2,
+        "maxNovaTicksPerFrame": 4,
+        "maxShattersPerFrame": 3
+      },
+      "displayOrder": 102,
+      "lv80ProjectileTarget": false,
+      "castMode": "periodic",
+      "mainCastEvent": "fire",
+      "echoDescription": "Novaパルスを1回追加",
+      "cloneDescription": "Novaパルスを複製",
+      "echoPolicy": "custom",
+      "clonePolicy": "custom",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
+    },
+    {
+      "id": "heaven_piercing_glacier",
+      "displayName": "天穿氷河槍",
+      "description": "巨大な氷河槍が敵群を貫通し、高い冷気を付与。冷気の高い敵へ追加ダメージ、凍結中の敵を粉砕し、粉砕地点から小型氷片が飛散する。ボスの氷砕ゲージを大きく溜める。",
+      "baseSkillId": "glacial_lance",
+      "requiredSkills": [
+        {
+          "skill": "frost_amplification",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "heaven_piercing_glacier",
+      "visualTier": "evolved",
+      "icon": "icon_heaven_piercing_glacier",
+      "element": "ice",
+      "damage": {
+        "base": 70,
+        "pierceFalloff": 0.95,
+        "bonusPerChill": 0.006
+      },
+      "cooldown": 1400,
+      "procCoefficient": 1,
+      "chill": {
+        "amount": 30
+      },
+      "freeze": {
+        "baseChance": 0.12
+      },
+      "shatter": {
+        "multiplier": 1.5
+      },
+      "projectileCount": {
+        "base": 1,
+        "pierce": 10
+      },
+      "fragments": {
+        "count": 4,
+        "damageFactor": 0.35
+      },
+      "bossGauge": {
+        "multiplier": 1.6
+      },
+      "safetyCaps": {
+        "maxLances": 3,
+        "maxPierce": 14,
+        "maxFragments": 6,
+        "maxShatterExplosions": 4
+      },
+      "displayOrder": 103,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "fire",
+      "echoDescription": "氷河槍を追加射出",
+      "cloneDescription": "氷河槍を複製",
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
     }
   ]
 }

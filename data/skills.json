@@ -3942,6 +3942,644 @@
       "isDefensive": false,
       "isReactive": false,
       "usesResourceCost": false
+    },
+    {
+      "id": "frost_shard",
+      "name": "氷晶弾",
+      "description": "最も近い敵へ氷晶弾を発射し、命中時に氷ダメージと冷気を与える。低確率で凍結させる氷術師の基本スキル。",
+      "icon": "icon_frost_shard",
+      "iconKey": "icon_frost_shard",
+      "category": "active",
+      "element": "ice",
+      "tags": [
+        "ice",
+        "projectile",
+        "mage"
+      ],
+      "rarity": "common",
+      "weight": 1,
+      "jobs": [
+        "frost_mage"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [
+        "diamond_blizzard"
+      ],
+      "displayOrder": 101,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "initial": true,
+      "procCoefficient": 0.9,
+      "levels": [
+        {
+          "level": 1,
+          "damage": 9,
+          "cooldown": 850,
+          "count": 1,
+          "projectileSpeed": 300,
+          "chillAmount": 12,
+          "baseFreezeChance": 0.05,
+          "pierce": 0
+        },
+        {
+          "level": 2,
+          "damage": 12.4,
+          "cooldown": 822,
+          "count": 1,
+          "projectileSpeed": 308,
+          "chillAmount": 13.1,
+          "baseFreezeChance": 0.057,
+          "pierce": 0
+        },
+        {
+          "level": 3,
+          "damage": 15.8,
+          "cooldown": 794,
+          "count": 1,
+          "projectileSpeed": 316,
+          "chillAmount": 14.2,
+          "baseFreezeChance": 0.064,
+          "pierce": 1
+        },
+        {
+          "level": 4,
+          "damage": 19.2,
+          "cooldown": 766,
+          "count": 2,
+          "projectileSpeed": 324,
+          "chillAmount": 15.3,
+          "baseFreezeChance": 0.071,
+          "pierce": 1
+        },
+        {
+          "level": 5,
+          "damage": 22.6,
+          "cooldown": 738,
+          "count": 2,
+          "projectileSpeed": 332,
+          "chillAmount": 16.4,
+          "baseFreezeChance": 0.078,
+          "pierce": 1
+        },
+        {
+          "level": 6,
+          "damage": 26,
+          "cooldown": 710,
+          "count": 2,
+          "projectileSpeed": 340,
+          "chillAmount": 17.5,
+          "baseFreezeChance": 0.085,
+          "pierce": 2
+        },
+        {
+          "level": 7,
+          "damage": 29.4,
+          "cooldown": 682,
+          "count": 3,
+          "projectileSpeed": 348,
+          "chillAmount": 18.6,
+          "baseFreezeChance": 0.092,
+          "pierce": 2
+        },
+        {
+          "level": 8,
+          "damage": 32.8,
+          "cooldown": 654,
+          "count": 3,
+          "projectileSpeed": 356,
+          "chillAmount": 19.7,
+          "baseFreezeChance": 0.099,
+          "pierce": 2
+        }
+      ],
+      "castMode": "cooldown",
+      "mainCastEvent": "fire",
+      "lv80ProjectileTarget": true,
+      "echoDescription": "氷晶弾サイクルを追加発射",
+      "cloneDescription": "氷晶弾を複製",
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
+    },
+    {
+      "id": "frost_nova",
+      "name": "氷輪爆",
+      "description": "プレイヤー周囲へ氷の衝撃波を放ち、範囲内の敵へ氷ダメージと高めの冷気を与える。凍結中の敵に命中すると粉砕する。",
+      "icon": "icon_frost_nova",
+      "iconKey": "icon_frost_nova",
+      "category": "active",
+      "element": "ice",
+      "tags": [
+        "ice",
+        "explosion",
+        "mage"
+      ],
+      "rarity": "common",
+      "weight": 1,
+      "jobs": [
+        "frost_mage"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [
+        "absolute_zero_domain"
+      ],
+      "displayOrder": 102,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "procCoefficient": 0.7,
+      "levels": [
+        {
+          "level": 1,
+          "damage": 12,
+          "radius": 70,
+          "chillAmount": 18,
+          "baseFreezeChance": 0.08,
+          "cooldown": 1600,
+          "shatterDamageMultiplier": 1
+        },
+        {
+          "level": 2,
+          "damage": 16.2,
+          "radius": 75,
+          "chillAmount": 19.4,
+          "baseFreezeChance": 0.088,
+          "cooldown": 1560,
+          "shatterDamageMultiplier": 1.08
+        },
+        {
+          "level": 3,
+          "damage": 20.4,
+          "radius": 80,
+          "chillAmount": 20.8,
+          "baseFreezeChance": 0.096,
+          "cooldown": 1520,
+          "shatterDamageMultiplier": 1.16
+        },
+        {
+          "level": 4,
+          "damage": 24.6,
+          "radius": 85,
+          "chillAmount": 22.2,
+          "baseFreezeChance": 0.104,
+          "cooldown": 1480,
+          "shatterDamageMultiplier": 1.24
+        },
+        {
+          "level": 5,
+          "damage": 28.8,
+          "radius": 90,
+          "chillAmount": 23.6,
+          "baseFreezeChance": 0.112,
+          "cooldown": 1440,
+          "shatterDamageMultiplier": 1.32
+        },
+        {
+          "level": 6,
+          "damage": 33,
+          "radius": 95,
+          "chillAmount": 25,
+          "baseFreezeChance": 0.12,
+          "cooldown": 1400,
+          "shatterDamageMultiplier": 1.4
+        },
+        {
+          "level": 7,
+          "damage": 37.2,
+          "radius": 100,
+          "chillAmount": 26.4,
+          "baseFreezeChance": 0.128,
+          "cooldown": 1360,
+          "shatterDamageMultiplier": 1.48
+        },
+        {
+          "level": 8,
+          "damage": 41.4,
+          "radius": 105,
+          "chillAmount": 27.8,
+          "baseFreezeChance": 0.136,
+          "cooldown": 1320,
+          "shatterDamageMultiplier": 1.56
+        }
+      ],
+      "castMode": "cooldown",
+      "mainCastEvent": "fire",
+      "lv80ProjectileTarget": false,
+      "echoDescription": "氷輪パルスを追加",
+      "cloneDescription": "氷輪パルスを複製",
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
+    },
+    {
+      "id": "glacial_lance",
+      "name": "氷槍貫通",
+      "description": "高威力の氷槍を直線状に放ち貫通させる。冷気が高い敵ほど追加ダメージ。凍結中の敵を粉砕し、その先の敵へ進行する。",
+      "icon": "icon_glacial_lance",
+      "iconKey": "icon_glacial_lance",
+      "category": "active",
+      "element": "ice",
+      "tags": [
+        "ice",
+        "projectile",
+        "mage"
+      ],
+      "rarity": "uncommon",
+      "weight": 1,
+      "jobs": [
+        "frost_mage"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [
+        "heaven_piercing_glacier"
+      ],
+      "displayOrder": 103,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "procCoefficient": 1,
+      "levels": [
+        {
+          "level": 1,
+          "damage": 22,
+          "projectileSpeed": 340,
+          "count": 1,
+          "pierce": 3,
+          "chillAmount": 16,
+          "bonusPerChill": 0.004,
+          "shatterMultiplier": 1.2,
+          "cooldown": 1100
+        },
+        {
+          "level": 2,
+          "damage": 28.5,
+          "projectileSpeed": 350,
+          "count": 1,
+          "pierce": 4,
+          "chillAmount": 17.3,
+          "bonusPerChill": 0.004,
+          "shatterMultiplier": 1.3,
+          "cooldown": 1066
+        },
+        {
+          "level": 3,
+          "damage": 35,
+          "projectileSpeed": 360,
+          "count": 1,
+          "pierce": 4,
+          "chillAmount": 18.6,
+          "bonusPerChill": 0.005,
+          "shatterMultiplier": 1.4,
+          "cooldown": 1032
+        },
+        {
+          "level": 4,
+          "damage": 41.5,
+          "projectileSpeed": 370,
+          "count": 1,
+          "pierce": 5,
+          "chillAmount": 19.9,
+          "bonusPerChill": 0.005,
+          "shatterMultiplier": 1.5,
+          "cooldown": 998
+        },
+        {
+          "level": 5,
+          "damage": 48,
+          "projectileSpeed": 380,
+          "count": 2,
+          "pierce": 6,
+          "chillAmount": 21.2,
+          "bonusPerChill": 0.006,
+          "shatterMultiplier": 1.6,
+          "cooldown": 964
+        },
+        {
+          "level": 6,
+          "damage": 54.5,
+          "projectileSpeed": 390,
+          "count": 2,
+          "pierce": 7,
+          "chillAmount": 22.5,
+          "bonusPerChill": 0.006,
+          "shatterMultiplier": 1.7,
+          "cooldown": 930
+        },
+        {
+          "level": 7,
+          "damage": 61,
+          "projectileSpeed": 400,
+          "count": 2,
+          "pierce": 7,
+          "chillAmount": 23.8,
+          "bonusPerChill": 0.006,
+          "shatterMultiplier": 1.8,
+          "cooldown": 896
+        },
+        {
+          "level": 8,
+          "damage": 67.5,
+          "projectileSpeed": 410,
+          "count": 2,
+          "pierce": 8,
+          "chillAmount": 25.1,
+          "bonusPerChill": 0.007,
+          "shatterMultiplier": 1.9,
+          "cooldown": 862
+        }
+      ],
+      "castMode": "cooldown",
+      "mainCastEvent": "fire",
+      "lv80ProjectileTarget": true,
+      "echoDescription": "氷槍を追加射出",
+      "cloneDescription": "氷槍を複製",
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
+    },
+    {
+      "id": "permafrost_field",
+      "name": "永久凍土",
+      "description": "敵密集地点かプレイヤー周辺へ凍土領域を設置。領域内の敵へ低威力の継続氷ダメージと少量の冷気を与え、軽く減速させる。",
+      "icon": "icon_permafrost_field",
+      "iconKey": "icon_permafrost_field",
+      "category": "active",
+      "element": "ice",
+      "tags": [
+        "ice",
+        "ground",
+        "dot"
+      ],
+      "rarity": "uncommon",
+      "weight": 1,
+      "jobs": [
+        "frost_mage"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [],
+      "displayOrder": 104,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "procCoefficient": 0.18,
+      "levels": [
+        {
+          "level": 1,
+          "damage": 5,
+          "radius": 60,
+          "duration": 3000,
+          "tickRate": 520,
+          "chillPerTick": 6,
+          "fieldSlow": 0.1,
+          "cooldown": 3600,
+          "simultaneousFields": 1
+        },
+        {
+          "level": 2,
+          "damage": 6.7,
+          "radius": 65,
+          "duration": 3220,
+          "tickRate": 502,
+          "chillPerTick": 6.5,
+          "fieldSlow": 0.112,
+          "cooldown": 3530,
+          "simultaneousFields": 1
+        },
+        {
+          "level": 3,
+          "damage": 8.4,
+          "radius": 70,
+          "duration": 3440,
+          "tickRate": 484,
+          "chillPerTick": 7,
+          "fieldSlow": 0.124,
+          "cooldown": 3460,
+          "simultaneousFields": 1
+        },
+        {
+          "level": 4,
+          "damage": 10.1,
+          "radius": 75,
+          "duration": 3660,
+          "tickRate": 466,
+          "chillPerTick": 7.5,
+          "fieldSlow": 0.136,
+          "cooldown": 3390,
+          "simultaneousFields": 2
+        },
+        {
+          "level": 5,
+          "damage": 11.8,
+          "radius": 80,
+          "duration": 3880,
+          "tickRate": 448,
+          "chillPerTick": 8,
+          "fieldSlow": 0.148,
+          "cooldown": 3320,
+          "simultaneousFields": 2
+        },
+        {
+          "level": 6,
+          "damage": 13.5,
+          "radius": 85,
+          "duration": 4100,
+          "tickRate": 430,
+          "chillPerTick": 8.5,
+          "fieldSlow": 0.16,
+          "cooldown": 3250,
+          "simultaneousFields": 2
+        },
+        {
+          "level": 7,
+          "damage": 15.2,
+          "radius": 90,
+          "duration": 4320,
+          "tickRate": 412,
+          "chillPerTick": 9,
+          "fieldSlow": 0.172,
+          "cooldown": 3180,
+          "simultaneousFields": 3
+        },
+        {
+          "level": 8,
+          "damage": 16.9,
+          "radius": 95,
+          "duration": 4540,
+          "tickRate": 394,
+          "chillPerTick": 9.5,
+          "fieldSlow": 0.184,
+          "cooldown": 3110,
+          "simultaneousFields": 3
+        }
+      ],
+      "castMode": "periodic",
+      "mainCastEvent": "fire",
+      "lv80ProjectileTarget": false,
+      "echoDescription": "凍土tickを追加",
+      "cloneDescription": "短命の補助凍土を生成",
+      "echoPolicy": "custom",
+      "clonePolicy": "custom",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false
+    },
+    {
+      "id": "ice_wall",
+      "name": "氷壁結界",
+      "description": "プレイヤー付近か敵の進行方向へ氷壁を生成。通常敵は壁に沿って滑り、吸収可能な敵弾を受け止める。破壊時に小規模な氷爆発と冷気を放つ。",
+      "icon": "icon_ice_wall",
+      "iconKey": "icon_ice_wall",
+      "category": "active",
+      "element": "ice",
+      "tags": [
+        "ice",
+        "defensive",
+        "ground"
+      ],
+      "rarity": "rare",
+      "weight": 1,
+      "jobs": [
+        "frost_mage"
+      ],
+      "isCommon": false,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [],
+      "displayOrder": 105,
+      "modifiers": [],
+      "enabled": true,
+      "maxLevel": 8,
+      "procCoefficient": 0.5,
+      "levels": [
+        {
+          "level": 1,
+          "segmentCount": 3,
+          "durability": 4,
+          "duration": 5000,
+          "wallLength": 90,
+          "breakDamage": 20,
+          "breakRadius": 40,
+          "chillOnBreak": 25,
+          "cooldown": 8000
+        },
+        {
+          "level": 2,
+          "segmentCount": 4,
+          "durability": 5,
+          "duration": 5300,
+          "wallLength": 98,
+          "breakDamage": 26,
+          "breakRadius": 43,
+          "chillOnBreak": 27,
+          "cooldown": 7820
+        },
+        {
+          "level": 3,
+          "segmentCount": 4,
+          "durability": 6,
+          "duration": 5600,
+          "wallLength": 106,
+          "breakDamage": 32,
+          "breakRadius": 46,
+          "chillOnBreak": 29,
+          "cooldown": 7640
+        },
+        {
+          "level": 4,
+          "segmentCount": 5,
+          "durability": 8,
+          "duration": 5900,
+          "wallLength": 114,
+          "breakDamage": 38,
+          "breakRadius": 49,
+          "chillOnBreak": 31,
+          "cooldown": 7460
+        },
+        {
+          "level": 5,
+          "segmentCount": 5,
+          "durability": 9,
+          "duration": 6200,
+          "wallLength": 122,
+          "breakDamage": 44,
+          "breakRadius": 52,
+          "chillOnBreak": 33,
+          "cooldown": 7280
+        },
+        {
+          "level": 6,
+          "segmentCount": 6,
+          "durability": 10,
+          "duration": 6500,
+          "wallLength": 130,
+          "breakDamage": 50,
+          "breakRadius": 55,
+          "chillOnBreak": 35,
+          "cooldown": 7100
+        },
+        {
+          "level": 7,
+          "segmentCount": 6,
+          "durability": 11,
+          "duration": 6800,
+          "wallLength": 138,
+          "breakDamage": 56,
+          "breakRadius": 58,
+          "chillOnBreak": 37,
+          "cooldown": 6920
+        },
+        {
+          "level": 8,
+          "segmentCount": 7,
+          "durability": 12,
+          "duration": 7100,
+          "wallLength": 146,
+          "breakDamage": 62,
+          "breakRadius": 61,
+          "chillOnBreak": 39,
+          "cooldown": 6740
+        }
+      ],
+      "castMode": "cooldown",
+      "mainCastEvent": "fire",
+      "lv80ProjectileTarget": false,
+      "echoDescription": "破壊爆発部分のみを再現（壁は多重生成しない）",
+      "cloneDescription": "短命の補助壁1枚のみ（多重生成しない）",
+      "echoPolicy": "custom",
+      "clonePolicy": "custom",
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": true,
+      "isDefensive": true,
+      "isReactive": false,
+      "usesResourceCost": false
     }
   ]
 }

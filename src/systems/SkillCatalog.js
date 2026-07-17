@@ -24,8 +24,12 @@ function activeEntry(s, ctx) {
   const { registered, runtimeState, evosByBase, evoIds, passiveIds, skillIds, pool } = ctx;
   const branches = asArr(s.evolutionBranches).filter((b) => evoIds.has(b));
   const evolutions = asArr(evosByBase[s.id]).map((e) => e.id);
+  const lv1 = (Array.isArray(s.levels) && s.levels[0]) || {};
   return {
     id: s.id, displayName: s.name || s.id, rarity: s.rarity || 'common', category: 'active',
+    element: s.element || (asArr(s.tags).includes('ice') ? 'ice' : (asArr(s.tags).includes('fire') ? 'fire' : null)),
+    procCoefficient: s.procCoefficient != null ? s.procCoefficient : null,
+    appliesChill: lv1.chillAmount != null, appliesFreeze: lv1.baseFreezeChance != null,
     tags: asArr(s.tags), primaryTags: primaryTags(s), maxLevel: s.maxLevel || 1, jobs: asArr(s.jobs),
     evolutionBranches: branches, hasClass: registered.has(s.id), inPool: pool.has(s.id),
     hasEvolution: evolutions.length > 0, evolutions,
@@ -53,6 +57,7 @@ function evolutionEntry(ev, ctx) {
   const { registered, runtimeState, skillIds, passiveIds } = ctx;
   return {
     id: ev.id, displayName: ev.displayName || ev.id, baseSkillId: ev.baseSkillId,
+    element: ev.element || null, procCoefficient: ev.procCoefficient != null ? ev.procCoefficient : null,
     requirements: classifyRequirements(ev, skillIds, passiveIds),
     hasClass: registered.has(ev.id), evolvedTag: ev.visualTier === 'evolved',
     castMode: ev.castMode || null, echoPolicy: ev.echoPolicy || 'standard', clonePolicy: ev.clonePolicy || 'standard',
@@ -81,16 +86,20 @@ export function buildCatalog(input) {
   for (const e of evolutions) { (evosByBase[e.baseSkillId] = evosByBase[e.baseSkillId] || []).push(e); }
 
   const ctx = { registered, runtimeState, evosByBase, evoIds, passiveIds, skillIds, pool };
-  const activesAll = skills.filter((s) => (s.category || 'active') === 'active');
+  // M7-A: ジョブごとにプールを分離する。active はそのジョブに属する（jobs に jobId を含む）ものだけ、
+  // passive は共通（isCommon）＋ジョブ専用、進化はそのジョブの active を基礎とするものだけを対象にする。
+  const activesAll = skills.filter((s) => (s.category || 'active') === 'active' && (asArr(s.jobs).includes(jobId) || pool.has(s.id)));
+  const jobActiveIds = new Set(activesAll.map((s) => s.id));
   const actives = activesAll.map((s) => activeEntry(s, ctx)).sort((a, b) => (a.id < b.id ? -1 : 1));
-  const passiveRows = passives.map((p) => passiveEntry(p, ctx));
-  const evoRows = evolutions.map((e) => evolutionEntry(e, ctx)).sort((a, b) => (a.id < b.id ? -1 : 1));
+  const passiveRows = passives.filter((p) => p.isCommon === true || asArr(p.jobs).includes(jobId)).map((p) => passiveEntry(p, ctx));
+  const evolutionsForJob = evolutions.filter((e) => jobActiveIds.has(e.baseSkillId));
+  const evoRows = evolutionsForJob.map((e) => evolutionEntry(e, ctx)).sort((a, b) => (a.id < b.id ? -1 : 1));
 
   return {
-    jobId,
+    jobId, element: (jobs.find((j) => j.id === jobId) || {}).element || null,
     actives, passives: passiveRows, evolutions: evoRows,
     summary: buildSummary(actives, passiveRows, evoRows),
-    issues: detectIssues({ actives, passives: passiveRows, evolutions: evoRows, skills, evolutions_raw: evolutions, skillIds, evoIds, pool, registered }),
+    issues: detectIssues({ actives, passives: passiveRows, evolutions: evoRows, skills: activesAll, evolutions_raw: evolutionsForJob, skillIds, evoIds, pool, registered }),
   };
 }
 

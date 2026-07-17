@@ -156,6 +156,21 @@ active30種化で進化相手が候補へ極端に出にくくならないため
 
 `validate-data.mjs` に `synergy` 設定・`balance-thresholds.json`・`castMode` 等の検証を追加。既存15スイート＋新5＝**全20スイート通過**。
 
+## Milestone 7-A の追記（氷術師・状態異常テレメトリ）
+M7-A で 2人目のジョブ **氷術師（frost_mage）** と汎用状態異常フレームワークを追加したのに合わせ、検証基盤も複数ジョブ・氷統計へ対応した
+（**save_version は v6 のまま**・外部送信なし・自動調整なし）。
+
+- **テレメトリに状態異常/氷フィールドを追加**（`CombatTelemetry`）:
+  - 周回全体: `jobId` / `iceDamage` / `chillApplied` / `freezeAttempts` / `freezes` / `frozenSecondsApplied` / `shatters` /
+    `shatterDamage` / `bossFrostbreaks` / `burningDamage` / `statusApplicationCapsReached`。
+  - スキル別: `chillApplied` / `freezeAttempts` / `freezesCaused` / `shatters` / `shatterDamage` / `bossFrostGaugeApplied` /
+    `damageTo{Chilled,Frozen,FrostbreakTarget}`。
+  - **外部送信なし**。ResultScene「Balance詳細」に氷統計（氷Dmg/冷気/凍結/粉砕/氷砕）を表示する。debugRun は通常統計と分離する。
+- **Balance Playtest（F8）は氷術師でも動作する**: 検証開始時に選択ジョブ（火の魔女/氷術師）を選べ、氷術師の Job Lv・氷 active 枠・
+  凍結/粉砕/氷砕の挙動を素の状態で確かめられる。**profile は不変・常に debugRun**（JobXP/通貨/進行を汚さない）。
+- 氷術師の抽選バランス（氷 active5/進化3）も本番の `SkillDraftManager` を直接駆動して確認する方針は同じ。氷スキルはジョブ別プールのため
+  火の魔女の候補とは混ざらない（`multi-job-draft` で検証）。
+
 ## 既知の制約（M6-F）
 - Node で検証したのは **カタログ整合・抽選シミュレーション・進化成立性・テレメトリ純ロジック・検証モードの profile 非変更** のみ。
 - テレメトリの**実収集値・FPS ヒストグラム・ResultScene の Balance詳細描画・F8 パネルの実挙動**は Phaser 依存のため

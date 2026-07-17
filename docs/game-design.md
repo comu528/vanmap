@@ -362,3 +362,38 @@ active が30種に増えたため、進化に必要な**補助スキル（進化
 - **debugRun（F4〜F8 のデバッグ補正を使った周回）は通常統計へ混ざらない**（「通常統計へ記録していません」と明示）。
 - しきい値（`data/balance-thresholds.json`）を下回る/上回るスキルは**開発用の警告**として示すが、**自動調整はしない**・
   最低サンプル数未満は警告しない（1〜2周で断定しない）。バランス値は指示なく変更しない。
+
+## Milestone 7-A: 2人目のジョブ「氷術師」と汎用状態異常基盤
+
+火の魔女（fire）に加え、2人目のジョブ **氷術師（frost_mage・ice）** を追加し、複数ジョブを選んで遊べる共通基盤と、
+将来ほかの属性/状態異常を足せる**汎用状態異常基盤**を実装した。火の魔女の既存挙動・数値・抽選結果は維持している。
+
+### ジョブ選択
+拠点の「ジョブ育成」タブが**ジョブ選択＋育成状況**を兼ねる画面へ拡張。火の魔女／氷術師のカード（属性・Job Lv・XP・
+active/passive/進化数・状態異常・説明・選択ボタン）を表示し、選択中を強調する。`profile.selectedJobId`（既定 `flame_witch`）へ保存。
+**進行中周回がある間はジョブ変更を無効化**し、変更は次の新規周回から有効。周回のジョブは `active_run.jobId` に固定され、途中で
+profile 側のジョブを変えても進行中周回のジョブ・スキル・補正は変わらない。ジョブごとにスキルプール／Job XP／Job Lv／統計を完全分離する。
+
+### 汎用状態異常基盤（`data/status-effects.json` ＋ StatusEffectRegistry / StatusEffectManager / FreezeSystem）
+スキルごとに独自の炎上/冷気/凍結タイマーを持たず、Enemy/Boss/エリートが共通経路を使う。将来 poison/bleed/shock/curse/stun/slow 等を
+足せる構造。M7-A の正式状態は **burning / chill / frozen / freeze_immunity / frostbreak_vulnerability**。既存の火の魔女の炎上は
+汎用索引へ移行したが、ダメージ/持続/灼熱共鳴/万象炎鳴/統計は不変（`Enemy.ignite` 互換経路を維持）。詳細は docs/status-effects.md。
+
+### 氷術師の制圧サイクル（冷気→凍結→粉砕 / ボスは氷砕）
+- **冷気(chill)**: 氷攻撃でダメージとは別に蓄積。量に応じて通常敵/エリートを減速（通常最大50%・エリート35%・ボスは減速なし）。自然減衰あり。
+- **凍結**: `freezeChance = baseFreezeChance×procCoefficient + (chill/chillCap)×chanceFromChill×procCoefficient` を対象別 cap でクランプ、
+  `chill≥guaranteedThreshold` で確定凍結。**Math.random は使わず状態異常専用 SeededRandom**（cursor を active_run に保存）。多段攻撃は
+  低 procCoefficient ＋ hitGroup ごとの判定回数上限で**永久凍結を防ぐ**。frozen 中は移動/攻撃/AI 停止・ダメージは受ける・粉砕対象。解除後に freeze_immunity。
+- **粉砕**: 凍結中の通常敵/エリートへ特定氷スキル・Job Lv報酬が発生。frozen 解除＋追加氷ダメージ/範囲爆発。ダメージは固定基礎＋スキル威力係数＋
+  敵最大HP係数（**上限つき**・最大HP割合だけで無制限に増えない）。**粉砕から粉砕を再帰しない**。ボスには通常粉砕を適用しない。
+- **ボス氷砕(frostbreak)**: ボスは通常凍結せず、冷気をボス専用ゲージへ変換。閾値到達で短い硬直（chase 中のみ）＋氷砕脆弱（氷被ダメージ×1.15）＋
+  ゲージリセット。break ごとに次回閾値×1.30（上限×3.0）。ボスHPバー付近に氷砕ゲージを表示（氷術師のみ・ボス不在時は非表示）。
+
+### 氷術師の構成（active5 / passive4 / 進化3 ・ Job Lv1〜100）
+- active5: 氷晶弾(frost_shard・初期)／氷輪爆(frost_nova)／氷槍貫通(glacial_lance)／永久凍土(permafrost_field)／氷壁結界(ice_wall)。
+- passive4: 氷晶増幅／急速冷却／凍域拡張／余寒残留。
+- 進化3: ダイヤモンドブリザード(frost_shard)／絶対零度領域(frost_nova)／天穿氷河槍(glacial_lance)。進化は基礎を置換し active/passive 枠を消費しない。
+- Job Lv基本成長: 氷ダメージ+0.35%/Lv・冷気付与+0.30%/Lv・粉砕+0.40%/Lv。到達報酬 Lv5〜100（詳細は docs/jobs.md）。
+
+### 火と氷の関係（M7-A では未実装）
+火と氷の属性反応（火で凍結解除／氷で消火／蒸発・融解）は実装しない。炎上と冷気/凍結は独立して共存する（将来のため状態付与に source element を保持）。

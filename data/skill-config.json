@@ -18,7 +18,8 @@
   },
   "modifierKeys": [
     "damage", "cooldown", "area", "duration", "projectileCount", "projectileSpeed",
-    "pierce", "critical", "movementSpeed", "summonCount", "statusEffect"
+    "pierce", "critical", "movementSpeed", "summonCount", "statusEffect",
+    "iceDamage", "iceStatusDuration", "chillDecay"
   ],
   "passiveModifierDefaults": {
     "cooldownMinMult": 0.5,

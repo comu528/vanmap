@@ -5,6 +5,23 @@
 会話や手書きの一覧ではなく、`src/systems/SkillCatalog.js` の `buildCatalog` が実データから算出した内容が**唯一の正**である
 （`node tests/skill-catalog.mjs` で整合を検証済み）。M6-F は**新スキルを追加していない**（整備・検証基盤のみ）。
 
+## Milestone 7-A: カタログはジョブ別（火の魔女／氷術師）
+M7-A で 2人目のジョブ **氷術師（frost_mage）** を追加したため、カタログは**ジョブ別**になった。本書の後半（集計サマリ以降）は
+**火の魔女** のカタログ（active30/進化18・不変）である。氷術師は別プールで、`SkillCatalog` はジョブごとに `buildCatalog` する。
+
+| ジョブ | active | 進化 | passive |
+|--------|--------|------|---------|
+| 火の魔女 flame_witch | 30 | 18 | 4（共通） |
+| 氷術師 frost_mage | 5 | 3 | 4（氷専用） |
+
+- **氷術師 active5**: 氷晶弾 `frost_shard`（初期）/ 氷輪爆 `frost_nova` / 氷河槍 `glacial_lance` / 永久凍土 `permafrost_field` / 氷壁 `ice_wall`。
+- **氷術師 進化3**: ダイヤモンドブリザード（frost_shard+rapid_freezing）/ 絶対零度領域（frost_nova+frozen_expansion）/ 天穿氷河槍（glacial_lance+frost_amplification）。
+- **氷術師 passive4**: 氷晶増幅 / 急速冷却 / 凍域拡張 / 余寒残留（氷専用）。
+- カタログは各スキルの **`element`（fire/ice）・`procCoefficient`（氷の凍結寄与）・冷気付与の有無（appliesChill）・凍結付与の有無（appliesFreeze）** を
+  実データから露出する（氷スキルは `element:"ice"` と `procCoefficient`・`levels[].chillAmount`/`baseFreezeChance` を持つ）。
+- Job Lv80「発射数+1」対象は**ジョブ内の独立弾を撃つ通常 active のみ**（氷術師は氷晶弾など `lv80ProjectileTarget:true` のもの）。
+- 詳細は `docs/jobs.md`・`docs/status-effects.md`。以下は火の魔女カタログ（M6-E で完成・M7-A で不変）。
+
 ## カタログ生成（`src/systems/SkillCatalog.js`）
 - `buildCatalog(data, { registeredSkillIds, skillsWithRuntimeState })` … active30/passive4/進化18の正確なカタログを生成し、
   **孤立・未登録・参照不整合** を検出する。SkillManager の `registeredSkillIds()`（実装クラスの有無）と

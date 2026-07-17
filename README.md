@@ -7,7 +7,13 @@
 npm・ビルド処理・バックエンド・データベースは一切使いません。Phaser 3.90.0 を CDN から読み込み、
 すべての素材（プレイヤー・敵・弾・エフェクト等）は JavaScript 上で動的生成しています。
 
-> ⚠️ **開発状況**: 現在 **Milestone 6-F**（通常プレイ整備・バランス検証基盤）まで実装済みです。火の魔女は M6-E で完成済み
+> ⚠️ **開発状況**: 現在 **Milestone 7-A**（2人目のジョブ「氷術師」＋汎用状態異常/凍結基盤）まで実装済みです。
+> M7-A では 2人目のジョブ **氷術師（frost_mage・氷属性）** と、火の魔女の炎上を含む**汎用の状態異常フレームワーク**
+> （`StatusEffectRegistry`/`StatusEffectManager`/`FreezeSystem`）・**冷気→凍結→粉砕**と**ボス氷砕（frostbreak）**を追加し、
+> 拠点のジョブ育成タブを**ジョブ選択画面**へ拡張しました。火の魔女（active30/進化18/passive4）は不変で、火と氷の**属性反応は未実装**
+> （炎上と冷気/凍結は独立共存）。**save_version は v6 のまま**（加算的追加）。詳細は `docs/jobs.md`・`docs/status-effects.md`。
+>
+> （M6-F まで: 通常プレイ整備・バランス検証基盤）火の魔女は M6-E で完成済み
 > （active 30種・進化 18種・passive 4種・Job Lv1〜100）で、M6-F は**新スキルを追加せず通常プレイできる状態へ整える**整備・検証基盤です。
 > スキルカタログの実データ検証（`SkillCatalog`）・抽選シミュレーター（`DraftBalanceAnalyzer`・本番の抽選ロジックを直接駆動）・
 > 軽いシナジー補助（進化相手が候補へ出にくくならない・決定論不変・data で無効化可）・ローカル戦闘テレメトリ（外部送信なし・profile 加算・debugRun 分離）・
@@ -39,6 +45,7 @@ npm・ビルド処理・バックエンド・データベースは一切使い�
 | **M6-D** | 火の魔女ビルド拡張・第2波: 新 active 10種（灼熱光線/火種地雷/炎月斬/跳炎弾/灰燼分身/血炎契約/弾喰い炉/四方炎獄/熔火鎖/爆炎歩法）＋新進化5種。継続レーザー・罠・近接・反射・分身複製・HP消費・敵弾吸収・画面端波・拘束・ダッシュ強化。castContext による残響/複製の再帰1世代制限・HP消費API・敵弾吸収・ダッシュフック・品質別性能上限・F6検証。active25種/進化13種 | ✅ 実装済み |
 | **M6-E** | 火の魔女ビルド完成・第3波: 新 active 5種（火葬の墓標/炎脈走破/三角焔陣/灼熱共鳴/炉心暴走）＋新進化5種（冥炎大霊廟/大地灼断/六芒煉獄陣/万象炎鳴/終末炉心）。**active 30種・進化 18種・passive 4種・Job Lv1〜100 に完成**。全 active30/進化18の監査（castMode・echo/clonePolicy・主発動イベント統一・ダメージタグ・Lv80発射数+1対象を明示、`SkillAudit` で一元管理）・敵死亡イベント履歴・炎上中敵の索引・共鳴段階/炉心熱量/オーバーヒート/終末状態・品質別 skillCaps 追加・F7検証。orbiting_flame/fire_spirit の主発動イベント監査修正（挙動不変） | ✅ 実装済み |
 | **M6-F** | 通常プレイ整備・バランス検証基盤（**新スキルなし**）: スキルカタログの実データ検証（`SkillCatalog`・孤立/未登録/参照不整合0）・抽選シミュレーター（`DraftBalanceAnalyzer`・本番の SkillDraftManager+SeededRandom を直接駆動）・軽いシナジー補助（`skill-config.synergy`・レアリティ重みへ乗算・決定論不変・data で無効化可）・ローカル戦闘テレメトリ（`CombatTelemetry`/`RunBalanceSummary`・外部送信なし・profile 加算・debugRun 分離・低優先保存）・開発用バランス警告（`BalanceWarnings`/`data/balance-thresholds.json`）・通常プレイ検証モード（`BalancePlaytest`・**F8**・profile 不変・常に debugRun）・fallback 定数の JSON 移行。既存15＋新5＝**全20スイート通過**。**save_version v6 維持** | ✅ 実装済み |
+| **M7-A** | 2人目のジョブ **氷術師（frost_mage）** ＋汎用状態異常/凍結基盤: 氷術師（active5/passive4/進化3・Job Lv1〜100）・拠点ジョブ育成タブを**ジョブ選択画面**へ拡張（`profile.selectedJobId`・進行中周回はジョブ変更不可）・**汎用状態異常フレームワーク**（`StatusEffectRegistry`/`StatusEffectManager`/`FreezeSystem`・`data/status-effects.json`）・**冷気(chill)→凍結(frozen)→粉砕(shatter)**・**ボス氷砕(frostbreak)**・凍結耐性/氷砕脆弱・炎上(burning)の汎用索引への移行（数値不変・`Enemy.ignite` 互換）・`JobModifierManager` を複数属性へ拡張（primaryElement 一致時のみ属性補正）・状態異常専用 SeededRandom（`active_run.statusRng`）・HUD 氷砕ゲージ・F9 状態デバッグ・氷統計テレメトリ。**火の魔女は不変**・**火氷の属性反応は未実装**・**save_version v6 維持**。詳細は `docs/jobs.md`・`docs/status-effects.md` | ✅ 実装済み |
 
 ### 遊びの流れ（M4）
 タイトル →「はじめから / 拠点」→ **拠点**（恒久強化・難易度・熟練度・**転生**・**魂炎強化**）→「戦闘開始」→
@@ -444,6 +451,43 @@ active4枠: 進化平均1.27・≥1=86.0%・≥2=36.5% / active6枠: 2.165・98.
 `combat-telemetry` / `balance-playtest`。`validate-data` に synergy 設定・balance-thresholds・castMode 等の検証を追加。
 既存15スイート＋新5＝**全20スイート通過**。
 
+## Milestone 7-A の要素（2人目のジョブ・状態異常/凍結基盤）
+
+2人目のジョブ **氷術師（frost_mage・氷属性）** と、火の魔女の炎上を含む**汎用の状態異常フレームワーク**を追加しました。
+火の魔女（active30/進化18/passive4/Job Lv1〜100）は**不変**で、抽選/枠/パッシブ/進化/ジョブ育成（M6-A〜M6-F）の共通経路を
+そのまま再利用しています。詳細は `docs/jobs.md`・`docs/status-effects.md`・`docs/data-format.md`。**save_version は v6 のまま**。
+
+### 氷術師（frost_mage）
+- active5: 氷晶弾 `frost_shard`（初期）/ 氷輪爆 `frost_nova` / 氷河槍 `glacial_lance` / 永久凍土 `permafrost_field` / 氷壁 `ice_wall`。
+- passive4（氷専用）: 氷晶増幅 `frost_amplification`（氷Dmg）/ 急速冷却 `rapid_freezing`（氷CD）/ 凍域拡張 `frozen_expansion`（範囲）/ 余寒残留 `lingering_cold`（氷状態持続＋冷気減衰緩和）。
+- 進化3: ダイヤモンドブリザード（氷晶弾+急速冷却）/ 絶対零度領域（氷輪爆+凍域拡張）/ 天穿氷河槍（氷河槍+氷晶増幅）。
+- 基本成長: 氷Dmg +0.35%/Lv・冷気 +0.30%/Lv・粉砕 +0.40%/Lv。到達報酬 Lv5〜100（凍結狩り/氷砕連鎖/氷弾増殖/絶対零度 等）。
+
+### ジョブ選択
+拠点「ジョブ育成」タブが火の魔女／氷術師の**カード表示＋選択画面**へ拡張。`profile.selectedJobId`（既定 `flame_witch`）。
+**進行中の周回があるときはジョブ変更不可**（次の新規周回から有効）。`active_run.jobId`/`jobElement` で周回ジョブを固定し、
+ジョブごとにスキルプール／Job XP／Job Lv／統計を**完全分離**します。
+
+### 汎用状態異常フレームワーク
+`data/status-effects.json` に定義を集約し、`StatusEffectRegistry`（照会）/`StatusEffectManager`（適用・索引・更新・解除・専用RNG）/
+`FreezeSystem`（凍結確率・冷気減速・ボス氷砕ゲージ・粉砕の純計算）で扱います。M7-A の正式状態: `burning`/`chill`/`frozen`/
+`freeze_immunity`/`frostbreak_vulnerability`（将来 poison/bleed/shock 等を追加できる構造）。既存の炎上(burning)は**汎用索引へ移行**
+（ダメージ/持続/灼熱共鳴/万象炎鳴/統計は不変・`Enemy.ignite` 互換経路を維持）。
+
+- **冷気(chill)**: 氷攻撃で蓄積（通常 chillCap100/エリート130）。冷気量で減速（通常最大50%/エリート35%・ボスは減速なし）。自然減衰あり（余寒残留で緩和・下限あり）。
+- **凍結(frozen)**: `freezeChance = baseFreezeChance×procCoefficient + (chill/chillCap)×chanceFromChill×procCoefficient`、対象別上限でクランプ、閾値で確定凍結。**状態異常専用 SeededRandom**（Math.random 不使用）。多段攻撃は低 procCoefficient＋判定回数上限で**永久凍結を防止**。凍結中は移動/攻撃/AI 停止・ダメージは受ける・粉砕対象。解除後に凍結耐性。
+- **ボス氷砕(frostbreak)**: ボスは通常凍結せず、冷気をボス専用ゲージへ変換。閾値到達で硬直＋氷砕脆弱（氷被ダメージ×1.15）＋ゲージリセット（break 毎に次回閾値×1.30・上限×3.0）。HUD にボス氷砕ゲージ（氷術師のみ）。
+- **粉砕(shatter)**: 凍結中の通常敵/エリートへ発生。frozen 解除＋追加氷ダメージ/範囲爆発（固定基礎+スキル威力+敵最大HP係数・上限つき）。**粉砕から粉砕を再帰しない・ボスは frostbreak で代替**。
+
+### JobModifierManager（複数属性）
+fire 専用から複数ジョブ・複数属性へ拡張。**primaryElement 一致時のみ属性ダメージ補正を適用**（火補正を氷へ／氷補正を火へ誤適用しない）。
+火の魔女の補正は同値維持。氷ダメージには氷パッシブとボス氷砕脆弱（×1.15）を追加乗算し、火ダメージには適用しません。
+
+### 保存・デバッグ・属性反応
+`active_run` へ `jobId`/`jobElement`/`resolvedJobModifiers`/`statusRng`（状態RNGの cursor）/ボス frostbreak 状態（gauge/breaks/vulnRemain）を保存
+（個々の敵の冷気/凍結/氷弾位置は保存せず再開時に安全再構築）。`?debug=1` の **F9** で状態異常・氷術師検証パネル（既存 F1〜F8 と非競合）。
+**火と氷の属性反応は M7-A では未実装**（火で凍結解除/氷で消火/蒸発/融解なし・炎上と冷気/凍結は独立共存）。将来のため付与時に source element を保持します。
+
 ## セーブについて（M5-B）
 
 基本は **ブラウザの localStorage**（恒久データ profile / 設定 settings / 途中セーブ active_run）です。
@@ -505,21 +549,26 @@ src/
                       SolarAnnihilationArray / HellfireMineNetwork / InfernoBladeDomain / AshLegion / StarDevouringFurnace /
                       （M6-E）FuneralPyres / MagmaVein / TriFlameArray / ScorchingResonance / CoreOverdrive ＋進化
                       NecroflameMausoleum / WorldScorchingRift / HexagramInfernoArray / UniversalFlameResonance / DoomsdayCore
+                      （M7-A・氷術師）FrostShard / FrostNova / GlacialLance / PermafrostField / IceWall ＋進化
+                      DiamondBlizzard / AbsoluteZeroDomain / HeavenPiercingGlacier
   systems/            DataManager / SaveManager / profileSchema(v6移行) / ProgressionManager /
                       ReincarnationManager / EvolutionManager / SpawnManager / BattleManager /
                       PoolManager / SkillManager / EffectManager / SpatialGrid(空間グリッド・M5-A) /
                       SeededRandom・SkillDraftManager・PassiveManager（スキル抽選基盤・M6-A）/
                       JobProgressionManager・JobModifierManager（ジョブ育成・M6-C）/ CastPolicy（残響/複製の再帰防止・M6-D）/
                       SkillAudit（castMode/echo・clone/Lv80/タグの一元解決・M6-E）/
-                      SkillCatalog・DraftBalanceAnalyzer・CombatTelemetry・RunBalanceSummary・BalanceWarnings・BalancePlaytest（バランス検証基盤・M6-F）
+                      SkillCatalog・DraftBalanceAnalyzer・CombatTelemetry・RunBalanceSummary・BalanceWarnings・BalancePlaytest（バランス検証基盤・M6-F）/
+                      StatusEffectRegistry・StatusEffectManager・FreezeSystem（汎用状態異常/冷気・凍結・粉砕・ボス氷砕・M7-A）/ JobModifierManager（複数属性へ拡張・M7-A）
   storage/            StorageAdapter / BrowserStorageAdapter / FolderStorageAdapter / MemoryStorageAdapter /
                       SaveCoordinator / SaveValidator / SaveConflictResolver / SaveService / idb（保存レイヤー・M5-B）
   ui/                 HUD / PauseMenu
   utils/              math / time / validation
 data/                 skills / enemies / bosses / permanent-upgrades / skill-mastery /
-                      skill-evolutions / reincarnation / balance / job-progression（JSON）
+                      skill-evolutions / reincarnation / balance / job-progression /
+                      status-effects（汎用状態異常/冷気・凍結・ボス氷砕・粉砕・M7-A）（JSON）
 docs/                 game-design / architecture / data-format / save-format / test-guide /
-                      skill-catalog（火の魔女カタログ・M6-F）/ balance-testing（バランス検証基盤・M6-F）
+                      skill-catalog（火の魔女カタログ・M6-F）/ balance-testing（バランス検証基盤・M6-F）/
+                      jobs（ジョブシステム・M7-A）/ status-effects（状態異常フレームワーク・M7-A）
 tests/validate-data.mjs        Node標準のみのデータ検証
 tests/spatial-nonregression.mjs 空間グリッドの決定論的非回帰＋負荷計測（Node標準のみ・M5-A）
 tests/save-system.mjs          保存システムのテスト（移行/検証/キュー/バックアップ/競合・Node標準のみ・M5-B）
@@ -540,11 +589,21 @@ tests/draft-balance-simulation.mjs 抽選シミュレーション（枠4/6/8の�
 tests/evolution-feasibility.mjs 全18レシピが4枠で成立可能・最小枠（Node標準のみ・M6-F）
 tests/combat-telemetry.mjs     テレメトリ純ロジック（DPS/防御値/FPS集計/debugRun分離/上限）（Node標準のみ・M6-F）
 tests/balance-playtest.mjs     検証モードのオーバーライド解決・profile 非変更・常に debugRun（Node標準のみ・M6-F）
-.github/workflows/    static.yml（公開） / validate.yml（データ検証＋各テスト・全20スイート）
+tests/status-effects.mjs       状態異常定義の照会・索引・適用/更新/解除・炎上索引の互換（Node標準のみ・M7-A）
+tests/freeze-system.mjs        冷気減速・凍結確率式・確定閾値・ボス氷砕ゲージ・粉砕ダメージ上限（Node標準のみ・M7-A）
+tests/multi-job-selection.mjs  複数ジョブ選択・進行中周回でのジョブ固定・プール/XP/統計の分離（Node標準のみ・M7-A）
+tests/frost-job-progression.mjs 氷術師のXP曲線/基本成長/到達報酬/複数属性補正（Node標準のみ・M7-A）
+tests/frost-skills.mjs         氷 active5種のデータ整合・抽選出現・procCoefficient/chillAmount（Node標準のみ・M7-A）
+tests/frost-evolutions.mjs     氷進化3種のデータ整合・進化条件・非回帰（Node標準のみ・M7-A）
+tests/multi-job-draft.mjs      ジョブ別抽選プール（火スキルが氷術師候補に出ない等・決定論）（Node標準のみ・M7-A）
+tests/status-save-nonregression.mjs 状態RNG/ボス氷砕/氷スキルの保存往復・v6 非回帰（Node標準のみ・M7-A）
+.github/workflows/    static.yml（公開） / validate.yml（データ検証＋各テスト・M7-A で状態異常/氷術師スイート追加）
 data/                 ... / jobs.json・passives.json・skill-config.json（M6-A）／skills.json・skill-evolutions.json 拡張・balance.skillCaps（M6-B）／
                       job-progression.json・balance.combatCaps.maxEchoPerFrame（M6-C）／skills/evolutions 各10・5追加・cast メタ・skillCaps 26種追加（M6-D）／
                       skills/evolutions 各5追加・castMode/mainCastEvent/lv80ProjectileTarget メタ・balance.skillCaps 20種追加（M6-E）／
-                      skill-config.synergy・balance-thresholds.json（新規）・fallback定数のJSON移行（M6-F）
+                      skill-config.synergy・balance-thresholds.json（新規）・fallback定数のJSON移行（M6-F）／
+                      status-effects.json（新規・状態異常/冷気・凍結・ボス氷砕・粉砕）・jobs.json に frost_mage 追加・job-progression.json に frost_mage 追加・
+                      skills/passives/skill-evolutions に氷 active5/passive4/進化3 追加・balance.skillCaps に状態異常/氷スキル上限追加（M7-A）
 ```
 
 保存レイヤー（`src/storage/*`）とデータ管理画面（`DataManagementScene`）は M5-B で実装済みです。今後の候補は `TODO.md` を参照してください。
@@ -670,6 +729,15 @@ castMode 等の検証を追加し、**既存15スイート＋新5＝全20スイ�
 決定論を維持**することもテストで確認しています。**テレメトリの実収集値・FPS ヒストグラム・ResultScene の Balance詳細描画・
 F8 パネル・BaseScene カタログタブの実挙動は Phaser 依存のためヘッドレスでは未計測**です。GitHub Pages を実ブラウザ
 （`?debug=1` の F8）で開き、`docs/test-guide.md` の M6-F 項目を手動確認してください（実行していない項目は「確認済み」と報告していません）。
+
+**Milestone 7-A の検証**: 状態異常/凍結基盤（`StatusEffectRegistry`/`StatusEffectManager`/`FreezeSystem`）と複数ジョブの
+純ロジックは Phaser 非依存のため、`node tests/status-effects.mjs`（状態照会・索引・適用/更新/解除・炎上索引の互換）・
+`node tests/freeze-system.mjs`（冷気減速・凍結確率式・確定閾値・ボス氷砕ゲージ成長/上限・粉砕ダメージ上限）・
+`node tests/multi-job-selection.mjs`・`node tests/frost-job-progression.mjs`・`node tests/frost-skills.mjs`・
+`node tests/frost-evolutions.mjs`・`node tests/multi-job-draft.mjs`・`node tests/status-save-nonregression.mjs` で検証済みです。
+**凍結演出・氷弾/凍土/氷壁の実挙動・HUD 氷砕ゲージ・粉砕エフェクト・F9 パネル・ジョブ選択画面の描画・実プレイでの体感は
+Phaser 依存のためヘッドレスでは未計測**です。GitHub Pages を実ブラウザ（`?debug=1` の F9）で開き、`docs/test-guide.md` の
+M7-A 項目を手動確認してください（実行していない項目を「確認済み」と報告しません）。
 
 > ヘッドレス環境の制約: `requestAnimationFrame` が断続的に間引かれ、また headless では
 > ページが非フォーカス扱いになり自動一時停止が働くため、「リザルト→再挑戦後の実時間ループ継続」や

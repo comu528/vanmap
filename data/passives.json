@@ -6,7 +6,10 @@
       "displayName": "魔力増幅",
       "description": "全スキルのダメージが上昇する。",
       "category": "passive",
-      "tags": ["offense", "common"],
+      "tags": [
+        "offense",
+        "common"
+      ],
       "rarity": "uncommon",
       "weight": 1,
       "jobs": [],
@@ -20,7 +23,11 @@
       "iconKey": "icon_fireball",
       "enabled": true,
       "modifiers": [
-        { "key": "damage", "op": "addMult", "perLevel": 0.06 }
+        {
+          "key": "damage",
+          "op": "addMult",
+          "perLevel": 0.06
+        }
       ]
     },
     {
@@ -28,7 +35,10 @@
       "displayName": "高速詠唱",
       "description": "全スキルのクールダウンが短縮される（下限あり）。",
       "category": "passive",
-      "tags": ["utility", "common"],
+      "tags": [
+        "utility",
+        "common"
+      ],
       "rarity": "uncommon",
       "weight": 1,
       "jobs": [],
@@ -42,7 +52,11 @@
       "iconKey": "icon_burning_trail",
       "enabled": true,
       "modifiers": [
-        { "key": "cooldown", "op": "subMult", "perLevel": 0.04 }
+        {
+          "key": "cooldown",
+          "op": "subMult",
+          "perLevel": 0.04
+        }
       ]
     },
     {
@@ -50,7 +64,10 @@
       "displayName": "焦熱拡張",
       "description": "攻撃範囲・爆発範囲・設置範囲が拡大する。",
       "category": "passive",
-      "tags": ["area", "common"],
+      "tags": [
+        "area",
+        "common"
+      ],
       "rarity": "common",
       "weight": 1,
       "jobs": [],
@@ -64,7 +81,11 @@
       "iconKey": "icon_flame_pillar",
       "enabled": true,
       "modifiers": [
-        { "key": "area", "op": "addMult", "perLevel": 0.05 }
+        {
+          "key": "area",
+          "op": "addMult",
+          "perLevel": 0.05
+        }
       ]
     },
     {
@@ -72,7 +93,10 @@
       "displayName": "残火持続",
       "description": "設置物・継続ダメージ・炎上などの持続時間が延びる。",
       "category": "passive",
-      "tags": ["duration", "common"],
+      "tags": [
+        "duration",
+        "common"
+      ],
       "rarity": "common",
       "weight": 1,
       "jobs": [],
@@ -86,7 +110,140 @@
       "iconKey": "icon_orbiting_flame",
       "enabled": true,
       "modifiers": [
-        { "key": "duration", "op": "addMult", "perLevel": 0.08 }
+        {
+          "key": "duration",
+          "op": "addMult",
+          "perLevel": 0.08
+        }
+      ]
+    },
+    {
+      "id": "frost_amplification",
+      "displayName": "氷晶増幅",
+      "description": "氷属性スキルのダメージが上昇する。",
+      "category": "passive",
+      "tags": [
+        "ice",
+        "offense"
+      ],
+      "rarity": "uncommon",
+      "weight": 1,
+      "jobs": [
+        "frost_mage"
+      ],
+      "isCommon": false,
+      "maxLevel": 5,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [],
+      "displayOrder": 111,
+      "iconKey": "icon_frost_amplification",
+      "enabled": true,
+      "modifiers": [
+        {
+          "key": "iceDamage",
+          "op": "addMult",
+          "perLevel": 0.06
+        }
+      ]
+    },
+    {
+      "id": "rapid_freezing",
+      "displayName": "急速冷却",
+      "description": "氷属性スキルのクールダウンが短縮される（下限あり）。",
+      "category": "passive",
+      "tags": [
+        "ice",
+        "utility"
+      ],
+      "rarity": "uncommon",
+      "weight": 1,
+      "jobs": [
+        "frost_mage"
+      ],
+      "isCommon": false,
+      "maxLevel": 5,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [],
+      "displayOrder": 112,
+      "iconKey": "icon_rapid_freezing",
+      "enabled": true,
+      "modifiers": [
+        {
+          "key": "cooldown",
+          "op": "subMult",
+          "perLevel": 0.04
+        }
+      ]
+    },
+    {
+      "id": "frozen_expansion",
+      "displayName": "凍域拡張",
+      "description": "氷属性の範囲・領域が拡大する。",
+      "category": "passive",
+      "tags": [
+        "ice",
+        "area"
+      ],
+      "rarity": "common",
+      "weight": 1,
+      "jobs": [
+        "frost_mage"
+      ],
+      "isCommon": false,
+      "maxLevel": 5,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [],
+      "displayOrder": 113,
+      "iconKey": "icon_frozen_expansion",
+      "enabled": true,
+      "modifiers": [
+        {
+          "key": "area",
+          "op": "addMult",
+          "perLevel": 0.05
+        }
+      ]
+    },
+    {
+      "id": "lingering_cold",
+      "displayName": "余寒残留",
+      "description": "氷系状態異常の持続が延び、冷気の自然減衰が緩やかになる（減衰低下は上限あり・炎上には適用しない）。",
+      "category": "passive",
+      "tags": [
+        "ice",
+        "duration"
+      ],
+      "rarity": "common",
+      "weight": 1,
+      "jobs": [
+        "frost_mage"
+      ],
+      "isCommon": false,
+      "maxLevel": 5,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [],
+      "displayOrder": 114,
+      "iconKey": "icon_lingering_cold",
+      "enabled": true,
+      "modifiers": [
+        {
+          "key": "iceStatusDuration",
+          "op": "addMult",
+          "perLevel": 0.08
+        },
+        {
+          "key": "chillDecay",
+          "op": "subMult",
+          "perLevel": 0.05
+        }
       ]
     }
   ]

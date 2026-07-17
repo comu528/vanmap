@@ -44,9 +44,9 @@ export function defaultProfile(saveVersion, gameVersion) {
       cycleBossKills: 0, cycleStartTime: nowIso,
     },
     achievements: [],
-    // --- Milestone 6-A: ジョブ・パッシブ ---
+    // --- Milestone 6-A: ジョブ・パッシブ（M7-A で氷術師を追加・既定で選択可能） ---
     selectedJobId: 'flame_witch',
-    unlockedJobs: ['flame_witch'],
+    unlockedJobs: ['flame_witch', 'frost_mage'],
     jobProgress: {},               // jobId -> { runs, ... }（将来のジョブ育成特典用）
     passiveMastery: {},            // id -> { runsUsed, maxLevel, picks, appliedTimeMs }
     futureInheritanceSettings: {}, // 将来の継承枠設定（M6-A は未使用の拡張口）
@@ -142,6 +142,7 @@ export function migrateProfile(stored, sv, gv) {
   m.selectedJobId = (typeof s.selectedJobId === 'string' && s.selectedJobId) || 'flame_witch';
   m.unlockedJobs = (arr(s.unlockedJobs) || ['flame_witch']).filter((x) => typeof x === 'string');
   if (!m.unlockedJobs.includes('flame_witch')) m.unlockedJobs.unshift('flame_witch');
+  if (!m.unlockedJobs.includes('frost_mage')) m.unlockedJobs.push('frost_mage'); // M7-A: 氷術師を既定で選択可能（加算的）
   m.jobProgress = safeJobProgress(s.jobProgress);
   m.passiveMastery = safePassiveMastery(s.passiveMastery);
   m.futureInheritanceSettings = obj(s.futureInheritanceSettings);

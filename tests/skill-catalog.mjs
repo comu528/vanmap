@@ -39,8 +39,9 @@ ok(cat.issues.length === 0, `検出された不整合: ${cat.issues.length}件 $
 // ===== 4. 進化あり/なしの分類（実データ由来・文章推測しない） =====
 section('4. 進化あり/なし');
 ok(cat.summary.withEvolution.length + cat.summary.withoutEvolution.length === 30, '進化あり+なし=30');
-// 進化ありは18の baseSkillId 集合と一致（各進化は基礎1対1）。
-const evoBases = new Set(evolutions.map((e) => e.baseSkillId));
+// 進化ありは18の baseSkillId 集合と一致（各進化は基礎1対1）。M7-A: カタログはジョブ別に絞るため、
+// 火の魔女カタログの進化基礎と比較する（氷術師の進化基礎は別ジョブのため含めない）。
+const evoBases = new Set(cat.evolutions.map((e) => e.baseSkillId));
 ok(cat.summary.withEvolution.length === evoBases.size, `進化あり active数 = 進化の基礎数 (${cat.summary.withEvolution.length}/${evoBases.size})`);
 for (const id of cat.summary.withEvolution) ok(evoBases.has(id), `${id} は実際に進化を持つ`);
 for (const id of cat.summary.withoutEvolution) ok(!evoBases.has(id), `${id} は進化を持たない`);

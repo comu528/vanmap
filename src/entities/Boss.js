@@ -18,6 +18,12 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
     this.alive = true;
     this.lastDamage = 0;
     this._igniteUntil = 0; // M6-E: 炎上（灼熱共鳴・万象炎鳴の共鳴点として1体で数える）
+    // M7-A: 氷砕ゲージ（ボスは通常凍結しない・冷気をゲージへ変換）。値は StatusEffectManager が管理。
+    this._frostGauge = 0;
+    this._frostBreaks = 0;
+    this._frostbreakVulnUntil = 0;
+    this._frostbreakCdUntil = 0;
+    this._frostStaggerUntil = 0;
 
     this.state = 'chase';
     this._chargeDir = new Phaser.Math.Vector2();
@@ -38,8 +44,18 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
   ignite(ms, gen) { this._igniteUntil = this.scene.time.now + ms; this._igniteGen = gen || 0; }
   get ignited() { return this.alive && this.scene.time.now < this._igniteUntil; }
 
+  // M7-A: 氷砕による短い硬直。中断不可能な攻撃（予告/突進中）は無理に破壊しない＝chase 中のみ硬直させる。
+  applyFrostStagger(ms) {
+    if (this.state === 'chase') { this._frostStaggerUntil = this.scene.time.now + (ms || 0); return true; }
+    return false; // 中断できない行動中は硬直させない（安全）
+  }
+  get frostStaggered() { return this.scene.time.now < this._frostStaggerUntil; }
+
   update(dt, player) {
     if (!this.alive) return;
+
+    // M7-A: 氷砕硬直中は移動・攻撃を止める（短時間・chase 中のみ）。
+    if (this.frostStaggered) { this.setVelocity(0, 0); return; }
 
     // enrage 判定
     if (!this.enraged && this.hp <= this.maxHp * this.enrageThreshold) {

@@ -398,6 +398,120 @@
       "medium": 12,
       "high": 16,
       "ultra": 24
+    },
+    "maxStatusApplicationsPerFrame": {
+      "low": 40,
+      "medium": 80,
+      "high": 140,
+      "ultra": 220
+    },
+    "maxFreezeChecksPerFrame": {
+      "low": 24,
+      "medium": 48,
+      "high": 80,
+      "ultra": 130
+    },
+    "maxFrozenEnemies": {
+      "low": 30,
+      "medium": 60,
+      "high": 100,
+      "ultra": 160
+    },
+    "maxShattersPerFrame": {
+      "low": 3,
+      "medium": 5,
+      "high": 8,
+      "ultra": 12
+    },
+    "maxShatterProjectiles": {
+      "low": 12,
+      "medium": 24,
+      "high": 40,
+      "ultra": 64
+    },
+    "maxStatusIndexEntries": {
+      "low": 160,
+      "medium": 260,
+      "high": 400,
+      "ultra": 600
+    },
+    "maxFrostShards": {
+      "low": 24,
+      "medium": 44,
+      "high": 72,
+      "ultra": 110
+    },
+    "maxFrostNovaTargetsPerFrame": {
+      "low": 20,
+      "medium": 40,
+      "high": 60,
+      "ultra": 90
+    },
+    "maxGlacialLances": {
+      "low": 8,
+      "medium": 14,
+      "high": 22,
+      "ultra": 34
+    },
+    "maxPermafrostFields": {
+      "low": 2,
+      "medium": 3,
+      "high": 4,
+      "ultra": 6
+    },
+    "maxPermafrostTicksPerFrame": {
+      "low": 4,
+      "medium": 6,
+      "high": 8,
+      "ultra": 12
+    },
+    "maxIceWalls": {
+      "low": 2,
+      "medium": 2,
+      "high": 3,
+      "ultra": 4
+    },
+    "maxIceWallSegments": {
+      "low": 8,
+      "medium": 12,
+      "high": 18,
+      "ultra": 28
+    },
+    "maxIceWallCollisionsPerFrame": {
+      "low": 20,
+      "medium": 40,
+      "high": 70,
+      "ultra": 110
+    },
+    "maxDiamondBlizzardProjectiles": {
+      "low": 32,
+      "medium": 56,
+      "high": 90,
+      "ultra": 140
+    },
+    "maxAbsoluteZeroDomains": {
+      "low": 1,
+      "medium": 2,
+      "high": 2,
+      "ultra": 3
+    },
+    "maxAbsoluteZeroShattersPerFrame": {
+      "low": 2,
+      "medium": 3,
+      "high": 3,
+      "ultra": 4
+    },
+    "maxHeavenGlacierFragments": {
+      "low": 4,
+      "medium": 6,
+      "high": 8,
+      "ultra": 12
+    },
+    "maxBossFrostbreaksPerFrame": {
+      "low": 1,
+      "medium": 1,
+      "high": 1,
+      "ultra": 1
     }
   },
   "speedModes": [
