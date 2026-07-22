@@ -39,7 +39,9 @@ const draftCatalog = [
   ...skills.map((s) => ({ id: s.id, category: s.category, rarity: s.rarity, weight: s.weight, maxLevel: s.maxLevel, enabled: s.enabled, jobs: s.jobs, isCommon: s.isCommon, prerequisites: s.prerequisites, conflicts: s.conflicts, unlockCondition: s.unlockCondition })),
   ...passives.map((p) => ({ id: p.id, category: 'passive', rarity: p.rarity, weight: p.weight, maxLevel: p.maxLevel, enabled: p.enabled, jobs: p.jobs, isCommon: p.isCommon, prerequisites: p.prerequisites, conflicts: p.conflicts, unlockCondition: p.unlockCondition })),
 ];
-const draftJob = { activeSkillPool: job.activeSkillPool, passiveSkillPool: [] };
+// passiveSkillPool を実データ（flame_witch の4種）にする＝抽選到達性を isCommon ではなくプールで判定する（M7-B 追加監査）。
+const draftJob = { activeSkillPool: job.activeSkillPool, passiveSkillPool: job.passiveSkillPool || [] };
+const passivePool = new Set(job.passiveSkillPool || []);
 
 // ===== 0. 母数 =====
 section('0. 進化は18種');
@@ -61,7 +63,9 @@ for (const r of recipes) {
   }
   for (const p of r.auxPassive) {
     ok(passiveById.has(p.skill), `${r.evolutionId}: passive 補助 ${p.skill} が実在`);
-    ok(passiveById.get(p.skill).isCommon !== false, `${r.evolutionId}: passive 補助 ${p.skill} が共通（抽選到達可能）`);
+    // 到達性はプール（またはは明示的共通）で判定する。火の魔女の進化補助passiveは flame_witch の passiveSkillPool にある。
+    const pv = passiveById.get(p.skill);
+    ok(passivePool.has(p.skill) || pv.isCommon === true || (Array.isArray(pv.jobs) && pv.jobs.includes('*')), `${r.evolutionId}: passive 補助 ${p.skill} が抽選到達可能（プール/共通）`);
     ok(p.level >= 1 && p.level <= passiveMaxLevel(p.skill), `${r.evolutionId}: passive 補助 ${p.skill} 要求Lv${p.level} が上限内`);
   }
 

@@ -86,7 +86,7 @@ section('3. 抽選（新 active が候補に出る・ジョブ限定・満枠/�
     ...passives.map((p) => ({ id: p.id, category: 'passive', rarity: p.rarity, weight: p.weight, maxLevel: p.maxLevel, enabled: p.enabled, jobs: p.jobs, isCommon: p.isCommon, prerequisites: p.prerequisites, conflicts: p.conflicts, unlockCondition: p.unlockCondition })),
   ];
   const mkDraft = () => { const d = new SkillDraftManager({ rarityWeights: cfg.rarityWeights }); d.reset(1, { rerolls: 1, banishes: 1, skips: 1 }); return d; };
-  const ctx = (o = {}) => ({ catalog, job: { activeSkillPool: job.activeSkillPool, passiveSkillPool: [] }, owned: o.owned || { active: { fireball: 1 }, passive: {} }, slots: o.slots || { active: { used: 1, max: 8 }, passive: { used: 0, max: 4 } }, evolvables: [], need: o.need || 4, unlock: { highestClearedDifficulty: 0 } });
+  const ctx = (o = {}) => ({ catalog, job: { activeSkillPool: job.activeSkillPool, passiveSkillPool: job.passiveSkillPool }, owned: o.owned || { active: { fireball: 1 }, passive: {} }, slots: o.slots || { active: { used: 1, max: 8 }, passive: { used: 0, max: 4 } }, evolvables: [], need: o.need || 4, unlock: { highestClearedDifficulty: 0 } });
 
   // 新 active が候補に出うる。
   const seen = new Set();

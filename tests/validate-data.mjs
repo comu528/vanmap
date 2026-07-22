@@ -399,6 +399,36 @@ if (jobsData) {
   }
 }
 
+// --- M7-B 追加監査: passive のジョブ分離（暗黙の共通扱いを禁止・passiveSkillPool を正とする）---
+if (passivesData && jobsData) {
+  const jobsList = jobsData.jobs || [];
+  const jobIdSet = new Set(jobsList.map((j) => j.id));
+  const poolOf = (jid) => new Set((jobsList.find((j) => j.id === jid) || {}).passiveSkillPool || []);
+  for (const p of passivesData.passives || []) {
+    const jobsArr = Array.isArray(p.jobs) ? p.jobs : [];
+    const explicitCommon = p.isCommon === true || jobsArr.includes('*');
+    if (!explicitCommon) {
+      // jobs 未指定（空）を暗黙の全ジョブ共通として扱わない: 専用passive は jobs を明示すること。
+      if (jobsArr.length === 0) err(`passives.json: ${p.id} は isCommon:false かつ jobs 未指定（暗黙の共通は禁止。jobs:["<jobId>"] もしくは isCommon:true / jobs:["*"] を明示）`);
+      for (const jid of jobsArr) {
+        if (jid === '*') continue;
+        if (!jobIdSet.has(jid)) err(`passives.json: ${p.id} の jobs "${jid}" が実在しないジョブ`);
+        else if (!poolOf(jid).has(p.id)) err(`passives.json: ${p.id} は jobs に ${jid} を持つが ${jid}.passiveSkillPool に無い（jobs とプールの不一致）`);
+      }
+    }
+  }
+  // 各ジョブの passiveSkillPool の中身は「そのジョブ専用（jobs に自身を含む）」または「明示的共通」であること（他ジョブ専用passive の混入禁止）。
+  for (const j of jobsList) {
+    for (const id of j.passiveSkillPool || []) {
+      const p = (passivesData.passives || []).find((x) => x.id === id);
+      if (!p) continue; // 存在チェックは既存の別ブロックで実施
+      const jobsArr = Array.isArray(p.jobs) ? p.jobs : [];
+      const explicitCommon = p.isCommon === true || jobsArr.includes('*');
+      if (!explicitCommon && !jobsArr.includes(j.id)) err(`jobs.json: ${j.id}.passiveSkillPool の ${id} は ${j.id} 専用でない（他ジョブ専用passive の混入・jobs=${JSON.stringify(jobsArr)}）`);
+    }
+  }
+}
+
 // 前提条件の循環（skills + passives 横断）と自己 conflict の総点検
 {
   const allDraft = [...((skillsData && skillsData.skills) || []), ...((passivesData && passivesData.passives) || [])];

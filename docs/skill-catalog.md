@@ -113,8 +113,15 @@ active30種化で進化相手が候補へ極端に出にくくならないよう
 `docs/balance-testing.md` を参照。
 
 ## Milestone 7-B: 氷術師カタログ拡張（active15 / 進化8）
-氷術師へ新 active10種・進化5種を追加し、`SkillCatalog.buildCatalog(frost_mage)` は **active15 / passive8（=共通4＋氷4）/ 進化8・issues0**（孤立/未登録/参照不整合0）になる。
-（passive8 はカタログが共通 passive を含むため。**装備枠 `basePassiveSlots` は4**。氷 passive は M7-B で追加なし。）火の魔女カタログ（active30/進化18）は不変。
+氷術師へ新 active10種・進化5種を追加し、`SkillCatalog.buildCatalog(frost_mage)` は **active15 / passive4（氷専用4）/ 進化8・issues0**（孤立/未登録/参照不整合0）になる。
+火の魔女カタログ（active30 / passive4 / 進化18）は不変。
+
+> **M7-B 追加監査（passive プール分離）**: `SkillCatalog` の passive 判定を `SkillDraftManager` と同一の `poolEligibility.memberAllowedForJob` に統一し、
+> **各ジョブの `passiveSkillPool` を候補抽選の正**とした（`jobs` 未指定を暗黙の全ジョブ共通として扱わない）。これにより
+> `flame_witch` の passive 候補＝火4種（`power_amp`/`swift_cast`/`scorch_expand`/`ember_persist`・`jobs:["flame_witch"]`）、
+> `frost_mage` の passive 候補＝氷4種（`frost_amplification`/`rapid_freezing`/`frozen_expansion`/`lingering_cold`・`jobs:["frost_mage"]`）となり、
+> **カタログ表示＝実抽選プール**が一致する（旧実装は共通 passive を含め frost_mage を8と表示していた＝表示と実抽選の食い違い＝修正済み）。
+> 本当に全ジョブ共通の passive は `isCommon:true` もしくは `jobs:["*"]` で明示（将来追加口）。`basePassiveSlots` は両ジョブ4のまま。検証は `tests/passive-pool-audit.mjs`。
 
 各 active/進化は `castMode`・`echoPolicy`/`clonePolicy`・`lv80ProjectileTarget`・`procCoefficient`・`runtimeState` を実データから露出する。
 

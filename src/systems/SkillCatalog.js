@@ -7,6 +7,7 @@
 // SkillAudit と共有: 残響/分身/Lv80/タグの対応状況は SkillAudit を再利用し UI 専用の別判定を作らない。
 
 import { echoStatus, cloneStatus, appliesLv80ProjectileCount, primaryTags } from './SkillAudit.js';
+import { memberAllowedForJob } from './poolEligibility.js';
 
 const asArr = (v) => (Array.isArray(v) ? v : []);
 
@@ -91,7 +92,9 @@ export function buildCatalog(input) {
   const activesAll = skills.filter((s) => (s.category || 'active') === 'active' && (asArr(s.jobs).includes(jobId) || pool.has(s.id)));
   const jobActiveIds = new Set(activesAll.map((s) => s.id));
   const actives = activesAll.map((s) => activeEntry(s, ctx)).sort((a, b) => (a.id < b.id ? -1 : 1));
-  const passiveRows = passives.filter((p) => p.isCommon === true || asArr(p.jobs).includes(jobId)).map((p) => passiveEntry(p, ctx));
+  // passive の適格判定は SkillDraftManager と同一の poolEligibility を使う（passiveSkillPool を正とし、
+  // jobs 未指定を暗黙の共通扱いしない）。カタログ表示＝実抽選プールを一致させる。
+  const passiveRows = passives.filter((p) => memberAllowedForJob({ ...p, category: 'passive' }, job)).map((p) => passiveEntry(p, ctx));
   const evolutionsForJob = evolutions.filter((e) => jobActiveIds.has(e.baseSkillId));
   const evoRows = evolutionsForJob.map((e) => evolutionEntry(e, ctx)).sort((a, b) => (a.id < b.id ? -1 : 1));
 

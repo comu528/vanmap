@@ -187,7 +187,9 @@ npm・ビルド処理・バックエンド・データベースは一切使い�
 4. アイコンが必要なら `BootScene.makeSkillIcons()` に色を足す（正式画像は追加しない）。
 5. `node tests/validate-data.mjs` と `node tests/skill-draft.mjs` を通す（抽選は自動で新スキルを扱う）。
    ※ 抽選・所持枠・レアリティ・決定論・リロール/追放/スキップは基盤側が処理するため、スキル追加時に抽選コードは触りません。
-新パッシブは `data/passives.json` に modifier 付きで追加、新ジョブは `data/jobs.json` に追加するだけで抽選対象になります。
+新パッシブは `data/passives.json` に modifier 付きで追加し、**そのパッシブを使うジョブの `jobs:["<jobId>"]` を明示して対象ジョブの `passiveSkillPool` にも登録**します
+（`jobs` 未指定＝暗黙の全ジョブ共通にはしません。全ジョブ共通にする場合のみ `isCommon:true` または `jobs:["*"]` を明示）。新ジョブは `data/jobs.json` に追加するだけで抽選対象になります。
+passive の抽選到達性は `passiveSkillPool`（正）で判定し、`SkillDraftManager`/`SkillCatalog`/シミュレーターは共通の `poolEligibility` を使います（M7-B 追加監査。`tests/passive-pool-audit.mjs` で検証）。
 
 ## Milestone 6-B の要素（火の魔女ビルド拡張）
 

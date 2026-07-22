@@ -39,7 +39,9 @@ const draftCatalog = [
   ...skills.map((s) => ({ id: s.id, category: s.category, rarity: s.rarity, weight: s.weight, maxLevel: s.maxLevel, enabled: s.enabled, jobs: s.jobs, isCommon: s.isCommon, prerequisites: s.prerequisites, conflicts: s.conflicts, unlockCondition: s.unlockCondition })),
   ...passives.map((p) => ({ id: p.id, category: 'passive', rarity: p.rarity, weight: p.weight, maxLevel: p.maxLevel, enabled: p.enabled, jobs: p.jobs, isCommon: p.isCommon, prerequisites: p.prerequisites, conflicts: p.conflicts, unlockCondition: p.unlockCondition })),
 ];
-const job = { activeSkillPool: jobs.find((j) => j.id === 'flame_witch').activeSkillPool, passiveSkillPool: [] };
+// passiveSkillPool は実データ（flame_witch の共通/専用passive）を使う＝到達性はプールが正（M7-B 追加監査）。
+const _fw = jobs.find((j) => j.id === 'flame_witch');
+const job = { activeSkillPool: _fw.activeSkillPool, passiveSkillPool: _fw.passiveSkillPool };
 
 // ---- seed 集合（軽量 / HEAVY） ----
 const HEAVY = !!process.env.HEAVY;

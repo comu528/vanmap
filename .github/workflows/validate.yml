@@ -105,3 +105,5 @@ jobs:
         run: node tests/frost-runtime-save-wave2.mjs
       - name: Frost determinism wave2 tests
         run: node tests/frost-determinism-wave2.mjs
+      - name: Passive pool separation audit
+        run: node tests/passive-pool-audit.mjs

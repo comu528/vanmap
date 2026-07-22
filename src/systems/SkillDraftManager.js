@@ -10,6 +10,7 @@
 //  - 満枠時: 未取得の新規は出さない。所持済みのレベルアップは出す。
 
 import { SeededRandom } from './SeededRandom.js';
+import { memberAllowedForJob } from './poolEligibility.js';
 
 export class SkillDraftManager {
   // config: { rarityWeights, baseRerolls, baseBanishes, baseSkips }
@@ -182,9 +183,8 @@ export class SkillDraftManager {
       const isActive = m.category === 'active';
       const isPassive = m.category === 'passive';
       if (!isActive && !isPassive) continue;
-      const pool = isActive ? (job.activeSkillPool || []) : (job.passiveSkillPool || []);
-      const allowed = pool.includes(m.id) || m.isCommon === true || extra.includes(m.id);
-      if (!allowed) continue;
+      // 適格判定は poolEligibility（SkillCatalog / シミュレーター / テストと同一の正）へ集約。
+      if (!memberAllowedForJob(m, job, extra)) continue;
       if (banned.has(m.id)) continue;
       if (!this._unlockOk(m, ctx)) continue;
       if (!this._prereqOk(m, ctx, ownedActive, ownedPassive)) continue;

@@ -46,7 +46,12 @@
         "scorching_resonance",
         "core_overdrive"
       ],
-      "passiveSkillPool": [],
+      "passiveSkillPool": [
+        "power_amp",
+        "swift_cast",
+        "scorch_expand",
+        "ember_persist"
+      ],
       "evolutionPool": [
         "infernal_barrage",
         "purgatory_eruption",

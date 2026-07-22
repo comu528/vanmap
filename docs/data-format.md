@@ -253,8 +253,14 @@ effectCap/permCap/speedMode/autoDash/startEmber）。`prerequisite` は `null` �
   "futureInheritanceSettings": { "enabled": false, "maxInheritedSkills": 0, "allowedTags": [], "allowedCategories": ["active","passive"] }
 }, ... ] }
 ```
-検証: 必須項目・初期スキルが各プールに存在・プール ID がカタログに存在。共通パッシブ(isCommon)は全ジョブで抽選対象。
+検証: 必須項目・初期スキルが各プールに存在・プール ID がカタログに存在。
 `futureInheritanceSettings` は将来の継承枠の拡張口（M6-A は未使用）。
+
+**passive のジョブ分離（M7-B 追加監査）**: passive の抽選到達性は各ジョブの `passiveSkillPool`（＝正）で判定する（`src/systems/poolEligibility.js` を
+`SkillDraftManager`/`SkillCatalog`/シミュレーター/テストで共有）。ジョブ専用 passive は `jobs:["<jobId>"]`・`isCommon:false` とし、対応ジョブの
+`passiveSkillPool` に登録する。**`jobs` 未指定（空配列）を暗黙の全ジョブ共通として扱わない**（`isCommon:false` かつ `jobs:[]` は `validate-data` エラー）。
+本当に全ジョブ共通の passive のみ `isCommon:true` もしくは `jobs:["*"]` で明示する。現状: 火4種=`jobs:["flame_witch"]`、氷4種=`jobs:["frost_mage"]`、
+明示的共通は0種。`validate-data` は「jobs とプールの不一致」「他ジョブ専用 passive のプール混入」「jobs 指定漏れ」を検出する。
 
 ### skills.json（active）の抽選メタ拡張
 既存の active 5種へ次を追加（**戦闘数値やレベル効果は不変**）: `category:"active"`, `iconKey`, `tags`, `rarity`,

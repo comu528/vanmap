@@ -12,8 +12,10 @@
       ],
       "rarity": "uncommon",
       "weight": 1,
-      "jobs": [],
-      "isCommon": true,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
       "maxLevel": 5,
       "prerequisites": [],
       "conflicts": [],
@@ -41,8 +43,10 @@
       ],
       "rarity": "uncommon",
       "weight": 1,
-      "jobs": [],
-      "isCommon": true,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
       "maxLevel": 5,
       "prerequisites": [],
       "conflicts": [],
@@ -70,8 +74,10 @@
       ],
       "rarity": "common",
       "weight": 1,
-      "jobs": [],
-      "isCommon": true,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
       "maxLevel": 5,
       "prerequisites": [],
       "conflicts": [],
@@ -99,8 +105,10 @@
       ],
       "rarity": "common",
       "weight": 1,
-      "jobs": [],
-      "isCommon": true,
+      "jobs": [
+        "flame_witch"
+      ],
+      "isCommon": false,
       "maxLevel": 5,
       "prerequisites": [],
       "conflicts": [],
