@@ -40,7 +40,7 @@
 | 零刻世界 | `zero_hour_world` | `frozen_clock` | `ice_prison`（補助 active・置換しない） | periodic | **forbidden** | 0.65 |
 
 - 進化は基礎 active を置換し active/passive 枠を消費しない。補助条件スキルは消費しない。進化は**基礎 Lv8 より明確に強い到達点**（詳細は `./docs/balance-testing.md`）。
-- `frozen_clock`/`zero_hour_world` の `bossGaugeMult` は設計上の予約値で、氷砕ゲージ加算は標準 chill 経路が担うため二重適用しない（ボス氷砕の cooldown/threshold/vulnerability は不変）。
+- `frozen_clock`/`zero_hour_world` の `bossGaugeMult` はボス氷砕ゲージ量のみへ適用する。`StatusEffectManager.applyIceHit` のボス分岐で chill→ゲージ変換に1命中1回だけ掛かり（`addBossGauge(e, chillAmt × bossGaugeMult)`）、damage/chillAmount/procCoefficient や通常敵/エリート・炎には掛からず二重加算もしない。`frozen_clock` は Lv別（1.2→1.8 で単調増加）、`zero_hour_world`=2.2 と明確に高い（ボス氷砕の cooldown/threshold/vulnerability は不変）。
 
 ## runtimeState・保存・テレメトリ・デバッグ
 - CD/設置/遅延/防御/barrage の runtimeState を `active_run.skillRuntime` へ保存し、再開時の無料再発動・二重生成・進化前後の同時稼働を防ぐ。飛行中 projectile/Graphics/Text/Tween/entity 参照/particle/overlay/F10 選択は保存しない（詳細は `./docs/save-format.md`）。

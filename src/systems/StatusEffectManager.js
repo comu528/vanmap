@@ -168,7 +168,10 @@ export class StatusEffectManager {
     const powerMult = num(ctx.statusPowerMult, 1);
     const chillAmt = num(ctx.chillAmount, 0) * powerMult;
     if (t === 'boss') {
-      const ev = this.addBossGauge(e, chillAmt);
+      // M7-C: ボス氷砕ゲージのみに掛かるスキル固有倍率（frozen_clock/zero_hour_world/everlasting_white_mist）。
+      // 通常敵の冷気・凍結・粉砕、damage、procCoefficient には掛からない（この分岐はボス専用・冷気→ゲージ量のみ 1回だけ倍率調整）。
+      const gaugeMult = num(ctx.bossGaugeMult, 1);
+      const ev = this.addBossGauge(e, chillAmt * gaugeMult);
       return { type: 'boss', boss: true, froze: false, gauge: e._frostGauge || 0, brokeFrost: !!ev, frostbreak: ev };
     }
     // 冷気付与（凍結中/耐性中は addChill 内で抑制/軽減）。

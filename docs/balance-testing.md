@@ -199,7 +199,7 @@ M7-A で 2人目のジョブ **氷術師（frost_mage）** と汎用状態異常
 - **uncommon は特徴づけ**: `frost_chain`（連鎖）/`snowblind_mist`（追従冷気）/`winter_halo`（防御）。ビルドの方向性を決める癖のある効果。
 - **rare は軸になる派手さ**: `polar_star`（複合弾）/`crystal_refraction`（屈折）/`comet_sleet`（barrage）。強力だが枠と抽選重みで供給を絞る。
 - **legendary は制御された切り札**: `frozen_clock`（全画面時計波）は直接凍結せず `FreezeSystem` へ委譲し、発生を絞る（長CD・periodic）。
-- **進化は基礎 Lv8 より明確に強い到達点**: 基礎 active を置換し枠を消費しない。補助条件（passive3種＋補助 active `ice_prison`）は消費しない。過剰化を避けるため `zero_hour_world`（零刻世界）は forbidden で残響/複製せず、ボス氷砕は標準経路（`bossGaugeMult` は予約値で二重適用しない）。
+- **進化は基礎 Lv8 より明確に強い到達点**: 基礎 active を置換し枠を消費しない。補助条件（passive3種＋補助 active `ice_prison`）は消費しない。過剰化を避けるため `zero_hour_world`（零刻世界）は forbidden で残響/複製せず、ボス氷砕は標準経路（`bossGaugeMult` はボス氷砕ゲージ量のみへ1命中1回だけ適用し、damage/chill/proc には掛からず二重加算しない）。
 
 ### 検証観点
 - **Balance Playtest（F8）の対象**: 新 active10種・進化5種も検証プレイの抽選・取得・進化条件達成の対象に含まれる（氷術師を選んで素の手触りを確認）。**profile は不変・常に debugRun**。

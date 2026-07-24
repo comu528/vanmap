@@ -1093,17 +1093,20 @@ export class BattleScene extends Phaser.Scene {
       // M7-B.1: デバッグ表示用に「最後に冷気/ゲージを付与した skillId」を対象へ記録（保存しない・ロジック不変）。
       if (skillId) { if (target.isBoss) target._lastGaugeSkillId = skillId; else target._lastChillSkillId = skillId; }
       const spMult = this.jobMods.statusPowerMult();
+      // M7-C: ボス氷砕ゲージのみに掛かるスキル固有倍率（既定1＝既存スキルは不変）。冷気/凍結/damage/procCoefficient には掛けない。
+      const bossGaugeMult = opts.bossGaugeMult != null ? opts.bossGaugeMult : 1;
       const res = sfx.applyIceHit(target, {
         chillAmount: opts.chillAmount || 0, baseFreezeChance: opts.baseFreezeChance || 0,
         procCoefficient: opts.procCoefficient != null ? opts.procCoefficient : 1,
         hitGroupId: opts.hitGroupId, canFreeze: opts.canFreeze !== false,
-        statusPowerMult: spMult,
+        statusPowerMult: spMult, bossGaugeMult,
       });
       const appliedChill = (opts.chillAmount || 0) * spMult;
       if (this.telemetry) {
         this.telemetry.noteStatusEvent('chillApplied', appliedChill);
         if (skillId) this.skills.recordExtra(skillId, 'chillApplied', appliedChill, 'add');
-        if (res.boss) { if (skillId) this.skills.recordExtra(skillId, 'bossFrostGaugeApplied', appliedChill, 'add'); }
+        // ボスへは倍率適用後のゲージ寄与を記録（chill テレメトリ自体は倍率を掛けない）。
+        if (res.boss) { if (skillId) this.skills.recordExtra(skillId, 'bossFrostGaugeApplied', appliedChill * bossGaugeMult, 'add'); }
         else {
           this.telemetry.noteStatusEvent('freezeAttempts', 1);
           if (skillId) this.skills.recordExtra(skillId, 'freezeAttempts', 1, 'add');
@@ -1187,6 +1190,7 @@ export class BattleScene extends Phaser.Scene {
         chillAmount: opts.chillAmount, baseFreezeChance: opts.baseFreezeChance,
         procCoefficient: opts.procCoefficient, hitGroupId: opts.hitGroupId,
         canFreeze: opts.canFreeze, applyStatus: opts.applyStatus, isShatter: opts.isShatter,
+        bossGaugeMult: opts.bossGaugeMult, // M7-C: ボス氷砕ゲージのみに掛かるスキル固有倍率（既定1）
       });
     }
   }

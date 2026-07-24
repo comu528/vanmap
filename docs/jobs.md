@@ -169,5 +169,5 @@ M7-B.1 で、氷術師の状態異常が**通常プレイ中に視認・確認�
 
 - 進化は基礎 active を置換し active/passive 枠を消費しない。補助条件スキルは消費しない。**passive は4種のまま**（M7-C で追加なし）。`zero_hour_world` の条件に使う `ice_prison` は進化条件用の補助 active で**置換しない**。
 - 主発動時のみ `recordCast`（各弾/tick/命中/pulse/開花/衝波/wave/屈折/彗星落下/粉砕/frostbreak では記録しない）。echo/clone は1世代・再帰なし（`zero_hour_world` は forbidden）。
-- ボスは通常 frozen にせず chill→氷砕ゲージへ変換し、`frozen_clock`/`zero_hour_world` の `bossGaugeMult` は設計上の予約値で二重適用しない（ボス氷砕の cooldown/threshold/vulnerability は不変）。
+- ボスは通常 frozen にせず chill→氷砕ゲージへ変換し、`frozen_clock`/`zero_hour_world` の `bossGaugeMult` はボス氷砕ゲージ量のみへ1命中1回だけ適用する（`applyIceHit` のボス分岐で chill→ゲージ変換に掛かるだけで damage/chill/proc や通常敵・炎には掛からず二重加算しない。ボス氷砕の cooldown/threshold/vulnerability は不変）。
 - 検証: `frost-skills-wave3.mjs`／`frost-evolutions-wave3.mjs`／`frost-policy-audit-wave3.mjs`／`frost-runtime-save-wave3.mjs`／`frost-determinism-wave3.mjs`・`validate-data.mjs`（M7-C 検証ブロック）。**全44スイート通過・validate-data 0エラー0警告**。実描画・体感は本環境では未検証。詳細は `./docs/skills.md`・`./docs/skill-catalog.md`・`./docs/status-effects.md`。

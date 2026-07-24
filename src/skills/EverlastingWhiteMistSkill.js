@@ -41,9 +41,10 @@ export class EverlastingWhiteMistSkill extends EvolvedSkillBase {
       if (hit >= cap) { if (this.scene._m) this.scene._m.suppressed++; break; }
       hit++;
       let dd = dmg; if (this.scene.combat.isChilled(e)) dd *= (1 + (this.evoDef.chilledDamageBonus || 0));
+      // ボスへは bossGaugeMult ぶん氷砕ゲージを増やす（冷気/damage/proc には掛からない・dealDamage 側でボス分岐のみ適用）。
       this.scene.combat.dealDamage(e, dd, this.id, {
         element: 'ice', tag: 'dot', chillAmount: chill, baseFreezeChance: 0, procCoefficient: this.evoDef.procCoefficient ?? 0.14,
-        hitGroupId: hg, quiet: true, color: 0xe1f5fe,
+        hitGroupId: hg, quiet: true, color: 0xe1f5fe, bossGaugeMult: this.evoDef.bossGaugeMult || 1,
       });
     }
     if (hit) this.scene.skills.recordExtra(this.id, whiteout ? 'whiteoutPulses' : 'mistTicks', 1, 'add');

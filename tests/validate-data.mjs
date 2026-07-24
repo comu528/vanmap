@@ -985,6 +985,32 @@ if (jobProgData) {
     const fw3 = (jobsData?.jobs || []).find((j) => j.id === 'flame_witch');
     if (fw3) for (const id of Object.keys(C_A)) if ((fw3.activeSkillPool || []).includes(id)) err(`M7-C: flame_witch pool に氷スキル ${id} が混入`);
   }
+  // bossGaugeMult 監査: 「Lv成長項目」として宣言したフィールドが死んでいない（＝実際に成長する）ことを検出する。
+  //   frozen_clock は Lv1..8 で単調増加（定数のままの死んだ成長項目を禁止）。zero_hour_world は frozen_clock 最大より明確に高い。
+  //   everlasting_white_mist は氷砕ゲージ倍率を持ち正値。値は StatusEffectManager のボス分岐で addBossGauge へ1回だけ適用される（コード側で参照）。
+  {
+    const fc = skillsArr.find((s) => s.id === 'frozen_clock');
+    if (fc) {
+      const vals = (fc.levels || []).map((lv) => lv.bossGaugeMult);
+      if (vals.some((v) => typeof v !== 'number' || v <= 0)) err('M7-C: frozen_clock.bossGaugeMult に非正/欠損の Lv がある');
+      else {
+        let increases = 0;
+        for (let i = 1; i < vals.length; i++) { if (vals[i] > vals[i - 1] + 1e-9) increases++; }
+        if (increases === 0) err('M7-C: frozen_clock.bossGaugeMult が全 Lv 一定（死んだ成長項目・Lv成長として機能していない）');
+        const fcMax = Math.max(...vals);
+        const zh = evosArr.find((e) => e.id === 'zero_hour_world');
+        if (zh) {
+          if (typeof zh.bossGaugeMult !== 'number' || zh.bossGaugeMult <= 0) err('M7-C: zero_hour_world.bossGaugeMult が非正/欠損');
+          else if (!(zh.bossGaugeMult > fcMax + 1e-9)) err(`M7-C: zero_hour_world.bossGaugeMult(${zh.bossGaugeMult}) は frozen_clock 最大(${fcMax}) より明確に高いこと`);
+        }
+      }
+    }
+    const ewm = evosArr.find((e) => e.id === 'everlasting_white_mist');
+    if (ewm && (typeof ewm.bossGaugeMult !== 'number' || ewm.bossGaugeMult <= 0)) err('M7-C: everlasting_white_mist.bossGaugeMult が非正/欠損');
+    // bossGaugeMult を宣言するスキル/進化は StatusEffectManager のボス分岐（addBossGauge）で実際に参照されること（死に値の再発を検出）。
+    const semSrc = readFileSync(join(__dirname, '..', 'src', 'systems', 'StatusEffectManager.js'), 'utf8');
+    if (!/bossGaugeMult/.test(semSrc)) err('M7-C: bossGaugeMult がコード（StatusEffectManager）で参照されていない（未使用の成長項目）');
+  }
 }
 
 // --- M7-B.1: 状態異常の視認性（品質別の表示上限・状態表示設定）の検証 ---

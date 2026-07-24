@@ -183,4 +183,4 @@ active30種化で進化相手が候補へ極端に出にくくならないよう
 | 零刻世界 | `zero_hour_world` | `frozen_clock` | frozen_clock Lv8 ＋ ice_prison(補助 active) Lv4 | periodic | `cdLeft`/`remainingWaves`/`nextWaveLeft`/`waveIndex`/`origin` |
 
 - **Job Lv80「発射数+1」対象**は明示フラグ（`lv80ProjectileTarget:true`）で `SkillAudit` が一元管理し、新 active では `rime_boomerang`/`polar_star`・新進化5種は全て対象外。氷全体の対象は計5種（`frost_shard`/`glacial_lance`/`icicle_volley`/`rime_boomerang`/`polar_star`）。
-- `zero_hour_world` の条件に使う `ice_prison` は進化条件用の補助 active で置換しない。`frozen_clock`/`zero_hour_world` の `bossGaugeMult` は設計上の予約値で氷砕ゲージへ二重適用しない。検証は `frost-policy-audit-wave3.mjs`・`skill-catalog` 相当。詳細は `./docs/skills.md`・`./docs/jobs.md`。
+- `zero_hour_world` の条件に使う `ice_prison` は進化条件用の補助 active で置換しない。`frozen_clock`/`zero_hour_world` の `bossGaugeMult` はボス氷砕ゲージ量のみへ1命中1回だけ適用する（damage/chill/proc には掛からず二重加算しない）。検証は `frost-policy-audit-wave3.mjs`・`skill-catalog` 相当。詳細は `./docs/skills.md`・`./docs/jobs.md`。

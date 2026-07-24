@@ -143,6 +143,6 @@ M7-C で氷術師へ追加した新 active10種・進化5種も、**独自の凍
 M7-A/M7-B と同じ経路・同じ品質別 `skillCaps` に従う（**新規に状態異常種別は追加しない**）。
 
 - **粉砕を起こすスキルと起こさないスキル**: 復路（`rime_boomerang`）/開花時のみ（`crystal_bloom`）/凍結敵（`icebreaker_wave`）/最終屈折のみ（`crystal_refraction`）/大彗星のみ（`comet_sleet`）/複合弾（`polar_star`）は `frozen` 中の通常敵・エリートを既存の**粉砕**で砕く（再帰なし・ボスは frostbreak で代替）。`snowblind_mist`（追従霧）は**粉砕しない**（冷気のみ）。
-- **`frozen_clock`（氷刻停止）／`zero_hour_world`（零刻世界）は直接凍結しない**: 全画面の時計波は冷気を与え、凍結は既存 `FreezeSystem`（guaranteed threshold＋確率）へ**委譲**する。**ボスは通常凍結せず氷砕ゲージへ変換**（既存 `bossFrostbreak`）。データの `bossGaugeMult` は**設計上の予約値で、氷砕ゲージ加算は標準 chill 経路が担うため二重適用しない**（ボス氷砕の cooldown/threshold/vulnerability 値は M7-B から不変）。
+- **`frozen_clock`（氷刻停止）／`zero_hour_world`（零刻世界）は直接凍結しない**: 全画面の時計波は冷気を与え、凍結は既存 `FreezeSystem`（guaranteed threshold＋確率）へ**委譲**する。**ボスは通常凍結せず氷砕ゲージへ変換**（既存 `bossFrostbreak`）。データの `bossGaugeMult` は**ボス氷砕ゲージ量のみへ適用**する。`StatusEffectManager.applyIceHit` のボス分岐で chill→ゲージ変換に1命中1回だけ掛かり（`addBossGauge(e, chillAmt × bossGaugeMult)`）、damage/chillAmount/procCoefficient や通常敵/エリート・炎には掛からず二重加算もしない（ボス氷砕の cooldown/threshold/vulnerability 値は M7-B から不変）。
 - **`winter_halo`（冬冠結界）の氷冠吸収は状態異常ではない**: 被弾を吸収し近距離で冷気反撃する防御挙動であり、`StatusEffectManager` の索引・上限とは無関係（冷気/凍結の付与経路には影響しない）。反撃の冷気付与のみ既存経路を通る。
 - **表示への自動反映**: 上記はすべて既存経路を通るため、M7-B.1 の `StatusVisualManager`（冷気段階/氷殻/SHATTER）/`BossFrostbreakDisplay`（ゲージ/FROST BREAK）/`StatusDebugPanel`（F10・freeze 内訳/カウンタ）へ**自動反映**される。スキルクラスから状態演出・独自タイマーを持たない（`tests/frost-policy-audit-wave3.mjs`・`tests/frost-determinism-wave3.mjs` で確認）。

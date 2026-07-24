@@ -1705,7 +1705,7 @@
       "freeze": {
         "baseChance": 0.12
       },
-      "bossGaugeMult": 1.8
+      "bossGaugeMult": 2.2
     }
   ]
 }

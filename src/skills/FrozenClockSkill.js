@@ -55,9 +55,10 @@ export class FrozenClockSkill extends SkillBase {
       if (hits >= cap) { if (this.scene._m) this.scene._m.suppressed++; break; }
       hits++; w.hitSet.add(e);
       // 直接 frozen を強制せず、冷気付与→FreezeSystem に委譲（baseFreezeChance:0＝guaranteed threshold のみ）。
+      // ボスへは Lv別 bossGaugeMult ぶん氷砕ゲージを増やす（冷気/damage/proc には掛からない・dealDamage 側でボス分岐のみ適用）。
       this.scene.combat.dealDamage(e, s.damage, this.id, {
         element: 'ice', chillAmount: s.chillAmount, baseFreezeChance: 0, procCoefficient: this.def?.procCoefficient ?? 0.65,
-        hitGroupId: hg, quiet: true, color: 0xbde8ff,
+        hitGroupId: hg, quiet: true, color: 0xbde8ff, bossGaugeMult: s.bossGaugeMult || 1,
       });
       this.scene.skills.recordExtra(this.id, 'enemiesHit', 1, 'add');
     }

@@ -909,13 +909,13 @@ M7-A/M7-B の氷進化8種に加え、新進化5種を追記して **氷進化�
   "castMode": "periodic", "lv80ProjectileTarget": false,
   "echoPolicy": "forbidden", "clonePolicy": "forbidden",
   "safetyCaps": { "maxWaves": 8, "maxHitsPerFrame": 80, "maxShattersPerFrame": 3 },
-  "bossGaugeMult": 1.8,               // ★設計上の予約値。氷砕ゲージ加算は標準 chill 経路が担い二重適用しない
+  "bossGaugeMult": 2.2,               // ボス氷砕ゲージ量のみへ1回だけ適用（zero_hour_world=2.2＞frozen_clock最大1.8・damage/chill/proc には掛からない）
   "displayOrder": 120 }
 ```
 - 5種: `rime_execution_wheel`(rime_boomerang＋frost_amplification[P]) / `eternal_frost_chain`(frost_chain＋rapid_freezing[P]) /
   `crystal_world_tree`(crystal_bloom＋frozen_expansion[P]) / `everlasting_white_mist`(snowblind_mist＋lingering_cold[P]) /
   `zero_hour_world`(frozen_clock＋**ice_prison(補助 active)** Lv4)。いずれも基礎Lv8＋補助Lv4。
-- **`bossGaugeMult`（`frozen_clock`/`zero_hour_world`）は設計上の予約フィールド**で、ボス氷砕ゲージ加算は標準 chill 経路が担うため**二重適用しない**（ボス氷砕の cooldown/threshold/vulnerability 値は不変）。
+- **`bossGaugeMult`（`frozen_clock`/`zero_hour_world`/`everlasting_white_mist`）はボス氷砕ゲージ量のみへ適用**するフィールドで、`StatusEffectManager.applyIceHit` のボス分岐で chill→ゲージ変換に1命中1回だけ掛かる（`addBossGauge(e, chillAmt × bossGaugeMult)`）。damage/chillAmount/procCoefficient や通常敵/エリート・炎には掛からず二重加算もしない。`frozen_clock` は Lv別（1.2→1.8 で単調増加）、`zero_hour_world`=2.2、`everlasting_white_mist`=1.3、既定は 1（ボス氷砕の cooldown/threshold/vulnerability 値は不変）。
 - 検証（`frost-evolutions-wave3.mjs`・`validate-data.mjs`）: `canEvolve`（補助 active/passive 解決・基礎Lv8＋補助Lv4で可能・未達で不可）・既存氷進化8種の非回帰・`safetyCaps` が正整数。
 
 ### balance.skillCaps（M7-C の23種を加算的に追加）

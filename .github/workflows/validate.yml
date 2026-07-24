@@ -119,6 +119,8 @@ jobs:
         run: node tests/frost-runtime-save-wave3.mjs
       - name: Frost determinism wave3 tests
         run: node tests/frost-determinism-wave3.mjs
+      - name: Frost boss gauge (bossGaugeMult) tests
+        run: node tests/frost-boss-gauge-wave3.mjs
 
       # 状態異常の視認性・実動作検証（M7-B.1・表示状態/デバッグ/ボス氷砕UI/非回帰・Node.js 標準機能のみ）。
       - name: Status visual state tests

@@ -60,9 +60,11 @@ export class ZeroHourWorldSkill extends EvolvedSkillBase {
       // 最終波は高冷気対象のみ凍結判定（それ以外は baseFreezeChance:0＝guaranteed threshold のみ）。
       const highChill = this.scene.combat.chillRatio(e) >= 0.6;
       const chance = (w.isFinal && highChill) ? finalChance : 0;
+      // ボスへは frozen_clock より高い bossGaugeMult ぶん氷砕ゲージを増やす（冷気/damage/proc には掛からない）。
       this.scene.combat.dealDamage(e, this.evoDef.damage || 44, this.id, {
         element: 'ice', chillAmount: chill + (w.isFinal ? finalBonus : 0), baseFreezeChance: chance,
         procCoefficient: this.evoDef.procCoefficient ?? 0.65, hitGroupId: hg, quiet: true, color: 0xe1f5fe,
+        bossGaugeMult: this.evoDef.bossGaugeMult || 1,
       });
       this.scene.skills.recordExtra(this.id, 'enemiesHit', 1, 'add');
     }

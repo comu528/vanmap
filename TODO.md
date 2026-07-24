@@ -501,7 +501,7 @@ Lv1〜8 データ駆動で、冷気/凍結/粉砕/ボス氷砕は既存 `StatusE
 ### 決定論・監査・保存・テスト
 - [x] castMode/mainCastEvent/echoPolicy/clonePolicy/lv80ProjectileTarget/procCoefficient/config を全 active/進化で宣言。主発動のみ recordCast。**Lv80発射数対象は明示フラグ（`SkillAudit.appliesLv80ProjectileCount`）で管理**し、氷の対象は計5種（frost_shard/glacial_lance/icicle_volley/rime_boomerang/polar_star）・新進化は対象外。
 - [x] 全新スキルは index ベース決定論（Math.random/Date.now/performance.now/draft RNG 不使用）。扇角/連鎖順/bloom地点/霧中心/星角/wave/屈折順/comet落下（黄金角 2.399963…）/barrage順まで決定論。同点は entity `_seq` → x → y で安定決定。
-- [x] 冷気/凍結/粉砕/ボス氷砕は既存経路で M7-B.1 表示（StatusVisualManager/BossFrostbreakDisplay/StatusDebugPanel/F10）へ自動反映。ボスは通常 frozen にせず chill→氷砕ゲージへ自動変換し、`frozen_clock`/`zero_hour_world` の `bossGaugeMult` は設計上の予約値で氷砕ゲージへ二重適用しない（ボス氷砕の cooldown/threshold/vulnerability は不変）。
+- [x] 冷気/凍結/粉砕/ボス氷砕は既存経路で M7-B.1 表示（StatusVisualManager/BossFrostbreakDisplay/StatusDebugPanel/F10）へ自動反映。ボスは通常 frozen にせず chill→氷砕ゲージへ自動変換し、`frozen_clock`/`zero_hour_world` の `bossGaugeMult` はボス氷砕ゲージ量のみへ1命中1回だけ適用する（`applyIceHit` のボス分岐で chill→ゲージ変換に掛かり、damage/chillAmount/proc や通常敵/エリート・炎には掛からず二重加算しない。ボス氷砕の cooldown/threshold/vulnerability は不変）。
 - [x] CD/設置/遅延/防御/barrage の runtimeState を `skillRuntime` へ保存し再開時の無料再発動・二重生成・進化前後同時稼働を防止。飛行中 projectile/Graphics/Text/Tween/entity参照/particle/overlay/F10選択は保存しない。
 - [x] 品質別 skillCaps 23種を `data/balance.json` へ追加（装飾上限と damage event 上限を区別・`winter_halo` の防御耐久は visual cap で減らさない）。CombatTelemetry へスキル固有 extra（recordExtra）を追加（共通 chill/freeze/shatter/frostbreak は二重カウントしない・外部送信なし）。
 - [x] `?debug=1` の **F9** に新 active10・新進化5 を追加（付与/Lv切替/進化条件達成/即時進化・debugRun として通常 profile 統計/Job XP/残り火/魂炎へ影響させない）。
