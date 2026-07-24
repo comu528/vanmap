@@ -55,10 +55,10 @@ section('1. 新進化5種: 基礎・補助条件・置換・element ice・Lv80�
   }
 }
 
-section('2. カタログ: 氷術師の進化は合計8種・不整合0・進化は枠を追加消費しない');
+section('2. カタログ: 氷術師の進化は合計13種・不整合0・進化は枠を追加消費しない');
 {
   const cat = buildCatalog({ skills, passives, evolutions, jobs, jobId: 'frost_mage', registeredIds: registeredSkillIds(), runtimeStateIds: skillsWithRuntimeState() });
-  ok(cat.summary.evolutionCount === 8, `氷術師 進化8種 (${cat.summary.evolutionCount})`);
+  ok(cat.summary.evolutionCount === 13, `氷術師 進化13種 (${cat.summary.evolutionCount})`);
   ok(cat.issues.length === 0, `不整合0 (${JSON.stringify(cat.issues)})`);
   const recipes = evolutionRecipes(cat);
   for (const id of Object.keys(NEW)) {

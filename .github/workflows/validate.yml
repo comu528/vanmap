@@ -108,6 +108,18 @@ jobs:
       - name: Passive pool separation audit
         run: node tests/passive-pool-audit.mjs
 
+      # 氷術師 第3波（M7-C・active10種・進化5種・ポリシー監査・runtime保存・決定論・Node.js 標準機能のみ）。
+      - name: Frost skills wave3 tests
+        run: node tests/frost-skills-wave3.mjs
+      - name: Frost evolutions wave3 tests
+        run: node tests/frost-evolutions-wave3.mjs
+      - name: Frost policy audit wave3 tests
+        run: node tests/frost-policy-audit-wave3.mjs
+      - name: Frost runtime save wave3 tests
+        run: node tests/frost-runtime-save-wave3.mjs
+      - name: Frost determinism wave3 tests
+        run: node tests/frost-determinism-wave3.mjs
+
       # 状態異常の視認性・実動作検証（M7-B.1・表示状態/デバッグ/ボス氷砕UI/非回帰・Node.js 標準機能のみ）。
       - name: Status visual state tests
         run: node tests/status-visual-state.mjs

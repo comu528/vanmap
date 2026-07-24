@@ -752,6 +752,144 @@
       "medium": 60,
       "high": 60,
       "ultra": 60
+    },
+    "maxRimeBoomerangs": {
+      "low": 6,
+      "medium": 10,
+      "high": 16,
+      "ultra": 24
+    },
+    "maxRimeBoomerangHitsPerFrame": {
+      "low": 16,
+      "medium": 30,
+      "high": 48,
+      "ultra": 72
+    },
+    "maxFrostChainSegmentsPerFrame": {
+      "low": 16,
+      "medium": 30,
+      "high": 48,
+      "ultra": 72
+    },
+    "maxCrystalBlooms": {
+      "low": 4,
+      "medium": 6,
+      "high": 10,
+      "ultra": 16
+    },
+    "maxCrystalBloomPulsesPerFrame": {
+      "low": 8,
+      "medium": 16,
+      "high": 28,
+      "ultra": 44
+    },
+    "maxSnowblindMistParticles": {
+      "low": 10,
+      "medium": 18,
+      "high": 28,
+      "ultra": 44
+    },
+    "maxSnowblindMistTicksPerFrame": {
+      "low": 6,
+      "medium": 10,
+      "high": 16,
+      "ultra": 26
+    },
+    "maxPolarStars": {
+      "low": 2,
+      "medium": 3,
+      "high": 4,
+      "ultra": 6
+    },
+    "maxPolarStarShards": {
+      "low": 6,
+      "medium": 12,
+      "high": 20,
+      "ultra": 32
+    },
+    "maxIcebreakerEffects": {
+      "low": 2,
+      "medium": 4,
+      "high": 6,
+      "ultra": 10
+    },
+    "maxIcebreakerHitsPerFrame": {
+      "low": 20,
+      "medium": 40,
+      "high": 60,
+      "ultra": 90
+    },
+    "maxFrozenClockWaves": {
+      "low": 3,
+      "medium": 4,
+      "high": 6,
+      "ultra": 8
+    },
+    "maxFrozenClockHitsPerFrame": {
+      "low": 24,
+      "medium": 44,
+      "high": 72,
+      "ultra": 110
+    },
+    "maxRefractionProjectiles": {
+      "low": 12,
+      "medium": 24,
+      "high": 40,
+      "ultra": 64
+    },
+    "maxWinterHaloVisualShards": {
+      "low": 4,
+      "medium": 6,
+      "high": 8,
+      "ultra": 12
+    },
+    "maxWinterHaloInterceptsPerFrame": {
+      "low": 2,
+      "medium": 4,
+      "high": 8,
+      "ultra": 14
+    },
+    "maxCometSleetProjectiles": {
+      "low": 16,
+      "medium": 30,
+      "high": 48,
+      "ultra": 72
+    },
+    "maxCometImpactsPerFrame": {
+      "low": 6,
+      "medium": 12,
+      "high": 20,
+      "ultra": 32
+    },
+    "maxRimeExecutionWheelHitsPerFrame": {
+      "low": 24,
+      "medium": 44,
+      "high": 72,
+      "ultra": 110
+    },
+    "maxEternalFrostChainSegmentsPerFrame": {
+      "low": 24,
+      "medium": 44,
+      "high": 72,
+      "ultra": 110
+    },
+    "maxCrystalWorldTrees": {
+      "low": 1,
+      "medium": 2,
+      "high": 2,
+      "ultra": 3
+    },
+    "maxEverlastingMistTicksPerFrame": {
+      "low": 8,
+      "medium": 14,
+      "high": 22,
+      "ultra": 34
+    },
+    "maxZeroHourWorldWaves": {
+      "low": 4,
+      "medium": 6,
+      "high": 8,
+      "ultra": 12
     }
   },
   "speedModes": [

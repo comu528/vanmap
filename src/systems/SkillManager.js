@@ -83,6 +83,23 @@ import { AbsoluteZeroRaySkill } from '../skills/AbsoluteZeroRaySkill.js';
 import { WhiteoutCataclysmSkill } from '../skills/WhiteoutCataclysmSkill.js';
 import { FrostQueenCourtSkill } from '../skills/FrostQueenCourtSkill.js';
 import { WorldEndAvalancheSkill } from '../skills/WorldEndAvalancheSkill.js';
+// M7-C: 氷術師 active10種
+import { RimeBoomerangSkill } from '../skills/RimeBoomerangSkill.js';
+import { FrostChainSkill } from '../skills/FrostChainSkill.js';
+import { CrystalBloomSkill } from '../skills/CrystalBloomSkill.js';
+import { SnowblindMistSkill } from '../skills/SnowblindMistSkill.js';
+import { PolarStarSkill } from '../skills/PolarStarSkill.js';
+import { IcebreakerWaveSkill } from '../skills/IcebreakerWaveSkill.js';
+import { FrozenClockSkill } from '../skills/FrozenClockSkill.js';
+import { CrystalRefractionSkill } from '../skills/CrystalRefractionSkill.js';
+import { WinterHaloSkill } from '../skills/WinterHaloSkill.js';
+import { CometSleetSkill } from '../skills/CometSleetSkill.js';
+// M7-C: 氷術師 進化5種
+import { RimeExecutionWheelSkill } from '../skills/RimeExecutionWheelSkill.js';
+import { EternalFrostChainSkill } from '../skills/EternalFrostChainSkill.js';
+import { CrystalWorldTreeSkill } from '../skills/CrystalWorldTreeSkill.js';
+import { EverlastingWhiteMistSkill } from '../skills/EverlastingWhiteMistSkill.js';
+import { ZeroHourWorldSkill } from '../skills/ZeroHourWorldSkill.js';
 
 const REGISTRY = {
   fireball: FireballSkill,
@@ -167,6 +184,23 @@ const REGISTRY = {
   whiteout_cataclysm: WhiteoutCataclysmSkill,
   frost_queen_court: FrostQueenCourtSkill,
   world_end_avalanche: WorldEndAvalancheSkill,
+  // M7-C: 氷術師 active10種
+  rime_boomerang: RimeBoomerangSkill,
+  frost_chain: FrostChainSkill,
+  crystal_bloom: CrystalBloomSkill,
+  snowblind_mist: SnowblindMistSkill,
+  polar_star: PolarStarSkill,
+  icebreaker_wave: IcebreakerWaveSkill,
+  frozen_clock: FrozenClockSkill,
+  crystal_refraction: CrystalRefractionSkill,
+  winter_halo: WinterHaloSkill,
+  comet_sleet: CometSleetSkill,
+  // M7-C: 氷術師 進化5種
+  rime_execution_wheel: RimeExecutionWheelSkill,
+  eternal_frost_chain: EternalFrostChainSkill,
+  crystal_world_tree: CrystalWorldTreeSkill,
+  everlasting_white_mist: EverlastingWhiteMistSkill,
+  zero_hour_world: ZeroHourWorldSkill,
 };
 
 // 実装クラスが登録されている全スキルID（active＋進化）。SkillCatalog / 監査テストが「実装の有無」を判定するのに使う。

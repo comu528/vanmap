@@ -122,7 +122,17 @@
         "ice_prison",
         "avalanche",
         "mirror_ice",
-        "glacier_drop"
+        "glacier_drop",
+        "rime_boomerang",
+        "frost_chain",
+        "crystal_bloom",
+        "snowblind_mist",
+        "polar_star",
+        "icebreaker_wave",
+        "frozen_clock",
+        "crystal_refraction",
+        "winter_halo",
+        "comet_sleet"
       ],
       "passiveSkillPool": [
         "frost_amplification",
@@ -138,7 +148,12 @@
         "absolute_zero_ray",
         "whiteout_cataclysm",
         "frost_queen_court",
-        "world_end_avalanche"
+        "world_end_avalanche",
+        "rime_execution_wheel",
+        "eternal_frost_chain",
+        "crystal_world_tree",
+        "everlasting_white_mist",
+        "zero_hour_world"
       ],
       "baseActiveSlots": 4,
       "basePassiveSlots": 4,

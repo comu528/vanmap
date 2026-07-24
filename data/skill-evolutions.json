@@ -1431,6 +1431,281 @@
         "radius": 34,
         "proc": 0.15
       }
+    },
+    {
+      "id": "rime_execution_wheel",
+      "displayName": "冥氷処刑輪",
+      "description": "rime_boomerang の進化。複数の巨大氷輪を扇状に射出し、遠方で短時間停止した後プレイヤーへ収束帰還する。往路・停止・復路でヒット間隔を分離し、復路は高威力。凍結中の敵を復路で1回だけ強化粉砕する。",
+      "baseSkillId": "rime_boomerang",
+      "requiredSkills": [
+        {
+          "skill": "frost_amplification",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "rime_execution_wheel",
+      "visualTier": "evolved",
+      "icon": "icon_rime_execution_wheel",
+      "element": "ice",
+      "procCoefficient": 0.5,
+      "safetyCaps": {
+        "maxWheels": 6,
+        "maxHitsPerFrame": 60,
+        "maxShattersPerFrame": 3
+      },
+      "displayOrder": 116,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "fire",
+      "echoDescription": "巨大氷輪の射出サイクルを追加",
+      "cloneDescription": "巨大氷輪の射出を複製",
+      "echoPolicy": "standard",
+      "clonePolicy": "standard",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "cooldown": 1300,
+      "damage": {
+        "outbound": 26,
+        "returnMult": 1.5,
+        "frozenBonus": 0.4
+      },
+      "chill": {
+        "amount": 13
+      },
+      "wheel": {
+        "count": 4,
+        "range": 210,
+        "holdMs": 420,
+        "speed": 260,
+        "spreadAngle": 0.5
+      },
+      "shatter": {
+        "multiplier": 1.6
+      },
+      "outboundProc": 0.42,
+      "returnProc": 0.58
+    },
+    {
+      "id": "eternal_frost_chain",
+      "displayName": "永劫氷鎖",
+      "description": "frost_chain の進化。最初の連鎖が複数方向へ分岐し、各分岐は同一敵へ再命中しない。高冷気の敵を優先し、一定hopごとに小範囲の氷鎖burstを起こす。frozen 対象への最初の命中のみ粉砕する。",
+      "baseSkillId": "frost_chain",
+      "requiredSkills": [
+        {
+          "skill": "rapid_freezing",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "eternal_frost_chain",
+      "visualTier": "evolved",
+      "icon": "icon_eternal_frost_chain",
+      "element": "ice",
+      "procCoefficient": 0.4,
+      "safetyCaps": {
+        "maxBranches": 4,
+        "maxHops": 40,
+        "maxBurstsPerFrame": 6,
+        "maxShattersPerFrame": 3
+      },
+      "displayOrder": 117,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "fire",
+      "echoDescription": "分岐数を抑えた連鎖を追加",
+      "cloneDescription": "連鎖攻撃のみ複製（分岐を増やさない）",
+      "echoPolicy": "custom",
+      "clonePolicy": "custom",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "cooldown": 2000,
+      "damage": {
+        "base": 26,
+        "falloff": 0.9,
+        "frozenBonus": 0.4
+      },
+      "chill": {
+        "amount": 14,
+        "burst": 10
+      },
+      "chain": {
+        "branches": 3,
+        "count": 8,
+        "range": 150
+      },
+      "burst": {
+        "everyHops": 3,
+        "radius": 60,
+        "damage": 16
+      },
+      "shatter": {
+        "multiplier": 1.5
+      }
+    },
+    {
+      "id": "crystal_world_tree",
+      "displayName": "世界氷晶樹",
+      "description": "crystal_bloom の進化。敵密集地点に巨大な氷晶樹を成長させ、成長中に複数の枝パルス、最終開花で広範囲ダメージと冷気を与えて凍結中の敵を強化粉砕する。開花後に短命の小氷晶を残す（低proc・粉砕なし）。同時樹数は厳しい上限。",
+      "baseSkillId": "crystal_bloom",
+      "requiredSkills": [
+        {
+          "skill": "frozen_expansion",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "crystal_world_tree",
+      "visualTier": "evolved",
+      "icon": "icon_crystal_world_tree",
+      "element": "ice",
+      "procCoefficient": 0.8,
+      "safetyCaps": {
+        "maxTrees": 2,
+        "maxPulsesPerFrame": 6,
+        "maxResidues": 8,
+        "maxShattersPerFrame": 3
+      },
+      "displayOrder": 118,
+      "lv80ProjectileTarget": false,
+      "castMode": "periodic",
+      "mainCastEvent": "fire",
+      "echoDescription": "即時の小型開花を追加",
+      "cloneDescription": "枝パルスのみ複製（樹を常設で増やさない）",
+      "echoPolicy": "custom",
+      "clonePolicy": "custom",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "cooldown": 5200,
+      "pulseDamage": 6,
+      "bloomDamage": 60,
+      "growTime": 1600,
+      "branchPulseInterval": 320,
+      "radius": 70,
+      "bloomRadius": 130,
+      "chill": {
+        "pulse": 6,
+        "bloom": 24
+      },
+      "pulseProc": 0.16,
+      "residue": {
+        "count": 4,
+        "durationMs": 1200,
+        "damage": 4,
+        "radius": 30,
+        "proc": 0.12
+      },
+      "shatter": {
+        "multiplier": 1.7
+      }
+    },
+    {
+      "id": "everlasting_white_mist",
+      "displayName": "永久白霧",
+      "description": "snowblind_mist の進化。より広い白霧が長時間追従し、通常tickに加えて一定間隔で大きな冷気の whiteout パルスを放つ。直接凍結はせず FreezeSystem を使う。frozen 対象へダメージボーナスを与えるが粉砕しない。ボスは氷砕ゲージへ接続。",
+      "baseSkillId": "snowblind_mist",
+      "requiredSkills": [
+        {
+          "skill": "lingering_cold",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "everlasting_white_mist",
+      "visualTier": "evolved",
+      "icon": "icon_everlasting_white_mist",
+      "element": "ice",
+      "procCoefficient": 0.14,
+      "safetyCaps": {
+        "maxWhiteoutPulsesPerFrame": 4,
+        "maxTicksPerFrame": 6,
+        "maxMistParticles": 44
+      },
+      "displayOrder": 119,
+      "lv80ProjectileTarget": false,
+      "castMode": "continuous",
+      "mainCastEvent": "fire",
+      "echoDescription": "短時間の小霧/whiteoutパルスを追加",
+      "cloneDescription": "whiteoutパルスのみ複製（主霧を重複生成しない）",
+      "echoPolicy": "custom",
+      "clonePolicy": "custom",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "cooldown": 4600,
+      "tickDamage": 9,
+      "interval": 300,
+      "activeDuration": 5200,
+      "radius": 130,
+      "followSpeed": 110,
+      "chill": {
+        "tick": 10,
+        "whiteout": 26
+      },
+      "whiteoutIntervalMs": 1400,
+      "chilledDamageBonus": 0.4,
+      "bossGaugeMult": 1.3
+    },
+    {
+      "id": "zero_hour_world",
+      "displayName": "零刻世界",
+      "description": "frozen_clock の進化。プレイヤー中心から複数の巨大時計波を放ち、各波でダメージと冷気を与える。最終波のみ高冷気の敵へ追加の凍結判定を行う（既存 guaranteed threshold と FreezeSystem を使用）。ボスは frozen にせず大きめの氷砕ゲージへ接続し、ボスAIは直接停止しない。",
+      "baseSkillId": "frozen_clock",
+      "requiredSkills": [
+        {
+          "skill": "ice_prison",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "zero_hour_world",
+      "visualTier": "evolved",
+      "icon": "icon_zero_hour_world",
+      "element": "ice",
+      "procCoefficient": 0.65,
+      "safetyCaps": {
+        "maxWaves": 8,
+        "maxHitsPerFrame": 80,
+        "maxShattersPerFrame": 3
+      },
+      "displayOrder": 120,
+      "lv80ProjectileTarget": false,
+      "castMode": "periodic",
+      "mainCastEvent": "fire",
+      "echoDescription": "全画面制圧のため残響しない",
+      "cloneDescription": "全画面制圧のため複製しない",
+      "echoPolicy": "forbidden",
+      "clonePolicy": "forbidden",
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "cooldown": 12000,
+      "damage": 44,
+      "waveCount": 6,
+      "waveInterval": 280,
+      "waveSpeed": 340,
+      "maxRadius": 340,
+      "chill": {
+        "amount": 40,
+        "finalWaveBonus": 20
+      },
+      "freeze": {
+        "baseChance": 0.12
+      },
+      "bossGaugeMult": 1.8
     }
   ]
 }

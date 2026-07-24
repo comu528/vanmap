@@ -2281,19 +2281,22 @@ export class BattleScene extends Phaser.Scene {
     this.markDebugRun();
     if (this._frostdbg) { this._frostdbg.destroy(true); this._frostdbg = null; return; }
     this._fd = this._fd || { skill: 'frost_shard', passive: 'frost_amplification', lv: 8, chill: 100, jobLv: 100 };
-    // M7-B: 氷術師 active15種・進化8種すべてを F9 で検証できる（新10active・新5進化を含む）。
+    // M7-C: 氷術師 active25種・進化13種すべてを F9 で検証できる（新10active・新5進化を含む）。
     const ACT = ['frost_shard', 'frost_nova', 'glacial_lance', 'permafrost_field', 'ice_wall',
-      'icicle_volley', 'frost_orbit', 'freezing_ray', 'hailstorm', 'cryo_mine', 'frost_spirit', 'ice_prison', 'avalanche', 'mirror_ice', 'glacier_drop'];
+      'icicle_volley', 'frost_orbit', 'freezing_ray', 'hailstorm', 'cryo_mine', 'frost_spirit', 'ice_prison', 'avalanche', 'mirror_ice', 'glacier_drop',
+      'rime_boomerang', 'frost_chain', 'crystal_bloom', 'snowblind_mist', 'polar_star', 'icebreaker_wave', 'frozen_clock', 'crystal_refraction', 'winter_halo', 'comet_sleet'];
     const PAS = ['frost_amplification', 'rapid_freezing', 'frozen_expansion', 'lingering_cold'];
     const EVO = {
       frost_shard: ['diamond_blizzard', 'rapid_freezing'], frost_nova: ['absolute_zero_domain', 'frozen_expansion'], glacial_lance: ['heaven_piercing_glacier', 'frost_amplification'],
       icicle_volley: ['crystal_tempest', 'frost_amplification'], freezing_ray: ['absolute_zero_ray', 'rapid_freezing'], hailstorm: ['whiteout_cataclysm', 'lingering_cold'],
       frost_spirit: ['frost_queen_court', 'frozen_expansion'], avalanche: ['world_end_avalanche', 'ice_wall'],
+      rime_boomerang: ['rime_execution_wheel', 'frost_amplification'], frost_chain: ['eternal_frost_chain', 'rapid_freezing'], crystal_bloom: ['crystal_world_tree', 'frozen_expansion'],
+      snowblind_mist: ['everlasting_white_mist', 'lingering_cold'], frozen_clock: ['zero_hour_world', 'ice_prison'],
     };
     const cx = GAME_WIDTH / 2;
     const ui = this.add.container(0, 0).setScrollFactor(0).setDepth(4000);
     ui.add(this.add.rectangle(cx, GAME_HEIGHT / 2, 512, 356, 0x08131a, 0.97).setScrollFactor(0).setStrokeStyle(1, 0x4fc3f7));
-    ui.add(this.add.text(cx, 4, 'DEBUG（M7-A/B 状態異常・氷術師 active15/進化8・F9）', { fontSize: '11px', color: '#4fc3f7' }).setScrollFactor(0).setOrigin(0.5, 0));
+    ui.add(this.add.text(cx, 4, 'DEBUG（M7-A/B/C 状態異常・氷術師 active25/進化13・F9）', { fontSize: '11px', color: '#4fc3f7' }).setScrollFactor(0).setOrigin(0.5, 0));
     const redraw = () => { this.toggleFrostDebug(); this.toggleFrostDebug(); };
     const applyFrostJob = (lv) => { this.jobMods.setResolved(JobModifierManager.resolve(DataManager.getJobProgression('frost_mage'), lv)); this._applyFreezeThresholdMods(); this._refreshStatusPassives(); };
     const acts = [

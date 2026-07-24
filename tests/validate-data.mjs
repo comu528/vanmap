@@ -568,7 +568,7 @@ if (jobProgData) {
 {
   const CAST_MODES = new Set(['periodic', 'cooldown', 'continuous', 'reactive', 'defensive', 'movement', 'resource']);
   const ATTACK_MODES = new Set(['periodic', 'cooldown', 'continuous', 'resource']);
-  const KNOWN_TAGS = new Set(['active', 'fire', 'projectile', 'area', 'explosion', 'dot', 'damageOverTime', 'burn', 'summon', 'beam', 'laser', 'melee', 'slash', 'defensive', 'reactive', 'barrier', 'shield', 'homing', 'chain', 'pierce', 'piercing', 'orbit', 'mark', 'combo', 'ground', 'fissure', 'movingArea', 'formation', 'zone', 'resonance', 'statusScaling', 'pulse', 'overheat', 'escalating', 'burst', 'highRisk', 'deathTriggered', 'delayed', 'trap', 'mine', 'ricochet', 'bouncing', 'clone', 'copy', 'sacrifice', 'projectileAbsorb', 'charge', 'screenEdge', 'wave', 'tether', 'control', 'pull', 'directional', 'spread', 'dash', 'movement', 'retaliation', 'revival', 'witch', 'ice', 'mage', 'slow']);
+  const KNOWN_TAGS = new Set(['active', 'fire', 'projectile', 'area', 'explosion', 'dot', 'damageOverTime', 'burn', 'summon', 'beam', 'laser', 'melee', 'slash', 'defensive', 'reactive', 'barrier', 'shield', 'homing', 'chain', 'pierce', 'piercing', 'orbit', 'mark', 'combo', 'ground', 'fissure', 'movingArea', 'formation', 'zone', 'resonance', 'statusScaling', 'pulse', 'overheat', 'escalating', 'burst', 'highRisk', 'deathTriggered', 'delayed', 'trap', 'mine', 'ricochet', 'bouncing', 'clone', 'copy', 'sacrifice', 'projectileAbsorb', 'charge', 'screenEdge', 'wave', 'tether', 'control', 'pull', 'directional', 'spread', 'dash', 'movement', 'retaliation', 'revival', 'witch', 'ice', 'mage', 'slow', 'boomerang', 'placement', 'barrage']);
   const skillsArr = (skillsData && skillsData.skills) || [];
   const evosArr = (evoData && evoData.evolutions) || [];
   const actives = skillsArr.filter((s) => (s.category || 'active') === 'active');
@@ -885,11 +885,11 @@ if (jobProgData) {
   const fm = (jobsData?.jobs || []).find((j) => j.id === 'frost_mage');
   if (fm) {
     const frostActives = skillsArr.filter((s) => (s.jobs || []).includes('frost_mage'));
-    if (frostActives.length !== 15) err(`M7-B: 氷術師 active が15種でない (${frostActives.length})`);
-    if ((fm.activeSkillPool || []).length !== 15) err(`M7-B: frost_mage activeSkillPool が15種でない (${fm.activeSkillPool?.length})`);
+    if (frostActives.length !== 25) err(`M7-C: 氷術師 active が25種でない (${frostActives.length})`);
+    if ((fm.activeSkillPool || []).length !== 25) err(`M7-C: frost_mage activeSkillPool が25種でない (${fm.activeSkillPool?.length})`);
     const frostEvos = evosArr.filter((e) => new Set(frostActives.map((s) => s.id)).has(e.baseSkillId));
-    if (frostEvos.length !== 8) err(`M7-B: 氷術師 進化が8種でない (${frostEvos.length})`);
-    if ((fm.evolutionPool || []).length !== 8) err(`M7-B: frost_mage evolutionPool が8種でない (${fm.evolutionPool?.length})`);
+    if (frostEvos.length !== 13) err(`M7-C: 氷術師 進化が13種でない (${frostEvos.length})`);
+    if ((fm.evolutionPool || []).length !== 13) err(`M7-C: frost_mage evolutionPool が13種でない (${fm.evolutionPool?.length})`);
   }
   // 新 skillCaps（品質順・正）。
   const B_CAPS = ['maxIcicleVolleyProjectiles', 'maxIcicleVolleyBurstsPerFrame', 'maxFrostOrbitCrystals', 'maxFrostOrbitHitsPerFrame', 'maxFreezingRayTargets', 'maxFreezingRayTicksPerFrame', 'maxHailstorms', 'maxHailImpactsPerFrame', 'maxCryoMines', 'maxCryoMineExplosionsPerFrame', 'maxFrostSpirits', 'maxFrostSpiritProjectiles', 'maxIcePrisons', 'maxIcePrisonTargetsPerFrame', 'maxAvalancheWaves', 'maxAvalancheHitsPerFrame', 'maxMirrorIceBarriers', 'maxMirrorIceInterceptsPerFrame', 'maxMirrorIceCounterProjectiles', 'maxGlacierDrops', 'maxGlacierImpactsPerFrame', 'maxCrystalTempestProjectiles', 'maxAbsoluteZeroRayBranches', 'maxWhiteoutCataclysms', 'maxWhiteoutHailImpactsPerFrame', 'maxFrostQueenSpirits', 'maxFrostQueenProjectiles', 'maxWorldEndAvalancheWaves', 'maxWorldEndAvalancheShattersPerFrame'];
@@ -902,6 +902,89 @@ if (jobProgData) {
   // 非回帰: 火の魔女 active30・進化18。
   const fw2 = (jobsData?.jobs || []).find((j) => j.id === 'flame_witch');
   if (fw2 && (fw2.activeSkillPool || []).length !== 30) err(`M7-B: flame_witch activeSkillPool が30種でない (${fw2.activeSkillPool?.length})`);
+}
+
+// --- M7-C: 氷術師 新 active10種・新進化5種・プール（25/4/13）・skillCaps・Lv80対象・非回帰の検証 ---
+{
+  const skillsArr = (skillsData && skillsData.skills) || [];
+  const evosArr = (evoData && evoData.evolutions) || [];
+  const passIds3 = new Set((passivesData.passives || []).map((p) => p.id));
+  const allIds3 = new Set(skillsArr.map((s) => s.id));
+  // 新 active10種（rarity/castMode/lv80）。
+  const C_A = {
+    rime_boomerang: { rarity: 'common', castMode: 'cooldown', lv80: true },
+    frost_chain: { rarity: 'uncommon', castMode: 'cooldown', lv80: false },
+    crystal_bloom: { rarity: 'common', castMode: 'periodic', lv80: false },
+    snowblind_mist: { rarity: 'uncommon', castMode: 'continuous', lv80: false },
+    polar_star: { rarity: 'rare', castMode: 'cooldown', lv80: true },
+    icebreaker_wave: { rarity: 'common', castMode: 'cooldown', lv80: false },
+    frozen_clock: { rarity: 'legendary', castMode: 'periodic', lv80: false },
+    crystal_refraction: { rarity: 'rare', castMode: 'cooldown', lv80: false },
+    winter_halo: { rarity: 'uncommon', castMode: 'defensive', lv80: false },
+    comet_sleet: { rarity: 'rare', castMode: 'periodic', lv80: false },
+  };
+  for (const [id, meta] of Object.entries(C_A)) {
+    const s = skillsArr.find((x) => x.id === id);
+    if (!s) { err(`M7-C: 氷 active ${id} が無い`); continue; }
+    if (!(s.jobs || []).includes('frost_mage') || (s.jobs || []).length !== 1) err(`M7-C: ${id} が frost_mage 専用でない`);
+    if (s.isCommon !== false) err(`M7-C: ${id} の isCommon が false でない`);
+    if (s.element !== 'ice') err(`M7-C: ${id} の element が ice でない`);
+    if (s.rarity !== meta.rarity) err(`M7-C: ${id} の rarity が ${meta.rarity} でない (${s.rarity})`);
+    if (s.castMode !== meta.castMode) err(`M7-C: ${id} の castMode が ${meta.castMode} でない (${s.castMode})`);
+    if (!s.mainCastEvent) err(`M7-C: ${id} に mainCastEvent が無い`);
+    if (!['standard', 'custom', 'forbidden'].includes(s.echoPolicy)) err(`M7-C: ${id} の echoPolicy 無効`);
+    if (!['standard', 'custom', 'forbidden'].includes(s.clonePolicy)) err(`M7-C: ${id} の clonePolicy 無効`);
+    if (s.lv80ProjectileTarget !== meta.lv80) err(`M7-C: ${id} の lv80ProjectileTarget が ${meta.lv80} でない`);
+    if (s.maxLevel !== 8) err(`M7-C: ${id} の maxLevel が8でない`);
+    if (!Array.isArray(s.levels) || s.levels.length !== 8 || !s.levels.every((lv, i) => lv.level === i + 1)) err(`M7-C: ${id} の levels が Lv1..8 連番でない`);
+    if (typeof s.procCoefficient !== 'number' || s.procCoefficient <= 0 || s.procCoefficient > 1.5) err(`M7-C: ${id} の procCoefficient が不正 (${s.procCoefficient})`);
+    for (const lv of s.levels || []) { if (lv.chillAmount == null) err(`M7-C: ${id} Lv${lv.level} に chillAmount が無い`); }
+    for (let i = 1; i < (s.levels || []).length; i++) if (JSON.stringify(s.levels[i]) === JSON.stringify(s.levels[i - 1])) err(`M7-C: ${id} の Lv${i + 1} が Lv${i} と同一（成長なし）`);
+    for (const lv of s.levels || []) for (const [k, v] of Object.entries(lv)) if (typeof v === 'number' && (!Number.isFinite(v) || v < 0)) err(`M7-C: ${id} Lv${lv.level} の ${k} が負/非有限 (${v})`);
+  }
+  // forbidden echo/clone は frozen_clock / winter_halo。
+  for (const id of ['frozen_clock', 'winter_halo']) { const s = skillsArr.find((x) => x.id === id); if (s && (s.echoPolicy !== 'forbidden' || s.clonePolicy !== 'forbidden')) err(`M7-C: ${id} は echo/clone forbidden であること`); }
+  // 新進化5種（base/aux/lv80 false/置換/echo・clonePolicy）。
+  const C_E = {
+    rime_execution_wheel: { base: 'rime_boomerang', aux: 'frost_amplification', echo: 'standard' },
+    eternal_frost_chain: { base: 'frost_chain', aux: 'rapid_freezing', echo: 'custom' },
+    crystal_world_tree: { base: 'crystal_bloom', aux: 'frozen_expansion', echo: 'custom' },
+    everlasting_white_mist: { base: 'snowblind_mist', aux: 'lingering_cold', echo: 'custom' },
+    zero_hour_world: { base: 'frozen_clock', aux: 'ice_prison', echo: 'forbidden' },
+  };
+  for (const [id, meta] of Object.entries(C_E)) {
+    const e = evosArr.find((x) => x.id === id);
+    if (!e) { err(`M7-C: 氷 進化 ${id} が無い`); continue; }
+    if (e.baseSkillId !== meta.base) err(`M7-C: 進化 ${id} の baseSkillId が ${meta.base} でない (${e.baseSkillId})`);
+    if (e.replacementSkillId !== id) err(`M7-C: 進化 ${id} の replacementSkillId が id でない`);
+    if (e.element !== 'ice') err(`M7-C: 進化 ${id} の element が ice でない`);
+    if (e.lv80ProjectileTarget === true) err(`M7-C: 進化 ${id} は Lv80発射数対象外であること`);
+    if (e.echoPolicy !== meta.echo) err(`M7-C: 進化 ${id} の echoPolicy が ${meta.echo} でない (${e.echoPolicy})`);
+    if (typeof e.procCoefficient !== 'number' || e.procCoefficient <= 0 || e.procCoefficient > 1.5) err(`M7-C: 進化 ${id} の procCoefficient が不正 (${e.procCoefficient})`);
+    const reqs = e.requiredSkills || [];
+    if (!(reqs.length === 1 && reqs[0].skill === meta.aux)) err(`M7-C: 進化 ${id} の補助条件が ${meta.aux} 1件でない`);
+    if (!allIds3.has(meta.aux) && !passIds3.has(meta.aux)) err(`M7-C: 進化 ${id} の補助 ${meta.aux} が実在しない`);
+    const base = skillsArr.find((s) => s.id === meta.base);
+    if (base && !(base.evolutionBranches || []).includes(id)) err(`M7-C: ${meta.base} の evolutionBranches に ${id} がない`);
+  }
+  // 新 skillCaps（品質順・正）。
+  const C_CAPS = ['maxRimeBoomerangs', 'maxRimeBoomerangHitsPerFrame', 'maxFrostChainSegmentsPerFrame', 'maxCrystalBlooms', 'maxCrystalBloomPulsesPerFrame', 'maxSnowblindMistParticles', 'maxSnowblindMistTicksPerFrame', 'maxPolarStars', 'maxPolarStarShards', 'maxIcebreakerEffects', 'maxIcebreakerHitsPerFrame', 'maxFrozenClockWaves', 'maxFrozenClockHitsPerFrame', 'maxRefractionProjectiles', 'maxWinterHaloVisualShards', 'maxWinterHaloInterceptsPerFrame', 'maxCometSleetProjectiles', 'maxCometImpactsPerFrame', 'maxRimeExecutionWheelHitsPerFrame', 'maxEternalFrostChainSegmentsPerFrame', 'maxCrystalWorldTrees', 'maxEverlastingMistTicksPerFrame', 'maxZeroHourWorldWaves'];
+  for (const n of C_CAPS) {
+    const c = balance?.skillCaps?.[n];
+    if (!c) { err(`M7-C: skillCaps.${n} が無い`); continue; }
+    if (!(c.low <= c.medium && c.medium <= c.high && c.high <= c.ultra)) err(`M7-C: skillCaps.${n} が品質順でない`);
+    for (const q of ['low', 'medium', 'high', 'ultra']) if (typeof c[q] !== 'number' || c[q] <= 0 || !Number.isFinite(c[q])) err(`M7-C: skillCaps.${n}.${q} が正の有限数でない`);
+  }
+  // frost_mage プール: active25 / passive4 / evolution13。
+  const fm3 = (jobsData?.jobs || []).find((j) => j.id === 'frost_mage');
+  if (fm3) {
+    if ((fm3.activeSkillPool || []).length !== 25) err(`M7-C: frost_mage activeSkillPool が25種でない (${fm3.activeSkillPool?.length})`);
+    if ((fm3.passiveSkillPool || []).length !== 4) err(`M7-C: frost_mage passiveSkillPool が4種でない (${fm3.passiveSkillPool?.length})`);
+    if ((fm3.evolutionPool || []).length !== 13) err(`M7-C: frost_mage evolutionPool が13種でない (${fm3.evolutionPool?.length})`);
+    // 火 pool へ氷スキルが混入しない。
+    const fw3 = (jobsData?.jobs || []).find((j) => j.id === 'flame_witch');
+    if (fw3) for (const id of Object.keys(C_A)) if ((fw3.activeSkillPool || []).includes(id)) err(`M7-C: flame_witch pool に氷スキル ${id} が混入`);
+  }
 }
 
 // --- M7-B.1: 状態異常の視認性（品質別の表示上限・状態表示設定）の検証 ---
