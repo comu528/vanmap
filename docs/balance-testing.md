@@ -183,6 +183,14 @@ M7-A で 2人目のジョブ **氷術師（frost_mage）** と汎用状態異常
   glacier_drop(glaciersDropped/pendingImpactsCompleted)。**外部送信なし**・テレメトリ失敗でゲーム/保存は失敗しない。debugRun は通常統計と分離。
 - 決定論は不変（Math.random 不使用・draft RNG cursor 不変）。検証は `frost-skills-wave2`/`frost-evolutions-wave2`/`frost-policy-audit`/`frost-runtime-save-wave2`/`frost-determinism-wave2`・`validate-data`（M7-B ブロック）で、**全34テストスイート通過**。
 
+## Milestone 7-B.1 の追記（状態異常の視認性・表示上限）
+状態異常を通常プレイ中に確認できる表示層とデバッグを追加したのに合わせ、検証観点を足した（**新スキルなし・数値/バランス不変**・`save_version` は v6 のまま）。詳細は `docs/status-visuals.md`・`docs/status-debug.md`。
+
+- **表示上限 caps は品質別・検証済み**: `balance.skillCaps` へ状態表示の毎フレーム/同時上限 **11種**（`maxStatusIcons`〈1/2/2/3〉/`maxChillVisuals`/`maxFrozenVisuals`/`maxImmunityVisuals`/`maxSlowTrails`/`maxShatterEffectsPerFrame`/`maxStatusFloatingTextsPerFrame`/`maxFrostbreakEffects`/`maxStatusDebugHistory`/`chillNearThresholdEffectCooldown`〈1500〉/`statusVisualUpdateInterval`〈60〉）を加算。`validate-data.mjs` が品質順（`low≤medium≤high≤ultra`）・正・`statusVisuals`（未知 status id/visual type/負数上限）を検証する。
+- **装飾上限に達しても状態ロジックは不変**: 低品質のドロップ優先度（frozen > ボス氷砕 > shatter > burning > immunity > chill > slow）で装飾を先に削るが、**凍結解除/免疫/状態索引 cleanup といったロジックは削らない**。表示追加による判定/ダメージ/凍結確率/状態RNG cursor/ボス氷砕値の非回帰は `status-visibility-nonregression.mjs` で確認。
+- **debug カウンタがバランス確認を助ける**: `StatusEffectManager.counters()`（chill付与/冷気総量/凍結試行/凍結成功/免疫skip/hitGroup skip/ボスゲージ付与）と F10 の freezeChance 内訳で、凍結の起こりやすさ・永久凍結防止（hitGroup 上限）を数値で観測できる。F10 は `markDebugRun()` で **debugRun 分離**し profile を変更しない（`?debug=1` 限定）。
+- 検証: `status-visual-state.mjs`／`status-debug-panel.mjs`／`frostbreak-ui-state.mjs`／`status-visibility-nonregression.mjs`・`validate-data.mjs`（M7-B.1 ブロック）で、**全39テストスイート通過**。実ブラウザの見た目・視認性・60FPS は本環境では未検証。
+
 ## 既知の制約（M6-F）
 - Node で検証したのは **カタログ整合・抽選シミュレーション・進化成立性・テレメトリ純ロジック・検証モードの profile 非変更** のみ。
 - テレメトリの**実収集値・FPS ヒストグラム・ResultScene の Balance詳細描画・F8 パネルの実挙動**は Phaser 依存のため

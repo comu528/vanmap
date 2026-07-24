@@ -107,3 +107,30 @@ M7-B で氷術師へ追加した新 active10種・進化5種も、**独自の凍
   （再帰なし・ボスは frostbreak で代替）。ボス直撃は氷砕ゲージへ加算する。
 - **`mirror_ice`（氷鏡結界）の敵弾吸収は状態異常ではない**: 既存 `bossBulletPool` の `absorbable` メタで敵弾を吸収して氷反撃弾を撃つ挙動であり、
   `StatusEffectManager` の索引・上限とは無関係（冷気/凍結の付与経路には影響しない）。
+
+## Milestone 7-B.1: 状態異常の視認性（表示層はロジックと分離）
+状態を通常プレイ中に見て確かめられるよう、**表示層（`StatusVisualManager`/`BossFrostbreakDisplay`/`StatusDebugPanel`）** を追加した。
+**表示はロジックと完全に分離**しており、状態の判定・ダメージ・凍結確率・状態RNG cursor・ボス氷砕値は**一切変更しない**（`StatusEffectManager`/`FreezeSystem` の計算は M7-A/M7-B のまま）。
+表示状態はセーブしない・`save_version` は v6 のまま。詳細は `docs/status-visuals.md`・`docs/status-debug.md`。
+
+### StatusEffectManager が発火するイベント（判定・RNG は変えない）
+表示層へ通知するため `on(fn)`/`_emit` を追加した。付与・更新・解除のロジックはそのままで、**通知フックを足すだけ**（凍結ロールは `applyIceHit` にインライン化したが
+`rng.next()` を同一に消費し、cursor と結果は不変）。emit するイベント:
+- `chillChanged`（冷気量の変化）/ `chillThresholdNear`（確定閾値の直前・>=90%）
+- `frozenStarted` / `frozenEnded`
+- `freezeImmunityStarted` / `freezeImmunityEnded`
+- `shatterTriggered`（粉砕）
+- `bossFrostGaugeChanged` / `frostbreakTriggered` / `frostbreakVulnerabilityStarted` / `frostbreakVulnerabilityEnded`
+- `burningStarted`（`registerBurning` から。炎上の索引・ダメージ・持続は不変）
+
+イベントとカウンタは**シリアライズしない**（表示/計測用のランタイム状態）。
+
+### 実動作カウンタ・freeze 内訳（デバッグ用の可視化）
+- **カウンタ**（`counters()`）: `chillApplications` / `chillAmountTotal` / `freezeAttempts` / `freezeSuccesses` / `immunitySkips` / `hitGroupSkips` / `bossGaugeApplications`。`statusIndexSize()` で索引サイズも取れる。
+- **エンティティ別 `_statusDebug`**: 直近の freeze 内訳（base×proc / 冷気寄与〈chillRatio×chanceFromChill×proc〉/ proc / 最終 freezeChance / RNG roll / 結果 / hitGroupId / 同group判定回数 / skip理由〈immunity|hitGroup上限〉）を保持し、F10 デバッグが読む。
+- いずれも**ロジックの副作用ではなく観測**であり、凍結確率や結果には影響しない。
+
+### enemy.setTint を overlay へ移動
+`Enemy` の毎フレーム冷気/凍結 `setTint` を廃し、冷気段階色・氷殻は `StatusVisualManager` の overlay 層で描く。これにより
+状態演出と被弾フラッシュ/ダッシャー予告/エリート色が `setTint` を奪い合わなくなった（`onFreezeStart`/`onFreezeEnd` はフックとして残す）。
+overlay は状態フィールドを**読むだけ**で、状態そのものは書き換えない。

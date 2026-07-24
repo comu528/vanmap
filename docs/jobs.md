@@ -129,3 +129,8 @@ XP曲線・周回報酬の計算は両ジョブ共通（`totalXpForLevel(L)=25(L
 - 進化は基礎 active を置換し active/passive 枠を消費しない。補助条件スキルは消費しない。**passive は4種のまま**（M7-B で追加なし）。
 - 主発動時のみ `recordCast`（各弾/tick/命中/雹/地雷起爆/精霊射撃/波接触/粉砕/frostbreak では記録しない）。echo/clone は1世代・再帰なし。
 - 検証: `frost-skills-wave2.mjs`／`frost-evolutions-wave2.mjs`／`frost-policy-audit.mjs`／`frost-runtime-save-wave2.mjs`／`frost-determinism-wave2.mjs`・`validate-data.mjs`（M7-B 検証ブロック）。詳細は `./docs/skill-catalog.md`・`./docs/status-effects.md`。
+
+## Milestone 7-B.1: 状態異常の視認性（氷術師の状態が見えるように）
+M7-B.1 で、氷術師の状態異常が**通常プレイ中に視認・確認できる**ようになった（冷気の段階/frozen/粉砕/ボス氷砕ゲージ/F10 状態デバッグ）。
+**新スキル/パッシブ/進化/ジョブは追加せず・Job Lv 報酬や数値は不変**（`elementDamageMult`/`statusPowerMult`/`shatterDamageMult`/凍結確率/ボス氷砕値はそのまま）。
+表示は演出であり戦闘結果を変えない・表示状態は保存しない・`save_version` は v6 のまま。詳細は `./docs/status-visuals.md`・`./docs/status-debug.md`。

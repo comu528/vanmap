@@ -494,3 +494,22 @@ profile/active_run の既存構造を変えない。そのため **`saveVersion`
 - **保存しない**: 常設型（`frost_orbit`/`frost_spirit`/`frost_queen_court`）の runtimeState、個々の氷弾/雹/地雷/精霊/波/凍結床の位置。これらはレベル＋runtimeState と再開後の戦闘から自然に再構築する。
 - **再読込での悪用防止**: `glacier_drop` は落下待機（`pendingImpactLeft`/座標）を保存・復元し、**無料の再発動・二重落下**を防ぐ。`mirror_ice` は展開残り時間/耐久を保存し再展開の悪用を防ぐ。CD型は残りCDを保存して即時再発動を防ぐ。一時停止中は update が止まるため CD/待機も進まない。
 - `SkillManager.serializeRuntime()`／`restoreRuntime()` が各スキルの `serializeState/restoreState` を集約し、`BattleScene.restoreFromRun()` が復元する（`tests/frost-runtime-save-wave2.mjs` で実スキルクラスを最小 Phaser モックで駆動し CD/pending/durability 保存を検証）。加算的追加のため **`save_version` は 6 のまま**。
+
+## Milestone 7-B.1: 状態異常の視認性（表示状態は保存しない・save_version は 6 のまま）
+状態異常を通常プレイ中に見て確かめるための**表示層とデバッグ**を追加するが、これらは**演出とランタイムの一時状態**であり、セーブ payload には一切含めない。
+そのため profile/active_run の保存フォーマットは変わらず、**`saveVersion` は 6 のまま**。v1〜v6 からの移行は M6-A〜M7-B と同じ経路で、既存データを保持し転生でもリセットしない。詳細は `docs/status-visuals.md`・`docs/status-debug.md`。
+
+### 保存しない表示状態（再開時に現在状態から再構築）
+次はすべてランタイムの表示/計測用で、**保存せず**再開時に権威フィールドから作り直す:
+- 状態アイコン / 冷気・凍結・氷片の overlay / Tween / floating text（「SHATTER」等） / FROST BREAK 演出。
+- F10 状態デバッグの選択対象 / visual history。
+- `StatusEffectManager` の実動作カウンタ（`chillApplications`/`chillAmountTotal`/`freezeAttempts`/`freezeSuccesses`/`immunitySkips`/`hitGroupSkips`/`bossGaugeApplications`）と
+  発火イベント・エンティティ別 `_statusDebug`（freeze 内訳）。
+
+### 変わらず保存する状態（M7-A/M7-B のまま）
+- **状態RNG**（`active_run.statusRng` の seed/cursor）は従来どおり保存し、再読込で凍結判定を引き直せない。
+- **ボス frostbreak 状態**（`active_run.bossFrost` の gauge/breaks/vulnRemainMs）は従来どおり保存し、ゲージ初期化・脆弱延長の悪用を防ぐ。
+- 氷スキルの `active_run.skillRuntime`（CD 等）も M7-A/M7-B のまま。表示層はこれらの権威値を**読むだけ**で、保存内容を変えない。
+
+表示状態を保存しないことで、再読込しても状態そのもの（冷気量/凍結残/耐性/氷砕ゲージ）は権威フィールドから正しく再現され、overlay/アイコン/デバッグ表示はその現在状態に追従して作り直される
+（`tests/status-visibility-nonregression.mjs` で、表示追加により保存往復・状態RNG cursor・ボス氷砕値が不変であることを検証）。

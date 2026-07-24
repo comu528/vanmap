@@ -826,3 +826,46 @@ M6-E/M7-A までの `skillCaps` へ、氷スキル/進化の品質別（`low ≤
 - 検証: 追加29キーが品質順で単調非減少・非負整数（`low≤medium≤high≤ultra`・正）。**上限到達でも凍結/粉砕/氷砕の判定は消さず、装飾を先に削る**。
 
 `validate-data.mjs` に M7-B 検証ブロックを追加（氷 active15/進化8・skillCaps 29種・cast/監査/procCoefficient・lv80 対象が icicle_volley のみ）。詳細は `docs/skill-catalog.md`・`docs/jobs.md`。
+
+## Milestone 7-B.1: 状態異常の視認性（`balance.json` の `skillCaps` 表示上限＋`statusVisuals` を加算拡張）
+
+状態異常を通常プレイ中に確認できる**表示層**の設定を `balance.json` へ加算する。**状態ロジック用の数値（凍結確率/冷気/粉砕/ボス氷砕）は変更しない**。
+表示上限に達しても状態判定・解除・免疫・索引 cleanup は削らず装飾を先に削る。**`saveVersion` は 6 のまま**。詳細は `docs/status-visuals.md`・`docs/status-debug.md`。
+
+### balance.skillCaps（表示上限11種を品質別に追加）
+M7-B までの `skillCaps` へ、状態表示の毎フレーム/同時上限を品質別（`low ≤ medium ≤ high ≤ ultra`・正）で加算する。
+```jsonc
+"skillCaps": {
+  /* …既存キー… */
+  "maxStatusIcons":                 { "low": 1, "medium": 2, "high": 2, "ultra": 3 }, // 1エンティティの状態アイコン最大数
+  "maxChillVisuals":                { /* 冷気オーバーレイ同時数 */ },
+  "maxFrozenVisuals":               { /* 氷殻オーバーレイ同時数 */ },
+  "maxImmunityVisuals":             { /* 凍結耐性オーバーレイ同時数 */ },
+  "maxSlowTrails":                   { /* 減速トレイル同時数 */ },
+  "maxShatterEffectsPerFrame":      { /* 粉砕演出の毎フレーム上限 */ },
+  "maxStatusFloatingTextsPerFrame": { /* SHATTER 等の浮遊テキスト毎フレーム上限 */ },
+  "maxFrostbreakEffects":           { /* FROST BREAK 演出同時数 */ },
+  "maxStatusDebugHistory":          { /* F10 デバッグの履歴保持数 */ },
+  "chillNearThresholdEffectCooldown": { "low": 1500, "medium": 1500, "high": 1500, "ultra": 1500 }, // 閾値直前の光の再発火間隔(ms・全品質同値)
+  "statusVisualUpdateInterval":       { "low": 60, "medium": 60, "high": 60, "ultra": 60 }          // overlay 照合更新の間隔(ms・全品質同値)
+}
+```
+- 各上限は `low ≤ medium ≤ high ≤ ultra` かつ正。`maxStatusIcons` は 1/2/2/3。`chillNearThresholdEffectCooldown`(1500) と `statusVisualUpdateInterval`(60) は全品質同値。
+- **低品質でのドロップ優先度（残す順）**: frozen > ボス氷砕 > shatter > burning > immunity > chill > slow。装飾を削っても状態ロジックは不変。
+
+### statusVisuals（新規オブジェクト・表示メタ）
+状態表示の対象・優先度・種別・演出パラメータを集約する（数値はここへ・コードへ散在させない）。
+```jsonc
+"statusVisuals": {
+  "iconStatuses": ["frozen", "burning", "freeze_immunity", "chill_high"], // アイコンを出す状態
+  "iconPriority": ["frozen", "burning", "freeze_immunity", "chill_high"], // frozen > burning > freeze_immunity > chill_high
+  "visualTypes": ["chill", "slow", "frozen", "freeze_immunity", "shatter", "burning", "frostbreak"], // 既知の表示種別
+  "frostbreak":   { "showText": true, "textDurationMs": 900, "shardCount": 12 },   // FROST BREAK 文字/氷片
+  "vulnerability": { "blink": true, "blinkPeriodMs": 300 }                          // 氷砕脆弱の点滅
+}
+```
+- `iconPriority` は 1エンティティに複数状態があるとき、`maxStatusIcons` 個までを frozen>burning>freeze_immunity>chill_high の順に選ぶための優先度。
+- 冷気の段階は割合で決まる（1〜39%=ごく薄い水色 / 40〜74%=水色縁＋足元氷輪 / 75%+=青白縁＋氷結晶マーク / 確定閾値90%で一度光る / chill=0で完全解除）。
+- 検証（`validate-data.mjs`）: 追加11キーが品質順で単調非減少・正、`chillNearThresholdEffectCooldown`/`statusVisualUpdateInterval` が全品質同値。
+  `statusVisuals` は `iconStatuses`/`iconPriority`/`visualTypes` の各要素が既知の status id / 表示種別であること・**未知の status id や visual type を弾く**・負数の上限を弾く・
+  `frostbreak`（showText 真偽・textDurationMs/shardCount が正）・`vulnerability`（blink 真偽・blinkPeriodMs が正）の設定を確認する。表示状態はセーブ payload に含めない。

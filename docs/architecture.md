@@ -375,3 +375,33 @@ M7-A の状態異常/凍結基盤（`StatusEffectManager`/`FreezeSystem`）・�
 - **テレメトリ**: `skills.recordExtra` でスキル別の追加キー（icicle_volley=volleys/iciclesFired、freezing_ray=channelSeconds/beamTicks/maxRampReached、glacier_drop=glaciersDropped/pendingImpactsCompleted ほか）を記録。**外部送信なし**・テレメトリ失敗でゲーム/保存は失敗しない。
 - **デバッグ**: `?debug=1` の **F9** で氷術師 active15・進化8 を切替/取得/進化条件達成でき、`debugRun` として通常 profile へ保存しない。
 - 検証: `frost-skills-wave2.mjs`／`frost-evolutions-wave2.mjs`／`frost-policy-audit.mjs`／`frost-runtime-save-wave2.mjs`（実スキルクラスを最小 Phaser モックで駆動）／`frost-determinism-wave2.mjs`（Math.random 不使用のソース走査＋同一状態で同一攻撃パターンの決定論トレース）・`validate-data.mjs`（M7-B ブロック）。**全34テストスイート通過**。
+
+## 状態異常の視認性・実動作検証（M7-B.1）
+M7-A の状態異常/凍結基盤（`StatusEffectManager`/`FreezeSystem`）と M7-B の氷術師ビルドを**現在の正**とし、状態を通常プレイ中に確認できる
+**表示層（overlay）と開発用デバッグ**を追加する。**状態ロジックは一切変更しない**（判定・ダメージ・凍結確率・状態RNG cursor・ボス氷砕値は不変）。
+表示はすべて演出であり、無効化・低品質化しても戦闘結果は変わらない（M2 のロジック/演出分離を踏襲）。表示状態はセーブしない。**`save_version` は 6 のまま**。
+詳細は `docs/status-visuals.md`・`docs/status-debug.md`。
+
+| 追加/変更 | 役割 | 再利用元 |
+|-----------|------|----------|
+| `src/systems/StatusVisualManager.js`（新規） | 状態表示の overlay 層。純粋 export（`chillTierOf(ratio)`〈0=none/<0.40=low/<0.75=mid/else high〉・`isNearThreshold(chill,guaranteedThreshold)`〈>=90%〉・`ICON_PRIORITY=['frozen','burning','freeze_immunity','chill_high']`・`selectIcons(state,maxIcons)`・`entityVisualState(e,sfx)`・`VisualBudget`）＋ Phaser クラス。毎フレーム（`statusVisualUpdateInterval` でスロットル）に権威フィールド（`_chill/_chillSlow/_frozenUntil/_freezeImmuneUntil`・`ignited`）を読んで overlay を**照合更新**し、`StatusEffectManager` のイベントで one-shot 演出（粉砕の氷片＋「SHATTER」・凍結開始/解除の氷片・冷気閾値直前の光）を出す。品質別上限を適用し、見えないエンティティ（死亡/解除/状態クリア/Scene終了/pool再利用）の overlay を掃除 | M2 の演出/判定分離・M6-E の炎上索引・M7-A の状態フィールド |
+| `src/ui/BossFrostbreakDisplay.js`（新規） | 純粋 `bossFrostDisplayState(boss,sfx,jobElement,now)` → `{visible,gauge,threshold,ratio,breaks,cooldownRemain,vulnRemain,vulnActive,iceMultiplier}`。`visible` は `jobElement==='ice'` かつボス生存時のみ（火の魔女/ボス不在で空ゲージを出さない）＋ Phaser クラスが HUD 氷砕バー（現在値/必要値/割合/break/cooldown/脆弱残秒・vuln 点滅）と、`frostbreakTriggered` での FROST BREAK ワールド文字＋ゲージ亀裂＋氷片を描く | M7-A の HUD 氷砕ゲージを表示専用へ分離 |
+| `src/ui/StatusDebugPanel.js`（新規） | 純粋 `activeStatusesOf`/`enemyDebugLines`/`freezeBreakdownLines`/`bossDebugLines`/`counterLines`＋ Phaser パネル（**F10**・`?debug=1`）。クリックで最寄り対象を選択（死亡で自動解除）し、chill/chillCap/ratio/guaranteedThreshold/slow/frozen±remain/immunity remain/freezeChanceCap/各倍率/active 状態/最後の付与 skillId・freeze 内訳（base×proc / 冷気寄与 / proc / 最終freezeChance / RNG roll / 結果 / hitGroupId / 同group判定回数 / skip理由）・ボス氷砕状態・実動作カウンタを表示。`markDebugRun()`（debugRun 分離）を使い profile を変更しない | M6-F の debugRun 分離・F 系デバッグパネル |
+| `StatusEffectManager`（変更） | 表示層のための `on(fn)`/`_emit`・カウンタ（`chillApplications`/`chillAmountTotal`/`freezeAttempts`/`freezeSuccesses`/`immunitySkips`/`hitGroupSkips`/`bossGaugeApplications` を `counters()`）・`statusIndexSize()`・エンティティ別 `_statusDebug`（freeze 内訳）を追加。イベント（chillChanged/chillThresholdNear/frozenStarted/frozenEnded/freezeImmunityStarted/freezeImmunityEnded/shatterTriggered/bossFrostGaugeChanged/frostbreakTriggered/frostbreakVulnerabilityStarted/frostbreakVulnerabilityEnded・burningStarted は `registerBurning` から）を emit。**凍結ロールは `applyIceHit` にインライン化したが `rng.next()` を同一に消費**（確定→none / chance<=0→none / else 1）するため RNG cursor と結果は不変。イベント/カウンタは**シリアライズしない** | M7-A の `StatusEffectManager` へ通知フックとカウンタを追加するだけ |
+| `Enemy`（変更） | 毎フレームの冷気 `setTint`・凍結 `setTint` を削除し、それらの視覚を `StatusVisualManager` の overlay へ移す（`enemy.setTint` を状態演出と奪い合わない・被弾フラッシュ/ダッシャー予告/エリート色は保持）。`onFreezeStart`/`onFreezeEnd` はフックとして残す | M7-A の Enemy 状態フィールド |
+| `HUD`（変更） | `updateBossFrost(gauge,threshold,breaks,vuln,opts)` が割合/cooldown/脆弱残秒＋vuln 点滅を表示 | M7-A の HUD 氷砕ゲージ |
+| `DataManager`（変更） | `get statusVisualsConfig` が `balance.statusVisuals` を返す | 既存アクセサ群 |
+| `BattleScene`（変更） | HUD 生成後に statusVisuals/bossFrostDisplay/(debug)statusDebug を生成し、update ループで（スロットルして）呼ぶ。`dealDamage` が `_lastChillSkillId`/`_lastGaugeSkillId` を記録。cleanup で破棄。`?debug=1` で F10＋ポインタ選択を配線 | M7-A/M7-B の BattleScene 状態処理へ表示配線を足すだけ |
+
+### 状態ロジック（判定）と表示ロジック（演出）の分離
+- **権威は `StatusEffectManager`/`FreezeSystem`/Enemy の状態フィールド**（`_chill`/`_chillSlow`/`_frozenUntil`/`_freezeImmuneUntil`・ボス氷砕）にあり、
+  `StatusVisualManager` はそれを**読むだけ**で状態を書き換えない。凍結確率式・冷気減衰・粉砕・氷砕は M7-A のまま。
+- overlay は毎フレーム照合（`statusVisualUpdateInterval` でスロットル）で現在状態へ追従し、**瞬間演出（粉砕・凍結開始/解除・閾値直前の光）はイベント購読**で1回だけ出す。
+- `Enemy.setTint` の奪い合いを避けるため、冷気/凍結の色は overlay へ移動した（被弾フラッシュ・ダッシャー予告・エリート色は Enemy 側に残す）。
+- 品質別の装飾上限（下記 skillCaps）に達しても、状態の**判定・解除・免疫・索引 cleanup は削らない**（装飾を先に削る）。cleanup は死亡/返却/状態クリア/Scene終了/pool再利用/品質変更で行う。
+- 表示状態（アイコン/氷片/Tween/floating text/debug選択対象/visual history/カウンタ/イベント）は**保存しない**。再開時は現在の状態フィールドから再構築する。
+
+### 検証
+- 純ロジック: `status-visual-state.mjs`（`chillTierOf`/`isNearThreshold`/`selectIcons`/優先度/`entityVisualState`/`VisualBudget`）・`status-debug-panel.mjs`（対象選択・敵/ボス行・freeze 内訳・カウンタ行）・
+  `frostbreak-ui-state.mjs`（`bossFrostDisplayState` の visible 条件・割合/cooldown/vuln）・`status-visibility-nonregression.mjs`（表示追加で判定/ダメージ/凍結確率/状態RNG cursor/ボス氷砕値が不変・表示状態を保存しない）。
+- Node 標準のみ・`validate.yml` に追加。**全39スイート通過**。実ブラウザ挙動（実際の見た目・当たり判定・100敵+2倍速での視認性・60FPS）は本環境では**未検証**。
