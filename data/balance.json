@@ -686,6 +686,72 @@
       "medium": 4,
       "high": 5,
       "ultra": 8
+    },
+    "maxStatusIcons": {
+      "low": 1,
+      "medium": 2,
+      "high": 2,
+      "ultra": 3
+    },
+    "maxChillVisuals": {
+      "low": 20,
+      "medium": 40,
+      "high": 70,
+      "ultra": 110
+    },
+    "maxFrozenVisuals": {
+      "low": 15,
+      "medium": 30,
+      "high": 50,
+      "ultra": 80
+    },
+    "maxImmunityVisuals": {
+      "low": 10,
+      "medium": 20,
+      "high": 35,
+      "ultra": 55
+    },
+    "maxSlowTrails": {
+      "low": 8,
+      "medium": 16,
+      "high": 28,
+      "ultra": 44
+    },
+    "maxShatterEffectsPerFrame": {
+      "low": 3,
+      "medium": 5,
+      "high": 8,
+      "ultra": 12
+    },
+    "maxStatusFloatingTextsPerFrame": {
+      "low": 4,
+      "medium": 6,
+      "high": 10,
+      "ultra": 16
+    },
+    "maxFrostbreakEffects": {
+      "low": 1,
+      "medium": 1,
+      "high": 2,
+      "ultra": 3
+    },
+    "maxStatusDebugHistory": {
+      "low": 8,
+      "medium": 16,
+      "high": 24,
+      "ultra": 40
+    },
+    "chillNearThresholdEffectCooldown": {
+      "low": 1500,
+      "medium": 1500,
+      "high": 1500,
+      "ultra": 1500
+    },
+    "statusVisualUpdateInterval": {
+      "low": 60,
+      "medium": 60,
+      "high": 60,
+      "ultra": 60
     }
   },
   "speedModes": [
@@ -840,6 +906,43 @@
       "maxEnemies": 320,
       "maxProjectiles": 700,
       "maxSparksPerBurst": 16
+    }
+  },
+  "statusVisuals": {
+    "iconStatuses": [
+      "frozen",
+      "burning",
+      "freeze_immunity",
+      "chill_high"
+    ],
+    "iconPriority": [
+      "frozen",
+      "burning",
+      "freeze_immunity",
+      "chill_high"
+    ],
+    "visualTypes": [
+      "chill_low",
+      "chill_mid",
+      "chill_high",
+      "chill_near",
+      "slow_trail",
+      "frozen_shell",
+      "freeze_immunity",
+      "status_icon",
+      "shatter",
+      "floating_text",
+      "boss_gauge",
+      "frostbreak"
+    ],
+    "frostbreak": {
+      "showText": true,
+      "textDurationMs": 900,
+      "shardCount": 8
+    },
+    "vulnerability": {
+      "blink": true,
+      "blinkPeriodMs": 320
     }
   }
 }

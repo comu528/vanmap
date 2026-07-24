@@ -904,6 +904,45 @@ if (jobProgData) {
   if (fw2 && (fw2.activeSkillPool || []).length !== 30) err(`M7-B: flame_witch activeSkillPool が30種でない (${fw2.activeSkillPool?.length})`);
 }
 
+// --- M7-B.1: 状態異常の視認性（品質別の表示上限・状態表示設定）の検証 ---
+{
+  const VIS_CAPS = ['maxStatusIcons', 'maxChillVisuals', 'maxFrozenVisuals', 'maxImmunityVisuals', 'maxSlowTrails', 'maxShatterEffectsPerFrame', 'maxStatusFloatingTextsPerFrame', 'maxFrostbreakEffects', 'maxStatusDebugHistory', 'chillNearThresholdEffectCooldown', 'statusVisualUpdateInterval'];
+  for (const n of VIS_CAPS) {
+    const c = balance?.skillCaps?.[n];
+    if (!c) { err(`M7-B.1: skillCaps.${n} が無い`); continue; }
+    if (!(c.low <= c.medium && c.medium <= c.high && c.high <= c.ultra)) err(`M7-B.1: skillCaps.${n} が品質順(low<=medium<=high<=ultra)でない`);
+    for (const q of ['low', 'medium', 'high', 'ultra']) if (typeof c[q] !== 'number' || c[q] <= 0 || !Number.isFinite(c[q])) err(`M7-B.1: skillCaps.${n}.${q} が正の有限数でない (${c[q]})`);
+  }
+  // アイコン最大数は小さめ（頭上を横一列に埋めない）。
+  const icons = balance?.skillCaps?.maxStatusIcons;
+  if (icons && icons.ultra > 4) warn(`M7-B.1: maxStatusIcons.ultra が大きすぎる（頭上表示が混雑）(${icons.ultra})`);
+  // 状態表示設定（アイコン優先度・既知 visual type・frostbreak/vulnerability 表示）。
+  const sv = balance?.statusVisuals;
+  if (!sv) err('M7-B.1: balance.json に statusVisuals 設定が無い');
+  else {
+    const KNOWN_STATUS = new Set(['frozen', 'burning', 'freeze_immunity', 'chill_high', 'chill', 'frostbreak_vulnerability']);
+    const KNOWN_VISUAL = new Set(['chill_low', 'chill_mid', 'chill_high', 'chill_near', 'slow_trail', 'frozen_shell', 'freeze_immunity', 'status_icon', 'shatter', 'floating_text', 'boss_gauge', 'frostbreak']);
+    if (!Array.isArray(sv.iconStatuses) || sv.iconStatuses.length === 0) err('M7-B.1: statusVisuals.iconStatuses が空/配列でない');
+    else for (const s of sv.iconStatuses) if (!KNOWN_STATUS.has(s)) err(`M7-B.1: statusVisuals.iconStatuses に未知の status id "${s}"`);
+    if (!Array.isArray(sv.iconPriority) || sv.iconPriority.length === 0) err('M7-B.1: statusVisuals.iconPriority が空/配列でない');
+    else {
+      for (const s of sv.iconPriority) if (!KNOWN_STATUS.has(s)) err(`M7-B.1: statusVisuals.iconPriority に未知の status id "${s}"`);
+      for (const s of sv.iconPriority) if (!(sv.iconStatuses || []).includes(s)) err(`M7-B.1: statusVisuals.iconPriority の "${s}" が iconStatuses に無い`);
+    }
+    if (!Array.isArray(sv.visualTypes) || sv.visualTypes.length === 0) err('M7-B.1: statusVisuals.visualTypes が空/配列でない');
+    else for (const v of sv.visualTypes) if (!KNOWN_VISUAL.has(v)) err(`M7-B.1: statusVisuals.visualTypes に未知の visual type "${v}"`);
+    // frostbreak 表示設定。
+    const fb = sv.frostbreak || {};
+    if (typeof fb.showText !== 'boolean') err('M7-B.1: statusVisuals.frostbreak.showText が真偽値でない');
+    if (typeof fb.textDurationMs !== 'number' || fb.textDurationMs <= 0) err('M7-B.1: statusVisuals.frostbreak.textDurationMs が正でない');
+    if (typeof fb.shardCount !== 'number' || fb.shardCount < 0) err('M7-B.1: statusVisuals.frostbreak.shardCount が非負でない');
+    // vulnerability 表示設定。
+    const vu = sv.vulnerability || {};
+    if (typeof vu.blink !== 'boolean') err('M7-B.1: statusVisuals.vulnerability.blink が真偽値でない');
+    if (typeof vu.blinkPeriodMs !== 'number' || vu.blinkPeriodMs <= 0) err('M7-B.1: statusVisuals.vulnerability.blinkPeriodMs が正でない');
+  }
+}
+
 // --- report ---
 if (warnings.length) {
   console.log('--- 警告 ---');

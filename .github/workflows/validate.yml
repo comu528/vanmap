@@ -107,3 +107,13 @@ jobs:
         run: node tests/frost-determinism-wave2.mjs
       - name: Passive pool separation audit
         run: node tests/passive-pool-audit.mjs
+
+      # 状態異常の視認性・実動作検証（M7-B.1・表示状態/デバッグ/ボス氷砕UI/非回帰・Node.js 標準機能のみ）。
+      - name: Status visual state tests
+        run: node tests/status-visual-state.mjs
+      - name: Status debug panel tests
+        run: node tests/status-debug-panel.mjs
+      - name: Frostbreak UI state tests
+        run: node tests/frostbreak-ui-state.mjs
+      - name: Status visibility non-regression tests
+        run: node tests/status-visibility-nonregression.mjs

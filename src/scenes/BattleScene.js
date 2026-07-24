@@ -34,6 +34,9 @@ import { defaultPlaytestConfig, resolveOverrides } from '../systems/BalancePlayt
 import { StatusEffectRegistry } from '../systems/StatusEffectRegistry.js';
 import { FreezeSystem } from '../systems/FreezeSystem.js';
 import { StatusEffectManager } from '../systems/StatusEffectManager.js';
+import { StatusVisualManager } from '../systems/StatusVisualManager.js';
+import { BossFrostbreakDisplay } from '../ui/BossFrostbreakDisplay.js';
+import { StatusDebugPanel } from '../ui/StatusDebugPanel.js';
 import { HUD } from '../ui/HUD.js';
 import { PauseMenu } from '../ui/PauseMenu.js';
 import { distance, dist2, createRng } from '../utils/math.js';
@@ -303,6 +306,15 @@ export class BattleScene extends Phaser.Scene {
     this.hud.onPause(() => this.togglePause());
     this.hud.onToggleAuto(() => this.toggleAuto());
     this.hud.setJob(this.job.displayName || this.jobId, this.jobLevelAtStart); // M6-C: ジョブ名＋適用中ジョブLv
+
+    // M7-B.1: 状態異常の表示（ロジックと分離）。イベント購読でオーバーレイ/ボス氷砕表示を駆動する（HUD 生成後）。
+    this.statusVisuals = new StatusVisualManager(this);
+    this.statusVisuals.subscribe(this.statusFx);
+    this.bossFrostDisplay = new BossFrostbreakDisplay(this, this.hud);
+    this.bossFrostDisplay.setConfig(DataManager.statusVisualsConfig);
+    this.bossFrostDisplay.subscribe(this.statusFx);
+    this._svEnemies = [];
+    if (window.RFS_DEBUG) { this.statusDebug = new StatusDebugPanel(this); this._setupStatusDebugInput(); }
     this.updateHudSkills();
 
     // 中断対応
@@ -582,7 +594,35 @@ export class BattleScene extends Phaser.Scene {
     if (this._bpdbg) { this._bpdbg.destroy(true); this._bpdbg = null; }
     if (this._bpBanner) { this._bpBanner.destroy(); this._bpBanner = null; }
     if (this._frostdbg) { this._frostdbg.destroy(true); this._frostdbg = null; }
+    // M7-B.1: 状態表示・ボス氷砕表示・状態デバッグの破棄（古い entity 参照/Graphics/Text/Tween を残さない）。
+    if (this.statusVisuals) { this.statusVisuals.destroy(); this.statusVisuals = null; }
+    if (this.bossFrostDisplay) { this.bossFrostDisplay.destroy(); this.bossFrostDisplay = null; }
+    if (this.statusDebug) { this.statusDebug.destroy(); this.statusDebug = null; }
     if (window.RFS_BATTLE === this) window.RFS_BATTLE = null;
+  }
+
+  // ?debug=1: 状態異常デバッグパネル（F10）＋対象敵の選択（クリックで最寄り・死亡で自動解除）。
+  _setupStatusDebugInput() {
+    this.input.keyboard.on('keydown-F10', () => {
+      this.markDebugRun();
+      this.statusDebug.toggle();
+      if (this.statusDebug.visible && !this.statusDebug.target) this.statusDebug.setTarget(this._nearestSelectable(this.player.x, this.player.y, 100000));
+    });
+    this.input.on('pointerdown', (p) => {
+      if (!this.statusDebug || !this.statusDebug.visible) return;
+      const e = this._nearestSelectable(p.worldX, p.worldY, 100) || this._nearestSelectable(this.player.x, this.player.y, 100000);
+      if (e) this.statusDebug.setTarget(e);
+    });
+  }
+
+  // 指定座標に最も近い選択可能な対象（通常敵/エリート/ボス）を返す。範囲外なら null。
+  _nearestSelectable(x, y, range) {
+    let best = this.nearestTarget(x, y, range || 100);
+    if (this.boss && this.boss.alive) {
+      const db = dist2(x, y, this.boss.x, this.boss.y);
+      if (db <= (range || 100) * (range || 100) && (!best || db < dist2(x, y, best.x, best.y))) best = this.boss;
+    }
+    return best;
   }
 
   // ---------------- combat API（判定のみ） ----------------
@@ -1050,6 +1090,8 @@ export class BattleScene extends Phaser.Scene {
     }
     // M7-A: 氷属性命中の状態異常（冷気付与→凍結判定 or ボス氷砕ゲージ）。粉砕/刻印起爆自身は状態を発生させない。
     if (!died && element === 'ice' && sfx && !opts.isShatter && !opts.isMarkDetonation && (opts.chillAmount || opts.applyStatus)) {
+      // M7-B.1: デバッグ表示用に「最後に冷気/ゲージを付与した skillId」を対象へ記録（保存しない・ロジック不変）。
+      if (skillId) { if (target.isBoss) target._lastGaugeSkillId = skillId; else target._lastChillSkillId = skillId; }
       const spMult = this.jobMods.statusPowerMult();
       const res = sfx.applyIceHit(target, {
         chillAmount: opts.chillAmount || 0, baseFreezeChance: opts.baseFreezeChance || 0,
@@ -1188,6 +1230,13 @@ export class BattleScene extends Phaser.Scene {
     this.checkCollisions();
     this.checkBossTime();
     this.updateHud();
+    // M7-B.1: 状態異常の表示更新（ロジック後・reconcile はスロットル）。表示失敗でゲーム進行を止めない。
+    if (this.statusVisuals) {
+      this.statusVisuals.beginFrame();
+      const arr = this._svEnemies; arr.length = 0; this.enemyPool.forEachActive((e) => { if (e.alive) arr.push(e); });
+      this.statusVisuals.update(dt, this.statusFx, arr, this.boss);
+    }
+    if (this.statusDebug) this.statusDebug.update(this.statusFx, this.boss);
 
     this._autoSaveAccum += dt;
     if (this._autoSaveAccum >= AUTOSAVE_MS) { this._autoSaveAccum = 0; this.autoSave(); }
@@ -1720,11 +1769,9 @@ export class BattleScene extends Phaser.Scene {
 
   updateHud() {
     this.hud.update({ player: this.player, timeSec: this.timeSec, kills: this.kills, difficultyName: this.difficulty.name, autoMove: this.autoMove });
-    if (this.boss && this.boss.alive) {
-      this.hud.updateBoss(this.boss.hpRatio());
-      // M7-A: 氷術師のボス氷砕ゲージ（現在値/必要値・脆弱・break回数）。
-      if (this._defaultElement === 'ice') this.hud.updateBossFrost(this.boss._frostGauge || 0, this.statusFx.bossThreshold(this.boss), this.boss._frostBreaks || 0, this.statusFx.bossVulnActive(this.boss));
-    }
+    if (this.boss && this.boss.alive) this.hud.updateBoss(this.boss.hpRatio());
+    // M7-B.1: ボス氷砕ゲージ表示（現在値/必要値・割合・break・cooldown・vuln残秒）。氷術師かつボス存在時のみ。
+    if (this.bossFrostDisplay) this.bossFrostDisplay.update(this.boss, this.statusFx, this._defaultElement, this.time.now);
   }
 
   showBanner(text) {

@@ -92,9 +92,10 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     return Math.max(0, spd);
   }
 
-  // M7-A: 凍結の見た目（氷結色）。凍結中は update で停止するため tint は維持される。
-  onFreezeStart() { if (this.alive) this.setTint(0x8fd8ff); }
-  onFreezeEnd() { if (this.alive) this.clearTint(); }
+  // M7-B.1: 凍結/冷気の見た目は StatusVisualManager のオーバーレイ層が担当する（enemy.setTint を状態ごとに
+  // 奪い合わない＝被弾フラッシュ/ダッシャー予告/エリート色を上書きしない）。フックは残す（StatusEffectManager が呼ぶ）。
+  onFreezeStart() { /* 表示は StatusVisualManager が frozenStarted イベントで処理 */ }
+  onFreezeEnd() { if (this.alive && this._chillTinted) { this.clearTint(); this._chillTinted = false; } }
 
   // 炎上（永劫火界／M6-E 灼熱共鳴・万象炎鳴）。gen は感染世代。
   // 炎上索引（BattleScene._burningIndex）へ登録し、灼熱共鳴系が全敵走査せず炎上数を得られるようにする。
@@ -127,10 +128,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
 
     const ang = Math.atan2(py - this.y, px - this.x);
     this.setVelocity(Math.cos(ang) * spd, Math.sin(ang) * spd);
-
-    // M7-A: 冷気蓄積が高いとき薄い氷色（凍結手前の視覚フィードバック）。フラッシュ/予告と競合しないよう最小限。
-    if (this._chillSlow > 0.18) { this.setTint(0xbfefff); this._chillTinted = true; }
-    else if (this._chillTinted) { this.clearTint(); this._chillTinted = false; }
+    // M7-B.1: 冷気の視覚は StatusVisualManager のオーバーレイ層へ移行（enemy.setTint を毎フレーム奪わない）。
   }
 
   // 骸骨: 一定距離まで近づき、短い予告のあと突進する。

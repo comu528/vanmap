@@ -70,11 +70,24 @@ export class HUD {
   // M7-A: ボス氷砕ゲージ表示（現在値/必要値・脆弱中は色変化・break回数）。
   showBossFrost() { this.bossFrostBg.setVisible(true); this.bossFrostBar.setVisible(true); this.bossFrostText.setVisible(true); }
   hideBossFrost() { this.bossFrostBg.setVisible(false); this.bossFrostBar.setVisible(false); this.bossFrostText.setVisible(false); }
-  updateBossFrost(gauge, threshold, breaks, vuln) {
+  // M7-B.1: 現在値/必要値・割合・break回数・cooldown・vulnerability残り秒を明確化。vuln 中は控えめに点滅。
+  updateBossFrost(gauge, threshold, breaks, vuln, opts = {}) {
     const ratio = threshold > 0 ? Math.max(0, Math.min(1, gauge / threshold)) : 0;
     this.bossFrostBar.width = 278 * ratio;
-    this.bossFrostBar.fillColor = vuln ? 0x80deea : 0x4fc3f7;
-    this.bossFrostText.setText(vuln ? `氷砕脆弱中！ break${breaks}` : `氷砕 ${Math.round(gauge)}/${Math.round(threshold)}  break${breaks}`);
+    const cd = opts.cooldownRemain || 0, vr = opts.vulnRemain || 0;
+    if (vuln) {
+      // vuln 中: 点滅（controlled・敵/弾/予告を隠さない控えめな明滅）。
+      const period = opts.blinkPeriodMs || 320;
+      const t = (opts.now || 0) % period;
+      this.bossFrostBar.fillColor = (t < period / 2) ? 0x80deea : 0xb2ebf2;
+      this.bossFrostText.setText(`氷脆弱 ${(vr / 1000).toFixed(1)}s  BREAK ×${breaks}`);
+    } else if (cd > 0) {
+      this.bossFrostBar.fillColor = 0x4dd0e1;
+      this.bossFrostText.setText(`氷砕 ${Math.round(gauge)} / ${Math.round(threshold)}  BREAK ×${breaks}  CD ${(cd / 1000).toFixed(1)}s`);
+    } else {
+      this.bossFrostBar.fillColor = 0x4fc3f7;
+      this.bossFrostText.setText(`氷砕 ${Math.round(gauge)} / ${Math.round(threshold)}  ${Math.round(ratio * 100)}%  BREAK ×${breaks}`);
+    }
   }
 
   setJob(name, level) { this.jobText.setText(`${name} Job Lv.${level}`); }

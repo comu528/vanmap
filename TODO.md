@@ -444,6 +444,36 @@ Milestone 1 は実装済み。以下は **Milestone 2 以降の設計と作業�
 > **実ブラウザ未確認**: 本環境では Phaser 実プレイ確認を行っていない。データ検証・純ロジック・最小 Phaser モックによるランタイムスモークは通過済みだが、
 > 実際の描画・当たり判定・体感バランス・60FPS 維持はブラウザでの確認が必要（`docs/test-guide.md` の M7-B 項目参照）。
 
+## Milestone 7-B.1（実装済み）— 状態異常の視認性・実動作検証
+
+新スキル・進化・ジョブ・データ数値は追加せず、**冷気/減速/凍結/凍結耐性/粉砕/ボス氷砕/炎上が実際に機能しているかを画面で判別できる**ようにした。
+状態ロジック（`StatusEffectManager`/`FreezeSystem`）は不変で、**判定・ダメージ・凍結確率・status RNG cursor・ボス氷砕値は変更なし**。**save_version v6 維持・表示状態は保存しない**。
+
+### 表示（`src/systems/StatusVisualManager.js`・オーバーレイ層）
+- [x] 冷気段階（0=none / 1〜39%=薄い水色 / 40〜74%=水色縁＋足元氷輪 / 75%+=青白縁＋氷結晶）・確定閾値90%で一度光る事前通知・chill=0 で完全解除。
+- [x] 冷気減速の可視化（足元氷輪/残像・高冷気時のみ）。frozen の氷殻＋開始/解除の氷片演出（本体を隠す厚氷・画面白フラッシュは禁止）。freeze_immunity の盾雪マーク。
+- [x] 粉砕の氷片放射＋衝撃輪＋「SHATTER」フロートテキスト（通常ダメージと区別）。頭上状態アイコン（優先度 frozen>burning>freeze_immunity>chill_high・1体あたり最大数）。
+- [x] **`enemy.setTint` を状態ごとに奪わない**（被弾フラッシュ/ダッシャー予告/エリート色を上書きしない）。Enemy の凍結/冷気 tint をオーバーレイ層へ移設。
+
+### ボス氷砕（`src/ui/BossFrostbreakDisplay.js`・HUD）
+- [x] 氷術師かつボス存在時のみ表示（火の魔女/ボス不在で空ゲージを出さない）。現在値/必要値・割合・break回数・cooldown・脆弱残秒・ゲージ増加の反応・**FROST BREAK 演出**・vuln 中の点滅。次回 threshold 増加後も正しく更新。
+- [x] fire ダメージは増えず ice ダメージのみ増える既存処理を維持（`bossIceVulnMultiplier` は ice のみ）。
+
+### イベント・デバッグ（`StatusEffectManager` イベント / `src/ui/StatusDebugPanel.js`）
+- [x] 状態イベント（chillChanged/chillThresholdNear/frozenStarted/frozenEnded/freezeImmunityStarted/Ended/shatterTriggered/bossFrostGaugeChanged/frostbreakTriggered/frostbreakVulnerabilityStarted/Ended）を通知（RNG/判定に影響しない）。各スキルクラスからは表示を生成しない。
+- [x] `?debug=1` の **F10 状態デバッグパネル**: 対象敵クリック選択（死亡/返却で解除）・HP/種別/chill/chillCap/比率/確定閾値/slow/frozen/immunity 実数・**freezeChance 内訳（base×proc/冷気寄与/proc/最終/RNG roll/結果/hitGroup 上限/スキップ理由）**・ボス氷砕状態・実動作カウンタ（冷気付与/凍結試行/成功/耐性・hitGroup 上限で防止/現在 frozen・immunity・burning/粉砕/ボスゲージ付与/氷砕/索引サイズ/上限到達）。CombatTelemetry と重複する項目は telemetry を正とする。
+
+### 品質別上限・cleanup・テスト
+- [x] `balance.json` に表示上限11種（maxStatusIcons/maxChillVisuals/maxFrozenVisuals/maxImmunityVisuals/maxSlowTrails/maxShatterEffectsPerFrame/maxStatusFloatingTextsPerFrame/maxFrostbreakEffects/maxStatusDebugHistory/chillNearThresholdEffectCooldown/statusVisualUpdateInterval）＋`statusVisuals` 設定（アイコン優先度・既知 visual type・frostbreak/vulnerability 表示）。装飾上限に達しても状態ロジック・cleanup は不変。
+- [x] 敵死亡/プール返却/ボス死亡/Scene終了/状態解除/quality変更で全表示を破棄（古い entity 参照/Graphics/Text/Tween を残さない・pool 再利用で残留なし）。
+- [x] 新規テスト4種: `status-visual-state`（段階/優先度/上限/解除/cleanup/イベント/カウンタ＋Phaser経路スモーク）/ `status-debug-panel`（対象選択/実数/内訳/RNG roll/hitGroup/カウンタ）/ `frostbreak-ui-state`（表示可否/値/break/cooldown/vuln/保存復元一致）/ `status-visibility-nonregression`（確率計算・RNG cursor・炎上・氷術師15/8・save v6 不変）。`validate.yml`・`validate-data.mjs` に追加。全39スイート通過。
+
+### M7-B.1 で**実装しない**もの（対象外）
+- [ ] 新 active/passive/進化/ジョブ・火と氷の属性反応・属性相性・新敵/新ボス/新難易度・スキル数値の全面調整・敵HP/攻撃/出現数の変更・正式画像素材・UI全体改修・外部通信。
+
+> **実ブラウザ未確認**: 本環境では Phaser 実プレイ確認を行っていない。純ロジック・最小 Phaser モックによるスモークは通過済みだが、
+> 実際の見た目（冷気段階/氷殻/粉砕文字/ボスゲージ/FROST BREAK）・当たり判定・視認性（敵100体＋2倍速で HUD/敵弾/ボス予告を見失わないか）・60FPS はブラウザ確認が必要（`docs/test-guide.md` の M7-B.1 参照）。
+
 ### 次のマイルストーン候補
 - [ ] **3人目のジョブ**（雷/毒 など新属性・`StatusEffectManager` に新状態を追加）
 - [ ] **属性反応**（火⇄氷 など状態異常間の相互作用・付与時の source element を活用）

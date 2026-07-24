@@ -29,9 +29,22 @@ export class StatusEffectManager {
     // パッシブ由来の乗率（余寒残留）。周回開始時に BattleScene から設定（chill 減衰・氷状態持続）。
     this._chillDecayMult = 1;
     this._iceStatusDurationMult = 1;
+    // M7-B.1: 状態表示/デバッグ用のイベント通知（判定・ダメージ・RNG cursor には影響しない）と実動作カウンタ。
+    this._listeners = [];
+    this._counters = this._freshCounters();
   }
 
   now() { return this._now(); }
+
+  // ---- イベント（M7-B.1: 状態ロジックと表示ロジックの分離）----
+  // 表示側（StatusVisualManager / BossFrostbreakDisplay / デバッグ）が購読する。判定・ダメージ・RNG は変えない。
+  on(fn) { if (typeof fn === 'function') this._listeners.push(fn); return () => { const i = this._listeners.indexOf(fn); if (i >= 0) this._listeners.splice(i, 1); }; }
+  _emit(type, entity, data) { const ls = this._listeners; for (let i = 0; i < ls.length; i++) { try { ls[i](type, entity, data); } catch (e) { /* 表示側の失敗でゲーム進行を止めない */ } } }
+
+  // ---- 実動作カウンタ（M7-B.1: debug=1 の可視化。CombatTelemetry と重複する shatters/frostbreak は telemetry 側を正とする）----
+  _freshCounters() { return { chillApplications: 0, chillAmountTotal: 0, freezeAttempts: 0, freezeSuccesses: 0, immunitySkips: 0, hitGroupSkips: 0, bossGaugeApplications: 0 }; }
+  counters() { return { ...this._counters }; }
+  resetCounters() { this._counters = this._freshCounters(); }
   setPassiveMods({ chillDecayMult = 1, iceStatusDurationMult = 1 } = {}) {
     this._chillDecayMult = num(chillDecayMult, 1);
     this._iceStatusDurationMult = num(iceStatusDurationMult, 1);
@@ -67,9 +80,11 @@ export class StatusEffectManager {
   unregister(id, e) { const s = this._index.get(id); if (s) s.delete(e); }
 
   capReached() { return { ...this._capReached }; }
+  // 状態索引の総サイズ（生存エンティティのみ・デバッグ表示用）。
+  statusIndexSize() { let n = 0; for (const s of this._index.values()) { for (const e of s) { if (e && e.alive) n++; else s.delete(e); } } return n; }
 
   // ---- 炎上（burning）: 索引のみ汎用化・数値/挙動は Enemy.ignite 互換経路が正 ----
-  registerBurning(e) { if (e && e.alive) this.indexOf('burning').add(e); }
+  registerBurning(e) { if (e && e.alive) { const s = this.indexOf('burning'); if (!s.has(e)) { s.add(e); this._emit('burningStarted', e, {}); } } }
   unregisterBurning(e) { this.unregister('burning', e); }
 
   // ---- 冷気 / 凍結 / 耐性 ----
@@ -98,7 +113,18 @@ export class StatusEffectManager {
       const grace = num(this.fs.freezeConfig().chillDecayGraceMs, 0);
       e._chillDecayGraceUntil = this.now() + grace;
     }
-    return e._chill - prev;
+    const applied = e._chill - prev;
+    // M7-B.1: 実動作カウンタ＋表示イベント（数値/判定は不変）。
+    if (applied > 0) {
+      this._counters.chillApplications++;
+      this._counters.chillAmountTotal += applied;
+      const ratio = cap > 0 ? Math.min(1, e._chill / cap) : 0;
+      this._emit('chillChanged', e, { chill: e._chill, ratio, applied });
+      // guaranteedFreezeThreshold の 90% 到達の事前通知（表示側で「一度だけ光る」を管理）。
+      const near = this.fs.guaranteedThreshold(t) * 0.9;
+      if (prev < near && e._chill >= near) this._emit('chillThresholdNear', e, { chill: e._chill, ratio });
+    }
+    return applied;
   }
 
   // 凍結を付与する（通常敵・エリートのみ）。凍結中の再付与は延長しない（noExtend）。
@@ -111,6 +137,7 @@ export class StatusEffectManager {
     const dur = this.fs.freezeDuration(t) * this._iceStatusDurationMult;
     e._frozenUntil = this.now() + dur;
     if (typeof e.onFreezeStart === 'function') e.onFreezeStart();
+    this._emit('frozenStarted', e, { until: e._frozenUntil, durationMs: dur });
     return true;
   }
 
@@ -121,12 +148,14 @@ export class StatusEffectManager {
     this.unregister('frozen', e);
     if (typeof e.onFreezeEnd === 'function') e.onFreezeEnd();
     const t = this.entityType(e);
+    this._emit('frozenEnded', e, { immunity: !!immunity });
     if (immunity && e.alive) {
       e._freezeImmuneUntil = this.now() + this.fs.postFreezeImmunity(t);
       this.register('freeze_immunity', e, 'maxStatusIndexEntries');
       const keepChill = num(this.fs.profile(t).freezeOnUnfreezeChill, 0);
       e._chill = keepChill;
       e._chillSlow = this.fs.slowFactor(t, e._chill);
+      this._emit('freezeImmunityStarted', e, { until: e._freezeImmuneUntil });
     }
   }
 
@@ -145,17 +174,45 @@ export class StatusEffectManager {
     // 冷気付与（凍結中/耐性中は addChill 内で抑制/軽減）。
     this.addChill(e, chillAmt);
     // 凍結判定。
+    // ※ M7-B.1: デバッグ可視化のため roll を StatusEffectManager 内へインライン化した。
+    //   評価順・rng.next() の消費回数は従来 fs.rollFreeze と完全に同一（guaranteed→消費なし / chance<=0→消費なし / それ以外→1回）。
+    //   よって status RNG cursor・凍結判定結果は不変（determinism 非回帰はテストで担保）。
     let froze = false;
     const canFreeze = ctx.canFreeze !== false;
-    if (canFreeze && !this.isFrozen(e) && !this.isFreezeImmune(e) && this._hitGroupAllows(ctx.hitGroupId, e)) {
-      const ok = this.fs.rollFreeze(t, {
-        baseFreezeChance: num(ctx.baseFreezeChance, 0),
-        procCoefficient: num(ctx.procCoefficient, 1),
-        chill: this.chillOf(e),
-      }, this.rng);
-      if (ok) froze = this.freeze(e);
+    if (canFreeze && !this.isFrozen(e)) {
+      if (this.isFreezeImmune(e)) {
+        this._counters.immunitySkips++;
+        e._statusDebug = { entityType: t, skipped: 'immunity', hitGroupId: ctx.hitGroupId };
+      } else if (!this._hitGroupAllows(ctx.hitGroupId, e)) {
+        this._counters.hitGroupSkips++;
+        e._statusDebug = { entityType: t, skipped: 'hitGroup', hitGroupId: ctx.hitGroupId, checksForGroup: this._hitGroupCountFor(ctx.hitGroupId, e) };
+      } else {
+        this._counters.freezeAttempts++;
+        const params = { baseFreezeChance: num(ctx.baseFreezeChance, 0), procCoefficient: num(ctx.procCoefficient, 1), chill: this.chillOf(e) };
+        const r = this.fs.computeFreezeChance(t, params);
+        let ok, roll = null;
+        if (r.guaranteed) ok = true;
+        else if (r.chance <= 0) ok = false;
+        else { roll = this.rng.next(); ok = roll < r.chance; }
+        if (ok) { froze = this.freeze(e); if (froze) this._counters.freezeSuccesses++; }
+        // 凍結判定の内訳（選択中の敵のデバッグ表示用・保存しない）。
+        const cap = this.fs.chillCap(t);
+        e._statusDebug = {
+          entityType: t, baseFreezeChance: params.baseFreezeChance, procCoefficient: params.procCoefficient,
+          chill: params.chill, chillRatio: cap > 0 ? Math.min(1, params.chill / cap) : 0,
+          chanceFromChill: num(this.fs.freezeConfig().chanceFromChill, 0),
+          chance: r.chance, guaranteed: !!r.guaranteed, roll, result: !!ok,
+          hitGroupId: ctx.hitGroupId, checksForGroup: this._hitGroupCountFor(ctx.hitGroupId, e), skipped: null,
+        };
+      }
     }
     return { type: t, froze, chill: this.chillOf(e), boss: false };
+  }
+
+  // デバッグ用: 指定 hitGroup×対象の凍結判定回数（副作用なし）。
+  _hitGroupCountFor(hitGroupId, e) {
+    if (hitGroupId == null) return 0;
+    return this._hitGroupChecks.get(`${hitGroupId}#${e && e._seq != null ? e._seq : 'x'}`) || 0;
   }
 
   // 同じ hitGroupId × 同一対象の凍結判定回数に上限を設ける（多段攻撃での永久凍結防止）。
@@ -181,7 +238,9 @@ export class StatusEffectManager {
   addBossGauge(e, amount) {
     if (!e || !e.alive) return null;
     const conv = num(this.fs.bossConfig().gaugeConversionMultiplier, 1);
-    e._frostGauge = num(e._frostGauge, 0) + Math.max(0, num(amount, 0) * conv);
+    const add = Math.max(0, num(amount, 0) * conv);
+    e._frostGauge = num(e._frostGauge, 0) + add;
+    if (add > 0) { this._counters.bossGaugeApplications++; this._emit('bossFrostGaugeChanged', e, { gauge: e._frostGauge, threshold: this.bossThreshold(e), added: add }); }
     const now = this.now();
     if (now < (e._frostbreakCdUntil || 0)) return null; // クールダウン中は break しない
     if (e._frostGauge >= this.bossThreshold(e)) return this.frostbreak(e);
@@ -198,12 +257,15 @@ export class StatusEffectManager {
     e._frostbreakVulnUntil = now + num(c.vulnerabilityDuration, 4000) * this._iceStatusDurationMult;
     e._frostbreakCdUntil = now + num(c.cooldownAfterBreak, 1500);
     this.register('frostbreak_vulnerability', e, 'maxStatusIndexEntries');
-    return {
+    const ev = {
       breaks: e._frostBreaks,
       staggerMs: num(c.breakStaggerDuration, 350),
       vulnMs: num(c.vulnerabilityDuration, 4000),
       nextThreshold: this.bossThreshold(e),
     };
+    this._emit('frostbreakTriggered', e, ev);
+    this._emit('frostbreakVulnerabilityStarted', e, { until: e._frostbreakVulnUntil, vulnMs: ev.vulnMs });
+    return ev;
   }
 
   // ---- 粉砕（凍結中の敵のみ・ボスは対象外・再帰なし） ----
@@ -215,7 +277,9 @@ export class StatusEffectManager {
     this.unfreeze(e, { immunity: true });
     const s = this.fs.shatterConfig();
     const dmg = this.fs.shatterDamage({ skillPower, maxHp: e.maxHp || 0, powerMult: num(powerMult, 1) * num(multiplier, 1) });
-    return { damage: dmg, radius: num(s.explosionRadius, 44), explosionDamageFactor: num(s.explosionDamageFactor, 0.5) };
+    const res = { damage: dmg, radius: num(s.explosionRadius, 44), explosionDamageFactor: num(s.explosionDamageFactor, 0.5) };
+    this._emit('shatterTriggered', e, { damage: dmg, radius: res.radius, x: e.x, y: e.y });
+    return res;
   }
 
   // ---- 毎フレーム更新（冷気減衰・凍結/耐性の期限切れ・索引の掃除） ----
@@ -231,11 +295,11 @@ export class StatusEffectManager {
         const t = this.entityType(e);
         const rate = this.fs.decayRate(t) * this._chillDecayMult;
         e._chill = Math.max(0, (e._chill || 0) - rate * (dtMs / 1000));
-        if (e._chill <= 0) { e._chill = 0; e._chillSlow = 0; chillSet.delete(e); }
+        if (e._chill <= 0) { e._chill = 0; e._chillSlow = 0; chillSet.delete(e); this._emit('chillChanged', e, { chill: 0, ratio: 0, applied: 0 }); }
         else e._chillSlow = this.fs.slowFactor(t, e._chill);
       }
     }
-    // 凍結の自然解除。
+    // 凍結の自然解除（unfreeze が frozenEnded / freezeImmunityStarted を emit）。
     const frozenSet = this._index.get('frozen');
     if (frozenSet) {
       for (const e of frozenSet) {
@@ -245,10 +309,13 @@ export class StatusEffectManager {
     }
     // 凍結耐性の期限切れ。
     const immSet = this._index.get('freeze_immunity');
-    if (immSet) for (const e of immSet) { if (!e || !e.alive || now >= (e._freezeImmuneUntil || 0)) immSet.delete(e); }
+    if (immSet) for (const e of immSet) { if (!e || !e.alive || now >= (e._freezeImmuneUntil || 0)) { immSet.delete(e); if (e) this._emit('freezeImmunityEnded', e, {}); } }
     // ボス氷砕脆弱の期限切れ。
     const vulnSet = this._index.get('frostbreak_vulnerability');
-    if (vulnSet) for (const e of vulnSet) { if (!e || !e.alive || now >= (e._frostbreakVulnUntil || 0)) vulnSet.delete(e); }
+    if (vulnSet) for (const e of vulnSet) { if (!e || !e.alive || now >= (e._frostbreakVulnUntil || 0)) { vulnSet.delete(e); if (e) this._emit('frostbreakVulnerabilityEnded', e, {}); } }
+    // 炎上（burning）は M6-E 既存経路（Enemy.ignite / burningCount / burningEnemies）が索引管理の正。
+    // ここでは索引を変更せず、表示側（StatusVisualManager）が e.ignited を毎フレーム参照して炎上アイコンの
+    // 表示/解除を行う（burningStarted/Ended は表示側のトランジション検出で扱い、炎上ロジックへ一切影響しない）。
   }
 
   // ---- 解除・クリア ----

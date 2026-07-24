@@ -111,6 +111,8 @@ class DataManagerClass {
   get freezeConfig() { return this.statusEffectsData.freeze || {}; }
   get bossFrostbreakConfig() { return this.statusEffectsData.bossFrostbreak || {}; }
   get shatterConfig() { return this.statusEffectsData.shatter || {}; }
+  // M7-B.1: 状態表示（アイコン優先度・既知 visual type・frostbreak/vulnerability 表示設定）。
+  get statusVisualsConfig() { return this.balance.statusVisuals || {}; }
 
   getEvolution(id) { return this.evolutions.find((e) => e.id === id) || null; }
   getEvolutionForBase(baseId) { return this.evolutions.find((e) => e.baseSkillId === baseId) || null; }
