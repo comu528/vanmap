@@ -546,3 +546,47 @@ Node テストで検証したのは **純ロジックのみ**（氷 active25/進
 - [ ] `node tests/frost-runtime-save-wave3.mjs` が成功する（実スキルクラスを graphics 対応の最小 Phaser モックで駆動し CD/設置/波/耐久/barrage の保存往復・二重生成防止を検証・v6 非回帰）
 - [ ] `node tests/frost-determinism-wave3.mjs` が成功する（Math.random/Date.now/performance.now 不使用のソース走査＋同一状態で同一攻撃パターンの決定論トレース）
 - [ ] `validate-data.mjs` に M7-C 検証ブロック（氷 active25/進化13・skillCaps 23種・cast/監査/procCoefficient/config・lv80 対象が5種）が加わり、**全44テストスイートが通過**する
+
+## 氷術師ビルド拡張・最終波（M7-D・実ブラウザ・カタログ完成）
+（M7-D は氷術師へ新 active5種・進化5種を追加し、火の魔女と同規模のカタログに到達する。Node テストは**純ロジック**（データ整合・ポリシー監査・保存往復・決定論・ボスゲージ）のみを検証する。以下の
+チェックリスト（spec §36 の active/進化/状態/保存/負荷を網羅）は**実ブラウザでの手動確認が必要**な項目で、本環境では未実施。**次工程はカタログの完成監査**〈抽選率/進化到達率/バランス分析〉。）
+
+### 新アクティブ5種
+- [ ] 氷術師の候補に新 active5種（氷槍豪雨/六花砲台/氷山奔衝/絶対氷封/極光氷幕）が出うる
+- [ ] 氷槍豪雨が予告付き氷槍を螺旋（黄金角）配置で連続落下させ、**大型槍のみ凍結敵を粉砕**する（**Job Lv80 で発射数が +1**）
+- [ ] 六花砲台が砲台を設置し、**非frozen 高chill 敵を優先射撃**＋六花pulse を出す（**砲台弾は粉砕しない**）
+- [ ] 氷山奔衝の滑走氷山が通常敵を push（**エリート軽減/ボス無効**）、凍結中は最初の接触で粉砕、終端で崩壊＋氷片を出す
+- [ ] 絶対氷封が高chill 対象へ**氷印（skill-local マーカー）**を刻み、markDuration 経過か氷属性命中数で起爆・凍結中を粉砕する（正式 status の頭上アイコンとは別の最小 overlay・印付与時は凍結判定しない）
+- [ ] 極光氷幕が画面横断オーロラ帯を出し、tick でダメージ＋冷気・**burst のみ凍結中を粉砕**する（legendary・複製なし・帯が分割走査で 60FPS を保つ）
+
+### 新進化5種
+- [ ] 新進化5種（天墜氷槍葬/六花氷衛軍/大陸氷河奔流/永劫封氷棺/極夜天光）を基礎Lv8＋補助Lv4で発現できる（`永劫封氷棺` は補助が **ice_prison(active)**・置換しない）
+- [ ] 永劫封氷棺の氷棺印が起爆時に近傍の未印へ**副棺を最大1世代だけ伝播**し、副棺は再伝播しない（無限連鎖しない）
+- [ ] 氷術師で active30種・進化18種が抽選・進化でき、既存 active25/進化13 も非回帰（火の魔女 active30/進化18 は不変）
+- [ ] 進化5種は **Job Lv80 の発射数増加の対象外**である
+
+### 状態表示・保存・負荷・非回帰
+- [ ] 冷気/凍結/粉砕/ボス氷砕が M7-A〜M7-C と同じ挙動（新スキルでも独自タイマーを持たず既存経路を通る）
+- [ ] 新スキルの冷気/凍結/粉砕/ボス氷砕が **M7-B.1 の表示（冷気段階/氷殻/SHATTER/ボス氷砕ゲージ/FROST BREAK/F10・状態カウンタ）へ自動反映**され、スキル側で二重に演出を出さない（氷印だけ skill-local overlay）
+- [ ] ボスは通常 frozen にならず chill→氷砕ゲージへ変換される（`bossGaugeMult`〈absolute_ice_seal/aurora_veil/eternal_sealed_coffin/polar_night_aurora/heavenfall 巨大槍〉でゲージが二重に増えない・氷砕の cooldown/threshold/vulnerability が M7-B から変わらない）
+- [ ] 途中保存→再読込で 新スキル/レベル/進化/CD/barrage/砲台/氷山/氷河/aurora 帯が概ね復元され、**無料の再発動・二重生成・進化前後の同時稼働**が起きない
+- [ ] 氷印/氷棺の復元が保守的である（**通常敵の印は捨てて無料起爆しない・ボスの印のみ再関連付け・CD は必ず復元**）
+- [ ] 品質 low/medium/high/ultra いずれでも凍結/粉砕/大技/氷印の視認性が保たれる（上限は装飾から削り、判定・**マーカー/防御性能**は削らない）
+- [ ] 敵100体＋2倍速でも処理が止まらず、氷槍 barrage/砲台群/氷山突進/オーロラ帯/氷印起爆が破綻しない（一時停止/リザルト/拠点へ戻れる）
+- [ ] `?debug=1` の **F9** で新 active5・新進化5 を付与/Lv切替/進化条件達成/即時進化でき、`debugRun` として通常 profile 統計/Job XP/残り火/魂炎へ影響しない
+- [ ] リザルト「Balance詳細」に新スキルのテレメトリ（スキル固有 extra）が出て、共通 chill/freeze/shatter/frostbreak が二重カウントされず、外部送信もされない
+- [ ] 上記いずれの操作でもコンソールに **JS エラーが出ない**
+
+### 実際には確認できていない内容（M7-D・重要）
+Node テストで検証したのは **純ロジックのみ**（氷 active30/進化18 のデータ整合・ポリシー監査・runtimeState 保存往復〈氷印はボスのみ復元〉・決定論・ボス氷砕ゲージ）。
+**描画/当たり判定/状態表示/体感バランス/60FPS はブラウザでの確認が必要**（氷槍豪雨・六花砲台・氷山奔衝・氷印起爆・オーロラ帯の見た目と実挙動、
+状態表示への自動反映、氷印 overlay、F9 パネルの描画、実フレームレート）。実ブラウザ（GitHub Pages・`?debug=1` の F9）で上記チェックリストを手動確認すること。実行していない項目を「確認済み」と報告しない。
+
+### M7-D の Node テスト（CI・上の「データ検証（CI）」へ追加）
+- [ ] `node tests/frost-skills-wave4.mjs` が成功する（新 active5種のデータ整合・rarity/castMode/procCoefficient/config 二次proc・bossGaugeMult per-Lv・抽選出現/満枠/最大Lv/追放/決定論）
+- [ ] `node tests/frost-evolutions-wave4.mjs` が成功する（新進化5種のデータ整合・canEvolve〈ice_prison 補助含む〉・既存氷進化13種の非回帰・safetyCaps・propagation.generations）
+- [ ] `node tests/frost-policy-audit-wave4.mjs` が成功する（castMode/echo・clonePolicy/Lv80 対象＝6種・absolute_ice_seal/aurora_veil forbidden・custom の整合・氷印が正式 status 非登録）
+- [ ] `node tests/frost-runtime-save-wave4.mjs` が成功する（実スキルクラスを graphics 対応の最小 Phaser モックで駆動し CD/barrage/砲台/氷山/marker〈ボスのみ復元・通常敵は捨てる〉/aurora の保存往復・二重生成/無料起爆防止を検証・v6 非回帰）
+- [ ] `node tests/frost-determinism-wave4.mjs` が成功する（Math.random/Date.now/performance.now 不使用のソース走査＋同一状態で同一攻撃パターンの決定論トレース）
+- [ ] `node tests/frost-boss-gauge-wave4.mjs` が成功する（`bossGaugeMult` がボス氷砕ゲージのみへ1命中1回・通常敵/damage/chill/proc/炎には掛からず二重加算しない・cooldown/threshold/vulnerability 不変）
+- [ ] `validate-data.mjs` に M7-D 検証ブロック（氷 active30/進化18・skillCaps 19種・cast/監査/procCoefficient/config・bossGaugeMult per-Lv 単調増加・propagation.generations・lv80 対象が6種）が加わり、**全51テストスイートが通過**する

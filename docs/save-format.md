@@ -548,3 +548,34 @@ profile/active_run の既存構造を変えない。そのため **`saveVersion`
 - **保存しない**: 飛行中の projectile（霜輪/屈折弾/彗星/星）・Graphics/Text/Tween・entity 参照・particle・overlay・F10 選択対象。これらはレベル＋runtimeState と再開後の戦闘から自然に再構築する。
 - **再読込での悪用防止**: 設置物（芽/樹）・追従霧・時計/零刻の波・氷冠耐久・彗星 barrage を保存・復元し、**無料の再発動・二重生成・進化前後の同時稼働**を防ぐ。CD 型は残りCDを保存して即時再発動を防ぐ。一時停止中は update が止まるため CD/待機/barrage も進まない。
 - `SkillManager.serializeRuntime()`／`restoreRuntime()` が各スキルの `serializeState/restoreState` を集約し、`BattleScene.restoreFromRun()` が復元する（`tests/frost-runtime-save-wave3.mjs` で実スキルクラスを graphics 対応の最小 Phaser モックで駆動し、CD/設置/波/耐久/barrage 保存と二重生成防止を検証）。加算的追加のため **`save_version` は 6 のまま**。
+
+## Milestone 7-D: 氷術師ビルド拡張・最終波（save_version は 6 のまま・カタログ完成）
+氷術師へ新 active5種・進化5種を追加するが、M6-B/M7-A〜M7-C の `active_run.skillRuntime`（`SkillManager.serializeRuntime`）へ **各スキルの実行時状態を加算的に足すだけ** で、
+profile/active_run の既存構造を変えない。そのため **`saveVersion` は 6 のまま**。v1〜v6 からの移行は M6-A〜M7-C と同じ経路で、既存データを保持し転生でもリセットしない。
+状態RNG（`statusRng`）・ボス frostbreak 状態（`bossFrost`）の保存は M7-A のまま。**表示状態・氷印/氷棺 overlay は保存しない**。
+
+### active_run.skillRuntime（M7-D 氷スキルの追加フィールド・任意）
+無い（旧セーブ・新スキル未所持）場合は空として安全に再開する。CD 型は `cdLeft`、反応型は `markLeft`、常設型は `deployLeft`/`recastLeft`。設置/砲台/氷山/barrage 型は追加の待機・進行フィールドを持つ。
+**再開時の無料再発動・二重生成（barrage/砲台/氷山/氷印無料起爆/aurora 帯/進化前後の同時稼働）を防ぐ**ために保存する。飛行中 projectile/Graphics/Text/Tween/entity 参照/particle/overlay/F10 選択/表示状態は**保存しない**。
+```jsonc
+{
+  "skillRuntime": {
+    "glacial_spear_rain": { "cdLeft": 0, "barrage": { "spearsRemaining": 0, "nextSpearLeft": 0, "barrageIndex": 0, "targetCenter": null, "telegraphLeft": 0 } }, // 氷槍豪雨: CD＋barrage 進行
+    "snowflake_sentry":   { "deployLeft": 0, "nextInstanceId": 1, "sentries": [ { "instanceId": 1, "x": 0, "y": 0, "activeLeft": 0, "shotLeft": 0, "pulseCounter": 0 } ] }, // 六花砲台: 展開待機＋各砲台
+    "iceberg_ram":        { "cdLeft": 0, "icebergs": [ { "x": 0, "y": 0, "direction": 0, "activeLeft": 0, "travel": 0, "collapsePending": false, "instanceId": 1 } ] }, // 氷山奔衝: CD＋滑走中の氷山
+    "absolute_ice_seal":  { "markLeft": 0, "nextInstanceId": 1, "bossMark": null }, // 絶対氷封: CD＋ボス印のみ（通常敵印は捨てる）
+    "aurora_veil":        { "recastLeft": 0, "activeLeft": 0, "tickLeft": 0, "burstLeft": 0, "phase": 0, "castIndex": 0, "layoutIndex": 0 }, // 極光氷幕: 帯の進行状態
+    // 進化:
+    "heavenfall_glacier_lances": { "cdLeft": 0, "barrage": { "spearsRemaining": 0, "nextSpearLeft": 0, "barrageIndex": 0, "targetCenter": null, "telegraphLeft": 0 } },
+    "crystal_sentinel_legion":   { "deployLeft": 0, "nextInstanceId": 1, "sentries": [ { "instanceId": 1, "x": 0, "y": 0, "activeLeft": 0, "shotLeft": 0, "linkCounter": 0 } ] },
+    "continental_glacier_rush":  { "cdLeft": 0, "glaciers": [ { "x": 0, "y": 0, "direction": 0, "activeLeft": 0, "travel": 0, "instanceId": 1 } ] },
+    "eternal_sealed_coffin":     { "markLeft": 0, "nextInstanceId": 1, "bossMark": null }, // 副棺は伝播1世代・再伝播しない（保存は主印CDとボス印のみ）
+    "polar_night_aurora":        { "recastLeft": 0, "activeLeft": 0, "tickLeft": 0, "burstLeft": 0, "pillarCounter": 0, "phase": 0, "layoutIndex": 0 }
+  }
+}
+```
+- **保存対象**: CD/反応 CD（`cdLeft`/`markLeft`）・常設待機（`deployLeft`/`recastLeft`）・barrage（氷槍）・砲台/氷山/氷河の実体・aurora 帯の進行。統計は profile 側 `skillMastery`（新スキル分も同形式・`recordExtra`）で保持。
+- **氷印/氷棺マーカーの復元方針**（重要）: 氷印/氷棺は `Enemy._iceSeal`（skill-local マーカー・正式 status ではない）で、命中数は `Enemy._iceHitCount` が持つ。**通常敵の印は pool 再利用で個体を再特定できないため保存・復元せず捨てる**（再開時に無料起爆させない）。**ボス（`scene.boss`）の印のみ再関連付け**し、**CD（`markLeft`）は必ず復元**して即時再付与を防ぐ。`Enemy._iceSeal`/`_iceHitCount` は `Enemy.reset` でクリアされる（pool 残留防止）。
+- **保存しない**: 飛行中の projectile（氷槍/砲台弾）・Graphics/Text/Tween・entity 参照・particle・overlay・**氷印/氷棺の表示 overlay**・F10 選択対象・**表示状態全般**。これらはレベル＋runtimeState と再開後の戦闘から自然に再構築する。
+- **再読込での悪用防止**: barrage・砲台・氷山・氷河・aurora 帯・氷印 CD を保存・復元し、**無料の再発動・二重生成・氷印の無料起爆・進化前後の同時稼働**を防ぐ。一時停止中は update が止まるため CD/待機/barrage も進まない。
+- `SkillManager.serializeRuntime()`／`restoreRuntime()` が各スキルの `serializeState/restoreState` を集約し、`BattleScene.restoreFromRun()` が復元する（`tests/frost-runtime-save-wave4.mjs` で実スキルクラスを graphics 対応の最小 Phaser モックで駆動し、CD/barrage/砲台/氷山/marker（ボスのみ復元・通常敵は捨てる）/aurora 保存と二重生成・無料起爆防止を検証）。加算的追加のため **`save_version` は 6 のまま**。

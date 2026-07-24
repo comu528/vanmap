@@ -12,9 +12,9 @@ M7-A で 2人目のジョブ **氷術師（frost_mage）** を追加したため
 | ジョブ | active | 進化 | passive |
 |--------|--------|------|---------|
 | 火の魔女 flame_witch | 30 | 18 | 4（共通） |
-| 氷術師 frost_mage | 25 | 13 | 4（氷専用） |
+| 氷術師 frost_mage | 30 | 18 | 4（氷専用） |
 
-> 氷術師は M7-A で active5/進化3、M7-B で active15/進化8、**M7-C で active25/進化13** へ拡張（下記「Milestone 7-B」「Milestone 7-C」）。火の魔女は不変。
+> 氷術師は M7-A で active5/進化3、M7-B で active15/進化8、M7-C で active25/進化13、**M7-D で active30/進化18** へ拡張（下記「Milestone 7-B」〜「Milestone 7-D」）。**M7-D で火の魔女と同規模のカタログに到達（氷術師カタログ完成）**・火の魔女は不変。**次工程は完成監査（抽選率/進化到達率/バランス分析）**。
 
 - **氷術師 active5**: 氷晶弾 `frost_shard`（初期）/ 氷輪爆 `frost_nova` / 氷河槍 `glacial_lance` / 永久凍土 `permafrost_field` / 氷壁 `ice_wall`。
 - **氷術師 進化3**: ダイヤモンドブリザード（frost_shard+rapid_freezing）/ 絶対零度領域（frost_nova+frozen_expansion）/ 天穿氷河槍（glacial_lance+frost_amplification）。
@@ -184,3 +184,31 @@ active30種化で進化相手が候補へ極端に出にくくならないよう
 
 - **Job Lv80「発射数+1」対象**は明示フラグ（`lv80ProjectileTarget:true`）で `SkillAudit` が一元管理し、新 active では `rime_boomerang`/`polar_star`・新進化5種は全て対象外。氷全体の対象は計5種（`frost_shard`/`glacial_lance`/`icicle_volley`/`rime_boomerang`/`polar_star`）。
 - `zero_hour_world` の条件に使う `ice_prison` は進化条件用の補助 active で置換しない。`frozen_clock`/`zero_hour_world` の `bossGaugeMult` はボス氷砕ゲージ量のみへ1命中1回だけ適用する（damage/chill/proc には掛からず二重加算しない）。検証は `frost-policy-audit-wave3.mjs`・`skill-catalog` 相当。詳細は `./docs/skills.md`・`./docs/jobs.md`。
+
+## Milestone 7-D: 氷術師カタログ拡張・最終波（active30 / 進化18・カタログ完成）
+氷術師へ新 active5種・進化5種を追加し、`SkillCatalog.buildCatalog(frost_mage)` は **active30 / passive4（氷専用4）/ 進化18・issues0**（孤立/未登録/参照不整合0）になり、**火の魔女カタログ（active30/passive4/進化18）と同規模に到達**した（氷術師カタログ完成）。
+火の魔女カタログと氷術師の既存 active25/進化13 は不変。各 active/進化は `castMode`・`echoPolicy`/`clonePolicy`・`lv80ProjectileTarget`・`procCoefficient`・`config`（二次proc）・`bossGaugeMult`・`runtimeState` を実データから露出する。**次工程は氷術師カタログの完成監査**（抽選率/進化到達率/バランス分析）。
+
+### 新 active5種
+| スキル | id | rarity | castMode | echo/clonePolicy | lv80 | procCoeff | runtimeState |
+|--------|----|--------|----------|------------------|------|-----------|--------------|
+| 氷槍豪雨 | `glacial_spear_rain` | common | periodic | custom/custom | **true** | 0.42（大型 config 0.80） | `cdLeft`＋barrage（`spearsRemaining`/`nextSpearLeft`/`barrageIndex`/`targetCenter`/`telegraphLeft`） |
+| 六花砲台 | `snowflake_sentry` | uncommon | continuous | custom/custom | false | 0.35（pulse config 0.18） | `deployLeft`/`nextInstanceId`＋各砲台（`instanceId`/x/y/`activeLeft`/`shotLeft`/pulse） |
+| 氷山奔衝 | `iceberg_ram` | rare | cooldown | standard/custom | false | 0.55（崩壊 config 0.75） | `cdLeft`＋氷山（x/y/`direction`/`activeLeft`/`travel`/`collapsePending`/`instanceId`） |
+| 絶対氷封 | `absolute_ice_seal` | rare | reactive | **forbidden/forbidden** | false | 0.85（起爆・`bossGaugeMult`1.25→1.50） | `markLeft`/`nextInstanceId`＋ボス印のみ |
+| 極光氷幕 | `aurora_veil` | legendary | continuous | **forbidden/forbidden** | false | 0.14（burst config 0.75・`bossGaugeMult`1.15→1.35） | `recastLeft`/`activeLeft`/`tickLeft`/`burstLeft`/`phase`/`castIndex`/`layoutIndex` |
+
+- `absolute_ice_seal`/`aurora_veil` は echoPolicy=clonePolicy=forbidden（複製・残響なし）。`glacial_spear_rain`/`snowflake_sentry` は custom（攻撃部分のみ複製・設置/砲台は増やさない）、`iceberg_ram` は echo=standard・clone=custom。
+- **氷印/氷棺は skill-local マーカー**でカタログの正式 status には現れない（`StatusEffectRegistry` 非登録・`Enemy._iceSeal`/`_iceHitCount`）。設置/遅延/反応/barrage 型の runtimeState は再開時の無料再発動・二重生成・進化前後の同時稼働を防ぐ。飛行中 projectile/Graphics/Text/Tween/overlay/F10 選択・表示状態は保存しない。
+
+### 新 進化5種（単一形態・element ice・lv80ProjectileTarget=false・evolved タグ）
+| 進化 | id | 置換元 | 条件 | castMode | bossGaugeMult | runtimeState |
+|------|----|--------|------|----------|---------------|--------------|
+| 天墜氷槍葬 | `heavenfall_glacier_lances` | `glacial_spear_rain` | glacial_spear_rain Lv8 ＋ frost_amplification Lv4 | periodic | 1.4 | `cdLeft`＋barrage |
+| 六花氷衛軍 | `crystal_sentinel_legion` | `snowflake_sentry` | snowflake_sentry Lv8 ＋ rapid_freezing Lv4 | continuous | — | 各砲台（`instanceId`/x/y/`activeLeft`/`shotLeft`/`linkCounter`） |
+| 大陸氷河奔流 | `continental_glacier_rush` | `iceberg_ram` | iceberg_ram Lv8 ＋ frozen_expansion Lv4 | cooldown | — | `cdLeft`＋氷河 |
+| 永劫封氷棺 | `eternal_sealed_coffin` | `absolute_ice_seal` | absolute_ice_seal Lv8 ＋ ice_prison(補助 active) Lv4 | reactive | 2.0 | `markLeft`＋ボス印 |
+| 極夜天光 | `polar_night_aurora` | `aurora_veil` | aurora_veil Lv8 ＋ lingering_cold Lv4 | continuous | 1.7 | `recastLeft`/`activeLeft`/`tickLeft`/`burstLeft`/`pillarCounter`/`phase`/`layoutIndex` |
+
+- **Job Lv80「発射数+1」対象**は明示フラグ（`lv80ProjectileTarget:true`）で `SkillAudit` が一元管理し、M7-D 新 active では `glacial_spear_rain` のみ・新進化5種は全て対象外。氷全体の対象は**計6種**（`frost_shard`/`glacial_lance`/`icicle_volley`/`rime_boomerang`/`polar_star`/`glacial_spear_rain`）。
+- `eternal_sealed_coffin` の条件に使う `ice_prison` は補助 active で置換しない・起爆時に**副棺を最大1世代だけ伝播**（副棺は再伝播しない）。`bossGaugeMult` はボス氷砕ゲージ量のみへ1命中1回だけ適用する（M7-C 修正済み共通経路・damage/chill/proc には掛からず二重加算しない）。検証は `frost-policy-audit-wave4.mjs`・`frost-boss-gauge-wave4.mjs`・`skill-catalog` 相当。詳細は `./docs/skills.md`・`./docs/jobs.md`。

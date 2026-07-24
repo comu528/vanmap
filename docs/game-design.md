@@ -490,3 +490,35 @@ hitGroup 上限・状態カウンタ・ボス氷砕状態を数値で確認で�
 | 零刻世界 `zero_hour_world` | 氷刻停止 `frozen_clock` | 氷牢封印 `ice_prison`（補助 active・置換しない） |
 
 冷気/凍結/粉砕/ボス氷砕は既存 `StatusEffectManager` 経路（独自タイマーなし）。index ベース決定論で draft RNG cursor 不変。echo/clone は1世代・再帰なし（`frozen_clock`/`winter_halo` は forbidden・`crystal_bloom`/`snowblind_mist`/`comet_sleet` は custom で攻撃部分のみ複製）。実ブラウザでの見た目・体感は本環境では未確認。詳細は `docs/skills.md`・`docs/jobs.md`・`docs/skill-catalog.md`。
+
+## Milestone 7-D: 氷術師ビルド拡張・最終波（active30 / 進化18・カタログ完成）
+氷術師を **active30種 / passive4種（M7-D で追加なし）/ 進化18種 / Job Lv1〜100** に拡張し、**火の魔女（active30/進化18/passive4）と同規模のカタログに到達**した（氷術師カタログ完成）。火の魔女と氷術師の既存 active25/進化13 は不変で、
+同 seed の抽選結果も不変。冷気→凍結→粉砕／ボス氷砕の制圧サイクルはそのままに、豪雨・砲台・突進・封印・帯といった**大技側の締めくくり**を加えて氷ビルドを完成させる。数値バランスは `data/skills.json` が正（指示なく変更しない）。**次工程は氷術師カタログの完成監査**（抽選率/進化到達率/バランス分析）で、本 milestone では新スキルの追加を打ち止めにする。
+
+### カタログ完成の思想
+- **「火の魔女と同規模」を到達点に据える**。氷術師を active30/進化18/passive4 まで伸ばし、両ジョブが同じカタログ規模で並ぶ形にする。これ以上の active/進化/passive は当面追加せず、次は数値と抽選・到達のバランスを見る監査工程へ移る。
+- **legendary/reactive/continuous を制御して過剰にしない**。極光氷幕（legendary・continuous）は帯を複数 query へ分割し毎frame 全敵走査しない・burst のみ粉砕。絶対氷封（reactive）は氷印を skill-local マーカーで扱い正式 status を増やさず、時間か氷命中数でのみ起爆する。これらは echo/clone を forbidden にして複製で密度が跳ね上がらないようにする。長 CD・複製禁止・cap 制御で「派手だが破綻しない」を守る。
+- **marker（氷印/氷棺）は最小限の skill-local 設計**にする。`StatusEffectRegistry` へ登録せず正式 status 表示へ重複追加しない（skill-local overlay のみ）。`Enemy._iceSeal`/`_iceHitCount` を `Enemy.reset` でクリアし、pool 再利用の残留・無料起爆を防ぐ。復元は「通常敵は捨て・ボスのみ再関連付け・CD は必ず復元」で保守的に倒す。
+- **ボス制圧は共通経路へ寄せる**。新スキルの `bossGaugeMult`（absolute_ice_seal/aurora_veil/eternal_sealed_coffin/polar_night_aurora/heavenfall 巨大槍）は M7-C 修正済みの共通経路でボス氷砕ゲージ量のみへ1命中1回だけ掛かり、damage/chill/proc や通常敵・炎には掛からず二重加算しない（ボス氷砕の cooldown/threshold/vulnerability は不変）。
+- **進化は基礎 Lv8 より明確に強い到達点**にする。永劫封氷棺は氷棺印を近傍の未印へ**1世代だけ伝播**（副棺は再伝播しない）させ、連鎖の暴走を1段で止める。`ice_prison` は補助 active で置換しない。
+- **状態表示・保存・テレメトリは既存基盤に寄せる**。新スキルは既存 `StatusEffectManager` 経路で冷気/凍結/粉砕/ボス氷砕を起こし、M7-B.1 の視認性表示（`StatusVisualManager`/ボス氷砕/F10・状態カウンタ）へ自動反映する（重複実装しない）。氷印だけ最小限の skill-local overlay を持つ。
+
+### 新アクティブ5種（すべて氷術師専用・最大Lv8・毎レベル成長）
+| スキル | id | レア | 役割 |
+|--------|----|------|------|
+| 氷槍豪雨 | `glacial_spear_rain` | common | 予告付き氷槍を螺旋（黄金角）落下。大型槍のみ凍結敵を粉砕（**Lv80発射数対象**） |
+| 六花砲台 | `snowflake_sentry` | uncommon | 設置砲台が非frozen 高chill 敵を優先射撃＋六花pulse（砲台弾は粉砕なし） |
+| 氷山奔衝 | `iceberg_ram` | rare | 滑走氷山が通常敵 push（エリート軽減/ボス無効）・凍結敵粉砕・終端崩壊＋氷片 |
+| 絶対氷封 | `absolute_ice_seal` | rare | 氷印マーカーを時間/氷命中数で起爆・凍結敵粉砕・bossGaugeMult（reactive・複製禁止） |
+| 極光氷幕 | `aurora_veil` | legendary | 画面横断オーロラ帯。burst のみ凍結敵粉砕・bossGaugeMult（continuous・複製禁止） |
+
+### 新進化5種（枠を消費せず基礎 active を置換・補助条件スキルは消費しない・進化は Lv80発射数対象外）
+| 進化 | 基礎スキル(Lv8) | 補助条件(Lv4) |
+|------|-----------------|---------------|
+| 天墜氷槍葬 `heavenfall_glacier_lances` | 氷槍豪雨 `glacial_spear_rain` | 氷晶増幅 `frost_amplification`（passive） |
+| 六花氷衛軍 `crystal_sentinel_legion` | 六花砲台 `snowflake_sentry` | 急速冷却 `rapid_freezing`（passive） |
+| 大陸氷河奔流 `continental_glacier_rush` | 氷山奔衝 `iceberg_ram` | 凍域拡張 `frozen_expansion`（passive） |
+| 永劫封氷棺 `eternal_sealed_coffin` | 絶対氷封 `absolute_ice_seal` | 氷牢封印 `ice_prison`（補助 active・置換しない） |
+| 極夜天光 `polar_night_aurora` | 極光氷幕 `aurora_veil` | 余寒残留 `lingering_cold`（passive） |
+
+冷気/凍結/粉砕/ボス氷砕は既存 `StatusEffectManager` 経路（独自タイマーなし）。index／黄金角ベース決定論で draft RNG cursor 不変。echo/clone は1世代・再帰なし（`absolute_ice_seal`/`aurora_veil`/`eternal_sealed_coffin`/`polar_night_aurora` は forbidden・`glacial_spear_rain`/`snowflake_sentry` は custom で攻撃部分のみ複製・`iceberg_ram` は echo=standard・clone=custom）。氷印/氷棺は skill-local マーカーで正式 status を増やさない。実ブラウザでの見た目・体感は本環境では未確認。詳細は `docs/skills.md`・`docs/jobs.md`・`docs/skill-catalog.md`。

@@ -523,6 +523,52 @@ Lv1〜8 データ駆動で、冷気/凍結/粉砕/ボス氷砕は既存 `StatusE
 
 ---
 
+## Milestone 7-D（実装済み）— 氷術師のスキル拡張・最終波（active30 / 進化18・カタログ完成）
+
+氷術師の active を5種・進化を5種追加し、**active30種 / passive4種（追加なし）/ 進化18種 / Job Lv1〜100** へ拡張して、**火の魔女（active30/進化18/passive4）と同規模のカタログに到達**した（氷術師カタログ完成）。全て `data/skills.json`/`data/skill-evolutions.json` の
+Lv1〜8 データ駆動で、冷気/凍結/粉砕/ボス氷砕は既存 `StatusEffectManager` 経路を使用（独自タイマーなし）。**Math.random/Date.now/performance.now 不使用（index／黄金角ベース決定論）**・**新 passive/ジョブ/状態/属性反応/限界突破なし**・**save_version は v6 のまま**。火の魔女 active30/進化18 と氷術師既存 active25/進化13 は不変。
+
+### 新 active5種（frost_mage 専用・element ice・isCommon:false・maxLevel8）
+- [x] 氷槍豪雨 `glacial_spear_rain`（common・periodic・予告付き氷槍を螺旋（黄金角）落下・大型槍のみ凍結敵粉砕・**Lv80発射数対象**・proc 通常0.42/大型0.80・echo=clone custom・runtimeState cdLeft＋barrage spearsRemaining/nextSpearLeft/barrageIndex/targetCenter/telegraphLeft）。
+- [x] 六花砲台 `snowflake_sentry`（uncommon・continuous・設置砲台が非frozen 高chill 敵優先射撃＋六花pulse・砲台弾は粉砕なし・proc 0.35/pulse0.18・echo=clone custom・runtimeState deployLeft/nextInstanceId＋各砲台 instanceId/x/y/activeLeft/shotLeft/pulse カウンタ）。
+- [x] 氷山奔衝 `iceberg_ram`（rare・cooldown・滑走氷山が通常敵 push（エリート軽減/ボス無効）・凍結中は最初の接触で粉砕・終端崩壊＋氷片・proc 接触0.55/崩壊0.75・echo=standard・clone=custom・runtimeState cdLeft＋氷山 x/y/direction/activeLeft/travel/collapsePending/instanceId）。
+- [x] 絶対氷封 `absolute_ice_seal`（rare・reactive・高chill 対象へ**氷印（skill-local マーカー・正式 status ではない）**・markDuration 経過か氷属性命中数（requiredHits）で起爆・凍結中を1回粉砕・**bossGaugeMult Lv別1.25→1.50**・proc 起爆0.85・echo=clone **forbidden**・印付与時は freeze roll しない・runtimeState markLeft/nextInstanceId＋ボス印のみ）。
+- [x] 極光氷幕 `aurora_veil`（legendary・continuous・画面横断オーロラ帯が tick でダメージ＋冷気・一定間隔の burst のみ凍結中を1回粉砕・**bossGaugeMult Lv別1.15→1.35**・帯は複数 query へ分割し毎frame 全敵走査しない・proc tick0.14/burst0.75・echo=clone **forbidden**・runtimeState recastLeft/activeLeft/tickLeft/burstLeft/phase/castIndex/layoutIndex）。
+
+### 新進化5種（EvolvedSkillBase・element ice・単一形態・追加Lvなし・**Job Lv80対象外**）
+- [x] 天墜氷槍葬 `heavenfall_glacier_lances`（glacial_spear_rain Lv8 + frost_amplification Lv4・periodic・custom・複数 wave の大規模氷槍雨・巨大槍のみ強化粉砕＋bossGaugeMult1.4・runtimeState cdLeft＋barrage）。
+- [x] 六花氷衛軍 `crystal_sentinel_legion`（snowflake_sentry Lv8 + rapid_freezing Lv4・continuous・custom・陣形砲台＋砲台間氷線（主命中で1回粉砕）・runtimeState 各砲台 instanceId/x/y/activeLeft/shotLeft/linkCounter）。
+- [x] 大陸氷河奔流 `continental_glacier_rush`（iceberg_ram Lv8 + frozen_expansion Lv4・cooldown・custom・幅広氷河＋崩壊裂片（残留・粉砕なし）・runtimeState cdLeft＋氷河）。
+- [x] 永劫封氷棺 `eternal_sealed_coffin`（absolute_ice_seal Lv8 + ice_prison Lv4・reactive・**forbidden**・氷棺印＋起爆時に近傍未印へ**副棺を最大1世代だけ伝播（副棺は再伝播しない）**・bossGaugeMult2.0・runtimeState markLeft＋ボス印）。`ice_prison` は進化条件用の補助 active で置換しない。
+- [x] 極夜天光 `polar_night_aurora`（aurora_veil Lv8 + lingering_cold Lv4・continuous・**forbidden**・帯＋burst＋一定回数ごとの極光柱・bossGaugeMult1.7・runtimeState recastLeft/activeLeft/tickLeft/burstLeft/pillarCounter/phase/layoutIndex）。
+
+### 決定論・skill-local マーカー・監査・保存・テスト
+- [x] castMode/mainCastEvent/echoPolicy/clonePolicy/lv80ProjectileTarget/procCoefficient/config/bossGaugeMult を全 active/進化で宣言。主発動のみ recordCast。**Lv80発射数対象は明示フラグ（`SkillAudit.appliesLv80ProjectileCount`）で管理**し、氷の対象は**計6種**（frost_shard/glacial_lance/icicle_volley/rime_boomerang/polar_star/glacial_spear_rain）・新進化は対象外。
+- [x] 全新スキルは index／黄金角（2.399963…）ベース決定論（Math.random/Date.now/performance.now/draft RNG 不使用）。同点は entity id/`_seq`→x→y／`instanceId`／wave index で安定決定。status RNG は `FreezeSystem` のみ。
+- [x] **氷印/氷棺は skill-local マーカー**（`StatusEffectRegistry` へ登録しない・正式 status 表示へ重複追加しない・skill-local overlay のみ）。`Enemy._iceSeal`（マーカー参照）と `Enemy._iceHitCount`（氷属性命中カウンタ）を追加し `Enemy.reset` でクリア（pool 再利用の残留防止）。命中数起爆は `dealDamage` の ice 分岐が `_iceHitCount` を1回加算しマーカーが差分で判定。復元方針: 通常敵は捨て（無料起爆しない）・ボス（`scene.boss`）のみ再関連付け・CD（`markLeft`）は必ず復元。
+- [x] `bossGaugeMult` は M7-C 修正済み共通経路（`dealDamage`/`damageArea`→`opts.bossGaugeMult`（既定1）→`applyIceHit` のボス分岐→`addBossGauge` 量へ1回だけ）を維持。damage/chill/procCoefficient/通常敵/火には掛からず二重加算なし・status RNG cursor 不変・frostbreak の threshold/cooldown/vulnerability 不変。validate-data が未使用の成長 field（absolute_ice_seal.bossGaugeMult の Lv 単調増加 等）を検出。
+- [x] 冷気/凍結/粉砕/ボス氷砕は既存経路で M7-B.1 表示（StatusVisualManager/BossFrostbreakDisplay/StatusDebugPanel/F10）・状態カウンタへ自動反映（重複実装しない）。氷印だけ最小限の skill-local overlay。
+- [x] CD/barrage/砲台/氷山/marker/aurora の runtimeState を `skillRuntime` へ保存し再開時の無料再発動・二重生成を防止。飛行中 projectile/Graphics/Text/Tween/entity 参照/particle/overlay/F10 選択・表示状態は保存しない。
+- [x] 品質別 skillCaps 19種を `data/balance.json` へ追加（装飾 cap と damage event cap を区別・visual cap でマーカー/防御性能を減らさない）。CombatTelemetry へスキル固有 extra（recordExtra）を追加（共通 chill/freeze/shatter/frostbreak は二重カウントしない・外部送信なし）。
+- [x] `?debug=1` の **F9** に新 active5・新進化5 を追加（付与/Lv切替/進化条件達成/即時進化・debugRun 分離）。
+- [x] 新規テスト6種: `frost-skills-wave4` / `frost-evolutions-wave4` / `frost-policy-audit-wave4` / `frost-runtime-save-wave4` / `frost-determinism-wave4` / `frost-boss-gauge-wave4`。`validate-data.mjs` へ M7-D ブロック・`validate.yml` へステップ追加。**全51スイート通過・validate-data 0エラー0警告**。
+- [x] **非回帰**: 火の魔女 active30/進化18・同seed抽選、氷術師既存 active25/進化13、冷気/凍結/免疫/粉砕/ボス氷砕、selectedJobId/active_run固定、M5-B保存・テレメトリ・M7-A状態異常・M7-B.1表示・M7-C 氷CD保存/bossGaugeMult。
+
+### M7-D で**実装しない**もの（対象外）
+- [ ] 氷術師 active 31種目以降・進化19種目以降・**新 passive**・限界突破（Lv8超）・進化後レベルアップ。
+- [ ] 3人目のジョブ・ジョブ間継承・**火と氷の属性反応**・転生レガシー・新敵/新ボス/新難易度・装備/ドロップ・正式図鑑/実績・ゲームバランスの全面調整。
+
+> **実ブラウザ未確認**: 本環境では Phaser 実プレイ確認を行っていない。データ検証・純ロジック・最小 Phaser モック（graphics 対応）によるランタイムスモークは通過済みだが、
+> 実際の描画・視認性・当たり判定・体感バランス・60FPS 維持はブラウザでの確認が必要（`docs/test-guide.md` の M7-D／spec §36 項目参照）。
+
+### 次のマイルストーン（氷術師カタログ完成監査）
+- [ ] **抽選率の監査**（active30 の rarity 分布・重み・synergy・リロール/追放を含む実測）
+- [ ] **進化到達率の監査**（18進化の素材 Lv8＋passive Lv4 到達可能性・被り抑制）
+- [ ] **バランス分析**（DPS/生存/冷気→凍結→粉砕→ボス氷砕の寄与・legendary の長CD/複製禁止の効き・coffin 伝播/aurora 視認性）
+- [ ] 上記を踏まえた数値微調整（指示なき大幅変更はしない）
+
+---
+
 ## 拡張余地（今後）
 - [ ] 周回長の拡張（10分/15分/無限モード）
 - [ ] 追加の敵・ボス

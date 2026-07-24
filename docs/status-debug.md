@@ -67,3 +67,12 @@ F10 の chill / freeze 内訳 / hitGroup 上限 / 実動作カウンタ（`chill
 freeze 内訳（base×proc / 冷気寄与 / proc / 最終 freezeChance / RNG roll / 結果 / hitGroupId / 同 group 判定回数 / skip理由）で**永久凍結にならないこと**を確認できる。
 新スキル固有のテレメトリ extra は `CombatTelemetry`（ResultScene「Balance詳細」）側で扱い、F10 とは役割を分ける（二重集計しない）。表示状態は保存しない・`save_version` は v6 のまま。
 実際の描画・F10 の実挙動は本環境では未検証（`docs/test-guide.md` の M7-C 項目）。
+
+## Milestone 7-D の追記（新スキルの状態も自動反映）
+M7-D で氷術師へ追加した新 active5種・進化5種は、冷気/凍結/粉砕/ボス氷砕を既存の `StatusEffectManager` / `FreezeSystem` 経路で起こすため、
+F10 の chill / freeze 内訳 / hitGroup 上限 / 実動作カウンタ（`chillApplications`/`freezeAttempts`/`freezeSuccesses`/`immunitySkips`/`hitGroupSkips`/`bossGaugeApplications` ほか）へ
+**自動反映**される（新スキルのために F10 側の集計を追加実装しない）。豪雨 barrage/砲台/氷山/burst/氷印起爆の新スキルは低い `procCoefficient`＋二次 proc（`config`）で凍結を起こすため、
+freeze 内訳（base×proc / 冷気寄与 / proc / 最終 freezeChance / RNG roll / 結果 / hitGroupId / 同 group 判定回数 / skip理由）で**永久凍結にならないこと**を確認できる。
+- **氷印/氷棺は skill-local マーカー**で正式 status ではないため、F10 の状態異常一覧（burning/chill/frozen/immunity/frostbreak）には現れない（`Enemy._iceSeal`/`_iceHitCount` はスキル側の値）。氷属性命中数による起爆は氷ヒットの chill/freeze カウンタとして間接的に反映される。
+新スキル固有のテレメトリ extra は `CombatTelemetry`（ResultScene「Balance詳細」）側で扱い、F10 とは役割を分ける（二重集計しない）。表示状態は保存しない・`save_version` は v6 のまま。
+実際の描画・F10 の実挙動は本環境では未検証（`docs/test-guide.md` の M7-D 項目）。

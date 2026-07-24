@@ -208,6 +208,24 @@ M7-A で 2人目のジョブ **氷術師（frost_mage）** と汎用状態異常
 - 決定論は不変（Math.random/Date.now/performance.now 不使用・index ベース・draft RNG cursor 不変）。検証は `frost-skills-wave3`/`frost-evolutions-wave3`/`frost-policy-audit-wave3`/`frost-runtime-save-wave3`/`frost-determinism-wave3`・`validate-data`（M7-C ブロック）で、**全44テストスイート通過・validate-data 0エラー0警告**。
 - **実ブラウザ負荷は未確認**: 敵100体＋2倍速での彗星 barrage/全画面時計波/開花/追従霧の負荷・視認性・60FPS 維持はブラウザでの確認が必要（`docs/test-guide.md` の M7-C 項目）。本環境は純ロジック＋graphics 対応の最小モックスモークのみ。実行していない項目を「確認済み」と報告しない。
 
+## Milestone 7-D の追記（氷術師ビルド拡張・最終波＝カタログ完成）
+氷術師を **active30 / 進化18**（新 active5種・進化5種）へ拡張し、**火の魔女と同規模のカタログに到達**したのに合わせ、検証基盤の対象も広げた（**save_version は v6 のまま**・外部送信なし・自動調整なし・数値は data が正）。**この波で氷術師のスキル追加は打ち止めとし、次工程はカタログの完成監査**（抽選率/進化到達率/バランス分析）へ移る。
+
+### バランス方針（rarity 別の役割と制御）
+- **common は素直な基礎**: `glacial_spear_rain`（予告付き氷槍豪雨）。序盤から取れる主力だが、予告と大型槍のみ粉砕でメリハリを付ける。
+- **uncommon は補助軸**: `snowflake_sentry`（設置砲台）。優先射撃と pulse で高chill 敵を効率よく削るが砲台弾は粉砕なし。
+- **rare は主軸**: `iceberg_ram`（突進＋崩壊）/`absolute_ice_seal`（氷印・時間/命中数起爆）。ビルドの核になる強さを持つが、氷印は skill-local マーカーで正式 status を増やさず時間か氷命中数でのみ起爆する。
+- **legendary は長CD・複製禁止の切り札を cap 制御**: `aurora_veil`（画面横断オーロラ帯）は `echoPolicy=clonePolicy=forbidden`（複製で密度が跳ね上がらない）・帯を複数 query へ分割し毎frame 全敵走査しない（`maxAuroraQueriesPerTick` で負荷 cap）・burst のみ粉砕。
+- **進化は基礎 Lv8 より明確に強い到達点**: 基礎 active を置換し枠を消費しない。補助条件（passive3種＋補助 active `ice_prison`）は消費しない。過剰化を避けるため `eternal_sealed_coffin`（永劫封氷棺）は氷棺印を近傍未印へ**1世代だけ伝播**（`propagation.generations=1`・副棺は再伝播しない）させ連鎖の暴走を1段で止める。`aurora_veil`/`polar_night_aurora`/`absolute_ice_seal`/`eternal_sealed_coffin` は forbidden で残響/複製せず、ボス氷砕は標準経路（`bossGaugeMult` はボス氷砕ゲージ量のみへ1命中1回だけ適用し、damage/chill/proc には掛からず二重加算しない）。
+
+### 検証観点
+- **Balance Playtest（F8）の対象**: 新 active5種・進化5種も検証プレイの抽選・取得・進化条件達成の対象に含まれる（氷術師を選んで素の手触りを確認）。**profile は不変・常に debugRun**。
+- **quality 別 skillCaps の対象**: 氷スキル/進化の品質別上限 **19種を追加**（氷槍予告/氷槍着弾/氷槍数/砲台数/砲台弾/砲台氷線/氷山数/氷山接触判定/氷山氷片/氷印数/氷印起爆/オーロラ帯/オーロラ走査/オーロラ burst/天墜着弾/氷衛軍氷線/大陸氷河数/封氷棺印/極夜帯 など・`low≤medium≤high≤ultra`・正）。**装飾 cap と damage event cap を区別**し、上限到達でも凍結/粉砕/氷砕/氷印の判定は消さず装飾を先に削る。**visual cap でマーカー/防御性能を減らさない**（氷印数の防御性能・aurora の視認性維持のための走査分割 cap を含む）。
+- **テレメトリの対象**: 新スキルの per-skill 追加キー（`skills.recordExtra`・ResultScene「Balance詳細」に表示）を記録。共通 chill/freeze/shatter/frostbreak は既存経路で記録し**二重カウントしない**。**外部送信なし**・テレメトリ失敗でゲーム/保存は失敗しない。debugRun は通常統計と分離。
+- 決定論は不変（Math.random/Date.now/performance.now 不使用・index／黄金角ベース・draft RNG cursor 不変・status RNG は FreezeSystem のみ）。検証は `frost-skills-wave4`/`frost-evolutions-wave4`/`frost-policy-audit-wave4`/`frost-runtime-save-wave4`/`frost-determinism-wave4`/`frost-boss-gauge-wave4`・`validate-data`（M7-D ブロック）で、**全51テストスイート通過・validate-data 0エラー0警告**。
+- **次工程＝完成監査**: 氷術師 active30 の抽選率（rarity 分布・重み・synergy・リロール/追放）、18進化の到達率（素材 Lv8＋補助 Lv4 到達可能性・被り抑制）、DPS/生存/状態寄与のバランス分析を次 milestone で実施する（数値の大幅変更は指示があるまで行わない）。
+- **実ブラウザ負荷は未確認**: 敵100体＋2倍速での氷槍 barrage/砲台群/氷山突進/オーロラ帯/氷印起爆の負荷・視認性・60FPS 維持はブラウザでの確認が必要（`docs/test-guide.md` の M7-D 項目）。本環境は純ロジック＋graphics 対応の最小モックスモークのみ。実行していない項目を「確認済み」と報告しない。
+
 ## 既知の制約（M6-F）
 - Node で検証したのは **カタログ整合・抽選シミュレーション・進化成立性・テレメトリ純ロジック・検証モードの profile 非変更** のみ。
 - テレメトリの**実収集値・FPS ヒストグラム・ResultScene の Balance詳細描画・F8 パネルの実挙動**は Phaser 依存のため

@@ -929,3 +929,64 @@ M6-E〜M7-B.1 までの `skillCaps` へ、氷スキル/進化の品質別（`low
 - 検証: 追加23キーが品質順で単調非減少・非負整数（`low≤medium≤high≤ultra`・正）。**上限到達でも凍結/粉砕/氷砕の判定は消さず、装飾を先に削る**。
 
 `validate-data.mjs` に M7-C 検証ブロックを追加（氷 active25/進化13・skillCaps 23種・cast/監査/procCoefficient/config 二次proc・lv80 対象が5種）。詳細は `docs/skills.md`・`docs/skill-catalog.md`・`docs/jobs.md`。
+
+## Milestone 7-D: 氷術師ビルド拡張・最終波（`skills.json`/`skill-evolutions.json`/`balance.skillCaps` を加算拡張・カタログ完成）
+
+氷術師へ新 active5種・進化5種を追加し、**火の魔女（active30/進化18/passive4）と同規模のカタログに到達**する（氷術師カタログ完成）。既存データ形式は変更しない。**`saveVersion` は 6 のまま**。**次工程は完成監査**（抽選率/進化到達率/バランス分析）。
+
+### skills.json（氷 active を30件へ）
+M7-A〜M7-C の氷 active25種に加え、新 active5種を追記して **氷 active は30件**（`jobs.json` の `frost_mage.activeSkillPool` も30件）。
+各スキルは既存の active／氷メタ（`category`/`element:"ice"`/`isCommon:false`/`jobs:["frost_mage"]`/`rarity`/`maxLevel:8`/`levels`(Lv1〜8)/`evolutionBranches`/cast・監査フィールド/`procCoefficient`）に準拠する。
+一次 proc は `procCoefficient`、二次 proc（大型槍・pulse・崩壊・burst など）は `config` オブジェクトへ入れる（コードにハードコードしない）。設置/反応/常設型は **cadence（間隔）フィールドを `levels[]` へ per-Lv で持つ**（`dropInterval`/`deployInterval`/`markInterval`/`recastInterval` 等）。
+```jsonc
+// 例: 氷槍豪雨 glacial_spear_rain（common・periodic・Lv80発射数対象）
+{ "id": "glacial_spear_rain", "element": "ice", "rarity": "common", "isCommon": false, "jobs": ["frost_mage"],
+  "castMode": "periodic", "mainCastEvent": "fire",
+  "lv80ProjectileTarget": true,                        // 発射数+1対象（明示フラグ）
+  "procCoefficient": 0.42,                             // 通常槍の凍結寄与
+  "echoPolicy": "custom", "clonePolicy": "custom",
+  "config": { "largeSpearProc": 0.80, "shatterMultiplier": 1.4 }, // 大型槍 proc 等の二次パラメータ
+  "evolutionBranches": ["heavenfall_glacier_lances"],
+  "levels": [ /* Lv1〜8: damage/cooldown/spearCount/dropInterval/impactRadius/telegraphTime/largeSpearEvery/largeSpearDamageMult/chillAmount */ ] }
+// 例: 絶対氷封 absolute_ice_seal（rare・reactive）: config {}、levels[] に markInterval/markDuration/requiredHits/maxMarks/detonationRadius/frozenDamageBonus/bossGaugeMult（per-Lv 1.25→1.50）
+// 例: 極光氷幕 aurora_veil（legendary・continuous）: config { burstProc:0.75 }、levels[] に recastInterval/activeDuration/bandCount/bandWidth/tickInterval/burstInterval/bossGaugeMult（per-Lv 1.15→1.35）
+// 例: 六花砲台 snowflake_sentry（uncommon・continuous）: levels[] に deployInterval/attackInterval/activeDuration/maxSentries/pulseEvery/pulseDamage/pulseChill、config { pulseProc:0.18 }
+```
+- 新5種の `rarity`: `glacial_spear_rain`=common、`snowflake_sentry`=uncommon、`iceberg_ram`/`absolute_ice_seal`=rare、`aurora_veil`=legendary。`castMode`: periodic（glacial_spear_rain）/continuous（snowflake_sentry・aurora_veil）/cooldown（iceberg_ram）/**reactive（absolute_ice_seal）**。
+- `lv80ProjectileTarget` は **`glacial_spear_rain` のみ true**、他4種は false。**Lv80発射数対象は projectile タグでは自動適用せず `lv80ProjectileTarget:true` の明示フラグで管理**（`SkillAudit.appliesLv80ProjectileCount`）。氷全体の対象は**計6種**（frost_shard/glacial_lance/icicle_volley/rime_boomerang/polar_star/glacial_spear_rain）。
+- `absolute_ice_seal`/`aurora_veil` は `echoPolicy=clonePolicy=forbidden`（→ `canTriggerEcho=canBeCopiedByClone=false`）、`glacial_spear_rain`/`snowflake_sentry` は `custom`、`iceberg_ram` は `echoPolicy=standard`/`clonePolicy=custom`。5種すべて `evolutionBranches` 非空。
+- **`bossGaugeMult` は per-Lv フィールド**として `absolute_ice_seal`（1.25→1.50）と `aurora_veil`（1.15→1.35）の `levels[]` に持ち、Lv 単調増加。ボス氷砕ゲージ量のみへ1命中1回だけ適用する（`applyIceHit` のボス分岐で chill→ゲージ変換に掛かるだけで damage/chill/procCoefficient や通常敵・炎には掛からず二重加算しない）。
+- **氷印/氷棺は skill-local マーカー**で status データではない（`status-effects.json` へ登録しない・`StatusEffectRegistry` 非登録）。`markInterval`/`markDuration`/`requiredHits` は skills.json のスキル定義側に持つ。
+- 検証（`frost-skills-wave4.mjs`・`validate-data.mjs`）: 5種の存在/一意/active/maxLevel8/Lv連番/rarity一致/`jobs:["frost_mage"]`/プール所属/`procCoefficient` が 0<..≤1/毎レベル成長/`evolutionBranches` が実在進化のみ、cast・監査フィールドの妥当性（forbidden と canTrigger の整合）・`config` の二次 proc が 0<..≤1・`bossGaugeMult` の per-Lv 単調増加。
+
+### skill-evolutions.json（氷進化を18件へ）
+M7-A〜M7-C の氷進化13種に加え、新進化5種を追記して **氷進化は18件**。いずれも `EvolvedSkillBase`・単一形態・追加Lvなし・`element:"ice"`・`lv80ProjectileTarget:false`・evolved タグ。
+進化数値・二次 proc・`safetyCaps`・`bossGaugeMult` は各進化オブジェクトへインラインで持つ。補助条件 `requiredSkills[].skill` は active∪passive（`auxSkillIds`）に実在・`replacementSkillId` は基礎と衝突しない。
+```jsonc
+{ "id": "eternal_sealed_coffin", "baseSkillId": "absolute_ice_seal", "replacementSkillId": "eternal_sealed_coffin",
+  "requiredSkills": [ { "skill": "ice_prison", "level": 4 } ],   // ice_prison は補助 active（置換しない）
+  "castMode": "reactive", "lv80ProjectileTarget": false,
+  "echoPolicy": "forbidden", "clonePolicy": "forbidden",
+  "markInterval": 1.2, "markDuration": 4.0, "requiredHits": 5, "maxMarks": 12,
+  "propagation": { "generations": 1, "radius": 120 }, // 起爆時に近傍未印へ副棺を最大1世代だけ伝播（副棺は再伝播しない）
+  "bossGaugeMult": 2.0,               // ボス氷砕ゲージ量のみへ1回だけ適用（damage/chill/proc には掛からない）
+  "safetyCaps": { "maxMarks": 12, "maxExplosionsPerFrame": 3, "maxShattersPerFrame": 3 },
+  "displayOrder": 160 }
+```
+- 5種: `heavenfall_glacier_lances`(glacial_spear_rain＋frost_amplification[P]) / `crystal_sentinel_legion`(snowflake_sentry＋rapid_freezing[P]) /
+  `continental_glacier_rush`(iceberg_ram＋frozen_expansion[P]) / `eternal_sealed_coffin`(absolute_ice_seal＋**ice_prison(補助 active)** Lv4) /
+  `polar_night_aurora`(aurora_veil＋lingering_cold[P])。いずれも基礎Lv8＋補助Lv4。
+- **`propagation.generations`** は `eternal_sealed_coffin` の氷棺印伝播段数（=1・`radius` は伝播半径）で、副棺は再伝播しない（無限連鎖を防ぐ）。
+- **`bossGaugeMult`（`heavenfall_glacier_lances`=1.4[巨大槍]/`eternal_sealed_coffin`=2.0/`polar_night_aurora`=1.7）はボス氷砕ゲージ量のみへ適用**するフィールドで、M7-C 修正済みの共通経路（`applyIceHit` のボス分岐で chill→ゲージ変換に1命中1回だけ）を維持する。既定は 1（ボス氷砕の cooldown/threshold/vulnerability 値は不変）。
+- 検証（`frost-evolutions-wave4.mjs`・`frost-boss-gauge-wave4.mjs`・`validate-data.mjs`）: `canEvolve`（補助 active/passive 解決・基礎Lv8＋補助Lv4で可能・未達で不可）・既存氷進化13種の非回帰・`safetyCaps` が正整数・`propagation.generations` が正整数・`bossGaugeMult` が正。
+
+### balance.skillCaps（M7-D の19種を加算的に追加）
+M6-E〜M7-C までの `skillCaps` へ、氷スキル/進化の品質別（`low ≤ medium ≤ high ≤ ultra`・非負整数）新キーを **19種** 追加する。
+`DataManager.skillCap(name, quality, fallback)` で取得。**装飾 cap と damage event cap を区別**し、visual cap でマーカー/防御性能は減らさない。
+- 19キー: `maxGlacialSpearTelegraphs` / `maxGlacialSpearImpactsPerFrame` / `maxGlacialSpearProjectiles` / `maxSnowflakeSentries` / `maxSentryProjectiles` /
+  `maxSentryLinksPerFrame` / `maxIcebergRams` / `maxIcebergContactChecks` / `maxIcebergShards` / `maxIceSealMarks` / `maxIceSealExplosionsPerFrame` /
+  `maxAuroraBands` / `maxAuroraQueriesPerTick` / `maxAuroraBurstsPerFrame` / `maxHeavenfallImpactsPerFrame` / `maxSentinelLegionLinksPerFrame` /
+  `maxContinentalGlacierRushes` / `maxSealedCoffinMarks` / `maxPolarNightBands`。
+- 検証: 追加19キーが品質順で単調非減少・非負整数（`low≤medium≤high≤ultra`・正）。**上限到達でも凍結/粉砕/氷砕/氷印の判定は消さず、装飾を先に削る**（`maxAuroraQueriesPerTick` は帯の走査分割・毎frame 全敵走査を避ける負荷 cap）。
+
+`validate-data.mjs` に M7-D 検証ブロックを追加（氷 active30/進化18・skillCaps 19種・cast/監査/procCoefficient/config 二次proc・bossGaugeMult per-Lv 単調増加・propagation.generations・lv80 対象が6種）。詳細は `docs/skills.md`・`docs/skill-catalog.md`・`docs/jobs.md`。
