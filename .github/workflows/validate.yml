@@ -122,6 +122,20 @@ jobs:
       - name: Frost boss gauge (bossGaugeMult) tests
         run: node tests/frost-boss-gauge-wave3.mjs
 
+      # 氷術師 最終波（M7-D・active5種・進化5種・カタログ完成30/18・marker・Node.js 標準機能のみ）。
+      - name: Frost skills wave4 tests
+        run: node tests/frost-skills-wave4.mjs
+      - name: Frost evolutions wave4 tests
+        run: node tests/frost-evolutions-wave4.mjs
+      - name: Frost policy audit wave4 tests
+        run: node tests/frost-policy-audit-wave4.mjs
+      - name: Frost runtime save wave4 tests
+        run: node tests/frost-runtime-save-wave4.mjs
+      - name: Frost determinism wave4 tests
+        run: node tests/frost-determinism-wave4.mjs
+      - name: Frost boss gauge wave4 tests
+        run: node tests/frost-boss-gauge-wave4.mjs
+
       # 状態異常の視認性・実動作検証（M7-B.1・表示状態/デバッグ/ボス氷砕UI/非回帰・Node.js 標準機能のみ）。
       - name: Status visual state tests
         run: node tests/status-visual-state.mjs

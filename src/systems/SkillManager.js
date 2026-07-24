@@ -100,6 +100,18 @@ import { EternalFrostChainSkill } from '../skills/EternalFrostChainSkill.js';
 import { CrystalWorldTreeSkill } from '../skills/CrystalWorldTreeSkill.js';
 import { EverlastingWhiteMistSkill } from '../skills/EverlastingWhiteMistSkill.js';
 import { ZeroHourWorldSkill } from '../skills/ZeroHourWorldSkill.js';
+// M7-D: 氷術師 active5種
+import { GlacialSpearRainSkill } from '../skills/GlacialSpearRainSkill.js';
+import { SnowflakeSentrySkill } from '../skills/SnowflakeSentrySkill.js';
+import { IcebergRamSkill } from '../skills/IcebergRamSkill.js';
+import { AbsoluteIceSealSkill } from '../skills/AbsoluteIceSealSkill.js';
+import { AuroraVeilSkill } from '../skills/AuroraVeilSkill.js';
+// M7-D: 氷術師 進化5種
+import { HeavenfallGlacierLancesSkill } from '../skills/HeavenfallGlacierLancesSkill.js';
+import { CrystalSentinelLegionSkill } from '../skills/CrystalSentinelLegionSkill.js';
+import { ContinentalGlacierRushSkill } from '../skills/ContinentalGlacierRushSkill.js';
+import { EternalSealedCoffinSkill } from '../skills/EternalSealedCoffinSkill.js';
+import { PolarNightAuroraSkill } from '../skills/PolarNightAuroraSkill.js';
 
 const REGISTRY = {
   fireball: FireballSkill,
@@ -201,6 +213,18 @@ const REGISTRY = {
   crystal_world_tree: CrystalWorldTreeSkill,
   everlasting_white_mist: EverlastingWhiteMistSkill,
   zero_hour_world: ZeroHourWorldSkill,
+  // M7-D: 氷術師 active5種
+  glacial_spear_rain: GlacialSpearRainSkill,
+  snowflake_sentry: SnowflakeSentrySkill,
+  iceberg_ram: IcebergRamSkill,
+  absolute_ice_seal: AbsoluteIceSealSkill,
+  aurora_veil: AuroraVeilSkill,
+  // M7-D: 氷術師 進化5種
+  heavenfall_glacier_lances: HeavenfallGlacierLancesSkill,
+  crystal_sentinel_legion: CrystalSentinelLegionSkill,
+  continental_glacier_rush: ContinentalGlacierRushSkill,
+  eternal_sealed_coffin: EternalSealedCoffinSkill,
+  polar_night_aurora: PolarNightAuroraSkill,
 };
 
 // 実装クラスが登録されている全スキルID（active＋進化）。SkillCatalog / 監査テストが「実装の有無」を判定するのに使う。

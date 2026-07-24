@@ -347,5 +347,19 @@ export class BootScene extends Phaser.Scene {
     g = evi(0xbde8ff); g.fillStyle(0x4dd0e1, 1); g.fillRect(7, 8, 2, 7); for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3 - Math.PI / 2; g.fillStyle(0xe1f5fe, 1); g.fillTriangle(8, 7, 8 + Math.cos(a) * 6, 7 + Math.sin(a) * 5, 8 + Math.cos(a + 0.3) * 4, 7 + Math.sin(a + 0.3) * 4); } done(g, 'icon_crystal_world_tree'); // 世界氷晶樹: 氷の樹
     g = evi(0xe1f5fe); g.fillStyle(0xe1f5fe, 0.6); g.fillCircle(8, 8, 6); g.fillStyle(0xb3e5fc, 0.9); g.fillCircle(6, 6, 2); g.fillCircle(10, 8, 2); g.fillCircle(8, 11, 1.8); g.fillCircle(11, 5, 1.4); done(g, 'icon_everlasting_white_mist');    // 永久白霧: 濃い霧
     g = evi(0x4fc3f7); g.lineStyle(2, 0xe1f5fe, 1); g.strokeCircle(8, 8, 6); g.strokeCircle(8, 8, 3.5); for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + 0.4; g.beginPath(); g.moveTo(8, 8); g.lineTo(8 + Math.cos(a) * 6, 8 + Math.sin(a) * 6); g.strokePath(); } g.fillStyle(0xbde8ff, 1); g.fillCircle(8, 8, 1.5); done(g, 'icon_zero_hour_world'); // 零刻世界: 巨大な時計世界
+
+    // --- M7-D: 氷術師 active5種 ---
+    g = base(0xbde8ff); for (let i = 0; i < 4; i++) { const x = 2 + i * 4; g.fillTriangle(x, 3, x - 1.5, 3, x, 13); g.fillRect(x - 0.5, 3, 1, 10); } done(g, 'icon_glacial_spear_rain');                                    // 氷槍豪雨: 降る氷槍
+    g = base(0x9fe8ff); g.lineStyle(1, 0xe1f5fe, 1); for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; g.beginPath(); g.moveTo(8, 8); g.lineTo(8 + Math.cos(a) * 6, 8 + Math.sin(a) * 6); g.strokePath(); } g.fillStyle(0x4fc3f7, 1); g.fillRect(6, 10, 4, 4); done(g, 'icon_snowflake_sentry');       // 六花砲台: 六花＋台座
+    g = base(0xb3e5fc); g.fillTriangle(2, 12, 7, 3, 12, 12); g.fillStyle(0xe1f5fe, 0.8); g.fillTriangle(9, 12, 13, 6, 15, 12); g.fillStyle(0x80d8ff, 1); g.fillRect(13, 8, 2, 1); done(g, 'icon_iceberg_ram');                       // 氷山奔衝: 動く氷山
+    g = base(0x4fc3f7); g.lineStyle(1.5, 0xe1f5fe, 1); g.strokeRect(4, 3, 8, 11); g.fillStyle(0xbde8ff, 1); g.fillCircle(8, 8, 2); g.lineStyle(1, 0xe1f5fe, 0.7); g.strokeCircle(8, 8, 5); done(g, 'icon_absolute_ice_seal');       // 絶対氷封: 氷印
+    g = base(0x80d8ff); g.fillStyle(0x9fe8ff, 0.5); g.fillRect(1, 4, 14, 2); g.fillStyle(0xbde8ff, 0.5); g.fillRect(1, 8, 14, 2); g.fillStyle(0xe1f5fe, 0.5); g.fillRect(1, 12, 14, 2); done(g, 'icon_aurora_veil');                    // 極光氷幕: 横断する帯
+
+    // --- M7-D: 氷術師 進化5種（二重輪郭で進化を示す） ---
+    g = evi(0xbde8ff); for (let i = 0; i < 5; i++) { const x = 2 + i * 3; g.fillTriangle(x, 2, x - 1.5, 2, x, 14); } g.fillStyle(0x4fc3f7, 1); g.fillCircle(8, 8, 2); done(g, 'icon_heavenfall_glacier_lances');                          // 天墜氷槍葬: 大量の氷槍
+    g = evi(0x9fe8ff); for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; g.lineStyle(1, 0xe1f5fe, 1); g.beginPath(); g.moveTo(8, 8); g.lineTo(8 + Math.cos(a) * 6, 8 + Math.sin(a) * 6); g.strokePath(); } for (let i = 0; i < 3; i++) { const a = i * 2.1; g.fillStyle(0x4fc3f7, 1); g.fillRect(8 + Math.cos(a) * 5 - 1, 8 + Math.sin(a) * 5 - 1, 2, 2); } done(g, 'icon_crystal_sentinel_legion'); // 六花氷衛軍: 陣形砲台
+    g = evi(0xb3e5fc); g.fillTriangle(1, 13, 6, 3, 11, 13); g.fillTriangle(6, 13, 12, 4, 15, 13); g.fillStyle(0xe1f5fe, 0.6); g.fillRect(2, 13, 12, 1); done(g, 'icon_continental_glacier_rush');                                       // 大陸氷河奔流: 巨大氷河
+    g = evi(0x4fc3f7); g.lineStyle(1.5, 0xe1f5fe, 1); g.strokeRect(4, 2, 8, 12); g.fillStyle(0x80deea, 0.4); g.fillRect(6, 5, 4, 8); g.fillStyle(0xbde8ff, 1); g.fillCircle(8, 8, 1.5); done(g, 'icon_eternal_sealed_coffin');          // 永劫封氷棺: 氷棺
+    g = evi(0x80d8ff); g.fillStyle(0x9fe8ff, 0.6); g.fillRect(1, 3, 14, 2); g.fillStyle(0xbde8ff, 0.6); g.fillRect(1, 7, 14, 2); g.fillStyle(0xe1f5fe, 0.6); g.fillRect(1, 11, 14, 2); g.fillStyle(0x4fc3f7, 1); g.fillRect(7, 2, 2, 12); done(g, 'icon_polar_night_aurora'); // 極夜天光: 帯＋光柱
   }
 }

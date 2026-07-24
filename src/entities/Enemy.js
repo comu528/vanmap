@@ -35,6 +35,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this._frozenUntil = 0;         // 凍結の終了時刻（ms）
     this._freezeImmuneUntil = 0;   // 凍結耐性の終了時刻（ms）
     this._mark = null;       // 起爆刻印（M6-B）: { hitsNeeded, hits, until, ... }
+    this._iceSeal = null;    // 氷封/氷棺の skill-local マーカー（M7-D・正式状態ではない）
+    this._iceHitCount = 0;   // 氷属性命中の累積カウンタ（氷封の命中数起爆に使用・M7-D）
     // dasher 用
     this._chargeState = 'idle'; // idle | telegraph | dash
     this._chargeTimer = 0;
@@ -69,6 +71,9 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this._frozenUntil = 0;
     this._freezeImmuneUntil = 0;
     this._mark = null;
+    // M7-D: 氷封/氷棺の skill-local マーカー参照と氷属性命中カウンタ（正式状態ではない・プール再利用で確実にクリア）。
+    this._iceSeal = null;
+    this._iceHitCount = 0;
     this._chargeState = 'idle';
     this._chargeCd = 1200;
     this._chargeTimer = 0;

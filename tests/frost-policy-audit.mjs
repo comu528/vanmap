@@ -21,10 +21,10 @@ const frostActives = skills.filter((s) => (s.jobs || []).includes('frost_mage') 
 const frostActiveIds = new Set(frostActives.map((s) => s.id));
 const frostEvos = evolutions.filter((e) => frostActiveIds.has(e.baseSkillId));
 
-section('1. 氷術師 active25種・進化13種が揃っている');
+section('1. 氷術師 active30種・進化18種が揃っている');
 {
-  ok(frostActives.length === 25, `氷 active25種 (${frostActives.length})`);
-  ok(frostEvos.length === 13, `氷 進化13種 (${frostEvos.length})`);
+  ok(frostActives.length === 30, `氷 active30種 (${frostActives.length})`);
+  ok(frostEvos.length === 18, `氷 進化18種 (${frostEvos.length})`);
 }
 
 section('2. active 全監査: castMode / mainCastEvent / echo・clonePolicy / lv80 / procCoefficient / 防御・反応の残響');
@@ -45,7 +45,7 @@ for (const s of frostActives) {
 section('3. Lv80発射数対象は frost_shard / glacial_lance / icicle_volley / rime_boomerang / polar_star のみ（projectile タグだけで自動適用しない）');
 {
   const lv80 = frostActives.filter((s) => appliesLv80ProjectileCount(s)).map((s) => s.id).sort();
-  ok(JSON.stringify(lv80) === JSON.stringify(['frost_shard', 'glacial_lance', 'icicle_volley', 'polar_star', 'rime_boomerang'].sort()), `Lv80対象=${lv80.join(',')}`);
+  ok(JSON.stringify(lv80) === JSON.stringify(['frost_shard', 'glacial_lance', 'icicle_volley', 'polar_star', 'rime_boomerang', 'glacial_spear_rain'].sort()), `Lv80対象=${lv80.join(',')}`);
   // projectile タグを持つが Lv80非対象のもの（明示管理）。
   const projNonLv80 = frostActives.filter((s) => (s.tags || []).includes('projectile') && !appliesLv80ProjectileCount(s)).map((s) => s.id);
   ok(projNonLv80.length >= 1, `projectile タグでも Lv80非対象が明示管理される (${projNonLv80.join(',')})`);

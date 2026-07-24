@@ -132,7 +132,12 @@
         "frozen_clock",
         "crystal_refraction",
         "winter_halo",
-        "comet_sleet"
+        "comet_sleet",
+        "glacial_spear_rain",
+        "snowflake_sentry",
+        "iceberg_ram",
+        "absolute_ice_seal",
+        "aurora_veil"
       ],
       "passiveSkillPool": [
         "frost_amplification",
@@ -153,7 +158,12 @@
         "eternal_frost_chain",
         "crystal_world_tree",
         "everlasting_white_mist",
-        "zero_hour_world"
+        "zero_hour_world",
+        "heavenfall_glacier_lances",
+        "crystal_sentinel_legion",
+        "continental_glacier_rush",
+        "eternal_sealed_coffin",
+        "polar_night_aurora"
       ],
       "baseActiveSlots": 4,
       "basePassiveSlots": 4,

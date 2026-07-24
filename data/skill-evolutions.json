@@ -1706,6 +1706,309 @@
         "baseChance": 0.12
       },
       "bossGaugeMult": 2.2
+    },
+    {
+      "id": "heavenfall_glacier_lances",
+      "displayName": "天墜氷槍葬",
+      "description": "glacial_spear_rain の進化。複数 wave の大規模氷槍雨を螺旋・六角配置で降らせ、一定本数ごとの巨大槍のみ広範囲ダメージ＋冷気＋凍結中の敵へ強化粉砕。通常槍は粉砕しない。ボスは氷砕ゲージ、巨大槍のみ bossGaugeMult。",
+      "baseSkillId": "glacial_spear_rain",
+      "requiredSkills": [
+        {
+          "skill": "frost_amplification",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "heavenfall_glacier_lances",
+      "visualTier": "evolved",
+      "icon": "icon_heavenfall_glacier_lances",
+      "element": "ice",
+      "procCoefficient": 0.42,
+      "safetyCaps": {
+        "maxWaves": 3,
+        "maxSpearsPerFrame": 8,
+        "maxImpactsPerFrame": 6,
+        "maxShattersPerFrame": 3
+      },
+      "displayOrder": 121,
+      "lv80ProjectileTarget": false,
+      "castMode": "periodic",
+      "mainCastEvent": "fire",
+      "echoDescription": "1wave 短縮版を追加",
+      "cloneDescription": "短縮 wave のみ複製",
+      "echoPolicy": "custom",
+      "clonePolicy": "custom",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "cooldown": 4000,
+      "damage": {
+        "spear": 24,
+        "frozenBonus": 0.4
+      },
+      "chill": {
+        "spear": 12,
+        "large": 26
+      },
+      "impactRadius": 40,
+      "barrage": {
+        "waves": 3,
+        "spearsPerWave": 10,
+        "waveDelayMs": 400,
+        "dropInterval": 90,
+        "telegraphTime": 360
+      },
+      "large": {
+        "every": 4,
+        "damageMult": 2.2,
+        "radius": 70
+      },
+      "largeProc": 0.8,
+      "bossGaugeMult": 1.4,
+      "shatter": {
+        "multiplier": 1.6
+      }
+    },
+    {
+      "id": "crystal_sentinel_legion",
+      "displayName": "六花氷衛軍",
+      "description": "snowflake_sentry の進化。複数の上位砲台を陣形配置し高冷気の敵へ高速射撃、一定射撃ごとに砲台間へ氷線を走らせる。氷線は同一敵へ1回・主命中で凍結中の敵を1回粉砕する。砲台弾は粉砕しない。ボスは氷砕ゲージへ接続。",
+      "baseSkillId": "snowflake_sentry",
+      "requiredSkills": [
+        {
+          "skill": "rapid_freezing",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "crystal_sentinel_legion",
+      "visualTier": "evolved",
+      "icon": "icon_crystal_sentinel_legion",
+      "element": "ice",
+      "procCoefficient": 0.35,
+      "safetyCaps": {
+        "maxSentries": 6,
+        "maxProjectiles": 80,
+        "maxLinksPerFrame": 8,
+        "maxShattersPerFrame": 3
+      },
+      "displayOrder": 122,
+      "lv80ProjectileTarget": false,
+      "castMode": "continuous",
+      "mainCastEvent": "fire",
+      "echoDescription": "一時砲台1基/単発氷線を追加",
+      "cloneDescription": "単発氷線のみ複製（軍団を増やさない）",
+      "echoPolicy": "custom",
+      "clonePolicy": "custom",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "shotDamage": 16,
+      "deployInterval": 1100,
+      "attackInterval": 440,
+      "activeDuration": 5200,
+      "maxSentries": 5,
+      "projectileSpeed": 380,
+      "seekRange": 240,
+      "chill": {
+        "shot": 10,
+        "line": 14
+      },
+      "link": {
+        "everyShots": 5,
+        "damage": 22,
+        "proc": 0.4
+      },
+      "shatter": {
+        "multiplier": 1.5
+      },
+      "pulseProc": 0.18
+    },
+    {
+      "id": "continental_glacier_rush",
+      "displayName": "大陸氷河奔流",
+      "description": "iceberg_ram の進化。幅広い巨大氷河が画面を横断し通常敵を大きく押し流す（エリート軽減・ボス無効）。凍結中の敵は最初の接触で強化粉砕、終端で大規模崩壊し低procの氷河裂片を残す（粉砕なし）。ボスは氷砕ゲージへ接続。",
+      "baseSkillId": "iceberg_ram",
+      "requiredSkills": [
+        {
+          "skill": "frozen_expansion",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "continental_glacier_rush",
+      "visualTier": "evolved",
+      "icon": "icon_continental_glacier_rush",
+      "element": "ice",
+      "procCoefficient": 0.55,
+      "safetyCaps": {
+        "maxRushes": 1,
+        "maxContactChecks": 60,
+        "maxShards": 16,
+        "maxResidues": 8,
+        "maxShattersPerFrame": 3
+      },
+      "displayOrder": 123,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "fire",
+      "echoDescription": "縮小氷河を追加",
+      "cloneDescription": "縮小氷河のみ複製",
+      "echoPolicy": "custom",
+      "clonePolicy": "custom",
+      "canTriggerEcho": true,
+      "canBeCopiedByClone": true,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "cooldown": 5200,
+      "contactDamage": 26,
+      "collapseDamage": 90,
+      "speed": 110,
+      "duration": 2000,
+      "width": 120,
+      "length": 160,
+      "rehitInterval": 280,
+      "pushForce": 110,
+      "elitePushMult": 0.4,
+      "collapseRadius": 130,
+      "shardCount": 10,
+      "chill": {
+        "contact": 14,
+        "collapse": 30
+      },
+      "residue": {
+        "count": 4,
+        "durationMs": 1200,
+        "damage": 4,
+        "radius": 34,
+        "proc": 0.12
+      },
+      "shatter": {
+        "multiplier": 1.7
+      },
+      "collapseProc": 0.75
+    },
+    {
+      "id": "eternal_sealed_coffin",
+      "displayName": "永劫封氷棺",
+      "description": "absolute_ice_seal の進化。高冷気の敵複数へ氷棺印を刻み、時間か氷属性命中数で起爆して大範囲ダメージ＋冷気、凍結中の敵を強化粉砕。起爆対象から近傍の未印対象へ副棺を最大1世代だけ伝播する（副棺から再伝播しない）。ボスは氷砕ゲージ＋高めの bossGaugeMult。氷棺は skill-local マーカー。",
+      "baseSkillId": "absolute_ice_seal",
+      "requiredSkills": [
+        {
+          "skill": "ice_prison",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "eternal_sealed_coffin",
+      "visualTier": "evolved",
+      "icon": "icon_eternal_sealed_coffin",
+      "element": "ice",
+      "procCoefficient": 0.9,
+      "safetyCaps": {
+        "maxMarks": 6,
+        "maxExplosionsPerFrame": 4,
+        "maxShattersPerFrame": 3
+      },
+      "displayOrder": 124,
+      "lv80ProjectileTarget": false,
+      "castMode": "reactive",
+      "mainCastEvent": "fire",
+      "echoDescription": "氷棺は無料複製しない",
+      "cloneDescription": "氷棺は無料複製しない",
+      "echoPolicy": "forbidden",
+      "clonePolicy": "forbidden",
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "isDefensive": false,
+      "isReactive": true,
+      "usesResourceCost": false,
+      "detonationDamage": 70,
+      "markInterval": 2200,
+      "markDuration": 3000,
+      "requiredHits": 3,
+      "maxMarks": 5,
+      "detonationRadius": 80,
+      "chill": {
+        "amount": 30
+      },
+      "frozenDamageBonus": 0.5,
+      "bossGaugeMult": 2.0,
+      "propagation": {
+        "generations": 1,
+        "radius": 120
+      },
+      "shatter": {
+        "multiplier": 1.8
+      }
+    },
+    {
+      "id": "polar_night_aurora",
+      "displayName": "極夜天光",
+      "description": "aurora_veil の進化。複数の極光帯が画面を横断し通常 tick でダメージ＋冷気、一定間隔の極夜 burst のみ凍結中の敵を1回粉砕。一定回数ごとの burst で極光柱が広範囲へダメージ＋冷気を与える。ボスは氷砕ゲージ＋ bossGaugeMult。画面を白くしない。",
+      "baseSkillId": "aurora_veil",
+      "requiredSkills": [
+        {
+          "skill": "lingering_cold",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "polar_night_aurora",
+      "visualTier": "evolved",
+      "icon": "icon_polar_night_aurora",
+      "element": "ice",
+      "procCoefficient": 0.14,
+      "safetyCaps": {
+        "maxBands": 6,
+        "maxQueriesPerTick": 8,
+        "maxBurstsPerFrame": 4,
+        "maxPillarsPerFrame": 2,
+        "maxShattersPerFrame": 3
+      },
+      "displayOrder": 125,
+      "lv80ProjectileTarget": false,
+      "castMode": "continuous",
+      "mainCastEvent": "fire",
+      "echoDescription": "全画面制圧のため残響しない",
+      "cloneDescription": "全画面制圧のため複製しない",
+      "echoPolicy": "forbidden",
+      "clonePolicy": "forbidden",
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "tickDamage": 9,
+      "recastInterval": 6400,
+      "activeDuration": 5200,
+      "bandCount": 4,
+      "bandWidth": 64,
+      "moveSpeed": 80,
+      "tickInterval": 300,
+      "burstInterval": 1000,
+      "burstDamage": 44,
+      "burstChill": 28,
+      "chill": {
+        "tick": 10
+      },
+      "pillar": {
+        "everyBursts": 3,
+        "damage": 60,
+        "radius": 120,
+        "chill": 34,
+        "proc": 0.7
+      },
+      "bossGaugeMult": 1.7,
+      "burstProc": 0.75,
+      "shatter": {
+        "multiplier": 1.6
+      }
     }
   ]
 }

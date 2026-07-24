@@ -568,7 +568,7 @@ if (jobProgData) {
 {
   const CAST_MODES = new Set(['periodic', 'cooldown', 'continuous', 'reactive', 'defensive', 'movement', 'resource']);
   const ATTACK_MODES = new Set(['periodic', 'cooldown', 'continuous', 'resource']);
-  const KNOWN_TAGS = new Set(['active', 'fire', 'projectile', 'area', 'explosion', 'dot', 'damageOverTime', 'burn', 'summon', 'beam', 'laser', 'melee', 'slash', 'defensive', 'reactive', 'barrier', 'shield', 'homing', 'chain', 'pierce', 'piercing', 'orbit', 'mark', 'combo', 'ground', 'fissure', 'movingArea', 'formation', 'zone', 'resonance', 'statusScaling', 'pulse', 'overheat', 'escalating', 'burst', 'highRisk', 'deathTriggered', 'delayed', 'trap', 'mine', 'ricochet', 'bouncing', 'clone', 'copy', 'sacrifice', 'projectileAbsorb', 'charge', 'screenEdge', 'wave', 'tether', 'control', 'pull', 'directional', 'spread', 'dash', 'movement', 'retaliation', 'revival', 'witch', 'ice', 'mage', 'slow', 'boomerang', 'placement', 'barrage']);
+  const KNOWN_TAGS = new Set(['active', 'fire', 'projectile', 'area', 'explosion', 'dot', 'damageOverTime', 'burn', 'summon', 'beam', 'laser', 'melee', 'slash', 'defensive', 'reactive', 'barrier', 'shield', 'homing', 'chain', 'pierce', 'piercing', 'orbit', 'mark', 'combo', 'ground', 'fissure', 'movingArea', 'formation', 'zone', 'resonance', 'statusScaling', 'pulse', 'overheat', 'escalating', 'burst', 'highRisk', 'deathTriggered', 'delayed', 'trap', 'mine', 'ricochet', 'bouncing', 'clone', 'copy', 'sacrifice', 'projectileAbsorb', 'charge', 'screenEdge', 'wave', 'tether', 'control', 'pull', 'directional', 'spread', 'dash', 'movement', 'retaliation', 'revival', 'witch', 'ice', 'mage', 'slow', 'boomerang', 'placement', 'barrage', 'turret']);
   const skillsArr = (skillsData && skillsData.skills) || [];
   const evosArr = (evoData && evoData.evolutions) || [];
   const actives = skillsArr.filter((s) => (s.category || 'active') === 'active');
@@ -885,11 +885,11 @@ if (jobProgData) {
   const fm = (jobsData?.jobs || []).find((j) => j.id === 'frost_mage');
   if (fm) {
     const frostActives = skillsArr.filter((s) => (s.jobs || []).includes('frost_mage'));
-    if (frostActives.length !== 25) err(`M7-C: 氷術師 active が25種でない (${frostActives.length})`);
-    if ((fm.activeSkillPool || []).length !== 25) err(`M7-C: frost_mage activeSkillPool が25種でない (${fm.activeSkillPool?.length})`);
+    if (frostActives.length !== 30) err(`M7-D: 氷術師 active が30種でない (${frostActives.length})`);
+    if ((fm.activeSkillPool || []).length !== 30) err(`M7-D: frost_mage activeSkillPool が30種でない (${fm.activeSkillPool?.length})`);
     const frostEvos = evosArr.filter((e) => new Set(frostActives.map((s) => s.id)).has(e.baseSkillId));
-    if (frostEvos.length !== 13) err(`M7-C: 氷術師 進化が13種でない (${frostEvos.length})`);
-    if ((fm.evolutionPool || []).length !== 13) err(`M7-C: frost_mage evolutionPool が13種でない (${fm.evolutionPool?.length})`);
+    if (frostEvos.length !== 18) err(`M7-D: 氷術師 進化が18種でない (${frostEvos.length})`);
+    if ((fm.evolutionPool || []).length !== 18) err(`M7-D: frost_mage evolutionPool が18種でない (${fm.evolutionPool?.length})`);
   }
   // 新 skillCaps（品質順・正）。
   const B_CAPS = ['maxIcicleVolleyProjectiles', 'maxIcicleVolleyBurstsPerFrame', 'maxFrostOrbitCrystals', 'maxFrostOrbitHitsPerFrame', 'maxFreezingRayTargets', 'maxFreezingRayTicksPerFrame', 'maxHailstorms', 'maxHailImpactsPerFrame', 'maxCryoMines', 'maxCryoMineExplosionsPerFrame', 'maxFrostSpirits', 'maxFrostSpiritProjectiles', 'maxIcePrisons', 'maxIcePrisonTargetsPerFrame', 'maxAvalancheWaves', 'maxAvalancheHitsPerFrame', 'maxMirrorIceBarriers', 'maxMirrorIceInterceptsPerFrame', 'maxMirrorIceCounterProjectiles', 'maxGlacierDrops', 'maxGlacierImpactsPerFrame', 'maxCrystalTempestProjectiles', 'maxAbsoluteZeroRayBranches', 'maxWhiteoutCataclysms', 'maxWhiteoutHailImpactsPerFrame', 'maxFrostQueenSpirits', 'maxFrostQueenProjectiles', 'maxWorldEndAvalancheWaves', 'maxWorldEndAvalancheShattersPerFrame'];
@@ -975,12 +975,12 @@ if (jobProgData) {
     if (!(c.low <= c.medium && c.medium <= c.high && c.high <= c.ultra)) err(`M7-C: skillCaps.${n} が品質順でない`);
     for (const q of ['low', 'medium', 'high', 'ultra']) if (typeof c[q] !== 'number' || c[q] <= 0 || !Number.isFinite(c[q])) err(`M7-C: skillCaps.${n}.${q} が正の有限数でない`);
   }
-  // frost_mage プール: active25 / passive4 / evolution13。
+  // frost_mage プール: active30 / passive4 / evolution18。
   const fm3 = (jobsData?.jobs || []).find((j) => j.id === 'frost_mage');
   if (fm3) {
-    if ((fm3.activeSkillPool || []).length !== 25) err(`M7-C: frost_mage activeSkillPool が25種でない (${fm3.activeSkillPool?.length})`);
+    if ((fm3.activeSkillPool || []).length !== 30) err(`M7-D: frost_mage activeSkillPool が30種でない (${fm3.activeSkillPool?.length})`);
     if ((fm3.passiveSkillPool || []).length !== 4) err(`M7-C: frost_mage passiveSkillPool が4種でない (${fm3.passiveSkillPool?.length})`);
-    if ((fm3.evolutionPool || []).length !== 13) err(`M7-C: frost_mage evolutionPool が13種でない (${fm3.evolutionPool?.length})`);
+    if ((fm3.evolutionPool || []).length !== 18) err(`M7-D: frost_mage evolutionPool が18種でない (${fm3.evolutionPool?.length})`);
     // 火 pool へ氷スキルが混入しない。
     const fw3 = (jobsData?.jobs || []).find((j) => j.id === 'flame_witch');
     if (fw3) for (const id of Object.keys(C_A)) if ((fw3.activeSkillPool || []).includes(id)) err(`M7-C: flame_witch pool に氷スキル ${id} が混入`);
@@ -1011,6 +1011,102 @@ if (jobProgData) {
     const semSrc = readFileSync(join(__dirname, '..', 'src', 'systems', 'StatusEffectManager.js'), 'utf8');
     if (!/bossGaugeMult/.test(semSrc)) err('M7-C: bossGaugeMult がコード（StatusEffectManager）で参照されていない（未使用の成長項目）');
   }
+}
+
+// --- M7-D: 氷術師 新 active5種・新進化5種・プール（30/4/18）・skillCaps・Lv80対象・marker・bossGaugeMult・非回帰の検証 ---
+{
+  const skillsArr = (skillsData && skillsData.skills) || [];
+  const evosArr = (evoData && evoData.evolutions) || [];
+  const passIds4 = new Set((passivesData.passives || []).map((p) => p.id));
+  const allIds4 = new Set(skillsArr.map((s) => s.id));
+  const seIds = new Set(((loadJson('status-effects.json') || {}).statusEffects || []).map((d) => d.id));
+  // 新 active5種（rarity/castMode/lv80/echo/clone）。
+  const D_A = {
+    glacial_spear_rain: { rarity: 'common', castMode: 'periodic', lv80: true, echo: 'custom' },
+    snowflake_sentry: { rarity: 'uncommon', castMode: 'continuous', lv80: false, echo: 'custom' },
+    iceberg_ram: { rarity: 'rare', castMode: 'cooldown', lv80: false, echo: 'standard' },
+    absolute_ice_seal: { rarity: 'rare', castMode: 'reactive', lv80: false, echo: 'forbidden' },
+    aurora_veil: { rarity: 'legendary', castMode: 'continuous', lv80: false, echo: 'forbidden' },
+  };
+  for (const [id, meta] of Object.entries(D_A)) {
+    const s = skillsArr.find((x) => x.id === id);
+    if (!s) { err(`M7-D: 氷 active ${id} が無い`); continue; }
+    if (!(s.jobs || []).includes('frost_mage') || (s.jobs || []).length !== 1) err(`M7-D: ${id} が frost_mage 専用でない`);
+    if (s.isCommon !== false) err(`M7-D: ${id} の isCommon が false でない`);
+    if (s.element !== 'ice') err(`M7-D: ${id} の element が ice でない`);
+    if (s.rarity !== meta.rarity) err(`M7-D: ${id} の rarity が ${meta.rarity} でない (${s.rarity})`);
+    if (s.castMode !== meta.castMode) err(`M7-D: ${id} の castMode が ${meta.castMode} でない (${s.castMode})`);
+    if (!s.mainCastEvent) err(`M7-D: ${id} に mainCastEvent が無い`);
+    if (s.echoPolicy !== meta.echo) err(`M7-D: ${id} の echoPolicy が ${meta.echo} でない (${s.echoPolicy})`);
+    if (!['standard', 'custom', 'forbidden'].includes(s.clonePolicy)) err(`M7-D: ${id} の clonePolicy 無効`);
+    if (s.lv80ProjectileTarget !== meta.lv80) err(`M7-D: ${id} の lv80ProjectileTarget が ${meta.lv80} でない`);
+    if (s.maxLevel !== 8) err(`M7-D: ${id} の maxLevel が8でない`);
+    if (!Array.isArray(s.levels) || s.levels.length !== 8 || !s.levels.every((lv, i) => lv.level === i + 1)) err(`M7-D: ${id} の levels が Lv1..8 連番でない`);
+    if (typeof s.procCoefficient !== 'number' || s.procCoefficient <= 0 || s.procCoefficient > 1.5) err(`M7-D: ${id} の procCoefficient が不正 (${s.procCoefficient})`);
+    for (const lv of s.levels || []) { if (lv.chillAmount == null) err(`M7-D: ${id} Lv${lv.level} に chillAmount が無い`); }
+    // cadence: cooldown / interval / deployInterval / markInterval / recastInterval / activeDuration のいずれかを持つ。
+    for (const lv of s.levels || []) { if (lv.cooldown == null && lv.interval == null && lv.deployInterval == null && lv.markInterval == null && lv.recastInterval == null && lv.activeDuration == null) err(`M7-D: ${id} Lv${lv.level} に cadence(cooldown/interval/deployInterval/markInterval/recastInterval/activeDuration) が無い`); }
+    for (let i = 1; i < (s.levels || []).length; i++) if (JSON.stringify(s.levels[i]) === JSON.stringify(s.levels[i - 1])) err(`M7-D: ${id} の Lv${i + 1} が Lv${i} と同一（成長なし）`);
+    for (const lv of s.levels || []) for (const [k, v] of Object.entries(lv)) if (typeof v === 'number' && (!Number.isFinite(v) || v < 0)) err(`M7-D: ${id} Lv${lv.level} の ${k} が負/非有限 (${v})`);
+    // damage tag / status id: element ice のみ（新正式 status を追加しない）。
+    for (const t of s.tags || []) if (t === 'status' || seIds.has(t)) err(`M7-D: ${id} の tag "${t}" が正式 status id と衝突`);
+  }
+  // marker（氷印/氷棺）は正式 status として登録しない。
+  for (const bad of ['ice_seal', 'iceSeal', 'ice_coffin', 'sealed_coffin']) if (seIds.has(bad)) err(`M7-D: marker "${bad}" が StatusEffectRegistry へ登録されている（skill-local であること）`);
+  // 新進化5種（base/aux/echo/lv80 false）。
+  const D_E = {
+    heavenfall_glacier_lances: { base: 'glacial_spear_rain', aux: 'frost_amplification', echo: 'custom' },
+    crystal_sentinel_legion: { base: 'snowflake_sentry', aux: 'rapid_freezing', echo: 'custom' },
+    continental_glacier_rush: { base: 'iceberg_ram', aux: 'frozen_expansion', echo: 'custom' },
+    eternal_sealed_coffin: { base: 'absolute_ice_seal', aux: 'ice_prison', echo: 'forbidden' },
+    polar_night_aurora: { base: 'aurora_veil', aux: 'lingering_cold', echo: 'forbidden' },
+  };
+  for (const [id, meta] of Object.entries(D_E)) {
+    const e = evosArr.find((x) => x.id === id);
+    if (!e) { err(`M7-D: 氷 進化 ${id} が無い`); continue; }
+    if (e.baseSkillId !== meta.base) err(`M7-D: 進化 ${id} の baseSkillId が ${meta.base} でない (${e.baseSkillId})`);
+    if (e.replacementSkillId !== id) err(`M7-D: 進化 ${id} の replacementSkillId が id でない`);
+    if (e.element !== 'ice') err(`M7-D: 進化 ${id} の element が ice でない`);
+    if (e.lv80ProjectileTarget === true) err(`M7-D: 進化 ${id} は Lv80発射数対象外であること`);
+    if (e.echoPolicy !== meta.echo) err(`M7-D: 進化 ${id} の echoPolicy が ${meta.echo} でない (${e.echoPolicy})`);
+    if (typeof e.procCoefficient !== 'number' || e.procCoefficient <= 0 || e.procCoefficient > 1.5) err(`M7-D: 進化 ${id} の procCoefficient が不正 (${e.procCoefficient})`);
+    const reqs = e.requiredSkills || [];
+    if (!(reqs.length === 1 && reqs[0].skill === meta.aux)) err(`M7-D: 進化 ${id} の補助条件が ${meta.aux} 1件でない`);
+    if (!allIds4.has(meta.aux) && !passIds4.has(meta.aux)) err(`M7-D: 進化 ${id} の補助 ${meta.aux} が実在しない`);
+    const base = skillsArr.find((s) => s.id === meta.base);
+    if (base && !(base.evolutionBranches || []).includes(id)) err(`M7-D: ${meta.base} の evolutionBranches に ${id} がない`);
+  }
+  // eternal_sealed_coffin の伝播世代上限（1）。
+  const esc = evosArr.find((e) => e.id === 'eternal_sealed_coffin');
+  if (esc && (esc.propagation || {}).generations !== 1) err(`M7-D: eternal_sealed_coffin の伝播世代が1でない (${(esc.propagation || {}).generations})`);
+  // 新 skillCaps（品質順・正）。
+  const D_CAPS = ['maxGlacialSpearTelegraphs', 'maxGlacialSpearImpactsPerFrame', 'maxGlacialSpearProjectiles', 'maxSnowflakeSentries', 'maxSentryProjectiles', 'maxSentryLinksPerFrame', 'maxIcebergRams', 'maxIcebergContactChecks', 'maxIcebergShards', 'maxIceSealMarks', 'maxIceSealExplosionsPerFrame', 'maxAuroraBands', 'maxAuroraQueriesPerTick', 'maxAuroraBurstsPerFrame', 'maxHeavenfallImpactsPerFrame', 'maxSentinelLegionLinksPerFrame', 'maxContinentalGlacierRushes', 'maxSealedCoffinMarks', 'maxPolarNightBands'];
+  for (const n of D_CAPS) {
+    const c = balance?.skillCaps?.[n];
+    if (!c) { err(`M7-D: skillCaps.${n} が無い`); continue; }
+    if (!(c.low <= c.medium && c.medium <= c.high && c.high <= c.ultra)) err(`M7-D: skillCaps.${n} が品質順でない`);
+    for (const q of ['low', 'medium', 'high', 'ultra']) if (typeof c[q] !== 'number' || c[q] <= 0 || !Number.isFinite(c[q])) err(`M7-D: skillCaps.${n}.${q} が正の有限数でない`);
+  }
+  // 火 pool へ氷スキルが混入しない。
+  const fw4 = (jobsData?.jobs || []).find((j) => j.id === 'flame_witch');
+  if (fw4) for (const id of Object.keys(D_A)) if ((fw4.activeSkillPool || []).includes(id)) err(`M7-D: flame_witch pool に氷スキル ${id} が混入`);
+  // bossGaugeMult 監査（M7-D の宣言スキル）: absolute_ice_seal は Lv 単調増加（死んだ成長項目でない）・宣言スキルはコード参照される。
+  const ais = skillsArr.find((s) => s.id === 'absolute_ice_seal');
+  if (ais) {
+    const vals = (ais.levels || []).map((lv) => lv.bossGaugeMult);
+    if (vals.some((v) => typeof v !== 'number' || v <= 0)) err('M7-D: absolute_ice_seal.bossGaugeMult に非正/欠損の Lv がある');
+    else { let inc = 0; for (let i = 1; i < vals.length; i++) if (vals[i] > vals[i - 1] + 1e-9) inc++; if (inc === 0) err('M7-D: absolute_ice_seal.bossGaugeMult が全 Lv 一定（死んだ成長項目）'); }
+  }
+  const av = skillsArr.find((s) => s.id === 'aurora_veil');
+  if (av) { const vals = (av.levels || []).map((lv) => lv.bossGaugeMult); if (vals.some((v) => typeof v !== 'number' || v <= 0)) err('M7-D: aurora_veil.bossGaugeMult に非正/欠損の Lv がある'); }
+  for (const [id, holder] of [['eternal_sealed_coffin', esc], ['polar_night_aurora', evosArr.find((e) => e.id === 'polar_night_aurora')], ['heavenfall_glacier_lances', evosArr.find((e) => e.id === 'heavenfall_glacier_lances')]]) {
+    if (holder && (typeof holder.bossGaugeMult !== 'number' || holder.bossGaugeMult <= 0)) err(`M7-D: ${id}.bossGaugeMult が非正/欠損`);
+  }
+  // bossGaugeMult を宣言する新スキルは dealDamage 経由でボスゲージへ渡される（未使用の成長項目の再発検出）。
+  const gsr = readFileSync(join(__dirname, '..', 'src', 'skills', 'AbsoluteIceSealSkill.js'), 'utf8');
+  if (!/bossGaugeMult/.test(gsr)) err('M7-D: AbsoluteIceSealSkill が bossGaugeMult を参照していない（未使用の成長項目）');
+  const avc = readFileSync(join(__dirname, '..', 'src', 'skills', 'AuroraVeilSkill.js'), 'utf8');
+  if (!/bossGaugeMult/.test(avc)) err('M7-D: AuroraVeilSkill が bossGaugeMult を参照していない（未使用の成長項目）');
 }
 
 // --- M7-B.1: 状態異常の視認性（品質別の表示上限・状態表示設定）の検証 ---

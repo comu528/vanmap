@@ -70,11 +70,11 @@ section('4. 炎上（burning）非回帰: registerBurning は索引へ追加し�
   ok(m.indexOf('burning').has(e), 'update は burning 索引を変更しない（炎上は既存経路が管理）');
 }
 
-section('5. 氷術師 active25・進化13、火の魔女30/18 のカタログ非回帰');
+section('5. 氷術師 active30・進化18、火の魔女30/18 のカタログ非回帰');
 {
   const args = { skills: L('skills.json').skills, passives: L('passives.json').passives, evolutions: L('skill-evolutions.json').evolutions, jobs: L('jobs.json').jobs, registeredIds: registeredSkillIds(), runtimeStateIds: skillsWithRuntimeState() };
   const fm = buildCatalog({ ...args, jobId: 'frost_mage' });
-  ok(fm.summary.activeCount === 25 && fm.summary.evolutionCount === 13, '氷術師 active25/進化13');
+  ok(fm.summary.activeCount === 30 && fm.summary.evolutionCount === 18, '氷術師 active30/進化18');
   const fw = buildCatalog({ ...args, jobId: 'flame_witch' });
   ok(fw.summary.activeCount === 30 && fw.summary.evolutionCount === 18, '火の魔女 active30/進化18');
 }

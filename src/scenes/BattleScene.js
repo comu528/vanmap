@@ -1092,6 +1092,8 @@ export class BattleScene extends Phaser.Scene {
     if (!died && element === 'ice' && sfx && !opts.isShatter && !opts.isMarkDetonation && (opts.chillAmount || opts.applyStatus)) {
       // M7-B.1: デバッグ表示用に「最後に冷気/ゲージを付与した skillId」を対象へ記録（保存しない・ロジック不変）。
       if (skillId) { if (target.isBoss) target._lastGaugeSkillId = skillId; else target._lastChillSkillId = skillId; }
+      // M7-D: 氷封/氷棺の「命中数起爆」用に氷属性命中を1回だけ加算（正式状態でない・冷気/凍結/ゲージロジックへ影響しない・保存しない）。
+      target._iceHitCount = (target._iceHitCount || 0) + 1;
       const spMult = this.jobMods.statusPowerMult();
       // M7-C: ボス氷砕ゲージのみに掛かるスキル固有倍率（既定1＝既存スキルは不変）。冷気/凍結/damage/procCoefficient には掛けない。
       const bossGaugeMult = opts.bossGaugeMult != null ? opts.bossGaugeMult : 1;
@@ -2285,10 +2287,11 @@ export class BattleScene extends Phaser.Scene {
     this.markDebugRun();
     if (this._frostdbg) { this._frostdbg.destroy(true); this._frostdbg = null; return; }
     this._fd = this._fd || { skill: 'frost_shard', passive: 'frost_amplification', lv: 8, chill: 100, jobLv: 100 };
-    // M7-C: 氷術師 active25種・進化13種すべてを F9 で検証できる（新10active・新5進化を含む）。
+    // M7-D: 氷術師 active30種・進化18種すべてを F9 で検証できる（新5active・新5進化を含む）。
     const ACT = ['frost_shard', 'frost_nova', 'glacial_lance', 'permafrost_field', 'ice_wall',
       'icicle_volley', 'frost_orbit', 'freezing_ray', 'hailstorm', 'cryo_mine', 'frost_spirit', 'ice_prison', 'avalanche', 'mirror_ice', 'glacier_drop',
-      'rime_boomerang', 'frost_chain', 'crystal_bloom', 'snowblind_mist', 'polar_star', 'icebreaker_wave', 'frozen_clock', 'crystal_refraction', 'winter_halo', 'comet_sleet'];
+      'rime_boomerang', 'frost_chain', 'crystal_bloom', 'snowblind_mist', 'polar_star', 'icebreaker_wave', 'frozen_clock', 'crystal_refraction', 'winter_halo', 'comet_sleet',
+      'glacial_spear_rain', 'snowflake_sentry', 'iceberg_ram', 'absolute_ice_seal', 'aurora_veil'];
     const PAS = ['frost_amplification', 'rapid_freezing', 'frozen_expansion', 'lingering_cold'];
     const EVO = {
       frost_shard: ['diamond_blizzard', 'rapid_freezing'], frost_nova: ['absolute_zero_domain', 'frozen_expansion'], glacial_lance: ['heaven_piercing_glacier', 'frost_amplification'],
@@ -2296,11 +2299,13 @@ export class BattleScene extends Phaser.Scene {
       frost_spirit: ['frost_queen_court', 'frozen_expansion'], avalanche: ['world_end_avalanche', 'ice_wall'],
       rime_boomerang: ['rime_execution_wheel', 'frost_amplification'], frost_chain: ['eternal_frost_chain', 'rapid_freezing'], crystal_bloom: ['crystal_world_tree', 'frozen_expansion'],
       snowblind_mist: ['everlasting_white_mist', 'lingering_cold'], frozen_clock: ['zero_hour_world', 'ice_prison'],
+      glacial_spear_rain: ['heavenfall_glacier_lances', 'frost_amplification'], snowflake_sentry: ['crystal_sentinel_legion', 'rapid_freezing'], iceberg_ram: ['continental_glacier_rush', 'frozen_expansion'],
+      absolute_ice_seal: ['eternal_sealed_coffin', 'ice_prison'], aurora_veil: ['polar_night_aurora', 'lingering_cold'],
     };
     const cx = GAME_WIDTH / 2;
     const ui = this.add.container(0, 0).setScrollFactor(0).setDepth(4000);
     ui.add(this.add.rectangle(cx, GAME_HEIGHT / 2, 512, 356, 0x08131a, 0.97).setScrollFactor(0).setStrokeStyle(1, 0x4fc3f7));
-    ui.add(this.add.text(cx, 4, 'DEBUG（M7-A/B/C 状態異常・氷術師 active25/進化13・F9）', { fontSize: '11px', color: '#4fc3f7' }).setScrollFactor(0).setOrigin(0.5, 0));
+    ui.add(this.add.text(cx, 4, 'DEBUG（M7-A/B/C/D 状態異常・氷術師 active30/進化18・F9）', { fontSize: '11px', color: '#4fc3f7' }).setScrollFactor(0).setOrigin(0.5, 0));
     const redraw = () => { this.toggleFrostDebug(); this.toggleFrostDebug(); };
     const applyFrostJob = (lv) => { this.jobMods.setResolved(JobModifierManager.resolve(DataManager.getJobProgression('frost_mage'), lv)); this._applyFreezeThresholdMods(); this._refreshStatusPassives(); };
     const acts = [
