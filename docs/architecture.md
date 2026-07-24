@@ -405,3 +405,24 @@ M7-A の状態異常/凍結基盤（`StatusEffectManager`/`FreezeSystem`）と M
 - 純ロジック: `status-visual-state.mjs`（`chillTierOf`/`isNearThreshold`/`selectIcons`/優先度/`entityVisualState`/`VisualBudget`）・`status-debug-panel.mjs`（対象選択・敵/ボス行・freeze 内訳・カウンタ行）・
   `frostbreak-ui-state.mjs`（`bossFrostDisplayState` の visible 条件・割合/cooldown/vuln）・`status-visibility-nonregression.mjs`（表示追加で判定/ダメージ/凍結確率/状態RNG cursor/ボス氷砕値が不変・表示状態を保存しない）。
 - Node 標準のみ・`validate.yml` に追加。**全39スイート通過**。実ブラウザ挙動（実際の見た目・当たり判定・100敵+2倍速での視認性・60FPS）は本環境では**未検証**。
+
+## 氷術師ビルド拡張・第2波（M7-C）
+M7-A の状態異常/凍結基盤（`StatusEffectManager`/`FreezeSystem`）・複数ジョブ補正（`JobModifierManager`）・M7-B.1 の状態表示層（`StatusVisualManager`/`BossFrostbreakDisplay`/`StatusDebugPanel`）と、
+M6-A〜M7-B の抽選/枠/パッシブ/進化・`SkillAudit`（cast/echo/clone/Lv80 の一元解決）・`skillCaps` 品質別予算を **再利用** し、氷術師専用の active を **10種**・進化を **5種** 追加する。
+火の魔女（active30/進化18）と氷術師の既存 active15・進化8 は不変。結果は氷術師 **active25・進化13**。**冷気/凍結/粉砕/ボス氷砕は既存 `StatusEffectManager` 経路**を通し（独自タイマーなし）、
+**Math.random/Date.now/performance.now は不使用**（index ベース決定論・同点は entity `_seq`→x→y で安定決定・draft RNG cursor は不変）。**`save_version` は 6 のまま**。
+
+| 追加/変更 | 役割 |
+|-----------|------|
+| `src/skills/*Skill.js`（新規15: active10＋evolution5） | 各スキルの発動・命中判定は `combat.*`、演出は `effects.*`。氷命中は既存 `applyIceHit`/`damageArea(element:'ice')` 経路。進化は `EvolvedSkillBase`（単一形態・追加Lvなし）。`serializeState`/`restoreState`・cleanup 実装。飛行中 projectile/Graphics/Text/Tween/particle/overlay は保存しない |
+| `SkillManager` REGISTRY 登録 | 新15クラスを REGISTRY へ登録し、`serializeRuntime`/`restoreRuntime`/`recordExtra`（新スキルのテレメトリ）へ接続。主発動時のみ `recordCast`（各弾/tick/命中/pulse/開花/衝波/wave/屈折/彗星落下/粉砕/frostbreak では記録しない） |
+| combat API（再利用＋追加） | 冷気/凍結/粉砕/ボス氷砕は既存 `dealDamage`/`damageArea` の `element:'ice'`＋`chillAmount` へ委譲。ボス直撃の氷砕ゲージは標準 chill 経路が担い、`frozen_clock`/`zero_hour_world` の `bossGaugeMult` は**設計上の予約値で二重適用しない**（ボス氷砕の cooldown/threshold/vulnerability は不変） |
+| `SkillAudit`（再利用） | 新 active/進化の `castMode`/`echoPolicy`/`clonePolicy`/`lv80ProjectileTarget` を一元解決。**Lv80発射数対象は明示フラグ `appliesLv80ProjectileCount`**（`lv80ProjectileTarget:true`）で管理し projectile タグだけでは自動適用しない。氷の対象は計5種（frost_shard/glacial_lance/icicle_volley/rime_boomerang/polar_star）・新進化5種は対象外。`frozen_clock`/`winter_halo` は echo/clone=forbidden、`crystal_bloom`/`snowblind_mist`/`comet_sleet` は custom |
+| `balance.skillCaps`（23種追加） | 氷スキル/進化の品質別上限（`low≤medium≤high≤ultra`・正）を加算。**装飾上限と damage event 上限を区別**し、到達しても判定は消さず装飾を先に削る。`winter_halo` の防御耐久は visual cap（`maxWinterHaloVisualShards`）で減らさない |
+| `CombatTelemetry`（再利用） | `skills.recordExtra` でスキル固有 extra を記録。共通 chill/freeze/shatter/frostbreak は既存経路で記録し**二重カウントしない**。**外部送信なし**・失敗してもゲーム/保存は失敗しない |
+
+- **runtimeState / 保存**: CD 型は `cdLeft`、設置/遅延/防御/barrage 型は追加フィールド（`crystal_bloom`=芽 `x/y/growLeft/pulseLeft`、`snowblind_mist`/`everlasting_white_mist`=`activeLeft/center/tickLeft`(＋`whiteoutLeft`)、`frozen_clock`/`zero_hour_world`=`remainingWaves/nextWaveLeft/waveIndex/origin`、`winter_halo`=`activeLeft/durabilityLeft`、`comet_sleet`=`barrageActive/cometsRemaining/nextCometLeft/barrageIndex/targetCenter/telegraphLeft`、`crystal_world_tree`=樹 `x/y/growLeft/pulseLeft/phase`）を `active_run.skillRuntime` へ加算保存し、**再開時の無料再発動・二重生成・進化前後の同時稼働を防止**する（詳細は `docs/save-format.md`）。
+- **echo/clone**: `CastPolicy`/`SkillAudit` の「normal 由来のみ1世代・再帰なし」を踏襲。`frozen_clock`/`winter_halo`（forbidden）は複製・残響の対象外。custom は攻撃部分のみ複製（`crystal_bloom`=開花サイクル、`snowblind_mist`=霧の追加 tick、`comet_sleet`=追加彗星）。
+- **状態表示との疎結合**: スキルクラスは状態演出を直接生成せず、冷気/凍結/粉砕/ボス氷砕を既存経路で起こすだけで M7-B.1 の `StatusVisualManager`/`BossFrostbreakDisplay`/`StatusDebugPanel`（F10・chill/freeze/hitGroup/counter）へ**自動反映**される（判定・ダメージ・状態RNG cursor は不変）。
+- **デバッグ**: `?debug=1` の **F9** で新 active10・新進化5 を付与/Lv切替/進化条件達成/即時進化でき、`debugRun` として通常 profile 統計/Job XP/残り火/魂炎へ影響しない。
+- 検証: `frost-skills-wave3.mjs`／`frost-evolutions-wave3.mjs`／`frost-policy-audit-wave3.mjs`／`frost-runtime-save-wave3.mjs`（実スキルクラスを graphics 対応の最小 Phaser モックで駆動）／`frost-determinism-wave3.mjs`（Math.random/Date.now/performance.now 不使用のソース走査＋同一状態で同一攻撃パターンの決定論トレース）・`validate-data.mjs`（M7-C ブロック）。**全44テストスイート通過・validate-data 0エラー0警告**。実ブラウザ挙動（実際の描画・当たり判定・視認性・60FPS）は本環境では**未検証**。

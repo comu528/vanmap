@@ -12,9 +12,9 @@ M7-A で 2人目のジョブ **氷術師（frost_mage）** を追加したため
 | ジョブ | active | 進化 | passive |
 |--------|--------|------|---------|
 | 火の魔女 flame_witch | 30 | 18 | 4（共通） |
-| 氷術師 frost_mage | 15 | 8 | 4（氷専用） |
+| 氷術師 frost_mage | 25 | 13 | 4（氷専用） |
 
-> 氷術師は M7-A で active5/進化3、**M7-B で active15/進化8** へ拡張（下記「Milestone 7-B」）。火の魔女は不変。
+> 氷術師は M7-A で active5/進化3、M7-B で active15/進化8、**M7-C で active25/進化13** へ拡張（下記「Milestone 7-B」「Milestone 7-C」）。火の魔女は不変。
 
 - **氷術師 active5**: 氷晶弾 `frost_shard`（初期）/ 氷輪爆 `frost_nova` / 氷河槍 `glacial_lance` / 永久凍土 `permafrost_field` / 氷壁 `ice_wall`。
 - **氷術師 進化3**: ダイヤモンドブリザード（frost_shard+rapid_freezing）/ 絶対零度領域（frost_nova+frozen_expansion）/ 天穿氷河槍（glacial_lance+frost_amplification）。
@@ -151,3 +151,36 @@ active30種化で進化相手が候補へ極端に出にくくならないよう
 | 終末氷河奔流 | `world_end_avalanche` | `avalanche` | avalanche Lv8 ＋ ice_wall(active) Lv4 | periodic | `cdLeft` |
 
 - **Job Lv80「発射数+1」対象**は `SkillAudit` で一元管理し、新 active では `icicle_volley` のみ・新進化5種は全て対象外。検証は `frost-policy-audit.mjs`・`skill-catalog` 相当。
+
+## Milestone 7-C: 氷術師カタログ拡張（active25 / 進化13）
+氷術師へ新 active10種・進化5種を追加し、`SkillCatalog.buildCatalog(frost_mage)` は **active25 / passive4（氷専用4）/ 進化13・issues0**（孤立/未登録/参照不整合0）になる。
+火の魔女カタログ（active30 / passive4 / 進化18）と氷術師の既存 active15/進化8 は不変。各 active/進化は `castMode`・`echoPolicy`/`clonePolicy`・`lv80ProjectileTarget`・`procCoefficient`・`config`（二次proc）・`runtimeState` を実データから露出する。
+
+### 新 active10種
+| スキル | id | rarity | castMode | echo/clonePolicy | lv80 | procCoeff | runtimeState |
+|--------|----|--------|----------|------------------|------|-----------|--------------|
+| 霜輪飛刃 | `rime_boomerang` | common | cooldown | standard | **true** | 0.38（復路 config 0.50） | `cdLeft` |
+| 氷鎖連閃 | `frost_chain` | uncommon | cooldown | standard | false | 0.38 | `cdLeft` |
+| 氷晶開花 | `crystal_bloom` | common | periodic | custom/custom | false | 0.16（開花 config 0.75） | `cdLeft`＋芽（x/y/growLeft/pulseLeft） |
+| 白霧氷界 | `snowblind_mist` | uncommon | continuous | custom/custom | false | 0.14 | `cdLeft`/`activeLeft`/`centerX`/`centerY`/`tickLeft` |
+| 極星氷弾 | `polar_star` | rare | cooldown | standard | **true** | 0.70（config pulse0.12/shard0.30） | `cdLeft` |
+| 砕氷衝波 | `icebreaker_wave` | common | cooldown | standard | false | 0.60 | `cdLeft` |
+| 氷刻停止 | `frozen_clock` | legendary | periodic | **forbidden/forbidden** | false | 0.65 | `cdLeft`/`remainingWaves`/`nextWaveLeft`/`waveIndex`/`origin` |
+| 氷晶屈折 | `crystal_refraction` | rare | cooldown | standard | false | 0.38 | `cdLeft` |
+| 冬冠結界 | `winter_halo` | uncommon | defensive | **forbidden/forbidden** | false | 0.32（反撃） | `cdLeft`/`activeLeft`/`durabilityLeft` |
+| 氷彗星群 | `comet_sleet` | rare | periodic | custom/custom | false | 0.42（大彗星 config 0.80） | `cdLeft`/`barrageActive`/`cometsRemaining`/`nextCometLeft`/`barrageIndex`/`targetCenter`/`telegraphLeft` |
+
+- `frozen_clock`/`winter_halo` は echoPolicy=clonePolicy=forbidden（複製・残響なし）。`crystal_bloom`/`snowblind_mist`/`comet_sleet` は custom（攻撃部分のみ複製・設置/追従は増やさない）。
+- 設置/遅延/防御/barrage 型の runtimeState は再開時の無料再発動・二重生成・進化前後の同時稼働を防ぐ。飛行中 projectile/Graphics/Text/Tween/overlay/F10 選択は保存しない。
+
+### 新 進化5種（単一形態・element ice・lv80ProjectileTarget=false・evolved タグ）
+| 進化 | id | 置換元 | 条件 | castMode | runtimeState |
+|------|----|--------|------|----------|--------------|
+| 冥氷処刑輪 | `rime_execution_wheel` | `rime_boomerang` | rime_boomerang Lv8 ＋ frost_amplification Lv4 | cooldown | `cdLeft` |
+| 永劫氷鎖 | `eternal_frost_chain` | `frost_chain` | frost_chain Lv8 ＋ rapid_freezing Lv4 | cooldown | `cdLeft` |
+| 世界氷晶樹 | `crystal_world_tree` | `crystal_bloom` | crystal_bloom Lv8 ＋ frozen_expansion Lv4 | periodic | `cdLeft`＋樹（x/y/growLeft/pulseLeft/phase） |
+| 永久白霧 | `everlasting_white_mist` | `snowblind_mist` | snowblind_mist Lv8 ＋ lingering_cold Lv4 | continuous | `cdLeft`/`activeLeft`/`center`/`tickLeft`/`whiteoutLeft` |
+| 零刻世界 | `zero_hour_world` | `frozen_clock` | frozen_clock Lv8 ＋ ice_prison(補助 active) Lv4 | periodic | `cdLeft`/`remainingWaves`/`nextWaveLeft`/`waveIndex`/`origin` |
+
+- **Job Lv80「発射数+1」対象**は明示フラグ（`lv80ProjectileTarget:true`）で `SkillAudit` が一元管理し、新 active では `rime_boomerang`/`polar_star`・新進化5種は全て対象外。氷全体の対象は計5種（`frost_shard`/`glacial_lance`/`icicle_volley`/`rime_boomerang`/`polar_star`）。
+- `zero_hour_world` の条件に使う `ice_prison` は進化条件用の補助 active で置換しない。`frozen_clock`/`zero_hour_world` の `bossGaugeMult` は設計上の予約値で氷砕ゲージへ二重適用しない。検証は `frost-policy-audit-wave3.mjs`・`skill-catalog` 相当。詳細は `./docs/skills.md`・`./docs/jobs.md`。

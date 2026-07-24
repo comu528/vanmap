@@ -499,3 +499,50 @@ Node テストで検証したのは **純ロジックのみ**（表示状態計�
 - [ ] `node tests/frostbreak-ui-state.mjs` が成功する（`bossFrostDisplayState` の visible 条件〈ice かつボス生存〉・割合/cooldown/vuln 点滅）
 - [ ] `node tests/status-visibility-nonregression.mjs` が成功する（表示追加で判定/ダメージ/凍結確率/状態RNG cursor/ボス氷砕値が不変・表示状態を保存しない）
 - [ ] `validate-data.mjs` に M7-B.1 検証（skillCaps 表示上限11種の品質順・`statusVisuals` の未知 status id/visual type/負数上限）が加わり、**全39テストスイートが通過**する
+
+## 氷術師ビルド拡張・第2波（M7-C・実ブラウザ）
+（M7-C は氷術師へ新 active10種・進化5種を追加する。Node テストは**純ロジック**（データ整合・ポリシー監査・保存往復・決定論）のみを検証する。以下の
+**Phaser ランタイム挙動・UI 描画・状態表示・負荷は実ブラウザでのみ確認**する項目で、**実行していない項目を「成功」「確認済み」と報告しない**方針。時間短縮は `?debug=1` の **F9** を使う。）
+
+### 新 active10種
+- [ ] 氷術師の候補に新 active10種（霜輪飛刃/氷鎖連閃/氷晶開花/白霧氷界/極星氷弾/砕氷衝波/氷刻停止/氷晶屈折/冬冠結界/氷彗星群）が出うる
+- [ ] 各新 active を **Lv1 と Lv8** で単独取得して動作する（火の魔女スキルは氷術師候補に出ない）
+- [ ] 霜輪飛刃が往路と復路で別々に命中し、**復路は高威力で凍結敵を粉砕**する（**Job Lv80 で発射数が +1**）
+- [ ] 氷鎖連閃が高冷気の敵を優先して瞬間連鎖し、後半減衰・**同一敵へ再連鎖しない**
+- [ ] 氷晶開花が発芽→開花し、**開花時のみ粉砕**（pulse は弱い）する
+- [ ] 白霧氷界がプレイヤーに追従して持続冷気を与える（**粉砕は起きない**）
+- [ ] 極星氷弾が大型星＋pulse＋着弾爆発＋氷片を出す（**Job Lv80 で発射数が +1**）
+- [ ] 砕氷衝波が通常敵を push・エリート軽減・**ボスは push しない**・凍結敵を粉砕する
+- [ ] 氷刻停止が全画面の時計波を出し、直接凍結せず **FreezeSystem 経由**で凍結する（legendary・発生が絞られている）
+- [ ] 氷晶屈折が屈折して跳ね、**最終屈折のみ粉砕**する
+- [ ] 冬冠結界が氷冠で被弾を吸収し近距離冷気反撃する（複数耐久片・`mirror_ice` と差別化・複製なし）
+- [ ] 氷彗星群が予告→barrage を出し、**大彗星のみ粉砕**する（落下点が黄金角で分散）
+
+### 新進化5種
+- [ ] 新進化5種（冥氷処刑輪/永劫氷鎖/世界氷晶樹/永久白霧/零刻世界）を基礎Lv8＋補助Lv4で発現できる（`零刻世界` は補助が **ice_prison(active)**・置換しない）
+- [ ] 氷術師で active25種・進化13種が抽選・進化でき、既存 active15/進化8 も非回帰（火の魔女 active30/進化18 は不変）
+- [ ] 進化5種は **Job Lv80 の発射数増加の対象外**である
+
+### 状態表示・保存・負荷・非回帰
+- [ ] 冷気/凍結/粉砕/ボス氷砕が M7-A/M7-B と同じ挙動（新スキルでも独自タイマーを持たず既存経路を通る）
+- [ ] 新スキルの冷気/凍結/粉砕/ボス氷砕が **M7-B.1 の表示（冷気段階/氷殻/SHATTER/ボス氷砕ゲージ/FROST BREAK/F10）へ自動反映**され、スキル側で二重に演出を出さない
+- [ ] ボスは通常 frozen にならず chill→氷砕ゲージへ変換される（`frozen_clock`/`zero_hour_world` でゲージが二重に増えない・氷砕の cooldown/threshold/vulnerability が M7-B から変わらない）
+- [ ] 途中保存→再読込で 新スキル/レベル/進化/CD/設置（開花の芽・氷晶樹）/追従霧/時計波/氷冠耐久/彗星 barrage が概ね復元され、**無料の再発動・二重生成・進化前後の同時稼働**が起きない
+- [ ] 品質 low/medium/high/ultra いずれでも凍結/粉砕/大技の視認性が保たれる（上限は装飾から削り、判定・**冬冠結界の防御耐久**は削らない）
+- [ ] 敵100体＋2倍速でも処理が止まらず、彗星 barrage/全画面時計波/開花/霧が破綻しない（一時停止/リザルト/拠点へ戻れる）
+- [ ] `?debug=1` の **F9** で新 active10・新進化5 を付与/Lv切替/進化条件達成/即時進化でき、`debugRun` として通常 profile 統計/Job XP/残り火/魂炎へ影響しない
+- [ ] リザルト「Balance詳細」に新スキルのテレメトリ（スキル固有 extra）が出て、共通 chill/freeze/shatter/frostbreak が二重カウントされず、外部送信もされない
+- [ ] 上記いずれの操作でもコンソールに **JS エラーが出ない**
+
+### 実際には確認できていない内容（M7-C・重要）
+Node テストで検証したのは **純ロジックのみ**（氷 active25/進化13 のデータ整合・ポリシー監査・runtimeState 保存往復・決定論）。
+**描画/当たり判定/状態表示/体感バランス/60FPS はブラウザでの確認が必要**（往復弾・連鎖・開花・追従霧・複合弾・衝波・全画面時計波・屈折弾・氷冠・彗星 barrage の見た目と実挙動、
+状態表示への自動反映、F9 パネルの描画、実フレームレート）。実ブラウザ（GitHub Pages・`?debug=1` の F9）で上記チェックリストを手動確認すること。実行していない項目を「確認済み」と報告しない。
+
+### M7-C の Node テスト（CI・上の「データ検証（CI）」へ追加）
+- [ ] `node tests/frost-skills-wave3.mjs` が成功する（新 active10種のデータ整合・rarity/castMode/procCoefficient/config 二次proc・抽選出現/満枠/最大Lv/追放/決定論）
+- [ ] `node tests/frost-evolutions-wave3.mjs` が成功する（新進化5種のデータ整合・canEvolve〈ice_prison 補助含む〉・既存氷進化8種の非回帰・safetyCaps）
+- [ ] `node tests/frost-policy-audit-wave3.mjs` が成功する（castMode/echo・clonePolicy/Lv80 対象＝5種・frozen_clock/winter_halo forbidden・custom の整合）
+- [ ] `node tests/frost-runtime-save-wave3.mjs` が成功する（実スキルクラスを graphics 対応の最小 Phaser モックで駆動し CD/設置/波/耐久/barrage の保存往復・二重生成防止を検証・v6 非回帰）
+- [ ] `node tests/frost-determinism-wave3.mjs` が成功する（Math.random/Date.now/performance.now 不使用のソース走査＋同一状態で同一攻撃パターンの決定論トレース）
+- [ ] `validate-data.mjs` に M7-C 検証ブロック（氷 active25/進化13・skillCaps 23種・cast/監査/procCoefficient/config・lv80 対象が5種）が加わり、**全44テストスイートが通過**する

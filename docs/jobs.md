@@ -12,10 +12,10 @@ M6-A で導入したジョブ基盤（`data/jobs.json`・`data/job-progression.j
 | jobId | 表示名 | element | 初期スキル | active | passive | 進化 | Job Lv |
 |-------|--------|---------|-----------|--------|---------|------|--------|
 | `flame_witch` | 火の魔女 | fire | `fireball` | 30 | 4（共通） | 18 | 1〜100 |
-| `frost_mage` | 氷術師 | ice | `frost_shard` | 15 | 4（氷専用） | 8 | 1〜100 |
+| `frost_mage` | 氷術師 | ice | `frost_shard` | 25 | 4（氷専用） | 13 | 1〜100 |
 
-- **火の魔女は M7-A/M7-B で変更なし**（active30 / passive4 / evo18・同 seed 抽選結果不変）。
-- **氷術師は M7-A で active5/passive4/evo3、M7-B で active15/passive4/evo8 へ拡張**（下記「Milestone 7-B」）。
+- **火の魔女は M7-A/M7-B/M7-C で変更なし**（active30 / passive4 / evo18・同 seed 抽選結果不変）。
+- **氷術師は M7-A で active5/passive4/evo3、M7-B で active15/passive4/evo8、M7-C で active25/passive4/evo13 へ拡張**（下記「Milestone 7-B」「Milestone 7-C」）。
 - **氷術師（M7-A 新規）**:
   - active5: `frost_shard`（氷晶弾）/ `frost_nova`（氷輪爆）/ `glacial_lance`（氷河槍）/ `permafrost_field`（永久凍土）/ `ice_wall`（氷壁）
   - passive4: `frost_amplification`（氷晶増幅・氷Dmg）/ `rapid_freezing`（急速冷却・氷CD）/ `frozen_expansion`（凍域拡張・範囲）/ `lingering_cold`（余寒残留・氷状態持続＋冷気減衰緩和）
@@ -134,3 +134,40 @@ XP曲線・周回報酬の計算は両ジョブ共通（`totalXpForLevel(L)=25(L
 M7-B.1 で、氷術師の状態異常が**通常プレイ中に視認・確認できる**ようになった（冷気の段階/frozen/粉砕/ボス氷砕ゲージ/F10 状態デバッグ）。
 **新スキル/パッシブ/進化/ジョブは追加せず・Job Lv 報酬や数値は不変**（`elementDamageMult`/`statusPowerMult`/`shatterDamageMult`/凍結確率/ボス氷砕値はそのまま）。
 表示は演出であり戦闘結果を変えない・表示状態は保存しない・`save_version` は v6 のまま。詳細は `./docs/status-visuals.md`・`./docs/status-debug.md`。
+
+## Milestone 7-C: 氷術師ビルド拡張・第2波（active25 / 進化13 へ・save_version は v6 のまま）
+氷術師（frost_mage）へ専用 active を **10種**・進化を **5種** 追加し、**active 25種 / passive 4種（M7-C で追加なし）/ 進化 13種 / Job Lv1〜100** に拡張した。
+火の魔女（active30/passive4/進化18）は不変で同 seed の抽選結果も不変。冷気/凍結/粉砕/ボス氷砕は既存 `StatusEffectManager` 経路を使い
+（独自タイマーなし）、Math.random/Date.now/performance.now 不使用（index ベース決定論・同点は `_seq`→x→y）・draft RNG cursor 不変。**save_version は v6 のまま**（加算的）。数値は `data/skills.json`/`data/skill-evolutions.json` が正。
+
+### 新 active10種（すべて氷術師専用・`element:"ice"`・`isCommon:false`・maxLevel8・Lv1〜8 データ駆動）
+| スキル | id | rarity | castMode | 役割 | Lv80発射数 |
+|--------|----|--------|----------|------|-----------|
+| 霜輪飛刃 | `rime_boomerang` | common | cooldown | 往復 projectile・往路/復路で別命中・復路で凍結敵粉砕 | **対象** |
+| 氷鎖連閃 | `frost_chain` | uncommon | cooldown | 高冷気優先の瞬間連鎖・後半減衰・同一敵へ再連鎖しない | 対象外 |
+| 氷晶開花 | `crystal_bloom` | common | periodic | 発芽→開花の設置・開花時のみ粉砕（pulse は弱い） | 対象外 |
+| 白霧氷界 | `snowblind_mist` | uncommon | continuous | 追従霧・持続冷気・粉砕なし | 対象外 |
+| 極星氷弾 | `polar_star` | rare | cooldown | 大型星＋pulse＋着弾爆発＋氷片の複合弾 | **対象** |
+| 砕氷衝波 | `icebreaker_wave` | common | cooldown | 扇状衝波・通常敵push/エリート軽減/ボスpushなし/凍結敵粉砕 | 対象外 |
+| 氷刻停止 | `frozen_clock` | legendary | periodic | 全画面時計波・直接凍結せず FreezeSystem 委譲 | 対象外 |
+| 氷晶屈折 | `crystal_refraction` | rare | cooldown | 屈折 projectile・最終屈折のみ粉砕 | 対象外 |
+| 冬冠結界 | `winter_halo` | uncommon | defensive | 氷冠吸収＋近距離冷気反撃（`mirror_ice` と差別化・複製なし） | 対象外 |
+| 氷彗星群 | `comet_sleet` | rare | periodic | 予告＋barrage・大彗星のみ粉砕（黄金角で落下点分散） | 対象外 |
+
+- **Job Lv80「発射数+1」対象は明示フラグ（`lv80ProjectileTarget:true`・`SkillAudit.appliesLv80ProjectileCount`）で管理**し projectile タグでは自動適用しない。新 active では `rime_boomerang`/`polar_star`。氷全体の対象は計5種（`frost_shard`/`glacial_lance`/`icicle_volley`/`rime_boomerang`/`polar_star`）・新進化5種は全て対象外。
+- 一次 proc（`procCoefficient`）: rime_boomerang0.38 / frost_chain0.38 / crystal_bloom0.16 / snowblind_mist0.14 / polar_star0.70 / icebreaker_wave0.60 / frozen_clock0.65 / crystal_refraction0.38 / winter_halo0.32(反撃) / comet_sleet0.42。二次 proc は `config`（rime_boomerang 復路0.50 / crystal_bloom 開花0.75 / polar_star pulse0.12・shard0.30 / comet_sleet 大彗星0.80 等）。
+- `frozen_clock`/`winter_halo` は echoPolicy=clonePolicy=forbidden（複製・残響なし）。`crystal_bloom`/`snowblind_mist`/`comet_sleet` は custom（攻撃部分のみ複製）。
+
+### 新 進化5種（`EvolvedSkillBase`・単一形態・`element:"ice"`・Lv80発射数対象外・evolved タグ）
+| 進化 | id | 置換元 | 条件（基礎Lv8＋補助Lv4） | castMode |
+|------|----|--------|--------------------------|----------|
+| 冥氷処刑輪 | `rime_execution_wheel` | `rime_boomerang` | rime_boomerang Lv8 ＋ frost_amplification Lv4 | cooldown |
+| 永劫氷鎖 | `eternal_frost_chain` | `frost_chain` | frost_chain Lv8 ＋ rapid_freezing Lv4 | cooldown |
+| 世界氷晶樹 | `crystal_world_tree` | `crystal_bloom` | crystal_bloom Lv8 ＋ frozen_expansion Lv4 | periodic |
+| 永久白霧 | `everlasting_white_mist` | `snowblind_mist` | snowblind_mist Lv8 ＋ lingering_cold Lv4 | continuous |
+| 零刻世界 | `zero_hour_world` | `frozen_clock` | frozen_clock Lv8 ＋ ice_prison(補助 active) Lv4 | periodic |
+
+- 進化は基礎 active を置換し active/passive 枠を消費しない。補助条件スキルは消費しない。**passive は4種のまま**（M7-C で追加なし）。`zero_hour_world` の条件に使う `ice_prison` は進化条件用の補助 active で**置換しない**。
+- 主発動時のみ `recordCast`（各弾/tick/命中/pulse/開花/衝波/wave/屈折/彗星落下/粉砕/frostbreak では記録しない）。echo/clone は1世代・再帰なし（`zero_hour_world` は forbidden）。
+- ボスは通常 frozen にせず chill→氷砕ゲージへ変換し、`frozen_clock`/`zero_hour_world` の `bossGaugeMult` は設計上の予約値で二重適用しない（ボス氷砕の cooldown/threshold/vulnerability は不変）。
+- 検証: `frost-skills-wave3.mjs`／`frost-evolutions-wave3.mjs`／`frost-policy-audit-wave3.mjs`／`frost-runtime-save-wave3.mjs`／`frost-determinism-wave3.mjs`・`validate-data.mjs`（M7-C 検証ブロック）。**全44スイート通過・validate-data 0エラー0警告**。実描画・体感は本環境では未検証。詳細は `./docs/skills.md`・`./docs/skill-catalog.md`・`./docs/status-effects.md`。

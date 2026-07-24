@@ -474,6 +474,47 @@ Milestone 1 は実装済み。以下は **Milestone 2 以降の設計と作業�
 > **実ブラウザ未確認**: 本環境では Phaser 実プレイ確認を行っていない。純ロジック・最小 Phaser モックによるスモークは通過済みだが、
 > 実際の見た目（冷気段階/氷殻/粉砕文字/ボスゲージ/FROST BREAK）・当たり判定・視認性（敵100体＋2倍速で HUD/敵弾/ボス予告を見失わないか）・60FPS はブラウザ確認が必要（`docs/test-guide.md` の M7-B.1 参照）。
 
+## Milestone 7-C（実装済み）— 氷術師のスキル拡張・第2波（active25 / 進化13）
+
+氷術師の active を10種・進化を5種追加し、**active25種 / passive4種（追加なし）/ 進化13種 / Job Lv1〜100** へ拡張した。全て `data/skills.json`/`data/skill-evolutions.json` の
+Lv1〜8 データ駆動で、冷気/凍結/粉砕/ボス氷砕は既存 `StatusEffectManager` 経路を使用（独自タイマーなし）。**Math.random/Date.now/performance.now 不使用（index ベース決定論）**・**save_version は v6 のまま**。火の魔女 active30/進化18 と氷術師既存 active15/進化8 は不変。
+
+### 新 active10種（frost_mage 専用・element ice・isCommon:false・maxLevel8）
+- [x] 霜輪飛刃 `rime_boomerang`（common・cooldown・往復 projectile・**Lv80発射数対象**・往0.38/復0.50・復路で凍結敵粉砕・runtimeState cdLeft）。
+- [x] 氷鎖連閃 `frost_chain`（uncommon・cooldown・瞬間連鎖・高冷気優先/後半減衰/同一敵へ再連鎖しない・proc0.38・runtimeState cdLeft）。
+- [x] 氷晶開花 `crystal_bloom`（common・periodic・発芽→開花設置・pulse0.16/bloom0.75・開花時のみ粉砕・echo/clone custom・runtimeState cdLeft＋芽 x/y/growLeft/pulseLeft）。
+- [x] 白霧氷界 `snowblind_mist`（uncommon・continuous・追従霧・proc0.14・粉砕なし・custom・runtimeState cdLeft/activeLeft/centerX/centerY/tickLeft）。
+- [x] 極星氷弾 `polar_star`（rare・cooldown・大型星＋pulse＋爆発＋氷片・**Lv80発射数対象**・pulse0.12/impact0.70/shard0.30・runtimeState cdLeft）。
+- [x] 砕氷衝波 `icebreaker_wave`（common・cooldown・扇状衝波・通常敵push/エリート軽減/ボスpushなし/凍結敵粉砕・proc0.60・runtimeState cdLeft）。
+- [x] 氷刻停止 `frozen_clock`（legendary・periodic・全画面時計波・直接凍結せず FreezeSystem 委譲・proc0.65・echo/clone **forbidden**・runtimeState cdLeft/remainingWaves/nextWaveLeft/waveIndex/origin）。
+- [x] 氷晶屈折 `crystal_refraction`（rare・cooldown・屈折 projectile・最終屈折のみ粉砕・proc0.38・runtimeState cdLeft）。
+- [x] 冬冠結界 `winter_halo`（uncommon・defensive・氷冠吸収＋冷気反撃・複数耐久片＋近距離pulse で `mirror_ice` と差別化・echo/clone **forbidden**・runtimeState cdLeft/activeLeft/durabilityLeft）。
+- [x] 氷彗星群 `comet_sleet`（rare・periodic・予告＋barrage・通常0.42/大彗星0.80・大彗星のみ粉砕・custom・runtimeState cdLeft/barrageActive/cometsRemaining/nextCometLeft/barrageIndex/targetCenter/telegraphLeft）。
+
+### 新進化5種（EvolvedSkillBase・element ice・単一形態・追加Lvなし・**Job Lv80対象外**）
+- [x] 冥氷処刑輪 `rime_execution_wheel`（rime_boomerang Lv8 + frost_amplification Lv4・cooldown・standard）。
+- [x] 永劫氷鎖 `eternal_frost_chain`（frost_chain Lv8 + rapid_freezing Lv4・cooldown・custom）。
+- [x] 世界氷晶樹 `crystal_world_tree`（crystal_bloom Lv8 + frozen_expansion Lv4・periodic・custom・runtimeState 樹 x/y/growLeft/pulseLeft/phase）。
+- [x] 永久白霧 `everlasting_white_mist`（snowblind_mist Lv8 + lingering_cold Lv4・continuous・custom）。
+- [x] 零刻世界 `zero_hour_world`（frozen_clock Lv8 + ice_prison Lv4・periodic・**forbidden**）。`ice_prison` は進化条件用の補助 active で置換しない。
+
+### 決定論・監査・保存・テスト
+- [x] castMode/mainCastEvent/echoPolicy/clonePolicy/lv80ProjectileTarget/procCoefficient/config を全 active/進化で宣言。主発動のみ recordCast。**Lv80発射数対象は明示フラグ（`SkillAudit.appliesLv80ProjectileCount`）で管理**し、氷の対象は計5種（frost_shard/glacial_lance/icicle_volley/rime_boomerang/polar_star）・新進化は対象外。
+- [x] 全新スキルは index ベース決定論（Math.random/Date.now/performance.now/draft RNG 不使用）。扇角/連鎖順/bloom地点/霧中心/星角/wave/屈折順/comet落下（黄金角 2.399963…）/barrage順まで決定論。同点は entity `_seq` → x → y で安定決定。
+- [x] 冷気/凍結/粉砕/ボス氷砕は既存経路で M7-B.1 表示（StatusVisualManager/BossFrostbreakDisplay/StatusDebugPanel/F10）へ自動反映。ボスは通常 frozen にせず chill→氷砕ゲージへ自動変換し、`frozen_clock`/`zero_hour_world` の `bossGaugeMult` は設計上の予約値で氷砕ゲージへ二重適用しない（ボス氷砕の cooldown/threshold/vulnerability は不変）。
+- [x] CD/設置/遅延/防御/barrage の runtimeState を `skillRuntime` へ保存し再開時の無料再発動・二重生成・進化前後同時稼働を防止。飛行中 projectile/Graphics/Text/Tween/entity参照/particle/overlay/F10選択は保存しない。
+- [x] 品質別 skillCaps 23種を `data/balance.json` へ追加（装飾上限と damage event 上限を区別・`winter_halo` の防御耐久は visual cap で減らさない）。CombatTelemetry へスキル固有 extra（recordExtra）を追加（共通 chill/freeze/shatter/frostbreak は二重カウントしない・外部送信なし）。
+- [x] `?debug=1` の **F9** に新 active10・新進化5 を追加（付与/Lv切替/進化条件達成/即時進化・debugRun として通常 profile 統計/Job XP/残り火/魂炎へ影響させない）。
+- [x] 新規テスト5種: `frost-skills-wave3` / `frost-evolutions-wave3` / `frost-policy-audit-wave3` / `frost-runtime-save-wave3` / `frost-determinism-wave3`。`validate-data.mjs` へ M7-C ブロック・`validate.yml` へ5ステップ追加。**全44スイート通過・validate-data 0エラー0警告**。
+- [x] **非回帰**: 火の魔女 active30/進化18・同seed抽選、氷術師既存 active15/進化8、冷気/凍結/免疫/粉砕/ボス氷砕、selectedJobId/active_run固定、M5-B保存・テレメトリ・M7-A状態異常・M7-B.1表示・氷CD保存。
+
+### M7-C で**実装しない**もの（対象外）
+- [ ] 氷術師 active 26種目以降・進化14種目以降・**新 passive**・限界突破（Lv8超）・進化後レベルアップ。
+- [ ] 3人目のジョブ・ジョブ間継承・**火と氷の属性反応**・転生レガシー・新敵/新ボス/新難易度・装備/ドロップ・正式図鑑/実績。
+
+> **実ブラウザ未確認**: 本環境では Phaser 実プレイ確認を行っていない。データ検証・純ロジック・最小 Phaser モック（graphics 対応）によるランタイムスモークは通過済みだが、
+> 実際の描画・視認性・当たり判定・体感バランス・60FPS 維持はブラウザでの確認が必要（`docs/test-guide.md` の M7-C 項目参照）。
+
 ### 次のマイルストーン候補
 - [ ] **3人目のジョブ**（雷/毒 など新属性・`StatusEffectManager` に新状態を追加）
 - [ ] **属性反応**（火⇄氷 など状態異常間の相互作用・付与時の source element を活用）

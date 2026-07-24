@@ -513,3 +513,38 @@ profile/active_run の既存構造を変えない。そのため **`saveVersion`
 
 表示状態を保存しないことで、再読込しても状態そのもの（冷気量/凍結残/耐性/氷砕ゲージ）は権威フィールドから正しく再現され、overlay/アイコン/デバッグ表示はその現在状態に追従して作り直される
 （`tests/status-visibility-nonregression.mjs` で、表示追加により保存往復・状態RNG cursor・ボス氷砕値が不変であることを検証）。
+
+## Milestone 7-C: 氷術師ビルド拡張・第2波（save_version は 6 のまま）
+氷術師へ新 active10種・進化5種を追加するが、M6-B/M7-A/M7-B の `active_run.skillRuntime`（`SkillManager.serializeRuntime`）へ **各スキルの実行時状態を加算的に足すだけ** で、
+profile/active_run の既存構造を変えない。そのため **`saveVersion` は 6 のまま**。v1〜v6 からの移行は M6-A〜M7-B と同じ経路で、既存データを保持し転生でもリセットしない。
+状態RNG（`statusRng`）・ボス frostbreak 状態（`bossFrost`）の保存は M7-A のまま。
+
+### active_run.skillRuntime（M7-C 氷スキルの追加フィールド・任意）
+無い（旧セーブ・新スキル未所持）場合は空として安全に再開する。CD 型は `cdLeft` のみ、設置/遅延/防御/barrage 型は追加の待機・耐久・進行フィールドを持つ。
+**再開時の無料再発動・二重生成（bloom/mist/clock wave/halo 耐久/comet barrage/進化前後の同時稼働）を防ぐ**ために保存する。飛行中 projectile/Graphics/Text/Tween/entity 参照/particle/overlay/F10 選択は**保存しない**。
+```jsonc
+{
+  "skillRuntime": {
+    "rime_boomerang":     { "cdLeft": 0 },                  // 霜輪飛刃: 残りCD（飛行中の氷輪は保存しない）
+    "frost_chain":        { "cdLeft": 0 },                  // 氷鎖連閃: 残りCD
+    "icebreaker_wave":    { "cdLeft": 0 },                  // 砕氷衝波: 残りCD
+    "polar_star":         { "cdLeft": 0 },                  // 極星氷弾: 残りCD
+    "crystal_refraction": { "cdLeft": 0 },                  // 氷晶屈折: 残りCD
+    "crystal_bloom":      { "cdLeft": 0, "buds": [ { "x": 0, "y": 0, "growLeft": 0, "pulseLeft": 0 } ] }, // 氷晶開花: 残りCD＋芽(座標/成長残り/pulse残り)
+    "snowblind_mist":     { "cdLeft": 0, "activeLeft": 0, "centerX": 0, "centerY": 0, "tickLeft": 0 },    // 白霧氷界: CD＋展開残り＋霧中心＋tick残り
+    "frozen_clock":       { "cdLeft": 0, "remainingWaves": 0, "nextWaveLeft": 0, "waveIndex": 0, "origin": null }, // 氷刻停止: 波の進行状態
+    "winter_halo":        { "cdLeft": 0, "activeLeft": 0, "durabilityLeft": 0 },                          // 冬冠結界: CD＋展開残り＋残り耐久（防御）
+    "comet_sleet":        { "cdLeft": 0, "barrageActive": false, "cometsRemaining": 0, "nextCometLeft": 0, "barrageIndex": 0, "targetCenter": null, "telegraphLeft": 0 }, // 氷彗星群: barrage 進行状態
+    // 進化:
+    "rime_execution_wheel":   { "cdLeft": 0 },
+    "eternal_frost_chain":    { "cdLeft": 0 },
+    "crystal_world_tree":     { "cdLeft": 0, "trees": [ { "x": 0, "y": 0, "growLeft": 0, "pulseLeft": 0, "phase": 0 } ] }, // 世界氷晶樹: 樹の状態
+    "everlasting_white_mist": { "cdLeft": 0, "activeLeft": 0, "center": null, "tickLeft": 0, "whiteoutLeft": 0 },
+    "zero_hour_world":        { "cdLeft": 0, "remainingWaves": 0, "nextWaveLeft": 0, "waveIndex": 0, "origin": null }
+  }
+}
+```
+- **保存対象**: 上記 CD 型・設置（`crystal_bloom` 芽 / `crystal_world_tree` 樹）・追従（`snowblind_mist`/`everlasting_white_mist` 中心＋tick）・遅延/波（`frozen_clock`/`zero_hour_world` の波進行）・防御（`winter_halo` 耐久）・barrage（`comet_sleet`）。統計は profile 側 `skillMastery`（新スキル分も同形式・`recordExtra`）で保持。
+- **保存しない**: 飛行中の projectile（霜輪/屈折弾/彗星/星）・Graphics/Text/Tween・entity 参照・particle・overlay・F10 選択対象。これらはレベル＋runtimeState と再開後の戦闘から自然に再構築する。
+- **再読込での悪用防止**: 設置物（芽/樹）・追従霧・時計/零刻の波・氷冠耐久・彗星 barrage を保存・復元し、**無料の再発動・二重生成・進化前後の同時稼働**を防ぐ。CD 型は残りCDを保存して即時再発動を防ぐ。一時停止中は update が止まるため CD/待機/barrage も進まない。
+- `SkillManager.serializeRuntime()`／`restoreRuntime()` が各スキルの `serializeState/restoreState` を集約し、`BattleScene.restoreFromRun()` が復元する（`tests/frost-runtime-save-wave3.mjs` で実スキルクラスを graphics 対応の最小 Phaser モックで駆動し、CD/設置/波/耐久/barrage 保存と二重生成防止を検証）。加算的追加のため **`save_version` は 6 のまま**。

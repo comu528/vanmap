@@ -454,3 +454,39 @@ hitGroup 上限・状態カウンタ・ボス氷砕状態を数値で確認で�
 ### 負荷と視認性
 装飾（アイコン/氷片/Tween/floating text）は品質別上限に達すると先に削るが、**凍結解除・免疫・状態索引の cleanup といった状態ロジックは削らない**。
 敵100体＋2倍速でも HUD/敵弾/ボス予告の視認性を保つことを目標とする（実ブラウザでの60FPS・見た目は本環境では未確認）。バランス数値は指示なく変更しない。
+
+## Milestone 7-C: 氷術師ビルド拡張・第2波（active25 / 進化13）
+氷術師を **active25種 / passive4種（M7-C で追加なし）/ 進化13種 / Job Lv1〜100** に拡張した。火の魔女（active30/進化18）と氷術師の既存 active15/進化8 は不変で、
+同 seed の抽選結果も不変。冷気→凍結→粉砕／ボス氷砕の制圧サイクルはそのままに、往復弾・連鎖・設置開花・追従霧・大技・防御・全画面制御など**戦い方の幅**を増やす。数値バランスは `data/skills.json` が正（指示なく変更しない）。
+
+### スキル拡張の思想
+- **スキル数を増やして氷ビルドの選択肢を広げる**が、序盤から画面を氷で埋め尽くさない。common は素直な基礎（霜輪飛刃/氷晶開花/砕氷衝波）、uncommon は特徴づけ（氷鎖連閃/白霧氷界/冬冠結界）、rare は軸になる派手さ（極星氷弾/氷晶屈折/氷彗星群）、legendary は強力だが**発生を絞った制御技**（氷刻停止）という役割分担を守る。
+- **決定論的なランダム性で「毎回同じ結果・でも配置は多彩」**を両立する。扇角・連鎖順・開花地点・霧中心・星角・時計 wave・屈折順・彗星落下（黄金角）・barrage 順はすべて index ベースで決まり、`Math.random`/`Date.now`/`performance.now` を使わない。乱数に頼らないため、リロードや途中再開でも挙動が揺れない。
+- **派手さ優先だが、legendary/defensive は制御して過剰にならないようにする**。氷刻停止（legendary）は直接凍結せず既存の `FreezeSystem` へ委譲し、全画面制御をボス氷砕ゲージの標準経路へ流す（`bossGaugeMult` は予約値で二重適用しない）。冬冠結界（defensive）は `mirror_ice` と差別化しつつ、耐久片を装飾上限（visual cap）で減らさない設計で「防御が見た目の都合で弱くならない」ことを保証する。
+- **進化は基礎 Lv8 より明確に強い到達点**にする。進化は枠を消費せず基礎 active を置換し、補助条件スキル（passive3種＋補助 active の `ice_prison`）は消費しない。零刻世界の条件に使う `ice_prison` は置換対象にしない（進化条件用の補助として残す）。
+- **状態表示・保存・テレメトリは既存基盤に寄せる**。新スキルは冷気/凍結/粉砕/ボス氷砕を既存 `StatusEffectManager` 経路で起こし、M7-B.1 の視認性表示（`StatusVisualManager`/ボス氷砕/F10）へ自動反映する。スキルクラスから独自の状態演出やタイマーを持たない。
+
+### 新アクティブ10種（すべて氷術師専用・最大Lv8・毎レベル成長）
+| スキル | id | レア | 役割 |
+|--------|----|------|------|
+| 霜輪飛刃 | `rime_boomerang` | common | 往復する氷輪。往路と復路で別命中、復路は高威力で凍結敵を粉砕（**Lv80発射数対象**） |
+| 氷鎖連閃 | `frost_chain` | uncommon | 高冷気を優先する瞬間連鎖。後半減衰・同一敵へ再連鎖しない |
+| 氷晶開花 | `crystal_bloom` | common | 発芽→開花の設置。開花時のみ粉砕（pulse は弱い） |
+| 白霧氷界 | `snowblind_mist` | uncommon | プレイヤー追従の霧。持続冷気・粉砕なし |
+| 極星氷弾 | `polar_star` | rare | 大型星＋pulse＋着弾爆発＋氷片の複合弾（**Lv80発射数対象**） |
+| 砕氷衝波 | `icebreaker_wave` | common | 扇状衝波。通常敵 push・エリート軽減・ボス push なし・凍結敵粉砕 |
+| 氷刻停止 | `frozen_clock` | legendary | 全画面の時計波。直接凍結せず FreezeSystem へ委譲する制御技 |
+| 氷晶屈折 | `crystal_refraction` | rare | 屈折して跳ねる projectile。最終屈折のみ粉砕 |
+| 冬冠結界 | `winter_halo` | uncommon | 氷冠で被弾吸収＋近距離冷気反撃（`mirror_ice` と差別化） |
+| 氷彗星群 | `comet_sleet` | rare | 予告→barrage。通常彗星と大彗星、大彗星のみ粉砕 |
+
+### 新進化5種（枠を消費せず基礎 active を置換・補助条件スキルは消費しない・進化は Lv80発射数対象外）
+| 進化 | 基礎スキル(Lv8) | 補助条件(Lv4) |
+|------|-----------------|---------------|
+| 冥氷処刑輪 `rime_execution_wheel` | 霜輪飛刃 `rime_boomerang` | 氷晶増幅 `frost_amplification`（passive） |
+| 永劫氷鎖 `eternal_frost_chain` | 氷鎖連閃 `frost_chain` | 急速冷却 `rapid_freezing`（passive） |
+| 世界氷晶樹 `crystal_world_tree` | 氷晶開花 `crystal_bloom` | 凍域拡張 `frozen_expansion`（passive） |
+| 永久白霧 `everlasting_white_mist` | 白霧氷界 `snowblind_mist` | 余寒残留 `lingering_cold`（passive） |
+| 零刻世界 `zero_hour_world` | 氷刻停止 `frozen_clock` | 氷牢封印 `ice_prison`（補助 active・置換しない） |
+
+冷気/凍結/粉砕/ボス氷砕は既存 `StatusEffectManager` 経路（独自タイマーなし）。index ベース決定論で draft RNG cursor 不変。echo/clone は1世代・再帰なし（`frozen_clock`/`winter_halo` は forbidden・`crystal_bloom`/`snowblind_mist`/`comet_sleet` は custom で攻撃部分のみ複製）。実ブラウザでの見た目・体感は本環境では未確認。詳細は `docs/skills.md`・`docs/jobs.md`・`docs/skill-catalog.md`。

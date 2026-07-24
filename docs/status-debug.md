@@ -59,3 +59,11 @@ F10 デバッグは**その場の観測（ライブ値・freeze 内訳）**を�
 ## 既知の制約（実ブラウザ未確認）
 Node で検証したのは**純ロジックのみ**（対象選択・敵/ボス行・freezeChance 内訳・カウンタ行の整形）。**パネルの実描画・F10 の実挙動は本環境では未検証**。
 実ブラウザ（GitHub Pages・`?debug=1` の F10）で確認する（`docs/test-guide.md` の M7-B.1 項目）。実行していない項目を「確認済み」と報告しない。
+
+## Milestone 7-C の追記（新スキルの状態も自動反映）
+M7-C で氷術師へ追加した新 active10種・進化5種は、冷気/凍結/粉砕/ボス氷砕を既存の `StatusEffectManager` / `FreezeSystem` 経路で起こすため、
+F10 の chill / freeze 内訳 / hitGroup 上限 / 実動作カウンタ（`chillApplications`/`freezeAttempts`/`freezeSuccesses`/`immunitySkips`/`hitGroupSkips`/`bossGaugeApplications` ほか）へ
+**自動反映**される（新スキルのために F10 側の集計を追加実装しない）。多段/往復/連鎖/barrage の新スキルは低い `procCoefficient`＋二次 proc（`config`）で凍結を起こすため、
+freeze 内訳（base×proc / 冷気寄与 / proc / 最終 freezeChance / RNG roll / 結果 / hitGroupId / 同 group 判定回数 / skip理由）で**永久凍結にならないこと**を確認できる。
+新スキル固有のテレメトリ extra は `CombatTelemetry`（ResultScene「Balance詳細」）側で扱い、F10 とは役割を分ける（二重集計しない）。表示状態は保存しない・`save_version` は v6 のまま。
+実際の描画・F10 の実挙動は本環境では未検証（`docs/test-guide.md` の M7-C 項目）。

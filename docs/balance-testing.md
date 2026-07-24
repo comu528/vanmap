@@ -191,6 +191,23 @@ M7-A で 2人目のジョブ **氷術師（frost_mage）** と汎用状態異常
 - **debug カウンタがバランス確認を助ける**: `StatusEffectManager.counters()`（chill付与/冷気総量/凍結試行/凍結成功/免疫skip/hitGroup skip/ボスゲージ付与）と F10 の freezeChance 内訳で、凍結の起こりやすさ・永久凍結防止（hitGroup 上限）を数値で観測できる。F10 は `markDebugRun()` で **debugRun 分離**し profile を変更しない（`?debug=1` 限定）。
 - 検証: `status-visual-state.mjs`／`status-debug-panel.mjs`／`frostbreak-ui-state.mjs`／`status-visibility-nonregression.mjs`・`validate-data.mjs`（M7-B.1 ブロック）で、**全39テストスイート通過**。実ブラウザの見た目・視認性・60FPS は本環境では未検証。
 
+## Milestone 7-C の追記（氷術師ビルド拡張・第2波）
+氷術師を **active25 / 進化13**（新 active10種・進化5種）へ拡張したのに合わせ、検証基盤の対象も広げた（**save_version は v6 のまま**・外部送信なし・自動調整なし・数値は data が正）。
+
+### バランス方針（rarity 別の役割と進化の位置づけ）
+- **common は素直な基礎**: `rime_boomerang`（往復弾）/`crystal_bloom`（設置）/`icebreaker_wave`（衝波）。扱いやすく序盤から取れるが、単体で画面を氷で埋め尽くさない。
+- **uncommon は特徴づけ**: `frost_chain`（連鎖）/`snowblind_mist`（追従冷気）/`winter_halo`（防御）。ビルドの方向性を決める癖のある効果。
+- **rare は軸になる派手さ**: `polar_star`（複合弾）/`crystal_refraction`（屈折）/`comet_sleet`（barrage）。強力だが枠と抽選重みで供給を絞る。
+- **legendary は制御された切り札**: `frozen_clock`（全画面時計波）は直接凍結せず `FreezeSystem` へ委譲し、発生を絞る（長CD・periodic）。
+- **進化は基礎 Lv8 より明確に強い到達点**: 基礎 active を置換し枠を消費しない。補助条件（passive3種＋補助 active `ice_prison`）は消費しない。過剰化を避けるため `zero_hour_world`（零刻世界）は forbidden で残響/複製せず、ボス氷砕は標準経路（`bossGaugeMult` は予約値で二重適用しない）。
+
+### 検証観点
+- **Balance Playtest（F8）の対象**: 新 active10種・進化5種も検証プレイの抽選・取得・進化条件達成の対象に含まれる（氷術師を選んで素の手触りを確認）。**profile は不変・常に debugRun**。
+- **quality 別 skillCaps の対象**: 氷スキル/進化の品質別上限 **23種を追加**（往復弾/連鎖/開花/追従霧/複合弾/衝波/時計波/屈折/氷冠/彗星 barrage/氷晶樹 など・`low≤medium≤high≤ultra`・正）。**装飾上限と damage event 上限を区別**し、上限到達でも凍結/粉砕/氷砕の判定は消さず装飾を先に削る。**`winter_halo` の防御耐久は visual cap（`maxWinterHaloVisualShards`）で減らさない**（防御が見た目の都合で弱くならない）。
+- **テレメトリの対象**: 新スキルの per-skill 追加キー（`skills.recordExtra`・ResultScene「Balance詳細」に表示）を記録。共通 chill/freeze/shatter/frostbreak は既存経路で記録し**二重カウントしない**。**外部送信なし**・テレメトリ失敗でゲーム/保存は失敗しない。debugRun は通常統計と分離。
+- 決定論は不変（Math.random/Date.now/performance.now 不使用・index ベース・draft RNG cursor 不変）。検証は `frost-skills-wave3`/`frost-evolutions-wave3`/`frost-policy-audit-wave3`/`frost-runtime-save-wave3`/`frost-determinism-wave3`・`validate-data`（M7-C ブロック）で、**全44テストスイート通過・validate-data 0エラー0警告**。
+- **実ブラウザ負荷は未確認**: 敵100体＋2倍速での彗星 barrage/全画面時計波/開花/追従霧の負荷・視認性・60FPS 維持はブラウザでの確認が必要（`docs/test-guide.md` の M7-C 項目）。本環境は純ロジック＋graphics 対応の最小モックスモークのみ。実行していない項目を「確認済み」と報告しない。
+
 ## 既知の制約（M6-F）
 - Node で検証したのは **カタログ整合・抽選シミュレーション・進化成立性・テレメトリ純ロジック・検証モードの profile 非変更** のみ。
 - テレメトリの**実収集値・FPS ヒストグラム・ResultScene の Balance詳細描画・F8 パネルの実挙動**は Phaser 依存のため

@@ -869,3 +869,63 @@ M7-B までの `skillCaps` へ、状態表示の毎フレーム/同時上限を�
 - 検証（`validate-data.mjs`）: 追加11キーが品質順で単調非減少・正、`chillNearThresholdEffectCooldown`/`statusVisualUpdateInterval` が全品質同値。
   `statusVisuals` は `iconStatuses`/`iconPriority`/`visualTypes` の各要素が既知の status id / 表示種別であること・**未知の status id や visual type を弾く**・負数の上限を弾く・
   `frostbreak`（showText 真偽・textDurationMs/shardCount が正）・`vulnerability`（blink 真偽・blinkPeriodMs が正）の設定を確認する。表示状態はセーブ payload に含めない。
+
+## Milestone 7-C: 氷術師ビルド拡張・第2波（`skills.json`/`skill-evolutions.json`/`balance.skillCaps` を加算拡張）
+
+氷術師へ新 active10種・進化5種を追加する。既存データ形式は変更しない。**`saveVersion` は 6 のまま**。
+
+### skills.json（氷 active を25件へ）
+M7-A/M7-B の氷 active15種に加え、新 active10種を追記して **氷 active は25件**（`jobs.json` の `frost_mage.activeSkillPool` も25件）。
+各スキルは既存の active／氷メタ（`category`/`element:"ice"`/`isCommon:false`/`rarity`/`maxLevel:8`/`levels`(Lv1〜8)/`evolutionBranches`/cast・監査フィールド/`procCoefficient`）に準拠する。
+一次 proc（主発動の凍結寄与）は `procCoefficient`、二次 proc（往路/復路・pulse/bloom・shard・大彗星など）は `config` オブジェクトへ入れる（コードにハードコードしない）。
+```jsonc
+// 例: 霜輪飛刃 rime_boomerang（common・往復 projectile・Lv80発射数対象）
+{ "id": "rime_boomerang", "element": "ice", "rarity": "common", "isCommon": false, "jobs": ["frost_mage"],
+  "castMode": "cooldown", "mainCastEvent": "fire",
+  "lv80ProjectileTarget": true,             // 発射数+1対象（明示フラグ）
+  "procCoefficient": 0.38,                  // 往路の凍結寄与
+  "echoPolicy": "standard", "clonePolicy": "standard",
+  "config": { "returnProc": 0.50, "shatterMultiplier": 1.3, "spreadAngle": 0.28 }, // 復路 proc 等の二次パラメータ
+  "evolutionBranches": ["rime_execution_wheel"],
+  "levels": [ /* Lv1〜8: damage/cooldown/range/size/returnDamageMult/chillAmount/projectileCount/projectileSpeed */ ] }
+// 例: 極星氷弾 polar_star（rare・複合弾・Lv80対象）: config { pulseProc:0.12, shardProc:0.30, shatterMultiplier:1.5 }
+// 例: 氷刻停止 frozen_clock（legendary・periodic）: echoPolicy=clonePolicy="forbidden"、config {}
+// 例: 冬冠結界 winter_halo（uncommon・defensive）: echoPolicy=clonePolicy="forbidden"、procCoefficient 0.32（反撃）
+```
+- 新10種の `rarity`: `rime_boomerang`/`crystal_bloom`/`icebreaker_wave`=common、`frost_chain`/`snowblind_mist`/`winter_halo`=uncommon、
+  `polar_star`/`crystal_refraction`/`comet_sleet`=rare、`frozen_clock`=legendary。`castMode`: cooldown（rime_boomerang/frost_chain/polar_star/icebreaker_wave/crystal_refraction）/
+  periodic（crystal_bloom/frozen_clock/comet_sleet）/continuous（snowblind_mist）/defensive（winter_halo）。
+- `lv80ProjectileTarget` は **`rime_boomerang`/`polar_star` のみ true**、他8種は false。**Lv80発射数対象は projectile タグでは自動適用せず `lv80ProjectileTarget:true` の明示フラグで管理**（`SkillAudit.appliesLv80ProjectileCount`）。氷全体の対象は計5種（frost_shard/glacial_lance/icicle_volley/rime_boomerang/polar_star）。
+- `frozen_clock`/`winter_halo` は `echoPolicy=clonePolicy=forbidden`（→ `canTriggerEcho=canBeCopiedByClone=false`）、`crystal_bloom`/`snowblind_mist`/`comet_sleet` は `custom`。`evolutionBranches` は進化を持つ5種（rime_boomerang/frost_chain/crystal_bloom/snowblind_mist/frozen_clock）のみ非空。
+- 検証（`frost-skills-wave3.mjs`・`validate-data.mjs`）: 10種の存在/一意/active/maxLevel8/Lv連番/rarity一致/`jobs:["frost_mage"]`/プール所属/`procCoefficient` が 0<..≤1/
+  毎レベル成長/`evolutionBranches` が実在進化のみ、cast・監査フィールドの妥当性（forbidden と canTrigger の整合）・`config` の二次 proc が 0<..≤1。
+
+### skill-evolutions.json（氷進化を13件へ）
+M7-A/M7-B の氷進化8種に加え、新進化5種を追記して **氷進化は13件**。いずれも `EvolvedSkillBase`・単一形態・追加Lvなし・`element:"ice"`・`lv80ProjectileTarget:false`・evolved タグ。
+進化数値・二次 proc・`safetyCaps` は各進化オブジェクトへインラインで持つ。補助条件 `requiredSkills[].skill` は active∪passive（`auxSkillIds`）に実在・`replacementSkillId` は基礎と衝突しない。
+```jsonc
+{ "id": "zero_hour_world", "baseSkillId": "frozen_clock", "replacementSkillId": "zero_hour_world",
+  "requiredSkills": [ { "skill": "ice_prison", "level": 4 } ],   // ice_prison は補助 active（置換しない）
+  "castMode": "periodic", "lv80ProjectileTarget": false,
+  "echoPolicy": "forbidden", "clonePolicy": "forbidden",
+  "safetyCaps": { "maxWaves": 8, "maxHitsPerFrame": 80, "maxShattersPerFrame": 3 },
+  "bossGaugeMult": 1.8,               // ★設計上の予約値。氷砕ゲージ加算は標準 chill 経路が担い二重適用しない
+  "displayOrder": 120 }
+```
+- 5種: `rime_execution_wheel`(rime_boomerang＋frost_amplification[P]) / `eternal_frost_chain`(frost_chain＋rapid_freezing[P]) /
+  `crystal_world_tree`(crystal_bloom＋frozen_expansion[P]) / `everlasting_white_mist`(snowblind_mist＋lingering_cold[P]) /
+  `zero_hour_world`(frozen_clock＋**ice_prison(補助 active)** Lv4)。いずれも基礎Lv8＋補助Lv4。
+- **`bossGaugeMult`（`frozen_clock`/`zero_hour_world`）は設計上の予約フィールド**で、ボス氷砕ゲージ加算は標準 chill 経路が担うため**二重適用しない**（ボス氷砕の cooldown/threshold/vulnerability 値は不変）。
+- 検証（`frost-evolutions-wave3.mjs`・`validate-data.mjs`）: `canEvolve`（補助 active/passive 解決・基礎Lv8＋補助Lv4で可能・未達で不可）・既存氷進化8種の非回帰・`safetyCaps` が正整数。
+
+### balance.skillCaps（M7-C の23種を加算的に追加）
+M6-E〜M7-B.1 までの `skillCaps` へ、氷スキル/進化の品質別（`low ≤ medium ≤ high ≤ ultra`・非負整数）新キーを **23種** 追加する。
+`DataManager.skillCap(name, quality, fallback)` で取得。**装飾上限と damage event 上限を区別**し、`winter_halo` の防御耐久は visual cap（`maxWinterHaloVisualShards`）で減らさない。
+- 23キー: `maxRimeBoomerangs` / `maxRimeBoomerangHitsPerFrame` / `maxFrostChainSegmentsPerFrame` / `maxCrystalBlooms` / `maxCrystalBloomPulsesPerFrame` /
+  `maxSnowblindMistParticles` / `maxSnowblindMistTicksPerFrame` / `maxPolarStars` / `maxPolarStarShards` / `maxIcebreakerEffects` / `maxIcebreakerHitsPerFrame` /
+  `maxFrozenClockWaves` / `maxFrozenClockHitsPerFrame` / `maxRefractionProjectiles` / `maxWinterHaloVisualShards` / `maxWinterHaloInterceptsPerFrame` /
+  `maxCometSleetProjectiles` / `maxCometImpactsPerFrame` / `maxRimeExecutionWheelHitsPerFrame` / `maxEternalFrostChainSegmentsPerFrame` /
+  `maxCrystalWorldTrees` / `maxEverlastingMistTicksPerFrame` / `maxZeroHourWorldWaves`。
+- 検証: 追加23キーが品質順で単調非減少・非負整数（`low≤medium≤high≤ultra`・正）。**上限到達でも凍結/粉砕/氷砕の判定は消さず、装飾を先に削る**。
+
+`validate-data.mjs` に M7-C 検証ブロックを追加（氷 active25/進化13・skillCaps 23種・cast/監査/procCoefficient/config 二次proc・lv80 対象が5種）。詳細は `docs/skills.md`・`docs/skill-catalog.md`・`docs/jobs.md`。

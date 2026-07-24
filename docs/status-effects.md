@@ -134,3 +134,15 @@ M7-B で氷術師へ追加した新 active10種・進化5種も、**独自の凍
 `Enemy` の毎フレーム冷気/凍結 `setTint` を廃し、冷気段階色・氷殻は `StatusVisualManager` の overlay 層で描く。これにより
 状態演出と被弾フラッシュ/ダッシャー予告/エリート色が `setTint` を奪い合わなくなった（`onFreezeStart`/`onFreezeEnd` はフックとして残す）。
 overlay は状態フィールドを**読むだけ**で、状態そのものは書き換えない。
+
+## Milestone 7-C: 氷術師の新スキルと状態異常経路（既存経路を再利用・第2波）
+M7-C で氷術師へ追加した新 active10種・進化5種も、**独自の凍結タイマー・独自の状態種別を持たず**、冷気（chill）/凍結（frozen）/凍結耐性（freeze_immunity）/粉砕（shatter）/
+ボス氷砕（frostbreak）はすべて既存の `StatusEffectManager` / `FreezeSystem` 経路を通す（`data/status-effects.json` の数値が正）。冷気/凍結は `dealDamage`/`damageArea` の
+`element:'ice'`＋`chillAmount` で付与し、凍結判定は状態異常専用 `SeededRandom` のまま **Math.random/Date.now/performance.now を使わず**、cursor 保存で再読込の引き直しを防ぐ。
+多段/広範囲/往復/連鎖の新スキルは低い `procCoefficient`（一次 proc）と二次 proc（`config`）＋`sameHitGroupMaxFreezeChecks` で永久凍結を防ぐ。粉砕/ボス氷砕/凍結の付与・上限は
+M7-A/M7-B と同じ経路・同じ品質別 `skillCaps` に従う（**新規に状態異常種別は追加しない**）。
+
+- **粉砕を起こすスキルと起こさないスキル**: 復路（`rime_boomerang`）/開花時のみ（`crystal_bloom`）/凍結敵（`icebreaker_wave`）/最終屈折のみ（`crystal_refraction`）/大彗星のみ（`comet_sleet`）/複合弾（`polar_star`）は `frozen` 中の通常敵・エリートを既存の**粉砕**で砕く（再帰なし・ボスは frostbreak で代替）。`snowblind_mist`（追従霧）は**粉砕しない**（冷気のみ）。
+- **`frozen_clock`（氷刻停止）／`zero_hour_world`（零刻世界）は直接凍結しない**: 全画面の時計波は冷気を与え、凍結は既存 `FreezeSystem`（guaranteed threshold＋確率）へ**委譲**する。**ボスは通常凍結せず氷砕ゲージへ変換**（既存 `bossFrostbreak`）。データの `bossGaugeMult` は**設計上の予約値で、氷砕ゲージ加算は標準 chill 経路が担うため二重適用しない**（ボス氷砕の cooldown/threshold/vulnerability 値は M7-B から不変）。
+- **`winter_halo`（冬冠結界）の氷冠吸収は状態異常ではない**: 被弾を吸収し近距離で冷気反撃する防御挙動であり、`StatusEffectManager` の索引・上限とは無関係（冷気/凍結の付与経路には影響しない）。反撃の冷気付与のみ既存経路を通る。
+- **表示への自動反映**: 上記はすべて既存経路を通るため、M7-B.1 の `StatusVisualManager`（冷気段階/氷殻/SHATTER）/`BossFrostbreakDisplay`（ゲージ/FROST BREAK）/`StatusDebugPanel`（F10・freeze 内訳/カウンタ）へ**自動反映**される。スキルクラスから状態演出・独自タイマーを持たない（`tests/frost-policy-audit-wave3.mjs`・`tests/frost-determinism-wave3.mjs` で確認）。

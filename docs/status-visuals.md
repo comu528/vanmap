@@ -93,3 +93,11 @@ overlay は見えなくなったエンティティの表示を掃除する: **�
 Node で検証したのは**純ロジックのみ**（`chillTierOf`/`isNearThreshold`/`selectIcons`/優先度/`entityVisualState`/`VisualBudget`/`bossFrostDisplayState`/表示追加の非回帰）。
 **実際の見た目（アイコン/氷殻/氷片/SHATTER/FROST BREAK）・当たり判定・100敵+2倍速 での HUD/敵弾/ボス予告 視認性・60FPS は本環境では未検証**。
 実ブラウザ（GitHub Pages・`?debug=1` の F10）で確認する（`docs/test-guide.md` の M7-B.1 項目）。実行していない項目を「確認済み」と報告しない。
+
+## Milestone 7-C の追記（新スキルの状態は自動反映・重複実装しない）
+M7-C で氷術師へ追加した新 active10種・進化5種は、冷気/凍結/粉砕/ボス氷砕をすべて既存の `StatusEffectManager` / `FreezeSystem` 経路で起こすため、
+この表示層（冷気段階/氷殻/凍結開始・解除/SHATTER/頭上アイコン/ボス氷砕ゲージ/FROST BREAK）へ**自動反映**される。**新スキルのために表示を重複実装しない**
+（スキルクラスは overlay/アイコン/floating text を直接生成しない）。粉砕を起こすスキル（`rime_boomerang` 復路/`crystal_bloom` 開花/`icebreaker_wave`/`crystal_refraction` 最終屈折/`comet_sleet` 大彗星/`polar_star`）は
+`shatterTriggered` により「SHATTER」演出が出る。`snowblind_mist`（追従霧）は冷気のみで粉砕演出は出ない。`frozen_clock`/`zero_hour_world` はボスを氷砕ゲージ経路で扱い、
+ゲージ/FROST BREAK 表示が更新される（`bossGaugeMult` の予約値で二重に増えない）。品質別の表示上限・cleanup・保存しない方針は M7-B.1 のまま（`save_version` は v6 のまま）。
+実際の見た目・視認性・60FPS は本環境では未検証（`docs/test-guide.md` の M7-C 項目）。
