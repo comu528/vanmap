@@ -1047,3 +1047,110 @@ M7-E で氷術師へ適用した「宣言した値は必ず実装で参照する
 - **`balance.json.skillCaps` から未参照 5 件を削除**（`maxBarrierEffects` / `maxBurningEnemyIndex` /
   `maxChainTargets` / `maxCopyGeneration` / `maxMainCastEventsPerFrame`）。157 → 152 件。
   重複（`maxChainDepth` / `maxEchoCloneGeneration`）または「参照すると品質でダメージが変わってしまう」ものだった。
+
+## Milestone 8-B: 戦士（`jobs`/`job-progression`/`skills`/`passives`/`skill-evolutions`/`balance` を加算拡張）
+
+3 人目のジョブ **戦士（`warrior`）** を追加した。すべて**加算的変更**で、既存キーの意味・型・値は変えていない。
+
+### `jobs.json` — `warrior`
+
+```json
+{
+  "id": "warrior", "displayName": "戦士", "element": "physical", "preferredRange": "melee",
+  "statusEffects": [],
+  "initialActiveSkills": ["great_cleave"], "initialPassiveSkills": [],
+  "activeSkillPool": ["great_cleave","shield_bash","whirlwind_slash","charge_slash","ground_slam"],
+  "passiveSkillPool": ["brute_force","heavy_armor","combat_instinct","bloodlust"],
+  "evolutionPool": ["thousand_blade_dance","bloodstorm_whirlwind","unyielding_fortress"],
+  "baseActiveSlots": 4, "basePassiveSlots": 4, "tags": ["physical","warrior","melee"]
+}
+```
+
+- `element: "physical"` は **新しい属性値**。`JobModifierManager` の属性ダメージ補正は
+  `tags.element === primaryElement` のときだけ適用されるため、火 / 氷へは一切乗らない。
+- `statusEffects` は**空**。戦士は共通状態異常（burning / chill / frozen / …）を使わず、追加もしない。
+
+### `skills.json` — 戦士 active（5 件）
+
+火 / 氷の active と同じスキーマに、近接専用の項目が加わる。
+
+| キー | 意味 |
+|------|------|
+| `element` | `"physical"` |
+| `meleeRange` | 近接スキルであることの宣言（正の数） |
+| `damageTags` | `["melee", ...]`（`slash` / `blunt` / `spin` / `charge` / `stance_break`） |
+| `levels[].knockback` | ノックバック量（通常敵を押し返す） |
+| `levels[].poiseDamage` | 体勢削り量（エリート / ボスのゲージへ） |
+| `levels[].comboGain` | 1 命中あたりのコンボ増加 |
+| `levels[].furyGain` | 1 命中あたりの闘気増加 |
+| `levels[].strikes` | 1 発動あたりの打撃数（Job Lv80 で +1・明示 flag のみ） |
+| `levels[].mitigationValue` / `mitigationMs` | スキル由来の一時軽減（盾撃 / 突進斬り） |
+| `config.strikeIntervalMs` ほか | 多段の間隔・1 対象 1 回制約などの実装パラメータ |
+
+`echoPolicy` / `clonePolicy` は**全件 `"forbidden"`**、`canTriggerEcho` / `canBeCopiedByClone` は `false`。
+
+### `passives.json` — 戦士 passive（4 件）
+
+`skill-config.json` の `modifierKeys` に **13 キーを追加**した（既存キーは 1 件も削っていない）。
+
+| key | op | 使う passive | 消費側 |
+|-----|----|--------------|--------|
+| `meleeDamage` | addMult | 剛力 | `WarriorCombatSystem.meleeDamageMultiplier` |
+| `knockback` | addMult | 剛力 | `resolveKnockback` |
+| `poiseDamage` | addMult | 剛力 | `applyPoiseDamage` |
+| `damageReduction` | addMult | 重装 | `damageReduction` |
+| `maxHp` | addMult | 重装 | `BattleScene._applyWarriorMaxHp` |
+| `unyieldingPower` | addMult | 重装 | `checkUnyielding` / `damageReduction` |
+| `comboGrace` | addMult | 戦闘本能 | `addCombo` |
+| `comboDecay` | subMult | 戦闘本能 | `update`（減衰） |
+| `attackSpeed` | addMult | 戦闘本能 | `attackSpeedMultiplier` |
+| `comboThresholdBonus` | addMult | 戦闘本能 | `comboBonuses` |
+| `killHeal` | addMult | 血気 | `_killHeal`（**取得していないと撃破回復が発生しない**） |
+| `killHealCap` | addMult | 血気 | `_killHeal`（毎秒上限） |
+| `killHealRelease` | addMult | 血気 | `_killHeal`（解放中の倍率） |
+
+### `skill-evolutions.json` — 戦士 evolution（3 件）
+
+`damage` / `area` / `knockback` / `poiseDamage` / `comboGain` / `furyGain` / `projectileCount` /
+`mitigation` / `counterWindow` / `killExtend` / `safetyCaps` を持つ。
+**宣言したキーはすべて実装から参照される**（`validate-data.mjs` の M8-B ブロックが未参照をエラーにする）。
+
+- `comboGain.maxPerCast` / `furyGain.maxPerCast` … その進化の 1 発動あたり上限。
+  `WarriorCombatSystem.setCastLimits()` が全体上限（`balance.warrior.fury.maxGainPerCast` など）と
+  **厳しい側**を採用する。
+
+### `balance.json` — `warrior` ブロック（新規）
+
+戦士固有の数値は**すべてここ**にあり、`WarriorCombatSystem` が唯一の読み手である（JS へのハードコードなし）。
+
+| ブロック | 内容 |
+|----------|------|
+| `fury` | `max` / 各獲得係数 / `maxGainPerCast` / `maxGainPerSecond` / `releaseGainMult` |
+| `furyRelease` | `durationMs` / 攻防倍率 / `recovery`（`maxHpPercent`・`missingHpPercent`・`durationMs`） |
+| `combo` | `maxValue` / `gainPerHit` / `maxGainPerCast` / `sameTargetWindowMs` / `graceMs` / `decayPerSec` / `thresholds[]` |
+| `mitigation` | `engagedRadius` / 各軽減率 / `maxTotalReduction`（**永久無敵の禁止**） |
+| `unyielding` | `hpThreshold` / `cooldownMs` / `durationMs` / `damageReduction` / `healMaxHpPercent` / `minRunTimeMs` |
+| `killHeal` | `maxHpPercent` / `perSecondCapPercent`（**無限回復の禁止**）/ `releaseMult` / `eliteMult` / `bossMult` |
+| `poise` | `decayPerSec` / `elite`（threshold・staggerMs・immunityMs・slowFactor・knockback 変換）/ `boss`（threshold・reactionMs・exposedMs・thresholdGrowth・thresholdMaxMult・breakCooldownMs・exposed 倍率） |
+| `autoMove` | 戦士のオート移動パラメータ（clusterRadius / approachWeight / engageRange / lowHpFraction ほか） |
+
+`validate-data.mjs` は上記の健全性（上限の順序・(0,1) 範囲・しきい値の昇順・
+`immunityMs > staggerMs`・`cooldownMs > durationMs` など）と、
+**`balance.warrior` の全キーが実装から参照されること**を検証する。
+
+### `balance.skillCaps` — M8-B で追加した 13 件
+
+ダメージ / イベント系（6）: `maxMeleeTargetsPerHit` / `maxSpinTicksPerFrame` / `maxChargeHits` /
+`maxCounterHits` / `maxBladeDanceStrikes` / `maxWarriorSlams`。
+
+演出系（7）: `maxMeleeArcVisuals` / `maxSlashTrails` / `maxSpinVisuals` / `maxDashTrails` /
+`maxGroundDebris` / `maxWarriorHitSparks` / `maxPoiseIndicators`。
+
+いずれも 4 品質（low ≤ medium ≤ high ≤ ultra）で正の整数。**未参照 cap は 0 件**。
+
+### `job-progression.json` — `warrior`
+
+`levelCap: 100`・`perLevelBonuses`（`physicalDamagePerLevel` / `poisePerLevel` / `toughnessPerLevel`）・
+到達報酬 11 段。M8-B で **7 つの新しい `type`** を追加した（`validate-data.mjs` の `KNOWN_TYPES` にも登録）:
+`maxHpMult` / `furyGainMult` / `damageReductionBonus` / `comboThresholdBonus` / `furyRelease` /
+`strikeCount` / `warriorApex`。

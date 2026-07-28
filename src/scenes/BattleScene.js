@@ -26,6 +26,7 @@ import { BattleManager } from '../systems/BattleManager.js';
 import { JobProgressionManager } from '../systems/JobProgressionManager.js';
 import { JobModifierManager } from '../systems/JobModifierManager.js';
 import { defaultCastContext, replayContext, canCastTriggerEcho, canCloneCopy } from '../systems/CastPolicy.js';
+import { WarriorCombatSystem } from '../systems/WarriorCombatSystem.js';
 import { echoStatus, cloneStatus, appliesLv80ProjectileCount, castSummary } from '../systems/SkillAudit.js';
 import { registeredSkillIds, skillsWithRuntimeState } from '../systems/SkillManager.js';
 import { buildCatalog, evolutionRecipes, evolutionPartnerIds } from '../systems/SkillCatalog.js';
@@ -36,6 +37,7 @@ import { FreezeSystem } from '../systems/FreezeSystem.js';
 import { StatusEffectManager } from '../systems/StatusEffectManager.js';
 import { StatusVisualManager } from '../systems/StatusVisualManager.js';
 import { BossFrostbreakDisplay } from '../ui/BossFrostbreakDisplay.js';
+import { WarriorHud } from '../ui/WarriorHud.js';
 import { StatusDebugPanel } from '../ui/StatusDebugPanel.js';
 import { HUD } from '../ui/HUD.js';
 import { PauseMenu } from '../ui/PauseMenu.js';
@@ -117,6 +119,7 @@ export class BattleScene extends Phaser.Scene {
     // プレイヤー（恒久強化を反映）
     const pcfg = { ...bal.player, baseXpToLevel: bal.leveling.baseXpToLevel };
     pcfg.maxHp = bal.player.maxHp + up.maxHpAdd;
+    this._baseMaxHp = pcfg.maxHp; // M8-B: 戦士の最大HP倍率（Job Lv5 / 重装）の計算元。
     this.player = new Player(this, WORLD_W / 2, WORLD_H / 2, pcfg);
     this.player.dashRechargeMs = bal.player.dashRechargeMs * up.dashRechargeMult;
     this.player.invulnMs = bal.player.invulnMs * up.invulnMult;
@@ -139,7 +142,7 @@ export class BattleScene extends Phaser.Scene {
     // プール（onSpawn/onRelease でグリッド登録・解除を共通化する）
     this.enemyPool = new Pool(this, () => new Enemy(this), (e, def, x, y, m) => e.reset(def, x, y, m), this.effSettings.maxEnemies, {
       onSpawn: (e) => { e._seq = this._enemySeq++; if (this._useSpatial) this.enemyGrid.insert(e); },
-      onRelease: (e) => { this.enemyGrid.remove(e); if (this.statusFx) this.statusFx.onRelease(e); else this.unregisterBurning(e); }, // M6-E/M7-A: 状態異常索引の残留防止（プール返却）
+      onRelease: (e) => { this.enemyGrid.remove(e); if (this.statusFx) this.statusFx.onRelease(e); else this.unregisterBurning(e); if (this.warrior) this.warrior.onEnemyRemoved(e); }, // M6-E/M7-A/M8-B: 状態異常索引・体勢参照の残留防止（プール返却）
 
     });
     this.projPool = new Pool(this, () => new Projectile(this), (p, x, y, a, s, o) => p.reset(x, y, a, s, o), this.effSettings.maxProjectiles);
@@ -162,6 +165,7 @@ export class BattleScene extends Phaser.Scene {
     this.jobId = this.job.id || 'flame_witch';
     // ジョブの主属性（火の魔女=fire / 氷術師=ice）。全 active ダメージの既定属性としてタグ解決に使う。
     this.jobElement = this.job.element || (this.jobId === 'flame_witch' ? 'fire' : (this.jobId === 'frost_mage' ? 'ice' : null));
+    this.isWarrior = this.jobId === 'warrior';
     this._defaultElement = this.jobElement;
     this._echoScale = 1;
     this._inEcho = false;
@@ -182,6 +186,15 @@ export class BattleScene extends Phaser.Scene {
     this.freezeSys = new FreezeSystem(this.statusReg);
     this.jobMods = new JobModifierManager();
     this._resolveJobModsFromProfile();
+    // M8-B: 戦士固有ランタイム（闘気/コンボ/軽減/回復/不屈/体勢崩し）。他ジョブでは enabled=false の恒等。
+    this.warrior = new WarriorCombatSystem({
+      config: DataManager.balance.warrior || null,
+      enabled: this.isWarrior,
+      now: () => this.time.now,
+      heal: (amount) => this._warriorHeal(amount),
+      emit: (type, payload) => this._onWarriorEvent(type, payload),
+    });
+    this._warriorHitGroup = 0;
 
     // マネージャ
     this.effects = new EffectManager(this);
@@ -273,6 +286,7 @@ export class BattleScene extends Phaser.Scene {
       if (startAdd > 0 && this.skills.has('fireball')) this.skills.setLevel('fireball', this.skills.getLevel('fireball') + startAdd);
     }
     this._refreshStatusPassives(); // 氷系パッシブの乗率（再開時は復元済みパッシブから・新規は初期値）
+    this._refreshWarriorMods(true); // M8-B: 戦士の倍率・最大HP（再開時は復元済みパッシブ/凍結 Job 補正から）
     this.player.moveSpeed = bal.player.moveSpeed * this.bonus.moveMult;
 
     // 倍速モードの初期適用（設定値を speedMax でクランプ）。
@@ -295,7 +309,8 @@ export class BattleScene extends Phaser.Scene {
       this.input.keyboard.on('keydown-F6', () => this.toggleWave2Debug());    // 新スキル検証（M6-D）
       this.input.keyboard.on('keydown-F7', () => this.toggleWave3Debug());    // 新スキル検証（M6-E）
       this.input.keyboard.on('keydown-F8', () => this.toggleBalancePlaytest()); // 通常プレイ検証（M6-F）
-      this.input.keyboard.on('keydown-F9', () => this.toggleFrostDebug());       // 状態異常・氷術師検証（M7-A）
+      // 状態異常・氷術師検証（M7-A）。M8-B: 戦士周回では戦士検証パネルを開く（火/氷の挙動は不変）。
+      this.input.keyboard.on('keydown-F9', () => (this.isWarrior ? this.toggleWarriorDebug() : this.toggleFrostDebug()));
       // ヘッドレス/実ブラウザからの検査・比較用に戦闘シーンを公開する。
       window.RFS_BATTLE = this;
       this.togglePerfOverlay(); // debug 時は性能パネルを既定表示
@@ -314,6 +329,8 @@ export class BattleScene extends Phaser.Scene {
     this.bossFrostDisplay.setConfig(DataManager.statusVisualsConfig);
     this.bossFrostDisplay.subscribe(this.statusFx);
     this._svEnemies = [];
+    // M8-B: 戦士 HUD（闘気/コンボ/不屈/ボス体勢）。戦士周回のみ生成する（他ジョブの HUD は不変）。
+    if (this.isWarrior) this.warriorHud = new WarriorHud(this);
     if (window.RFS_DEBUG) { this.statusDebug = new StatusDebugPanel(this); this.statusDebug.subscribe(this.statusFx); this._setupStatusDebugInput(); }
     this.updateHudSkills();
 
@@ -372,6 +389,8 @@ export class BattleScene extends Phaser.Scene {
     if (r.statusRng) this.statusFx.restore({ rng: r.statusRng });
     // ボス氷砕状態は spawnBoss 後に適用（個々の敵の冷気/凍結は保存せず安全に再構築）。
     if (r.bossFrost) this._pendingBossFrost = r.bossFrost;
+    // M8-B: 戦士のランタイム状態（旧セーブ・他ジョブでは null のまま初期値で始まる）。
+    if (r.warriorState && this.warrior) this.warrior.restore(r.warriorState);
   }
 
   // 現在の profile からジョブレベル補正を解決して凍結する（新規周回）。
@@ -399,6 +418,52 @@ export class BattleScene extends Phaser.Scene {
       chillDecayMult: this.passives.getChillDecayMultiplier(),
       iceStatusDurationMult: this.passives.getIceStatusDurationMultiplier(),
     });
+  }
+
+  // M8-B: 戦士の外部倍率（Job Lv 凍結値 × パッシブ集計）を WarriorCombatSystem へ 1 か所で流し込む。
+  // skill class は profile / passives / jobMods を直接読まず、必ず this.warrior 経由で参照する。
+  // passives.version が変わったときだけ再計算する（毎フレームの再集計を避ける）。
+  _refreshWarriorMods(force = false) {
+    if (!this.warrior || !this.warrior.enabled || !this.passives) return;
+    const v = this.passives.version;
+    if (!force && this._warriorModVersion === v) return;
+    this._warriorModVersion = v;
+    const j = this.jobMods;
+    const p = this.passives;
+    const release = j.furyReleaseBonus() || null;   // Job Lv50: 解放時間+ / 回復+
+    const apex = j.warriorApex() || null;           // Job Lv100: 回復+ / 露出中ダメージ+
+    this.warrior.setMods({
+      furyGainMult: j.furyGainMult(),
+      releaseDurationBonusMs: release ? (release.durationMs || 0) : 0,
+      recoveryMult: 1 + (release ? (release.recovery || 0) : 0) + (apex ? (apex.recovery || 0) : 0),
+      comboGraceMult: p.getComboGraceMultiplier(),
+      comboDecayMult: p.getComboDecayMultiplier(),
+      comboThresholdBonusMult: p.getComboThresholdBonusMultiplier() * j.comboThresholdBonusMult(),
+      damageReductionBonus: p.getDamageReductionBonus() + j.damageReductionBonus(),
+      unyieldingPowerMult: p.getUnyieldingPowerMultiplier(),
+      killHealMult: p.getKillHealMultiplier(),
+      killHealCapMult: p.getKillHealCapMultiplier(),
+      killHealReleaseMult: p.getKillHealReleaseMultiplier(),
+      poiseDamageMult: p.getPoiseDamageMultiplier() * j.poiseDamageMult(),
+      knockbackMult: p.getKnockbackMultiplier(),
+      meleeDamageMult: p.getMeleeDamageMultiplier(),
+      attackSpeedMult: p.getAttackSpeedMultiplier(),
+      exposedDamageBonus: apex ? (apex.exposedDamage || 0) : 0,
+    });
+    this._applyWarriorMaxHp();
+  }
+
+  // M8-B: 最大HP倍率（Job Lv5「不屈の体躯」× パッシブ「重装」）を反映する。
+  // 増加分は現在HPへも同量加算し、取得直後に相対HPが下がらないようにする（減少方向は現在HPを増やさない）。
+  _applyWarriorMaxHp() {
+    if (!this.isWarrior || !this.player || !this._baseMaxHp) return;
+    const mult = this.jobMods.maxHpMult() * this.passives.getMaxHpMultiplier();
+    const next = Math.max(1, Math.round(this._baseMaxHp * mult));
+    const prev = this.player.maxHp;
+    if (next === prev) return;
+    this.player.maxHp = next;
+    if (next > prev) this.player.hp = Math.min(next, this.player.hp + (next - prev));
+    else this.player.hp = Math.min(this.player.hp, next);
   }
 
   // 途中再開: active_run に凍結された補正・残響カウンターを使う（profile 側の変更を持ち込まない）。
@@ -598,6 +663,10 @@ export class BattleScene extends Phaser.Scene {
     if (this.statusVisuals) { this.statusVisuals.destroy(); this.statusVisuals = null; }
     if (this.bossFrostDisplay) { this.bossFrostDisplay.destroy(); this.bossFrostDisplay = null; }
     if (this.statusDebug) { this.statusDebug.destroy(); this.statusDebug = null; }
+    // M8-B: 戦士システム・HUD・デバッグの破棄（敵参照/Graphics/Text を残さない）。
+    if (this.warrior) this.warrior.destroy();
+    if (this.warriorHud) { this.warriorHud.destroy(); this.warriorHud = null; }
+    if (this._wardbg) { this._wardbg.destroy(true); this._wardbg = null; }
     if (window.RFS_BATTLE === this) window.RFS_BATTLE = null;
   }
 
@@ -674,6 +743,9 @@ export class BattleScene extends Phaser.Scene {
       entitiesWithStatus: (id, limit) => this.statusFx.entitiesWithStatus(id, limit),
       countStatus: (id) => this.statusFx.countStatus(id),
       jobElement: () => this._defaultElement,
+      // M8-B: 戦士の近接攻撃の共通経路。arc 判定 → ダメージ → ノックバック → 体勢削り → 闘気/コンボを 1 か所で行う。
+      meleeStrike: (o) => this.meleeStrike(o),
+      warrior: () => this.warrior,
       // 同一発動を識別する ID（凍結判定回数の上限に使う。多段攻撃で同じ敵を毎tick凍結しない）。
       nextHitGroupId: () => this.nextHitGroupId(),
     };
@@ -911,6 +983,8 @@ export class BattleScene extends Phaser.Scene {
     const q = this.settings?.effectQuality || 'high';
     this._frostbreakBudget = DataManager.skillCap('maxBossFrostbreaksPerFrame', q, 1);
     this._shatterBudget = DataManager.skillCap('maxShattersPerFrame', q, 8);
+    // M8-B: 戦士の演出予算（品質別）。演出のみを打ち切り、被弾・ダメージ計算は打ち切らない。
+    this._warriorVisuals = {};
     if (this.effects) this.effects.beginFrame(caps.maxDamageNumbersPerFrame ?? 24, this.particleBudget ?? 200);
     this._resetMetrics();
   }
@@ -1209,6 +1283,170 @@ export class BattleScene extends Phaser.Scene {
   // ダメージタグを解決する（ジョブ属性補正の適用判定）。
   // 各ジョブの主属性（火の魔女=fire / 氷術師=ice）を既定とし、opts.element で明示可能。
   // status: { chilledT, frozenT }（氷術師 Lv40「凍結狩り」の対象ボーナス。frozen/氷砕脆弱を frozenT に集約済み）。
+  // ---------------- 戦士（M8-B） ----------------
+  // 回復の唯一の経路（over-heal しない・実際に回復した量を返す）。
+  _warriorHeal(amount) {
+    const p = this.player;
+    if (!p || !p.alive) return 0;
+    const amt = Math.max(0, amount || 0);
+    if (amt <= 0) return 0;
+    const before = p.hp;
+    p.heal(amt);
+    return p.hp - before;
+  }
+
+  // M8-B: 被弾の共通入口（Player.takeDamage から。障壁処理の後・HP 減算の前）。
+  // 強靱（接敵/近接直後/突進/闘気解放/不屈）＋スキル由来の一時軽減を合成し、軽減後ダメージを返す。
+  // 戦士以外のジョブでは warrior.enabled=false のため amount がそのまま返り、火/氷の被弾計算は不変。
+  onWarriorDamage(amount) {
+    const w = this.warrior;
+    if (!w || !w.enabled) return amount;
+    const p = this.player;
+    const cfgR = (DataManager.balance.warrior?.mitigation?.engagedRadius) ?? 96;
+    // 接敵判定は SpatialGrid の近傍数え上げ（総当たり禁止）。
+    const engaged = !!this.nearestTarget(p.x, p.y, cfgR);
+    // スキル由来の一時軽減（盾撃・不屈の城塞のバフ窓、突進斬りの突進中）。
+    let extra = 0;
+    let charging = false;
+    for (const sk of this.skills.skills.values()) {
+      if (typeof sk.activeMitigation === 'function') extra = Math.max(extra, sk.activeMitigation() || 0);
+      if (typeof sk.chargeMitigation === 'function') extra = Math.max(extra, sk.chargeMitigation() || 0);
+      if (sk.charging) charging = true;
+    }
+    const out = w.applyIncomingDamage(amount, { engaged, charging, extra });
+    // 反応スキル（不屈の城塞の反撃）へ被弾を通知する。
+    this.onWarriorHit(amount, out);
+    return out;
+  }
+
+  // 被弾フック（反応スキルへの通知のみ。ダメージ計算はしない）。
+  onWarriorHit(raw, applied) {
+    for (const sk of this.skills.skills.values()) {
+      if (typeof sk.onPlayerHit === 'function') sk.onPlayerHit(raw, applied);
+    }
+  }
+
+  // 戦士イベント（HUD 表示・演出のフック）。ロジックへは影響しない。
+  _onWarriorEvent(type, payload) {
+    if (!this.isWarrior) return;
+    if (type === 'furyRelease') {
+      this.showBanner('闘気解放！');
+      this.effects.whiteFlash();
+    } else if (type === 'bossStanceBreak') {
+      this.showBanner('体勢を崩した！');
+      this.effects.screenShake(180, 0.006);
+    } else if (type === 'eliteStagger') {
+      const e = payload && payload.target;
+      if (e) this.effects.hitBurst(e.x, e.y - 8, 0xffe082);
+    } else if (type === 'unyielding') {
+      this.showBanner('不屈！');
+    }
+    if (this.warriorHud) this.warriorHud.onEvent(type, payload);
+  }
+
+  // 近接 arc 判定の共通経路。SpatialGrid で候補を絞り、arc 内の敵だけへ適用する。
+  // o: { x, y, radius, arc, facing, damage, skillId, castKey, knockback, poiseDamage,
+  //      comboGain, furyGain, tags, color, hitSet, poiseOnceSet, maxTargets, visualIndex, debris }
+  meleeStrike(o) {
+    if (!o || this.gameOver) return { hits: 0 };
+    const radius = Math.max(1, o.radius || 0);
+    const cap = Math.min(
+      o.maxTargets != null ? o.maxTargets : Infinity,
+      DataManager.skillCap('maxMeleeTargetsPerHit', this.settings?.effectQuality || 'high', 24),
+    );
+    const half = (o.arc != null ? o.arc : Math.PI * 2) / 2;
+    const full = half >= Math.PI - 1e-6;
+    const w = this.warrior;
+    const hitGroupId = ++this._warriorHitGroup;
+    let hits = 0;
+    const candidates = this.targetsInRadius(o.x, o.y, radius);
+    for (const e of candidates) {
+      if (hits >= cap) { this._m.suppressed++; break; }
+      if (!e || !e.alive) continue;
+      if (o.hitSet && o.hitSet.has(e)) continue;
+      if (!full) {
+        let d = Math.atan2(e.y - o.y, e.x - o.x) - (o.facing || 0);
+        while (d > Math.PI) d -= Math.PI * 2;
+        while (d < -Math.PI) d += Math.PI * 2;
+        if (Math.abs(d) > half) continue;
+      }
+      if (o.hitSet) o.hitSet.add(e);
+      hits += 1;
+      // ダメージ（physical・戦士の近接倍率つき）。
+      const dmg = (o.damage || 0) * (w ? w.meleeDamageMultiplier(e) : 1);
+      const died = this.dealDamage(e, dmg, o.skillId, {
+        element: 'physical', damageTags: o.tags || ['melee'], color: o.color || 0xffd54f,
+        from: { x: o.x, y: o.y }, hitGroupId, isMelee: true,
+      });
+      if (died) continue;
+      // ノックバック / 体勢削り（エリートはノックバックを大幅軽減し主に体勢へ回す）。
+      if (w) {
+        const ws = this._warriorSkillStat(o.skillId);
+        ws.meleeHits += 1; ws.physicalDamage += dmg;
+        const kb = w.resolveKnockback(e, o.knockback);
+        if (kb.knockback > 0 && e.applyKnockback) { e.applyKnockback(o.x, o.y, kb.knockback); ws.knockbacks += 1; }
+        const poiseOnce = o.poiseOnceSet;
+        if (!poiseOnce || !poiseOnce.has(e)) {
+          if (poiseOnce) poiseOnce.add(e);
+          const poise = (o.poiseDamage || 0) + kb.poiseBonus;
+          if (poise > 0) {
+            ws.poiseDamage += poise;
+            const pr = w.applyPoiseDamage(e, poise);
+            if (pr && pr.type === 'eliteStagger') ws.eliteStaggers += 1;
+            else if (pr && pr.type === 'bossStanceBreak') ws.bossStanceBreaks += 1;
+          }
+        }
+        const gained = w.noteMeleeHit({
+          castKey: o.castKey, target: e, damage: dmg,
+          comboGain: o.comboGain != null ? o.comboGain : 1,
+          furyGain: o.furyGain != null ? o.furyGain : undefined,
+        });
+        ws.comboGain += gained.combo; ws.furyGain += gained.fury;
+      }
+    }
+    // 演出（判定とは分離。visual cap は damage 件数へ影響しない）。
+    this._meleeVisual(o, radius, hits);
+    return { hits };
+  }
+
+  // M8-B: スキル別の戦士統計（近接命中/物理ダメージ/ノックバック/体勢/コンボ・闘気寄与）。
+  // 各スキルクラスへ集計責務を持たせず、meleeStrike の 1 か所だけで加算する。
+  _warriorSkillStat(skillId) {
+    const key = String(skillId || '');
+    this._warriorSkillStats = this._warriorSkillStats || Object.create(null);
+    let st = this._warriorSkillStats[key];
+    if (!st) {
+      st = { meleeHits: 0, physicalDamage: 0, knockbacks: 0, poiseDamage: 0, eliteStaggers: 0, bossStanceBreaks: 0, comboGain: 0, furyGain: 0 };
+      this._warriorSkillStats[key] = st;
+    }
+    return st;
+  }
+
+  _meleeVisual(o, radius, hits) {
+    const q = this.settings?.effectQuality || 'high';
+    const capName = o.debris ? 'maxGroundDebris' : (o.tags && o.tags.includes('spin') ? 'maxSpinVisuals'
+      : (o.tags && o.tags.includes('charge') ? 'maxDashTrails' : 'maxMeleeArcVisuals'));
+    const cap = DataManager.skillCap(capName, q, 4);
+    this._warriorVisuals = this._warriorVisuals || {};
+    const key = capName + ':' + (o.skillId || '');
+    const used = this._warriorVisuals[key] || 0;
+    if (used >= cap) return;
+    this._warriorVisuals[key] = used + 1;
+    this.effects.explosion(o.x, o.y, radius, o.color || 0xffd54f);
+    if (hits > 0) {
+      const sparkCap = DataManager.skillCap('maxWarriorHitSparks', q, 8);
+      this.effects.sparks(o.x, o.y, Math.min(hits, sparkCap), o.color || 0xffe082);
+    }
+    if (o.tags && o.tags.includes('slash')) {
+      const trailCap = DataManager.skillCap('maxSlashTrails', q, 10);
+      if ((o.visualIndex || 0) < trailCap) this.effects.hitBurst(o.x, o.y, o.color || 0xffd54f);
+    }
+    if (o.tags && o.tags.includes('stance_break')) {
+      const indCap = DataManager.skillCap('maxPoiseIndicators', q, 4);
+      if ((o.visualIndex || 0) < indCap) this.effects.screenShake(90, 0.003);
+    }
+  }
+
   _damageTags(skillId, opts, element, status = {}) {
     return {
       element: element !== undefined ? element : (opts.element || this._defaultElement || null),
@@ -1217,6 +1455,9 @@ export class BattleScene extends Phaser.Scene {
       isEvolved: !!(skillId && DataManager.getEvolution(skillId)),
       isChilledTarget: !!status.chilledT,
       isFrozenTarget: !!status.frozenT,
+      // M8-B: 物理/近接タグ（戦士）。fire/ice の tag 解決には一切影響しない。
+      damageTags: Array.isArray(opts.damageTags) ? opts.damageTags : [],
+      isMelee: !!opts.isMelee,
     };
   }
 
@@ -1235,6 +1476,12 @@ export class BattleScene extends Phaser.Scene {
 
     this.handleInput(dt);
     this.statusFx.update(dt); // M7-A: 冷気減衰・凍結/耐性/氷砕脆弱の期限切れ
+    // M8-B: 戦士（闘気・コンボ・回復・不屈・体勢崩し）。他ジョブでは enabled=false で即 return する。
+    if (this.warrior.enabled) {
+      this._refreshWarriorMods();
+      this.warrior.setHp(this.player.hp, this.player.maxHp);
+      this.warrior.update(dt);
+    }
     this.updateEnemies(dt);
     if (this.boss && this.boss.alive) this.boss.update(dt, this.player);
     this.updateProjectiles(dt);
@@ -1325,6 +1572,7 @@ export class BattleScene extends Phaser.Scene {
   // オート移動改善（M2）: 危険から離れる / ジェム回収 / 端回避 / ボス突進回避。
   // 完璧にはせず手動操作の価値を残す。手動入力時は handleInput が手動優先。
   computeAutoMove() {
+    if (this.isWarrior) return this.computeWarriorAutoMove();
     const p = this.player;
     let vx = 0, vy = 0;
     const danger = this._nearestEnemy;
@@ -1344,6 +1592,55 @@ export class BattleScene extends Phaser.Scene {
     if (p.x < m) vx += 0.8; if (p.x > WORLD_W - m) vx -= 0.8;
     if (p.y < m) vy += 0.8; if (p.y > WORLD_H - m) vy -= 0.8;
     const len = Math.hypot(vx, vy) || 1;
+    return { x: vx / len, y: vy / len };
+  }
+
+  // M8-B: 戦士のオート移動。既存（火/氷）の computeAutoMove は一切変更せず、
+  // ジョブ別 strategy として分岐する。方針は「敵の密集へ近づき、接敵距離を保つ」。
+  //   - 密集地点（SpatialGrid の densestPoint）へ approachWeight で寄る
+  //   - engageRange 以内では張り付き過ぎず、ジェム回収・端回避を優先する
+  //   - HP が lowHpFraction 未満のときだけ最寄り敵から retreatWeight で離れる
+  //   - ボスの telegraph/charge だけは常に回避する（受け得ではないため）
+  computeWarriorAutoMove() {
+    const p = this.player;
+    const cfg = (DataManager.balance.warrior && DataManager.balance.warrior.autoMove) || {};
+    const clusterRadius = cfg.clusterRadius ?? 110;
+    const approachW = cfg.approachWeight ?? 1.2;
+    const engageRange = cfg.engageRange ?? 70;
+    const lowHp = cfg.lowHpFraction ?? 0.35;
+    const retreatW = cfg.retreatWeight ?? 0.9;
+    const bossW = cfg.bossTelegraphWeight ?? 1.3;
+    let vx = 0, vy = 0;
+
+    // 1) 敵の密集へ接近（無ければ最寄り敵）。engageRange 以内では寄る力を弱める。
+    const spot = this.densestPoint(clusterRadius, 0) || this._nearestEnemy;
+    if (spot && (spot.alive === undefined || spot.alive)) {
+      const d = distance(p.x, p.y, spot.x, spot.y);
+      const near = d <= engageRange ? Phaser.Math.Clamp(d / Math.max(1, engageRange), 0, 1) : 1;
+      const ang = Math.atan2(spot.y - p.y, spot.x - p.x);
+      vx += Math.cos(ang) * approachW * near; vy += Math.sin(ang) * approachW * near;
+    }
+    // 2) 瀕死のときだけ最寄り敵から離れる（闘気を溜める設計上、通常は離れない）。
+    const danger = this._nearestEnemy;
+    if (danger && danger.alive && this.player.maxHp > 0 && this.player.hp / this.player.maxHp < lowHp) {
+      const d = distance(p.x, p.y, danger.x, danger.y);
+      const w = Phaser.Math.Clamp((150 - d) / 150, 0, 1);
+      const ang = Math.atan2(p.y - danger.y, p.x - danger.x);
+      vx += Math.cos(ang) * retreatW * (0.4 + w) * 2; vy += Math.sin(ang) * retreatW * (0.4 + w) * 2;
+    }
+    // 3) ボスの予兆/突進は常に回避（体勢崩しは当たり判定の外からでも溜まる）。
+    if (this.boss && this.boss.alive && (this.boss.state === 'telegraph' || this.boss.state === 'charge')) {
+      const ang = Math.atan2(p.y - this.boss.y, p.x - this.boss.x);
+      vx += Math.cos(ang) * bossW; vy += Math.sin(ang) * bossW;
+    }
+    // 4) ジェム回収・端回避（既存と同じ重み）。
+    const gem = this._nearestGem;
+    if (gem && gem.alive) { const ang = Math.atan2(gem.y - p.y, gem.x - p.x); vx += Math.cos(ang) * 0.5; vy += Math.sin(ang) * 0.5; }
+    const m = 140;
+    if (p.x < m) vx += 0.8; if (p.x > WORLD_W - m) vx -= 0.8;
+    if (p.y < m) vy += 0.8; if (p.y > WORLD_H - m) vy -= 0.8;
+    const len = Math.hypot(vx, vy);
+    if (len < 1e-4) return { x: 0, y: 0 };
     return { x: vx / len, y: vy / len };
   }
 
@@ -1419,6 +1716,8 @@ export class BattleScene extends Phaser.Scene {
     this.bossKills++;
     this._recordDeathEvent(boss, 'boss'); // M6-E: ボス死亡も墓標の死亡位置として扱える
     this.statusFx.onDeath(boss); // M7-A: 炎上/氷砕脆弱の索引から除去
+    // M8-B: ボス撃破で闘気獲得＋体勢ゲージ/露出状態を破棄する。
+    if (this.warrior.enabled) { this.warrior.noteKill(boss); this.warrior.onBossRemoved(); }
     this.effects.deathBurst(boss.x, boss.y, 0xff5722);
     this.effects.screenShake(300, 0.01);
     this.effects.whiteFlash();
@@ -1516,6 +1815,8 @@ export class BattleScene extends Phaser.Scene {
     if (e.isElite) this.eliteKills++; // M6-C: エリート撃破数（ジョブXP）
     this._recordDeathEvent(e, skillId); // M6-E: 死亡位置履歴（墓標系スキル所持時のみ）
     this.statusFx.onDeath(e);           // M6-E/M7-A: 状態異常索引から除去（死亡・凍結解除tintも）
+    // M8-B: 撃破で闘気獲得＋（血気所持時のみ）微小回復。体勢崩し状態も同時に破棄する。
+    if (this.warrior.enabled) { this.warrior.noteKill(e); this.warrior.onEnemyRemoved(e); }
     // 永劫火界: 炎上中の敵の死亡で小爆発（安全上限内・連鎖暴走防止）。
     // 死亡直後は alive=false のため .ignited ではなく点火タイマーで判定する。
     const wasIgnited = e._igniteUntil && this.time.now < e._igniteUntil;
@@ -1693,6 +1994,8 @@ export class BattleScene extends Phaser.Scene {
         // M7-A: 状態異常（スキル別）
         chillApplied: ex.chillApplied, freezeAttempts: ex.freezeAttempts, freezesCaused: ex.freezesCaused,
         shatters: ex.shatters, shatterDamage: ex.shatterDamage, bossFrostGaugeApplied: ex.bossFrostGaugeApplied,
+        // M8-B: 戦士（スキル別）。meleeStrike が集計した値を写す（戦士以外は未定義＝0）。
+        ...(this._warriorSkillStats && this._warriorSkillStats[st.id] ? this._warriorSkillStats[st.id] : {}),
       });
       t.setSkillLevel(st.id, st.level, !!DataManager.getEvolution(st.id));
       // activeSeconds: 取得〜周回終了（DPS 分母）。取得時刻不明（初期スキル等）は 0 から。
@@ -1709,6 +2012,8 @@ export class BattleScene extends Phaser.Scene {
       rerolls: (this._baseRerolls || 1) - (this.draft.rerollsRemaining || 0),
       banishes: 0, skips: 0, evolutions: (result.evolvedBaseIds || []).length,
     });
+    // M8-B: 戦士の周回集計（闘気/コンボ/軽減/不屈/体勢）。戦士以外の周回では呼ばず 0 のまま出力する。
+    if (this.warrior && this.warrior.enabled) t.noteWarriorSummary(this.warrior.summary());
     if (this._debugRun) t.run.debugRun = true;
     return t.finalize();
   }
@@ -1793,6 +2098,8 @@ export class BattleScene extends Phaser.Scene {
     if (this.boss && this.boss.alive) this.hud.updateBoss(this.boss.hpRatio());
     // M7-B.1: ボス氷砕ゲージ表示（現在値/必要値・割合・break・cooldown・vuln残秒）。氷術師かつボス存在時のみ。
     if (this.bossFrostDisplay) this.bossFrostDisplay.update(this.boss, this.statusFx, this._defaultElement, this.time.now);
+    // M8-B: 戦士 HUD（闘気/闘気解放/コンボ/不屈/ボス体勢・露出）。戦士周回のみ。
+    if (this.warriorHud) this.warriorHud.update(this.warrior, this.isWarrior, this.boss);
   }
 
   showBanner(text) {
@@ -1846,6 +2153,7 @@ export class BattleScene extends Phaser.Scene {
 
   onPlayerDeath() {
     if (this.gameOver) return;
+    if (this.warrior) this.warrior.noteDeath(); // M8-B: 不屈中の死亡を統計へ記録
     this.effects.screenShake(300, 0.012);
     this.finishRun(false);
   }
@@ -2289,6 +2597,88 @@ export class BattleScene extends Phaser.Scene {
     return L.join('\n');
   }
 
+  // ---------------- 戦士検証（M8-B・?debug=1・F9・戦士周回のみ） ----------------
+  // 闘気/解放/コンボ/不屈/体勢崩し/露出と、active5・passive4・進化3・Job Lv を確認する。
+  // すべてランタイムのみ。profile は変更・保存しない（操作したこの周回は debugRun）。
+  toggleWarriorDebug() {
+    this.markDebugRun();
+    if (this._wardbg) { this._wardbg.destroy(true); this._wardbg = null; return; }
+    this._wd = this._wd || { skill: 'great_cleave', passive: 'brute_force', lv: 8, jobLv: 100 };
+    const ACT = ['great_cleave', 'shield_bash', 'whirlwind_slash', 'charge_slash', 'ground_slam'];
+    const PAS = ['brute_force', 'heavy_armor', 'combat_instinct', 'bloodlust'];
+    const EVO = {
+      great_cleave: ['thousand_blade_dance', 'combat_instinct'],
+      whirlwind_slash: ['bloodstorm_whirlwind', 'bloodlust'],
+      shield_bash: ['unyielding_fortress', 'heavy_armor'],
+    };
+    const w = this.warrior;
+    const cx = GAME_WIDTH / 2;
+    const ui = this.add.container(0, 0).setScrollFactor(0).setDepth(4000);
+    ui.add(this.add.rectangle(cx, GAME_HEIGHT / 2, 512, 356, 0x1a1008, 0.97).setScrollFactor(0).setStrokeStyle(1, 0xffb74d));
+    ui.add(this.add.text(cx, 4, 'DEBUG（M8-B 戦士 active5/passive4/進化3・F9）', { fontSize: '11px', color: '#ffb74d' }).setScrollFactor(0).setOrigin(0.5, 0));
+    const redraw = () => { this.toggleWarriorDebug(); this.toggleWarriorDebug(); };
+    const applyWarriorJob = (lv) => { this.jobMods.setResolved(JobModifierManager.resolve(DataManager.getJobProgression('warrior'), lv)); this._refreshWarriorMods(true); };
+    const acts = [
+      [() => `戦士 Job Lv: ${this._wd.jobLv}（切替・補正適用）`, () => { const seq = [1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]; this._wd.jobLv = seq[(seq.indexOf(this._wd.jobLv) + 1) % seq.length]; applyWarriorJob(this._wd.jobLv); }],
+      [() => `検証active: ${this._wd.skill}（切替）`, () => { const i = ACT.indexOf(this._wd.skill); this._wd.skill = ACT[(i + 1) % ACT.length]; }],
+      [() => `Lv: ${this._wd.lv}（切替）`, () => { this._wd.lv = this._wd.lv >= 8 ? 1 : this._wd.lv + 1; }],
+      ['選択activeを取得/そのLvへ', () => { this.skills.acquireOrLevel(this._wd.skill); this.skills.setLevel(this._wd.skill, this._wd.lv); this.updateHudSkills(); }],
+      ['選択activeの進化条件を達成', () => { const e = EVO[this._wd.skill]; if (!e) return; this.skills.acquireOrLevel(this._wd.skill); this.skills.setLevel(this._wd.skill, 8); this.passives.acquireOrLevel(e[1]); this.passives.setLevel(e[1], 4); this._refreshWarriorMods(true); this.updateHudSkills(); }],
+      [() => `検証passive: ${this._wd.passive}（切替）`, () => { const i = PAS.indexOf(this._wd.passive); this._wd.passive = PAS[(i + 1) % PAS.length]; }],
+      ['選択passive Lv+1', () => { this.passives.acquireOrLevel(this._wd.passive); this._refreshWarriorMods(true); this.updateHudSkills(); }],
+      ['闘気 +25 / 満タン', () => { w.addFury(w.fury >= w.cfg.fury.max - 25 ? w.cfg.fury.max : 25, 'meleeHit', null); }],
+      ['闘気解放を強制発動', () => { w.fury = w.cfg.fury.max; w.startRelease(); }],
+      ['コンボ +25 / 途切れさせる', () => { if (w.combo >= 100) w.breakCombo(); else w.addCombo(25, null, null); }],
+      ['HPを瀕死（不屈の確認）', () => { this.player.hp = Math.max(1, Math.round(this.player.maxHp * 0.15)); }],
+      ['不屈のCDをリセット', () => { w.unyielding.cooldownLeftMs = 0; }],
+      ['エリート×3を密集生成', () => { this.debugClusterEnemies(3); this.enemyPool.forEachActive((e) => { if (e.alive) { e.isElite = true; e.maxHp = e.maxHp * 4; e.hp = e.maxHp; e.setScale(1.15); } }); }],
+      ['最寄りエリートの体勢を満タン', () => { const e = this._debugNearestEnemy(); if (e) { e._poiseImmuneUntil = 0; w.applyPoiseDamage(e, w.cfg.poise.elite.threshold); } }],
+      ['ボス出現 / 体勢50% / 100%', () => { if (!this.boss || !this.boss.alive) { this.spawnBoss(); this.bossSpawned = true; } if (this.boss) { const th = w.bossPoiseThreshold(); const g = w.bossPoise.gauge; w.bossPoise.cooldownLeftMs = 0; if (g < th * 0.5) w.bossPoise.gauge = th * 0.5; else { w.applyPoiseDamage(this.boss, th); } } }],
+      ['通常状態へ戻す（補正リセット）', () => { this.jobMods.setResolved(this.resolvedJobModifiers); this._refreshWarriorMods(true); }],
+    ];
+    let yy = 20;
+    for (const [label, fn] of acts) {
+      const text = typeof label === 'function' ? label() : label;
+      const b = this.add.text(cx - 252, yy, text, { fontSize: '8px', color: '#fff', backgroundColor: '#3a2410', padding: { x: 4, y: 1 } }).setScrollFactor(0).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+      b.on('pointerdown', () => { fn(); redraw(); });
+      ui.add(b); yy += 14.5;
+    }
+    ui.add(this.add.text(cx + 8, 20, this._warriorReport(), { fontSize: '8px', color: '#ffe0b2', lineSpacing: 2, wordWrap: { width: 236 } }).setScrollFactor(0).setOrigin(0, 0));
+    const close = this.add.text(cx, GAME_HEIGHT - 10, '閉じる (F9)', { fontSize: '9px', color: '#bcaaa4' }).setScrollFactor(0).setOrigin(0.5, 1).setInteractive({ useHandCursor: true });
+    close.on('pointerdown', () => this.toggleWarriorDebug());
+    ui.add(close);
+    this._wardbg = ui;
+  }
+
+  _warriorReport() {
+    const L = [];
+    const w = this.warrior, jm = this.jobMods;
+    const cb = w.comboBonuses();
+    L.push(`ジョブ: ${this.jobId} 属性: ${this._defaultElement || 'physical'}`);
+    L.push('— Job補正 —');
+    L.push(`物理Dmg×${jm.damageMultiplier({ element: 'physical' }).toFixed(3)} CD×${jm.cooldownMult().toFixed(3)} 打撃+${jm.projectileCountBonus()}`);
+    L.push(`最大HP×${jm.maxHpMult().toFixed(3)} 闘気×${jm.furyGainMult().toFixed(2)} 軽減+${(jm.damageReductionBonus() * 100).toFixed(0)}%`);
+    L.push(`体勢×${jm.poiseDamageMult().toFixed(3)} 進化×${jm.resolved.evolvedDamageMult.toFixed(2)}`);
+    L.push('— 闘気 —');
+    L.push(`${Math.round(w.fury)}/${w.cfg.fury.max} 解放:${w.releaseActive ? `${(w.releaseLeftMs / 1000).toFixed(1)}s` : '×'} 回復残:${(w.recovery.leftMs / 1000).toFixed(1)}s`);
+    L.push('— コンボ —');
+    L.push(`${Math.floor(w.combo)} 猶予${(w.comboGraceLeftMs / 1000).toFixed(1)}s 到達[${cb.reached.join(',') || '-'}]`);
+    L.push(`攻速+${(cb.attackSpeedMult * 100).toFixed(0)}% 範囲+${(cb.meleeAreaMult * 100).toFixed(0)}% Dmg+${(cb.meleeDamageMult * 100).toFixed(0)}%`);
+    L.push('— 強靱 / 不屈 —');
+    L.push(`現在軽減 ${(w.damageReduction({ engaged: !!this.nearestTarget(this.player.x, this.player.y, w.cfg.mitigation.engagedRadius) }) * 100).toFixed(0)}%`);
+    L.push(`不屈: ${w.unyieldingActive ? '発動中' : (w.unyieldingReady ? '待機' : `CD ${(w.unyielding.cooldownLeftMs / 1000).toFixed(1)}s`)} 発動${w.unyielding.triggers}回`);
+    L.push('— 体勢崩し —');
+    const e = this._debugNearestEnemy();
+    L.push(`最寄り敵: ${e ? `${e.def?.id || '?'} poise ${Math.round(e._poise || 0)}/${w.cfg.poise.elite.threshold} ${this.time.now < (e._staggerUntil || 0) ? 'stagger中' : ''}` : '(なし)'}`);
+    const bp = w.bossPoise;
+    L.push(`ボス: ${this.boss && this.boss.alive ? `${Math.round(bp.gauge)}/${Math.round(w.bossPoiseThreshold())} 崩し${bp.breaks} 露出${(bp.exposedLeftMs / 1000).toFixed(1)}s` : '(不在)'}`);
+    L.push('— 所持 —');
+    L.push(`active: ${Array.from(this.skills.skills.keys()).join(',') || '(なし)'}`);
+    L.push(`passive: ${this.passives.ownedList().map((p) => `${p.id}Lv${p.level}`).join(',') || '(なし)'}`);
+    L.push('※ 表示のみ。外部送信しません。');
+    return L.join('\n');
+  }
+
   // ---------------- 状態異常・氷術師検証（M7-A・?debug=1・F9） ----------------
   // 既存 F1〜F8 と競合しない。冷気/凍結/耐性/粉砕/ボス氷砕・氷術師 Job Lv/スキル/進化を確認する。
   // すべてランタイムのみ。profile は破壊・保存しない（デバッグ操作でこの周回は debugRun）。
@@ -2507,6 +2897,23 @@ export class BattleScene extends Phaser.Scene {
     }
     for (const id of evolved) { const e = DataManager.getEvolution(id); if (e && e.bossGaugeMult != null) gm.push(`${id}:${e.bossGaugeMult}`); }
     B.push(gm.length ? gm.join(' ') : '(所持スキルに宣言なし)');
+    // M8-B: 戦士（闘気・コンボ・軽減・不屈・体勢崩し）。戦士周回のみ表示する。
+    if (this.isWarrior && this.warrior) {
+      const w = this.warrior.summary();
+      B.push('— 戦士（実動作カウンタ）—');
+      B.push(`闘気 ${Math.round(this.warrior.fury)}/${this.warrior.cfg.fury.max} 解放${w.furyReleases}回 稼働${w.furyReleaseUptimeSeconds.toFixed(1)}s`);
+      B.push(`闘気源 ${Object.entries(w.furyBySource).map(([k, v]) => `${k}:${Math.round(v)}`).join(' ')}`);
+      B.push(`超過${Math.round(w.furyOvercap)} 平均間隔${w.furyReleaseAvgIntervalSeconds.toFixed(1)}s`);
+      B.push(`コンボ 現在${Math.floor(this.warrior.combo)} 最大${w.comboPeak} 平均${w.comboAvg.toFixed(1)} 途切れ${w.comboBreaks}`);
+      B.push(`閾値到達 ${JSON.stringify(w.comboThresholdCounts)}`);
+      B.push(`軽減 ${Math.round(w.mitigationAmount)} 回復(解放)${Math.round(w.recoveryAmount)} 撃破回復${Math.round(w.killHeal)}`);
+      B.push(`不屈 発動${w.unyieldingTriggers} 回復${Math.round(w.unyieldingHealing)} 軽減${Math.round(w.unyieldingMitigated)}`);
+      B.push(`ノックバック${w.knockbacks} 体勢${Math.round(w.poiseDamage)} stagger${w.eliteStaggers} 崩し${w.bossStanceBreaks}`);
+      B.push(`露出 ${w.exposedUptimeSeconds.toFixed(1)}s 追加Dmg${Math.round(w.exposedBonusDamage)}`);
+      if (w.meleeHits === 0 && w.meleeCasts > 0) B.push('⚠ 近接発動はあるが命中0');
+      if (w.furyReleases === 0 && w.furyGained > 0) B.push('⚠ 闘気は溜まるが解放0');
+      if (w.comboPeak === 0 && w.meleeHits > 0) B.push('⚠ 命中はあるがコンボ0');
+    }
     B.push('— 性能 / 上限 —');
     B.push(`抑制/f ${(this._mLast || this._m).suppressed}  索引上限 ${JSON.stringify(sfx ? sfx.capReached() : {})}`);
     B.push(`表示上限到達 ${JSON.stringify(this.statusVisuals ? this.statusVisuals.capReached() : {})}`);
@@ -2565,6 +2972,9 @@ export class BattleScene extends Phaser.Scene {
     else this.jobMods.setResolved(this.resolvedJobModifiers);
     this.draft.setRarityWeightMult({ rare: this.jobMods.rarityWeightMult('rare'), legendary: this.jobMods.rarityWeightMult('legendary') });
     for (const sk of this.skills.skills.values()) sk._cache = null;
+
+    // M8-B: 戦士のランタイム（闘気/コンボ/不屈CD/ボス体勢/スキル別統計）も検証周回でリセットする。
+    if (this.warrior) { this.warrior.reset(); this._warriorSkillStats = null; this._refreshWarriorMods(true); }
 
     // 新しいテレメトリ（debugRun）。通常統計へ混ぜない。
     this.telemetry = new CombatTelemetry({ seed: this.rngSeed, difficulty: this.difficultyId, quality: this.settings.effectQuality, speed: ov.speed || 1, jobId: this.jobId, jobLevelAtStart: this.jobMods.jobLevel, debugRun: true });

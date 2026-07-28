@@ -32,17 +32,98 @@
         "fireAreaPerLevel": 0.001
       },
       "milestones": [
-        { "level": 5, "id": "fw_power_base", "type": "fireDamageMult", "value": 0.05, "label": "火力基礎強化", "description": "火属性ダメージ+5%" },
-        { "level": 10, "id": "fw_projectile_speed", "type": "projectileSpeedMult", "value": 0.10, "label": "炎弾加速", "description": "火属性projectileの投射速度+10%" },
-        { "level": 20, "id": "fw_haste", "type": "cooldownMult", "value": 0.05, "label": "高速詠唱の素養", "description": "火属性activeのクールダウン-5%" },
-        { "level": 30, "id": "fw_reroll", "type": "rerollBonus", "value": 1, "label": "選択の余地", "description": "周回開始時のリロール+1" },
-        { "level": 40, "id": "fw_blast", "type": "explosion", "damage": 0.15, "area": 0.10, "label": "爆炎強化", "description": "火属性爆発ダメージ+15%・爆発範囲+10%" },
-        { "level": 50, "id": "fw_echo", "type": "echo", "interval": 12, "power": 0.6, "label": "残響詠唱", "description": "攻撃用火属性activeが12回発動ごとに直前の攻撃を1回追加発動（威力60%）" },
-        { "level": 60, "id": "fw_evolved", "type": "evolvedDamageMult", "value": 0.20, "label": "進化魔法強化", "description": "進化スキルの全ダメージ+20%" },
-        { "level": 70, "id": "fw_rarity", "type": "rarityWeight", "rare": 1.15, "legendary": 1.25, "label": "高位魔法適性", "description": "rare抽選重み×1.15・legendary×1.25" },
-        { "level": 80, "id": "fw_extra_projectile", "type": "projectileCount", "value": 1, "label": "炎弾増殖", "description": "火属性activeの発射数+1" },
-        { "level": 90, "id": "fw_haste2", "type": "cooldownMult", "value": 0.10, "label": "炎帝の詠唱", "description": "火属性activeのクールダウンを追加で-10%" },
-        { "level": 100, "id": "fw_echo_full", "type": "echoUpgrade", "interval": 8, "power": 1.0, "label": "完全残響", "description": "残響詠唱を強化（8回発動ごと・威力100%）" }
+        {
+          "level": 5,
+          "id": "fw_power_base",
+          "type": "fireDamageMult",
+          "value": 0.05,
+          "label": "火力基礎強化",
+          "description": "火属性ダメージ+5%"
+        },
+        {
+          "level": 10,
+          "id": "fw_projectile_speed",
+          "type": "projectileSpeedMult",
+          "value": 0.1,
+          "label": "炎弾加速",
+          "description": "火属性projectileの投射速度+10%"
+        },
+        {
+          "level": 20,
+          "id": "fw_haste",
+          "type": "cooldownMult",
+          "value": 0.05,
+          "label": "高速詠唱の素養",
+          "description": "火属性activeのクールダウン-5%"
+        },
+        {
+          "level": 30,
+          "id": "fw_reroll",
+          "type": "rerollBonus",
+          "value": 1,
+          "label": "選択の余地",
+          "description": "周回開始時のリロール+1"
+        },
+        {
+          "level": 40,
+          "id": "fw_blast",
+          "type": "explosion",
+          "damage": 0.15,
+          "area": 0.1,
+          "label": "爆炎強化",
+          "description": "火属性爆発ダメージ+15%・爆発範囲+10%"
+        },
+        {
+          "level": 50,
+          "id": "fw_echo",
+          "type": "echo",
+          "interval": 12,
+          "power": 0.6,
+          "label": "残響詠唱",
+          "description": "攻撃用火属性activeが12回発動ごとに直前の攻撃を1回追加発動（威力60%）"
+        },
+        {
+          "level": 60,
+          "id": "fw_evolved",
+          "type": "evolvedDamageMult",
+          "value": 0.2,
+          "label": "進化魔法強化",
+          "description": "進化スキルの全ダメージ+20%"
+        },
+        {
+          "level": 70,
+          "id": "fw_rarity",
+          "type": "rarityWeight",
+          "rare": 1.15,
+          "legendary": 1.25,
+          "label": "高位魔法適性",
+          "description": "rare抽選重み×1.15・legendary×1.25"
+        },
+        {
+          "level": 80,
+          "id": "fw_extra_projectile",
+          "type": "projectileCount",
+          "value": 1,
+          "label": "炎弾増殖",
+          "description": "火属性activeの発射数+1"
+        },
+        {
+          "level": 90,
+          "id": "fw_haste2",
+          "type": "cooldownMult",
+          "value": 0.1,
+          "label": "炎帝の詠唱",
+          "description": "火属性activeのクールダウンを追加で-10%"
+        },
+        {
+          "level": 100,
+          "id": "fw_echo_full",
+          "type": "echoUpgrade",
+          "interval": 8,
+          "power": 1.0,
+          "label": "完全残響",
+          "description": "残響詠唱を強化（8回発動ごと・威力100%）"
+        }
       ]
     },
     "frost_mage": {
@@ -73,21 +154,228 @@
       },
       "perLevelBonuses": {
         "iceDamagePerLevel": 0.0035,
-        "chillPerLevel": 0.0030,
-        "shatterPerLevel": 0.0040
+        "chillPerLevel": 0.003,
+        "shatterPerLevel": 0.004
       },
       "milestones": [
-        { "level": 5, "id": "fm_power_base", "type": "elementDamageMult", "value": 0.05, "label": "氷晶強化", "description": "氷属性ダメージ+5%" },
-        { "level": 10, "id": "fm_chill_amp", "type": "statusPowerMult", "value": 0.10, "label": "冷気増幅", "description": "冷気付与量+10%" },
-        { "level": 20, "id": "fm_haste", "type": "cooldownMult", "value": 0.05, "label": "急速詠唱", "description": "氷属性activeのクールダウン-5%" },
-        { "level": 30, "id": "fm_reroll", "type": "rerollBonus", "value": 1, "label": "選択の余地", "description": "周回開始時のリロール+1" },
-        { "level": 40, "id": "fm_frost_hunt", "type": "statusTargetDamage", "chilled": 0.10, "frozen": 0.20, "label": "凍結狩り", "description": "冷気状態の敵への氷ダメージ+10%・frozen/氷砕脆弱の敵へは+20%（重複せずfrozen優先）" },
-        { "level": 50, "id": "fm_shatter_chain", "type": "shatterOnFrozenKill", "radiusFactor": 1.0, "powerFactor": 0.6, "label": "氷砕連鎖", "description": "凍結中の通常敵・エリートが氷ダメージで死亡すると小規模な粉砕爆発（1体1回・ボス対象外・再帰なし）" },
-        { "level": 60, "id": "fm_evolved", "type": "evolvedDamageMult", "value": 0.20, "label": "進化魔法強化", "description": "氷術師の進化スキルの全ダメージ+20%" },
-        { "level": 70, "id": "fm_rarity", "type": "rarityWeight", "rare": 1.15, "legendary": 1.25, "label": "高位氷術適性", "description": "rare抽選重み×1.15・legendary×1.25" },
-        { "level": 80, "id": "fm_extra_projectile", "type": "projectileCount", "value": 1, "label": "氷弾増殖", "description": "projectileタグを持つ氷属性activeの発射数+1" },
-        { "level": 90, "id": "fm_haste2", "type": "cooldownMult", "value": 0.10, "label": "極低温詠唱", "description": "氷属性activeのクールダウンを追加で-10%" },
-        { "level": 100, "id": "fm_absolute_zero", "type": "absoluteZero", "normalThresholdReduction": 0.20, "bossThresholdReduction": 0.15, "frozenDurationMult": 0.20, "label": "絶対零度", "description": "通常敵・エリートの確定凍結閾値-20%・ボス氷砕閾値-15%・凍結持続+20%（安全下限は維持・完全な永久凍結は発生しない）" }
+        {
+          "level": 5,
+          "id": "fm_power_base",
+          "type": "elementDamageMult",
+          "value": 0.05,
+          "label": "氷晶強化",
+          "description": "氷属性ダメージ+5%"
+        },
+        {
+          "level": 10,
+          "id": "fm_chill_amp",
+          "type": "statusPowerMult",
+          "value": 0.1,
+          "label": "冷気増幅",
+          "description": "冷気付与量+10%"
+        },
+        {
+          "level": 20,
+          "id": "fm_haste",
+          "type": "cooldownMult",
+          "value": 0.05,
+          "label": "急速詠唱",
+          "description": "氷属性activeのクールダウン-5%"
+        },
+        {
+          "level": 30,
+          "id": "fm_reroll",
+          "type": "rerollBonus",
+          "value": 1,
+          "label": "選択の余地",
+          "description": "周回開始時のリロール+1"
+        },
+        {
+          "level": 40,
+          "id": "fm_frost_hunt",
+          "type": "statusTargetDamage",
+          "chilled": 0.1,
+          "frozen": 0.2,
+          "label": "凍結狩り",
+          "description": "冷気状態の敵への氷ダメージ+10%・frozen/氷砕脆弱の敵へは+20%（重複せずfrozen優先）"
+        },
+        {
+          "level": 50,
+          "id": "fm_shatter_chain",
+          "type": "shatterOnFrozenKill",
+          "radiusFactor": 1.0,
+          "powerFactor": 0.6,
+          "label": "氷砕連鎖",
+          "description": "凍結中の通常敵・エリートが氷ダメージで死亡すると小規模な粉砕爆発（1体1回・ボス対象外・再帰なし）"
+        },
+        {
+          "level": 60,
+          "id": "fm_evolved",
+          "type": "evolvedDamageMult",
+          "value": 0.2,
+          "label": "進化魔法強化",
+          "description": "氷術師の進化スキルの全ダメージ+20%"
+        },
+        {
+          "level": 70,
+          "id": "fm_rarity",
+          "type": "rarityWeight",
+          "rare": 1.15,
+          "legendary": 1.25,
+          "label": "高位氷術適性",
+          "description": "rare抽選重み×1.15・legendary×1.25"
+        },
+        {
+          "level": 80,
+          "id": "fm_extra_projectile",
+          "type": "projectileCount",
+          "value": 1,
+          "label": "氷弾増殖",
+          "description": "projectileタグを持つ氷属性activeの発射数+1"
+        },
+        {
+          "level": 90,
+          "id": "fm_haste2",
+          "type": "cooldownMult",
+          "value": 0.1,
+          "label": "極低温詠唱",
+          "description": "氷属性activeのクールダウンを追加で-10%"
+        },
+        {
+          "level": 100,
+          "id": "fm_absolute_zero",
+          "type": "absoluteZero",
+          "normalThresholdReduction": 0.2,
+          "bossThresholdReduction": 0.15,
+          "frozenDurationMult": 0.2,
+          "label": "絶対零度",
+          "description": "通常敵・エリートの確定凍結閾値-20%・ボス氷砕閾値-15%・凍結持続+20%（安全下限は維持・完全な永久凍結は発生しない）"
+        }
+      ]
+    },
+    "warrior": {
+      "jobId": "warrior",
+      "displayName": "戦士",
+      "description": "近接で殴り続けるほど強くなる前衛ジョブ。ジョブレベルを上げるほど物理/近接火力・体勢崩し・耐久が伸び、到達レベルで闘気・コンボ・不屈まわりの技巧を解放する（効果は戦士を使用中の周回のみ有効）。",
+      "element": "physical",
+      "enabled": true,
+      "levelCap": 100,
+      "xpCurve": {
+        "quad": 25,
+        "lin": 75
+      },
+      "xpReward": {
+        "perSurvivalSecond": 1.2,
+        "perNormalKill": 0.08,
+        "normalKillCap": 2000,
+        "perEliteKill": 4,
+        "perBossKill": 60,
+        "victoryBonus": 200,
+        "difficultyMult": {
+          "1": 1.0,
+          "2": 1.25,
+          "3": 1.55,
+          "4": 1.9,
+          "5": 2.3
+        }
+      },
+      "perLevelBonuses": {
+        "physicalDamagePerLevel": 0.0035,
+        "poisePerLevel": 0.0025,
+        "toughnessPerLevel": 0.002
+      },
+      "milestones": [
+        {
+          "level": 5,
+          "id": "wa_vitality",
+          "type": "maxHpMult",
+          "value": 0.05,
+          "label": "鍛えた肉体",
+          "description": "最大HP+5%"
+        },
+        {
+          "level": 10,
+          "id": "wa_fury_gain",
+          "type": "furyGainMult",
+          "value": 0.1,
+          "label": "闘気の素養",
+          "description": "闘気獲得量+10%"
+        },
+        {
+          "level": 20,
+          "id": "wa_guard",
+          "type": "damageReductionBonus",
+          "value": 0.05,
+          "label": "堅牢",
+          "description": "被ダメージ軽減+5%（軽減の合計上限内）"
+        },
+        {
+          "level": 30,
+          "id": "wa_reroll",
+          "type": "rerollBonus",
+          "value": 1,
+          "label": "選択の余地",
+          "description": "周回開始時のリロール+1"
+        },
+        {
+          "level": 40,
+          "id": "wa_combo_master",
+          "type": "comboThresholdBonus",
+          "value": 0.2,
+          "label": "連撃の達人",
+          "description": "コンボ閾値ボーナス+20%"
+        },
+        {
+          "level": 50,
+          "id": "wa_release",
+          "type": "furyRelease",
+          "durationMs": 1000,
+          "recovery": 0.25,
+          "label": "闘気の奔流",
+          "description": "闘気解放の持続+1秒・回復量+25%"
+        },
+        {
+          "level": 60,
+          "id": "wa_evolved",
+          "type": "evolvedDamageMult",
+          "value": 0.2,
+          "label": "極めた型",
+          "description": "進化スキルの全ダメージ+20%"
+        },
+        {
+          "level": 70,
+          "id": "wa_rarity",
+          "type": "rarityWeight",
+          "rare": 1.15,
+          "legendary": 1.25,
+          "label": "戦域の目",
+          "description": "rare抽選重み×1.15・legendary×1.25"
+        },
+        {
+          "level": 80,
+          "id": "wa_extra_strike",
+          "type": "strikeCount",
+          "value": 1,
+          "label": "追撃",
+          "description": "明示対象の近接activeの打撃数+1"
+        },
+        {
+          "level": 90,
+          "id": "wa_haste",
+          "type": "cooldownMult",
+          "value": 0.1,
+          "label": "戦場の呼吸",
+          "description": "activeのクールダウン-10%"
+        },
+        {
+          "level": 100,
+          "id": "wa_apex",
+          "type": "warriorApex",
+          "recovery": 0.2,
+          "exposedDamage": 0.05,
+          "label": "不倒の頂",
+          "description": "闘気解放の回復+20%・体勢崩し中(exposed)の戦士ダメージボーナスを小幅強化"
+        }
       ]
     }
   }

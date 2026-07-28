@@ -621,3 +621,57 @@ M7-E は監査 Milestone であり、`profile` / `active_run` / `skillRuntime` �
 
 設置物・召喚物・分身の**実体は保存しない**（寿命つき、または `_rebuild`/`_ensure` が data の個数へ再構築するため
 二重生成しない）。Graphics / Text / Tween / Timer / enemy / projectile 参照も保存しない。
+
+## Milestone 8-B: 戦士のランタイム状態（`save_version` は 6 のまま）
+
+戦士（`warrior`）の追加にあたり、`active_run` へ **`warriorState` を 1 キーだけ追加**した。
+**既存キーの意味・型・値は 1 件も変更していない**（`node tests/three-job-nonregression.mjs` §6 が
+保存キー一覧を機械的に検証する）。したがって **`save_version` は 6 のままで、移行処理は不要**。
+
+### `active_run.warriorState`
+
+戦士の周回でだけ書き込まれる（他ジョブは `null`）。
+
+```json
+{
+  "fury": 42.5,
+  "releaseLeftMs": 0,
+  "recovery": { "leftMs": 0, "totalMs": 5000, "remainAmount": 0 },
+  "combo": 27,
+  "comboGraceLeftMs": 1200,
+  "unyielding": { "cooldownLeftMs": 30000, "activeLeftMs": 0, "healLeftMs": 0, "healRemain": 0, "triggers": 1 },
+  "bossPoise": { "gauge": 180, "thresholdMult": 1.25, "breaks": 1, "cooldownLeftMs": 0, "exposedLeftMs": 0, "reactionLeftMs": 0 },
+  "chargeLeftMs": 0,
+  "telemetry": { "...": "周回集計（外部送信なし）" }
+}
+```
+
+### 何を復元し、何を復元しないか
+
+| 項目 | 復元する | 理由 |
+|------|----------|------|
+| 闘気 / コンボ / 猶予 / 解放残り / 回復残り | ○ | 再読込で 0 へ戻して稼ぎ直せないようにする |
+| 不屈のクールダウン / 発動回数 | ○ | 再読込で不屈を撃ち直せないようにする |
+| ボス体勢ゲージ / 崩し回数 / しきい値倍率 | ○ | 崩し直しが簡単にならないようにする |
+| 突進の軽減ウィンドウ残り | ○ | 軽減窓だけを引き継ぐ |
+| 周回テレメトリ | ○ | 統計が途中でリセットされないようにする |
+| **cast 予算（`castKey` ごとの加算上限）** | × | セッションを跨いで意味を持たないため。復元時は空から始める |
+| **同一敵の命中記録** | × | 死んだ敵オブジェクトへの参照を保持しないため |
+| **闘気の毎秒窓 / 撃破回復の毎秒窓** | × | 復元時刻で開き直す（上限そのものは常に効く） |
+| **突進の途中状態（座標・経路）** | × | 無料の再ダッシュ・座標の飛びを防ぐため。クールダウンだけ戻す |
+
+### スキルごとの `skillRuntime`
+
+戦士 active5 ＋ evolution3 の **8 件すべて**が `serializeState` / `restoreState` を持ち、
+最低限 `cdLeft`（クールダウン残り）を保存する。加えて
+
+- `shield_bash` … `mitigationLeft`（軽減窓の残り）
+- `whirlwind_slash` / `bloodstorm_whirlwind` … `spinLeftMs` / `spinTickLeft`（回転の**再開**であり、発動回数は増えない）
+- `charge_slash` … `cdLeft` のみ（突進の途中状態は捨てる）
+- `unyielding_fortress` … `windowLeftMs` / `counterUsed` / `mitigationLeft`（復元後に反撃が復活しない）
+
+### 旧セーブ・他ジョブ
+
+- `warriorState` が無い旧セーブ、火 / 氷のセーブでは `WarriorCombatSystem` が初期値のまま動く（`enabled=false`）。
+- 型が壊れた `warriorState`（数値でない・配列など）を渡しても、`restore()` は既知キーの数値だけを受け取り、
+  それ以外は既定値のままにする。**旧データで起動不能にならない**。

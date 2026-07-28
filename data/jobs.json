@@ -183,6 +183,55 @@
         ],
         "note": "M7-A では継承は未実装。将来の拡張口。"
       }
+    },
+    {
+      "id": "warrior",
+      "displayName": "戦士",
+      "element": "physical",
+      "preferredRange": "melee",
+      "iconKey": "icon_great_cleave",
+      "statusEffects": [],
+      "description": "敵陣へ踏み込み、近接攻撃を当て続けてコンボと闘気を高める前衛ジョブ。闘気解放で攻撃・防御・回復を循環させ、通常敵を押し返し、エリート/ボスの体勢を崩す。",
+      "initialActiveSkills": [
+        "great_cleave"
+      ],
+      "initialPassiveSkills": [],
+      "activeSkillPool": [
+        "great_cleave",
+        "shield_bash",
+        "whirlwind_slash",
+        "charge_slash",
+        "ground_slam"
+      ],
+      "passiveSkillPool": [
+        "brute_force",
+        "heavy_armor",
+        "combat_instinct",
+        "bloodlust"
+      ],
+      "evolutionPool": [
+        "thousand_blade_dance",
+        "bloodstorm_whirlwind",
+        "unyielding_fortress"
+      ],
+      "baseActiveSlots": 4,
+      "basePassiveSlots": 4,
+      "tags": [
+        "physical",
+        "warrior",
+        "melee"
+      ],
+      "unlockCondition": null,
+      "futureInheritanceSettings": {
+        "enabled": false,
+        "maxInheritedSkills": 0,
+        "allowedTags": [],
+        "allowedCategories": [
+          "active",
+          "passive"
+        ],
+        "note": "M8-B では継承は未実装。将来の拡張口。"
+      }
     }
   ]
 }

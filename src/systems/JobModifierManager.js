@@ -39,6 +39,10 @@ export class JobModifierManager {
       echo: null,
       // 固有到達報酬（Lv50 氷砕連鎖・Lv100 絶対零度 など）。
       shatterOnFrozenKill: null, absoluteZero: null,
+      // M8-B: 戦士（physical）の固有補正。他ジョブでは常に恒等（1 / 0 / null）。
+      poiseDamageMult: 1, toughnessMult: 1, maxHpMult: 1,
+      furyGainMult: 1, damageReductionBonus: 0, comboThresholdBonusMult: 1,
+      strikeCountBonus: 0, furyRelease: null, warriorApex: null,
     };
   }
 
@@ -61,6 +65,10 @@ export class JobModifierManager {
     r.areaMult = 1 + num(b.fireAreaPerLevel, 0) * steps;               // 火のみ（範囲成長）
     r.statusPowerMult = 1 + num(b.chillPerLevel, 0) * steps;           // 氷のみ（冷気付与量）
     r.shatterDamageMult = 1 + num(b.shatterPerLevel, 0) * steps;       // 氷のみ（粉砕）
+    // M8-B: 戦士のみ（physical ダメージ / 体勢削り / 耐久）。他ジョブの perLevelBonuses には存在しないため恒等。
+    r.elementDamageMult += num(b.physicalDamagePerLevel, 0) * steps;
+    r.poiseDamageMult = 1 + num(b.poisePerLevel, 0) * steps;
+    r.toughnessMult = 1 + num(b.toughnessPerLevel, 0) * steps;
 
     for (const m of jobConfig.milestones || []) {
       if (lv < num(m.level, Infinity)) continue;
@@ -88,6 +96,21 @@ export class JobModifierManager {
           break;
         case 'shatterOnFrozenKill': // 氷 Lv50 氷砕連鎖
           r.shatterOnFrozenKill = { radiusFactor: num(m.radiusFactor, 1), powerFactor: num(m.powerFactor, 0.6) };
+          break;
+        // --- 戦士の固有到達報酬（M8-B）---
+        case 'maxHpMult': r.maxHpMult *= (1 + num(m.value, 0)); break;               // 戦 Lv5
+        case 'furyGainMult': r.furyGainMult *= (1 + num(m.value, 0)); break;         // 戦 Lv10
+        case 'damageReductionBonus': r.damageReductionBonus += num(m.value, 0); break; // 戦 Lv20
+        case 'comboThresholdBonus': r.comboThresholdBonusMult *= (1 + num(m.value, 0)); break; // 戦 Lv40
+        case 'furyRelease': // 戦 Lv50（持続 +1 秒・回復 +25%）
+          r.furyRelease = {
+            durationBonusMs: num(m.durationMs, 0) + ((r.furyRelease && r.furyRelease.durationBonusMs) || 0),
+            recoveryMult: (1 + num(m.recovery, 0)) * ((r.furyRelease && r.furyRelease.recoveryMult) || 1),
+          };
+          break;
+        case 'strikeCount': r.strikeCountBonus += Math.round(num(m.value, 0)); break; // 戦 Lv80（明示 flag のみ）
+        case 'warriorApex': // 戦 Lv100（回復 +20%・exposed 中のダメージボーナス小幅強化）
+          r.warriorApex = { recoveryMult: 1 + num(m.recovery, 0), exposedDamageBonus: num(m.exposedDamage, 0) };
           break;
         case 'absoluteZero': // 氷 Lv100 絶対零度
           r.absoluteZero = {
@@ -150,7 +173,19 @@ export class JobModifierManager {
 
   // ---- 投射補正 ----
   projectileSpeedMult() { return this._r.projectileSpeedMult; }
-  projectileCountBonus() { return this._r.projectileCountBonus; }
+  // M8-B: 戦士の Lv80 は「打撃数 +1」で、火/氷の「発射数 +1」と同じ枠を共有する
+  // （どちらも明示 flag lv80ProjectileTarget:true のスキルだけへ適用される）。
+  projectileCountBonus() { return this._r.projectileCountBonus + this._r.strikeCountBonus; }
+
+  // ---- 戦士（M8-B）----
+  poiseDamageMult() { return this._r.poiseDamageMult; }
+  toughnessMult() { return this._r.toughnessMult; }
+  maxHpMult() { return this._r.maxHpMult; }
+  furyGainMult() { return this._r.furyGainMult; }
+  damageReductionBonus() { return this._r.damageReductionBonus; }
+  comboThresholdBonusMult() { return this._r.comboThresholdBonusMult; }
+  furyReleaseBonus() { return this._r.furyRelease; }   // null または { durationBonusMs, recoveryMult }
+  warriorApex() { return this._r.warriorApex; }        // null または { recoveryMult, exposedDamageBonus }
 
   // ---- 抽選補正（Lv70）----
   rarityWeightMult(rarity) {

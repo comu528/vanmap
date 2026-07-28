@@ -43,6 +43,19 @@ export class CombatTelemetry {
       shatters: 0, shatterDamage: 0, bossFrostbreaks: 0, frostbreakVulnerabilitySeconds: 0,
       iceDamage: 0, burningDamage: 0, statusApplicationCapsReached: 0,
     };
+    // M8-B: 戦士（周回全体）の集計。WarriorCombatSystem.summary() を finalizeTelemetry で流し込む。
+    // 戦士以外の周回では全て 0 のまま出力される（キー構造を job で変えない）。
+    this.warrior = {
+      meleeCasts: 0, meleeHits: 0, physicalDamage: 0,
+      comboPeak: 0, comboAvg: 0, comboBreaks: 0, comboActiveSeconds: 0, comboThresholdCounts: {},
+      furyGained: 0, furyBySource: {}, furyOvercap: 0,
+      furyReleases: 0, furyReleaseUptimeSeconds: 0, furyReleaseAvgIntervalSeconds: 0,
+      recoveryAmount: 0, overhealPrevented: 0, mitigationAmount: 0,
+      unyieldingTriggers: 0, unyieldingHealing: 0, unyieldingMitigated: 0, deathsAfterUnyielding: 0,
+      killHeal: 0, killHealCapped: 0,
+      knockbacks: 0, poiseDamage: 0, eliteStaggers: 0, bossStanceBreaks: 0,
+      exposedUptimeSeconds: 0, exposedBonusDamage: 0, exposedBonusFury: 0,
+    };
     // フレーム集計
     this._frameCount = 0;
     this._frameSumMs = 0;
@@ -69,6 +82,9 @@ export class CombatTelemetry {
         // M7-A: 状態異常（スキル別）
         chillApplied: 0, freezeAttempts: 0, freezesCaused: 0, shatters: 0, shatterDamage: 0,
         bossFrostGaugeApplied: 0, damageToChilled: 0, damageToFrozen: 0, damageToFrostbreakTarget: 0,
+        // M8-B: 戦士（スキル別）。近接命中・物理ダメージ・ノックバック・体勢・コンボ/闘気の寄与。
+        meleeHits: 0, physicalDamage: 0, knockbacks: 0, poiseDamage: 0,
+        eliteStaggers: 0, bossStanceBreaks: 0, comboGain: 0, furyGain: 0,
       };
       this.skills.set(key, s);
     }
@@ -98,7 +114,10 @@ export class CombatTelemetry {
     for (const k of ['casts', 'hits', 'kills', 'damage', 'dotDamage', 'explosionDamage',
       'projectileDamage', 'summonDamage', 'echoCasts', 'cloneCasts', 'capReachedCount',
       'chillApplied', 'freezeAttempts', 'freezesCaused', 'shatters', 'shatterDamage',
-      'bossFrostGaugeApplied', 'damageToChilled', 'damageToFrozen', 'damageToFrostbreakTarget']) {
+      'bossFrostGaugeApplied', 'damageToChilled', 'damageToFrozen', 'damageToFrostbreakTarget',
+      // M8-B: 戦士（スキル別）
+      'meleeHits', 'physicalDamage', 'knockbacks', 'poiseDamage',
+      'eliteStaggers', 'bossStanceBreaks', 'comboGain', 'furyGain']) {
       if (isNum(delta[k])) s[k] += delta[k];
     }
     // max 系
@@ -146,6 +165,20 @@ export class CombatTelemetry {
   noteStatusEvent(key, amount = 1) {
     if (key == null || !isNum(amount)) return;
     if (Object.prototype.hasOwnProperty.call(this.status, key)) this.status[key] += amount;
+  }
+
+  // M8-B: 戦士集計の取り込み（WarriorCombatSystem.summary() の既知キーのみ・NaN 無視）。
+  noteWarriorSummary(sum) {
+    if (!sum) return;
+    for (const k of Object.keys(this.warrior)) {
+      const v = sum[k];
+      if (isNum(v)) this.warrior[k] = v;
+      else if (v && typeof v === 'object' && typeof this.warrior[k] === 'object') {
+        const out = {};
+        for (const kk of Object.keys(v)) if (isNum(v[kk])) out[kk] = v[kk];
+        this.warrior[k] = out;
+      }
+    }
   }
 
   noteRunResult(r) {
@@ -210,6 +243,11 @@ export class CombatTelemetry {
         chillApplied: num(s.chillApplied), freezeAttempts: num(s.freezeAttempts), freezesCaused: num(s.freezesCaused),
         shatters: num(s.shatters), shatterDamage: num(s.shatterDamage), bossFrostGaugeApplied: num(s.bossFrostGaugeApplied),
         damageToChilled: num(s.damageToChilled), damageToFrozen: num(s.damageToFrozen), damageToFrostbreakTarget: num(s.damageToFrostbreakTarget),
+        // M8-B: 戦士（スキル別）
+        meleeHits: num(s.meleeHits), physicalDamage: num(s.physicalDamage),
+        knockbacks: num(s.knockbacks), poiseDamage: num(s.poiseDamage),
+        eliteStaggers: num(s.eliteStaggers), bossStanceBreaks: num(s.bossStanceBreaks),
+        comboGain: num(s.comboGain), furyGain: num(s.furyGain),
       };
     }
     const avgFps = this._frameCount > 0 ? 1000 / (this._frameSumMs / this._frameCount) : 0;
@@ -219,6 +257,7 @@ export class CombatTelemetry {
       ...(this.result || {}),
       caps: { ...this.caps },
       status: { ...this.status }, // M7-A: 状態異常（周回全体）
+      warrior: { ...this.warrior, furyBySource: { ...this.warrior.furyBySource }, comboThresholdCounts: { ...this.warrior.comboThresholdCounts } }, // M8-B: 戦士（周回全体）
       avgFps: num(avgFps), minFps: num(minFps), frameP95Ms: num(this._frameP95Ms()),
       frameCount: this._frameCount,
     };

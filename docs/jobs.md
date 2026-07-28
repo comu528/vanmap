@@ -13,6 +13,7 @@ M6-A で導入したジョブ基盤（`data/jobs.json`・`data/job-progression.j
 |-------|--------|---------|-----------|--------|---------|------|--------|
 | `flame_witch` | 火の魔女 | fire | `fireball` | 30 | 4（共通） | 18 | 1〜100 |
 | `frost_mage` | 氷術師 | ice | `frost_shard` | 30 | 4（氷専用） | 18 | 1〜100 |
+| `warrior` | 戦士 | physical | `great_cleave` | 5 | 4（戦士専用） | 3 | 1〜100 |
 
 - **火の魔女は M7-A〜M7-D で変更なし**（active30 / passive4 / evo18・同 seed 抽選結果不変）。
 - **氷術師は M7-A で active5/passive4/evo3、M7-B で active15/passive4/evo8、M7-C で active25/passive4/evo13、M7-D で active30/passive4/evo18 へ拡張**（下記「Milestone 7-B」〜「Milestone 7-D」）。**M7-D で火の魔女と同規模のカタログに到達（氷術師カタログ完成）**。
@@ -243,3 +244,51 @@ M7-B.1 で、氷術師の状態異常が**通常プレイ中に視認・確認�
 - Lv100「完全残響」でも `CastPolicy` の generation 上限により再帰キャストは生じない。
 - passive `ember_persist` は進化補助として要求されないが、`duration` modifier が実装から参照されるため
   **死に passive ではない**（火は 18 進化中 14 件が active 補助で、passive 補助は 4 件のみ）。
+
+## Milestone 8-B: 戦士（warrior）基盤実装（3 人目のジョブ・save_version は v6 のまま）
+
+3 人目のジョブ **戦士（`warrior`）** を追加した。属性は **`physical`**（fire / ice とは独立で、既存の属性補正とも衝突しない）。
+**火の魔女・氷術師の数値・挙動・候補列・状態異常・保存結果は 1 件も変更していない**
+（`node tests/three-job-nonregression.mjs` が候補列・ランタイム・保存キーのハッシュで機械的に保証する）。
+
+- **戦士 active5**: 大薙ぎ `great_cleave`（初期）/ 盾撃 `shield_bash` / 旋風斬り `whirlwind_slash` /
+  突進斬り `charge_slash` / 地砕き `ground_slam`。**すべて近接**（自分中心の円 or 前方 arc）で、
+  遠距離へ飛ぶ斬撃波は 1 つも無い。
+- **戦士 passive4**: 剛力 `brute_force` / 重装 `heavy_armor` / 戦闘本能 `combat_instinct` / 血気 `bloodlust`。
+- **戦士 evolution3**: 千刃乱舞（`great_cleave`+`combat_instinct` Lv4）/ 血戦旋風（`whirlwind_slash`+`bloodlust` Lv4）/
+  不落の城壁（`shield_bash`+`heavy_armor` Lv4）。
+- **ジョブが扱う共通状態異常 `statusEffects` は空**。戦士は burning / chill / frozen を一切使わず、
+  **新しい共通状態異常も追加していない**（体勢は `WarriorCombatSystem` 内の専用ゲージ）。
+- **残響 / 分身の対象外**（`echoPolicy` / `clonePolicy` = `forbidden`）。近接が無料で増える経路を作らない。
+
+### 戦士専用の機構（`src/systems/WarriorCombatSystem.js` が唯一の管理者）
+
+| 機構 | 概要 | 数値の置き場所 |
+|------|------|----------------|
+| 闘気 fury | 近接命中 / 撃破 / コンボ / 軽減 / 被弾で溜まり、100 で自動的に「闘気解放」 | `balance.warrior.fury` / `.furyRelease` |
+| コンボ combo | 殴り続けると増え、猶予後に減衰。閾値 4 段で攻速・範囲・火力・体勢が伸びる。**ジョブ全体で 1 本** | `balance.warrior.combo` |
+| 強靱 | 接敵 / 近接発動直後 / 突進 / 解放中 / 不屈 / スキル由来の軽減を合成（上限 70%） | `balance.warrior.mitigation` |
+| 不屈 unyielding | 瀕死で 1 回だけ発動する**基礎能力**（passive ではない）。CD 45 秒 | `balance.warrior.unyielding` |
+| 撃破回復 | passive「血気」を取ったときだけ発生。**毎秒上限つき** | `balance.warrior.killHeal` |
+| 体勢崩し poise | 通常敵＝ノックバック / エリート＝stagger / ボス＝行動中断 → 露出 | `balance.warrior.poise` |
+
+### Job Lv 1〜100（到達報酬 11 段）
+
+| Lv | type | 効果 |
+|----|------|------|
+| 5 | `maxHpMult` | 最大HP +5% |
+| 10 | `furyGainMult` | 闘気獲得 +10% |
+| 20 | `damageReductionBonus` | 被ダメージ軽減 +5% |
+| 30 | `rerollBonus` | 周回開始時のリロール +1 |
+| 40 | `comboThresholdBonus` | コンボ閾値の効果 +20% |
+| 50 | `furyRelease` | 闘気解放の時間 +1000ms・回復量 +25% |
+| 60 | `evolvedDamageMult` | 進化スキルのダメージ +20% |
+| 70 | `rarityWeight` | rare ×1.15 / legendary ×1.25 |
+| 80 | `strikeCount` | **打撃数 +1**（明示 flag の `great_cleave` `shield_bash` `ground_slam` のみ） |
+| 90 | `cooldownMult` | クールダウン -10% |
+| 100 | `warriorApex` | 回復量 +20%・ボス露出中のダメージ +5% |
+
+- 基本成長は `physicalDamagePerLevel` 0.35%/Lv・`poisePerLevel` 0.25%/Lv・`toughnessPerLevel` 0.20%/Lv。
+- **属性ダメージ補正は `primaryElement` 一致時のみ**という既存の仕組みをそのまま使うため、
+  戦士の物理補正が火 / 氷へ乗ることも、火 / 氷の補正が物理へ乗ることも無い。
+- 詳細な設計意図・避けた設計・frostbreak との差別化は **`./warrior-design.md`**。

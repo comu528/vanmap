@@ -2011,6 +2011,255 @@
       "shatter": {
         "multiplier": 1.6
       }
+    },
+    {
+      "id": "thousand_blade_dance",
+      "displayName": "千刃乱舞",
+      "description": "前方へ連続で斬撃を叩き込み、最後に短い全周斬りで締める。1回の発動で多段だが、主発動は1回だけ記録する。",
+      "baseSkillId": "great_cleave",
+      "requiredSkills": [
+        {
+          "skill": "combat_instinct",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "thousand_blade_dance",
+      "visualTier": "evolved",
+      "icon": "icon_thousand_blade_dance",
+      "element": "physical",
+      "tags": [
+        "active",
+        "physical",
+        "melee",
+        "slash",
+        "area"
+      ],
+      "damageTags": [
+        "melee",
+        "slash"
+      ],
+      "procCoefficient": 1,
+      "echoPolicy": "forbidden",
+      "clonePolicy": "forbidden",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "safetyCaps": {
+        "maxStrikesPerCast": 8,
+        "maxTargetsPerStrike": 24
+      },
+      "displayOrder": 126,
+      "damage": {
+        "strike": 34,
+        "finale": 62
+      },
+      "cooldown": 900,
+      "area": {
+        "radius": 88,
+        "arc": 2.4,
+        "finaleRadius": 96
+      },
+      "knockback": {
+        "strike": 30,
+        "finale": 72
+      },
+      "poiseDamage": {
+        "strike": 14,
+        "finale": 44
+      },
+      "comboGain": {
+        "perStrike": 1,
+        "perFinale": 1,
+        "maxPerCast": 4
+      },
+      "furyGain": {
+        "perStrike": 1,
+        "perFinale": 1,
+        "maxPerCast": 7
+      },
+      "projectileCount": {
+        "strikes": 5,
+        "strikeIntervalMs": 90
+      },
+      "meleeRange": 96,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "bladeDance",
+      "echoDescription": "残響非対応（戦士は残響/分身の対象外）",
+      "cloneDescription": "複製不可（戦士は残響/分身の対象外）"
+    },
+    {
+      "id": "bloodstorm_whirlwind",
+      "displayName": "血戦旋風",
+      "description": "血に酔う回転斬り。回転中の撃破でわずかに持続が延びる（1回の発動あたり上限あり）。回復は血気の毎秒上限を超えない。",
+      "baseSkillId": "whirlwind_slash",
+      "requiredSkills": [
+        {
+          "skill": "bloodlust",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "bloodstorm_whirlwind",
+      "visualTier": "evolved",
+      "icon": "icon_bloodstorm_whirlwind",
+      "element": "physical",
+      "tags": [
+        "active",
+        "physical",
+        "melee",
+        "slash",
+        "spin",
+        "area"
+      ],
+      "damageTags": [
+        "melee",
+        "slash",
+        "spin"
+      ],
+      "procCoefficient": 1,
+      "echoPolicy": "forbidden",
+      "clonePolicy": "forbidden",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "safetyCaps": {
+        "maxSpinDurationMs": 5200,
+        "maxTicksPerFrame": 2,
+        "maxTargetsPerTick": 24,
+        "maxKillExtendPerCast": 9
+      },
+      "displayOrder": 127,
+      "damage": {
+        "tick": 24
+      },
+      "cooldown": 3600,
+      "area": {
+        "radius": 84
+      },
+      "knockback": {
+        "tick": 20
+      },
+      "poiseDamage": {
+        "tick": 16
+      },
+      "comboGain": {
+        "perTick": 1,
+        "maxPerCast": 3
+      },
+      "furyGain": {
+        "perTick": 1,
+        "maxPerCast": 6
+      },
+      "projectileCount": {
+        "duration": 2800,
+        "tickInterval": 150
+      },
+      "killExtend": {
+        "perKillMs": 180,
+        "maxPerCastMs": 1600
+      },
+      "meleeRange": 84,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "spinStart",
+      "echoDescription": "残響非対応（戦士は残響/分身の対象外）",
+      "cloneDescription": "複製不可（戦士は残響/分身の対象外）"
+    },
+    {
+      "id": "unyielding_fortress",
+      "displayName": "不落の城壁",
+      "description": "打撃のあと短い反撃構えを取る。構え中に被弾すると1回だけ反撃する（1構えにつき1回）。基礎能力の「不屈」とは別処理。",
+      "baseSkillId": "shield_bash",
+      "requiredSkills": [
+        {
+          "skill": "heavy_armor",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "unyielding_fortress",
+      "visualTier": "evolved",
+      "icon": "icon_unyielding_fortress",
+      "element": "physical",
+      "tags": [
+        "active",
+        "physical",
+        "melee",
+        "blunt",
+        "counter",
+        "defense"
+      ],
+      "damageTags": [
+        "melee",
+        "blunt",
+        "counter"
+      ],
+      "procCoefficient": 1,
+      "echoPolicy": "forbidden",
+      "clonePolicy": "forbidden",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "safetyCaps": {
+        "maxCounterPerWindow": 1,
+        "maxTargetsPerStrike": 24,
+        "maxStrikesPerCast": 3
+      },
+      "displayOrder": 128,
+      "damage": {
+        "bash": 34,
+        "counter": 70
+      },
+      "cooldown": 2200,
+      "area": {
+        "radius": 66,
+        "arc": 1.5,
+        "counterRadius": 84
+      },
+      "knockback": {
+        "bash": 120,
+        "counter": 96
+      },
+      "poiseDamage": {
+        "bash": 66,
+        "counter": 54
+      },
+      "comboGain": {
+        "perBash": 1,
+        "perCounter": 0,
+        "maxPerCast": 2
+      },
+      "furyGain": {
+        "perBash": 1,
+        "perCounter": 0,
+        "maxPerCast": 4
+      },
+      "projectileCount": {
+        "strikes": 2,
+        "strikeIntervalMs": 120
+      },
+      "mitigation": {
+        "value": 0.24,
+        "durationMs": 1500
+      },
+      "counterWindow": {
+        "durationMs": 1600,
+        "maxCountersPerWindow": 1
+      },
+      "meleeRange": 84,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "bash",
+      "echoDescription": "残響非対応（戦士は残響/分身の対象外）",
+      "cloneDescription": "複製不可（戦士は残響/分身の対象外）"
     }
   ]
 }

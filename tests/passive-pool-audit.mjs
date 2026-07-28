@@ -100,10 +100,13 @@ section('6. 既存active抽選結果が変わらない（火の魔女・同seed�
 section('7. 既存進化条件が成立する（進化補助passiveが所有ジョブのプールで到達可能）');
 {
   const poolFor = (jobId) => new Set(jobOf(jobId).passiveSkillPool || []);
-  // 火進化: 補助passive は flame_witch プールにある。氷進化: 補助passive は frost_mage プールにある。
+  // 進化の所属ジョブは基礎スキルの jobs から決める（M8-B: 戦士を含む3ジョブ対応）。
+  const jobOfBase = (baseId) => {
+    const base = skills.find((s) => s.id === baseId);
+    return (base && Array.isArray(base.jobs) && base.jobs[0]) || 'flame_witch';
+  };
   for (const e of evolutions) {
-    const baseFire = skills.some((s) => s.id === e.baseSkillId && (s.jobs || []).includes('flame_witch'));
-    const jobId = baseFire ? 'flame_witch' : 'frost_mage';
+    const jobId = jobOfBase(e.baseSkillId);
     for (const req of e.requiredSkills || []) {
       const p = passives.find((x) => x.id === req.skill);
       if (!p) continue; // active 補助はここでは対象外

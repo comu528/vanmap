@@ -37,6 +37,11 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this._mark = null;       // 起爆刻印（M6-B）: { hitsNeeded, hits, until, ... }
     this._iceSeal = null;    // 氷封/氷棺の skill-local マーカー（M7-D・正式状態ではない）
     this._iceHitCount = 0;   // 氷属性命中の累積カウンタ（氷封の命中数起爆に使用・M7-D）
+    // M8-B: 体勢（poise）。戦士のみが加算し、エリートだけがゲージを持つ（値は WarriorCombatSystem が管理）。
+    this._poise = 0;
+    this._poiseImmuneUntil = 0;
+    this._staggerUntil = 0;
+    this._staggerSlow = 0;
     // dasher 用
     this._chargeState = 'idle'; // idle | telegraph | dash
     this._chargeTimer = 0;
@@ -74,6 +79,11 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     // M7-D: 氷封/氷棺の skill-local マーカー参照と氷属性命中カウンタ（正式状態ではない・プール再利用で確実にクリア）。
     this._iceSeal = null;
     this._iceHitCount = 0;
+    // M8-B: 体勢（poise）の残留防止（プール再利用時に確実にクリア）。
+    this._poise = 0;
+    this._poiseImmuneUntil = 0;
+    this._staggerUntil = 0;
+    this._staggerSlow = 0;
     this._chargeState = 'idle';
     this._chargeCd = 1200;
     this._chargeTimer = 0;
@@ -94,6 +104,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     let spd = now < this._slowUntil ? this.speed * (1 - this._slowFactor) : this.speed;
     // M7-A: 冷気による減速（既存の減速と乗算合成・攻撃/アニメ速度は変えない）。
     if (this._chillSlow > 0) spd *= (1 - this._chillSlow);
+    // M8-B: 体勢崩し（エリートの stagger）による減速。戦士以外では _staggerUntil=0 のため不変。
+    if (now < this._staggerUntil) spd *= (1 - this._staggerSlow);
     return Math.max(0, spd);
   }
 
@@ -122,6 +134,13 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
       this.setVelocity(this._knockback.x, this._knockback.y);
       this._knockback.scale(0.9);
       return;
+    }
+
+    // M8-B: 体勢崩し中は突進の予告/突進を中断する（完全停止はさせず effectiveSpeed の減速で表現）。
+    if (this.scene.time.now < this._staggerUntil && this.behavior === 'dasher' && this._chargeState !== 'idle') {
+      this.clearTint();
+      this._chargeState = 'idle';
+      this._chargeCd = 1400;
     }
 
     const spd = this.effectiveSpeed();

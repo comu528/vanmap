@@ -26,6 +26,7 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
     this._frostStaggerUntil = 0;
 
     this.state = 'chase';
+    this._poiseStaggerUntil = 0; // M8-B: 体勢崩しの反応時間
     this._chargeDir = new Phaser.Math.Vector2();
     this._stateTimer = 0;
 
@@ -51,11 +52,22 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
   }
   get frostStaggered() { return this.scene.time.now < this._frostStaggerUntil; }
 
+  // M8-B: 体勢崩し（戦士）。氷砕硬直と異なり、予告/突進も中断して chase へ戻す。
+  // 「近接で体勢ゲージを溜め切った対価としてボスの行動をキャンセルできる」ことが frostbreak との差。
+  applyPoiseStagger(ms) {
+    this._poiseStaggerUntil = this.scene.time.now + (ms || 0);
+    if (this.state !== 'chase') { this.state = 'chase'; this._stateTimer = 0; }
+    return true;
+  }
+  get poiseStaggered() { return this.scene.time.now < this._poiseStaggerUntil; }
+
   update(dt, player) {
     if (!this.alive) return;
 
     // M7-A: 氷砕硬直中は移動・攻撃を止める（短時間・chase 中のみ）。
     if (this.frostStaggered) { this.setVelocity(0, 0); return; }
+    // M8-B: 体勢崩しの反応時間中は移動・攻撃を止める（露出はこの後も継続する）。
+    if (this.poiseStaggered) { this.setVelocity(0, 0); return; }
 
     // enrage 判定
     if (!this.enraged && this.hp <= this.maxHp * this.enrageThreshold) {

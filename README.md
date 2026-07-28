@@ -7,7 +7,17 @@
 npm・ビルド処理・バックエンド・データベースは一切使いません。Phaser 3.90.0 を CDN から読み込み、
 すべての素材（プレイヤー・敵・弾・エフェクト等）は JavaScript 上で動的生成しています。
 
-> ⚠️ **開発状況**: 現在 **Milestone 8-A**（火の魔女 完成監査）まで実装済みです。
+> ⚠️ **開発状況**: 現在 **Milestone 8-B**（戦士 基盤実装）まで実装済みです。
+> M8-B では 3 人目のジョブ **戦士（warrior・physical）** を追加しました
+> （**active5 / passive4 / 進化3 / Job Lv1〜100**）。戦士は**近接専用**で、
+> 専用リソース **闘気（fury）** と **コンボ（combo）**、**強靱（被ダメージ軽減）**、**不屈（瀕死時の基礎能力）**、
+> **通常敵へのノックバック**、**エリート/ボスへの体勢崩し**を持ちます。
+> **火の魔女・氷術師の数値・挙動・候補列・状態異常・保存結果は 1 件も変更していません**
+> （同 seed のドラフト候補列 300 seed と 48 スキルの実行トレースが SHA-256 で完全一致）。
+> **新しい共通状態異常・属性反応・装備・敵/ボス/難易度は追加していません**。**save_version は v6 のまま**。
+> 実ブラウザでの描画・体感は未検証。詳細は `docs/warrior-design.md`・`docs/jobs.md`・`docs/skill-catalog.md`。
+>
+> （M8-A まで）**Milestone 8-A**（火の魔女 完成監査）。
 > M8-A は**監査 Milestone** で、新しい active / passive / 進化 / ジョブ / 状態異常 / 敵 / ボス / 難易度は**一切追加していません**。
 > 火の魔女（**active30 / passive4 / 進化18 / Job Lv1〜100**）のカタログ整合性・プール分離・全18進化の到達可能性・
 > production 抽選シミュレーション・死にコンテンツ・SkillAudit・保存/復元/決定論・炎上/DoT/爆発/共鳴・quality cap・
@@ -71,6 +81,7 @@ npm・ビルド処理・バックエンド・データベースは一切使い�
 | **M7-B** | **氷術師のスキル拡張**: active を10種追加して**計15種**、進化を5種追加して**計8種**（passive は4種のまま）。新 active10種（氷柱斉射/氷晶環/凍結光線/雹嵐/氷結地雷/雪精霊/氷牢封印/雪崩奔流/氷鏡結界/氷河墜落）・新進化5種（天晶氷嵐/絶対零光/白魔大氷災/雪后氷霊陣/終末氷河奔流）。全て `data/skills.json` の Lv1〜8 データ駆動・冷気/凍結/粉砕/ボス氷砕は既存 `StatusEffectManager` 経路・独自凍結タイマーなし・**Math.random 不使用（決定論）**・castMode/mainCastEvent/echo/clonePolicy/lv80/runtimeState を宣言・品質別 skillCaps 追加。**Lv80発射数対象は新規で `icicle_volley` のみ・新進化5種は対象外**。全CD/周期/設置/防御/遅延型に必要な runtimeState を保存（`glacier_drop`=pendingImpact / `mirror_ice`=durability・再開の無料再発動/二重生成を防止）。**火の魔女30/18・氷術師既存5/3は非回帰・save_version v6 維持**。詳細は `docs/jobs.md`・`docs/skill-catalog.md` | ✅ 実装済み |
 | **M7-C** | **氷術師のスキル拡張・第2波**: active を10種追加して**計25種**、進化を5種追加して**計13種**（passive は4種のまま）。新 active10種（霜輪飛刃/氷鎖連閃/氷晶開花/白霧氷界/極星氷弾/砕氷衝波/氷刻停止/氷晶屈折/冬冠結界/氷彗星群）・新進化5種（冥氷処刑輪/永劫氷鎖/世界氷晶樹/永久白霧/零刻世界）。全て Lv1〜8 データ駆動・冷気/凍結/粉砕/ボス氷砕は既存 `StatusEffectManager` 経路・独自タイマーなし・**Math.random/Date.now/performance.now 不使用（index ベース決定論・同点は _seq→x→y）**・castMode/echoPolicy/clonePolicy/lv80ProjectileTarget/procCoefficient/runtimeState を宣言・品質別 skillCaps 23種追加。**Lv80発射数対象は氷で計5種（frost_shard/glacial_lance/icicle_volley/rime_boomerang/polar_star）・新進化5種は対象外**。全CD/周期/設置/防御/遅延/barrage 型に必要な runtimeState を保存（再開時の無料再発動・二重生成を防止）。CombatTelemetry へスキル固有 extra を追加（外部送信なし）。F9 デバッグへ新 active10・新進化5 を追加。**火の魔女30/18・氷術師既存15/8は非回帰・save_version v6 維持**。実ブラウザ描画/体感は未検証。詳細は `docs/jobs.md`・`docs/skills.md`・`docs/skill-catalog.md` | ✅ 実装済み |
 | **M7-D** | **氷術師のスキル拡張・最終波（カタログ完成）**: active を5種追加して**計30種**、進化を5種追加して**計18種**（passive は4種のまま）で、**火の魔女（active30/進化18/passive4）と同規模のカタログに到達**。新 active5種（氷槍豪雨 `glacial_spear_rain`/六花砲台 `snowflake_sentry`/氷山奔衝 `iceberg_ram`/絶対氷封 `absolute_ice_seal`/極光氷幕 `aurora_veil`）・新進化5種（天墜氷槍葬/六花氷衛軍/大陸氷河奔流/永劫封氷棺/極夜天光）。全て Lv1〜8 データ駆動・冷気/凍結/粉砕/ボス氷砕は既存 `StatusEffectManager` 経路・独自タイマーなし・**Math.random/Date.now/performance.now 不使用（index ベース決定論・黄金角 2.399963・同点は _seq→x→y）**。**Lv80発射数対象は氷で計6種**（既存5＋`glacial_spear_rain`・明示フラグ管理）。**氷印/氷棺は skill-local マーカー**（`StatusEffectRegistry` へ登録せず `Enemy._iceSeal`/`_iceHitCount` で pool 再利用クリア）。`bossGaugeMult`（absolute_ice_seal Lv別1.25→1.50/aurora_veil 1.15→1.35/eternal_sealed_coffin 2.0/polar_night_aurora 1.7/heavenfall 巨大槍1.4）は M7-C 修正済み共通経路でボス氷砕ゲージのみへ1回適用。品質別 skillCaps 19種追加・F9 デバッグへ新 active5・新進化5・自動テスト6種追加（**全51スイート通過**）。**火の魔女30/18・氷術師既存25/13は非回帰・新 passive/ジョブ/状態/属性反応/限界突破なし・save_version v6 維持**。**次工程は完成監査（抽選率/進化到達率/バランス分析）**。実ブラウザ描画/体感は未検証。詳細は `docs/jobs.md`・`docs/skills.md`・`docs/skill-catalog.md` | ✅ 実装済み |
+| **M8-B** | **3 人目のジョブ「戦士（warrior・physical）」の基盤実装**: active5種（大薙ぎ `great_cleave`（初期）/ 盾撃 `shield_bash` / 旋風斬り `whirlwind_slash` / 突進斬り `charge_slash` / 地砕き `ground_slam`）・passive4種（剛力/重装/戦闘本能/血気）・進化3種（千刃乱舞/血戦旋風/不落の城壁）・Job Lv1〜100（到達報酬11段）。**すべて近接**（自分中心の円 or 前方 arc）で、画面を横断する斬撃波・弾を一切生成しない。戦士専用の **闘気（fury）**（近接命中/撃破/コンボ/軽減/被弾で獲得・1発動/1秒/解放中の3層上限・100 で自動的に**闘気解放**＝攻防バフ＋時間経過回復）と **コンボ**（ジョブ全体で1本・猶予後に減衰・閾値4段）、**強靱**（接敵/近接直後/突進/解放/不屈/スキル由来を合成し**上限70%でクランプ**＝永久無敵にならない）、**不屈**（瀕死で1回だけ発動する基礎能力・CD45秒・passive ではない）、**撃破回復**（passive「血気」取得時のみ・**毎秒上限つき**）、**体勢崩し**（通常敵＝ノックバック / エリート＝stagger＋免疫 / ボス＝**予告・突進も中断**して露出。氷砕とは別フィールド・別しきい値・崩すたびに ×1.25 で難化し ×3 で頭打ち）を実装。`WarriorCombatSystem`（Phaser 非依存・乱数なし）へ集約し、スキルは `scene.combat.meleeStrike()` 経由でのみ敵へ触る（全敵総当たり禁止・SpatialGrid 使用）。戦士 HUD（闘気/コンボ/不屈/ボス体勢）・戦士向けオート移動（密集へ接近）・F8 戦士分析・**F9 戦士検証パネル**（火/氷では従来どおり状態異常パネル）・スキル別＋周回テレメトリ（外部送信なし）・`active_run.warriorState` の保存/復元（**再読込で闘気/コンボ/不屈CD/ボス体勢を初期化して稼げない**）。品質別 skillCaps 13種追加（**未参照 cap 0**）・自動テスト17スイート追加（**全92スイート通過**）。**火の魔女・氷術師は数値/挙動/候補列/状態異常/保存とも完全に不変**（`tests/three-job-nonregression.mjs` がハッシュで保証）・**新 status/属性反応/装備/敵/ボス/難易度なし**・**save_version v6 維持**。実ブラウザ描画/体感は未検証。詳細は `docs/warrior-design.md`・`docs/jobs.md`・`docs/skill-catalog.md` | ✅ 実装済み |
 
 ### 遊びの流れ（M4）
 タイトル →「はじめから / 拠点」→ **拠点**（恒久強化・難易度・熟練度・**転生**・**魂炎強化**）→「戦闘開始」→
@@ -562,6 +573,47 @@ M7-A/M7-B の抽選/枠/パッシブ/進化・状態異常（`StatusEffectManage
 - 品質別 `skillCaps` 23種を `data/balance.json` へ追加（装飾上限と damage event 上限を区別し、`winter_halo` の防御耐久は visual cap で減らさない）。CombatTelemetry へスキル固有 extra（`recordExtra`）を追加（共通 chill/freeze/shatter/frostbreak は二重カウントしない・外部送信なし）。`?debug=1` の **F9** で新 active10・新進化5 を付与/Lv切替/進化条件達成/即時進化でき、`debugRun` として通常 profile 統計/Job XP/残り火/魂炎へ影響しません。
 - 自動テスト5種追加（`frost-skills-wave3`/`frost-evolutions-wave3`/`frost-policy-audit-wave3`/`frost-runtime-save-wave3`/`frost-determinism-wave3`）・`validate-data.mjs` へ M7-C ブロック・`validate.yml` へ5ステップ追加。**全44スイート通過・validate-data 0エラー0警告**。
 - **実ブラウザ確認は未実施**（本環境は純ロジック＋graphics 対応の最小モックスモークのみ）。実描画・視認性・体感バランス・60FPS は未検証（「動作確認済み」とは記載しない）。
+
+## Milestone 8-B の要素（3 人目のジョブ「戦士」）
+
+3 人目のジョブ **戦士（`warrior`）** を追加しました。属性は **`physical`**（火 / 氷とは独立）。
+**近接専用**で、画面を横断する斬撃波や弾は 1 つも撃ちません。
+
+### 遊びの筋
+
+1. 敵の密集へ**近づく**（オート移動も接近戦略に切り替わります）
+2. 殴って**コンボ**を繋ぐ → 攻撃速度・範囲・火力が伸びる（閾値 10 / 25 / 50 / 100）
+3. 殴られながら**闘気**を溜める（**軽減した分も、通った分も闘気になる**）
+4. 闘気 100 で**闘気解放** — 攻撃・防御・回復が同時に立ち上がる（時間経過で HP が戻る）
+5. エリートは**よろけさせ**、ボスは**体勢を崩して行動を中断**させ、露出中に叩く
+
+### スキル
+
+| 種別 | 内容 |
+|------|------|
+| active5 | 大薙ぎ `great_cleave`（初期・前方 arc の多段）/ 盾撃 `shield_bash`（押し返し＋軽減）/ 旋風斬り `whirlwind_slash`（全周・duration あり）/ 突進斬り `charge_slash`（接近＋軽減）/ 地砕き `ground_slam`（最大の体勢削り） |
+| passive4 | 剛力 `brute_force` / 重装 `heavy_armor` / 戦闘本能 `combat_instinct` / 血気 `bloodlust` |
+| 進化3 | 千刃乱舞（大薙ぎ+戦闘本能）/ 血戦旋風（旋風斬り+血気）/ 不落の城壁（盾撃+重装） |
+
+### バランス上の歯止め
+
+- 闘気は **1 発動あたり / 1 秒あたり / 解放中** の 3 層で上限（雑魚の数で無限に溜まらない）
+- 被ダメージ軽減の合計は **70% でクランプ**（永久無敵にならない）
+- 撃破回復は passive「血気」を取ったときだけ・**毎秒上限つき**（敵数比例の無限回復にならない）
+- 不屈は **45 秒クールダウン**・周回開始直後は発動しない
+- エリートの stagger 後には**免疫**（連続よろけでハメられない）
+- ボスの体勢しきい値は**崩すたびに ×1.25 で上昇**（上限 ×3）
+
+### 非回帰
+
+**火の魔女・氷術師は数値・挙動・候補列・状態異常・保存結果とも 1 件も変更していません。**
+`node tests/three-job-nonregression.mjs` が、同 seed のドラフト候補列（300 seed）・
+48 スキルの実行トレース・保存キー一覧を **SHA-256 のハッシュ固定**で検証します。
+
+設計意図と「避けた設計」は `docs/warrior-design.md`、
+実ブラウザの確認手順は `docs/test-guide.md` の Milestone 8-B 節。
+
+---
 
 ## Milestone 7-D の要素（氷術師のスキル拡張・最終波＝カタログ完成）
 

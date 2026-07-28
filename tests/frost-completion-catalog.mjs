@@ -77,7 +77,9 @@ for (const s of DATA.skills) {
 for (const p of DATA.passives) {
   const m = { ...p, category: 'passive' };
   const inFrost = memberAllowedForJob(m, frostJob), inFlame = memberAllowedForJob(m, flameJob);
-  ok(inFrost !== inFlame, `${p.id}: passive はどちらか一方のジョブにのみ適格（混入なし）`);
+  // M8-B: ジョブが3種になったため「氷 XOR 火」ではなく「氷と火の両方へ同時に適格でない」を検証する
+  //（戦士専用 passive は氷にも火にも適格でないのが正しい）。
+  ok(!(inFrost && inFlame), `${p.id}: passive は氷術師と火の魔女へ同時に適格でない（混入なし）`);
   ok(p.isCommon !== true && !(Array.isArray(p.jobs) && p.jobs.includes('*')), `${p.id}: 明示共通（isCommon/"*"）ではない`);
 }
 // jobs 未指定を暗黙共通にしない: jobs が空でプール外なら、どのジョブでも不適格。

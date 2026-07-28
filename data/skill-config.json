@@ -6,7 +6,12 @@
     "rare": 20,
     "legendary": 5
   },
-  "rarityOrder": ["common", "uncommon", "rare", "legendary"],
+  "rarityOrder": [
+    "common",
+    "uncommon",
+    "rare",
+    "legendary"
+  ],
   "slots": {
     "baseActiveSlots": 4,
     "basePassiveSlots": 4
@@ -17,9 +22,33 @@
     "baseSkips": 1
   },
   "modifierKeys": [
-    "damage", "cooldown", "area", "duration", "projectileCount", "projectileSpeed",
-    "pierce", "critical", "movementSpeed", "summonCount", "statusEffect",
-    "iceDamage", "iceStatusDuration", "chillDecay"
+    "damage",
+    "cooldown",
+    "area",
+    "duration",
+    "projectileCount",
+    "projectileSpeed",
+    "pierce",
+    "critical",
+    "movementSpeed",
+    "summonCount",
+    "statusEffect",
+    "iceDamage",
+    "iceStatusDuration",
+    "chillDecay",
+    "meleeDamage",
+    "knockback",
+    "poiseDamage",
+    "damageReduction",
+    "maxHp",
+    "unyieldingPower",
+    "comboGrace",
+    "comboDecay",
+    "attackSpeed",
+    "comboThresholdBonus",
+    "killHeal",
+    "killHealCap",
+    "killHealRelease"
   ],
   "passiveModifierDefaults": {
     "cooldownMinMult": 0.5,

@@ -176,3 +176,19 @@ data で宣言した残響・分身が**絶対に発生しない**状態だっ�
 ### 性能
 `eternal_pyre.spreadInfection()` が `enemyPool.forEachActive()` で毎 tick 全敵を走査していたのを、
 M6-E で用意した炎上索引（`combat.burningEnemies()`）経由へ付け替えた（対象集合は同じ）。
+
+## Milestone 8-B: 戦士スキル（近接・active5 / evolution3）
+
+戦士のスキルは `WarriorSkillBase` / `WarriorEvolvedBase` を継承し、**必ず `scene.combat.meleeStrike()` を通す**。
+自前で敵を走査せず（`enemyPool.forEachActive` 禁止）、ダメージ・ノックバック・体勢・闘気・コンボの適用は
+すべて `BattleScene.meleeStrike()` と `WarriorCombatSystem` に集約されている。
+
+- 判定形状は「自分中心の円（`arc = 2π`）」か「前方の扇（`arc < 2π`）」のみ。**弾を生成しない**。
+- 向きは `facing()` が決める: 敵の密集地点 → 最寄りの敵 → 移動方向 → 右向き、の順。
+- 1 発動 = 1 `castKey` = 1 `recordCast`。多段打撃・回転 tick・突進の通過判定では cast を増やさない。
+- Job Lv80「打撃数 +1」は `lv80ProjectileTarget: true` を明示したスキルにだけ効く
+（`great_cleave` / `shield_bash` / `ground_slam`）。
+- 全 8 本が `serializeState` / `restoreState`（最低でも `cdLeft`）と `destroy()`（`_dead` ガード）を持つ。
+- 残響・分身は data で `forbidden`。`echoCast` / `cloneCast` を実装していない。
+
+一覧と役割は `./skill-catalog.md` の Milestone 8-B 節、設計意図は `./warrior-design.md`。

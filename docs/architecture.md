@@ -490,3 +490,61 @@ M7-A〜M7-C の状態異常/凍結基盤・複数ジョブ補正・状態表示�
 - **`Projectile.rampMax`**: 連続命中の上昇上限を data（`damage.rampMax`）から受け取るようにした（既定 0.6 ＝従来の ×1.6）。
 - **未参照 quality cap の全廃**: `skillCaps` は 152 件になり、`validate-data.mjs` の許容リストは空。
   以後、未参照 cap があるとデータ検証がエラーになる。
+
+## Milestone 8-B: 戦士（3 人目のジョブ）・専用リソースと近接判定の共通経路
+
+戦士は「近接で殴り続ける」ジョブで、火 / 氷とは要求される仕組みが違う。
+新しいゲームを並行実装せず、**既存の基盤（SkillManager / PassiveManager / JobModifierManager /
+SpatialGrid / CombatTelemetry / SaveManager）を再利用**したうえで、戦士固有の状態だけを 1 か所へ集約した。
+
+### 新規モジュール
+
+| ファイル | 役割 |
+|----------|------|
+| `src/systems/WarriorCombatSystem.js` | **闘気 / 闘気解放 / 回復 / コンボ / 被ダメージ軽減 / 不屈 / 撃破回復 / 体勢崩し の唯一の管理者**。Phaser 非依存・乱数なし・時間は `now()` コールバック・回復は `heal()` コールバック経由（Node からテスト可能） |
+| `src/skills/WarriorSkillBase.js` | `WarriorSkillBase`（`SkillBase` 派生）と `WarriorEvolvedBase`（`EvolvedSkillBase` 派生）。向き決定 / 近接半径 / 打撃数 / `castKey` 発行 / クールダウン倍率を共通化する薄い基底 |
+| `src/ui/WarriorHud.js` | 純ロジック `warriorHudState()` ＋ Phaser 表示層（`BossFrostbreakDisplay` と同じ二層構成） |
+| 戦士スキル 8 本 | `GreatCleaveSkill` / `ShieldBashSkill` / `WhirlwindSlashSkill` / `ChargeSlashSkill` / `GroundSlamSkill` / `ThousandBladeDanceSkill` / `BloodstormWhirlwindSkill` / `UnyieldingFortressSkill` |
+
+### 近接判定の共通経路（`BattleScene.meleeStrike()`）
+
+戦士スキルは**自前で敵を走査しない**。すべて `scene.combat.meleeStrike({...})` を呼び、
+そこで以下が 1 か所にまとまっている。
+
+1. `targetsInRadius()`（SpatialGrid）で候補を絞る — **全敵総当たりをしない**
+2. `arc` 内かを判定（`arc = 2π` なら全周）
+3. 品質別 cap `maxMeleeTargetsPerHit` と スキル指定 `maxTargets` の小さい方で対象数を打ち切る
+4. `dealDamage(..., { element: 'physical', isMelee: true })` — 既存のダメージ経路をそのまま使う
+5. `warrior.resolveKnockback()` → 通常敵はノックバック / エリートは体勢へ変換 / ボスは 0
+6. `warrior.applyPoiseDamage()` → エリート stagger / ボス stance break
+7. `warrior.noteMeleeHit()` → 闘気・コンボ（`castKey` 単位の上限つき）
+8. `_meleeVisual()` — **演出だけ**を別 cap で打ち切る（ダメージ件数へは影響しない）
+
+### 責務の分離（スキルが Scene 内部へ触らない）
+
+- スキルクラスは `scene.profile` / `passives` / `jobMods` を直接読まない。
+  必要な倍率はすべて `this.warrior`（＝`WarriorCombatSystem`）から取る。
+- Job Lv と passive の値は `BattleScene._refreshWarriorMods()` が **1 か所だけ** で
+  `warrior.setMods()` へ流し込む（`passives.version` が変わったときだけ再計算）。
+- 被弾は `Player.takeDamage` → `scene.onWarriorDamage()` → `warrior.applyIncomingDamage()` の 1 経路。
+  戦士以外では `enabled=false` で素通りし、火 / 氷の被弾計算は 1 命令も変わらない。
+- 反応スキル（不落の城壁の反撃）は `scene.onWarriorHit()` から通知される。
+
+### 既存クラスへの加算的変更
+
+| ファイル | 変更 |
+|----------|------|
+| `BattleScene` | `isWarrior` / `warrior` 生成 / `meleeStrike` / `_meleeVisual` / `onWarriorDamage` / `onWarriorHit` / `_refreshWarriorMods` / `_applyWarriorMaxHp` / `computeWarriorAutoMove` / 戦士 HUD / F9 戦士パネル / F8 分析の戦士セクション |
+| `Player` | `takeDamage` に軽減フック 1 行（`scene.onWarriorDamage` が無ければ素通り） |
+| `Enemy` | `_poise` / `_poiseImmuneUntil` / `_staggerUntil` / `_staggerSlow` を追加。`effectiveSpeed()` に stagger 減速、`update()` に突進中断 |
+| `Boss` | `applyPoiseStagger()` / `poiseStaggered`（**氷砕硬直 `applyFrostStagger` とは別メソッド・別フィールド**） |
+| `PassiveManager` | 戦士 modifier の getter 13 件（既存の汎用 `getMult` / `getFlat` をそのまま使う） |
+| `JobModifierManager` | 戦士の到達報酬 7 type と getter。`projectileCountBonus()` に `strikeCountBonus` を合流 |
+| `CombatTelemetry` | 周回集計 `warrior` ブロック（30 キー）とスキル別 8 キー。**job でスキーマを変えない**（火/氷でも同じキーが 0 で出る） |
+| `BattleManager` | `buildRunSnapshot()` に `warriorState` を追加（戦士周回のみ・他ジョブは `null`） |
+
+### オート移動（ジョブ別 strategy）
+
+`computeAutoMove()` は既存のまま（火 / 氷は 1 行も変わらない）。冒頭で
+`if (this.isWarrior) return this.computeWarriorAutoMove()` と分岐するだけで、
+戦士版は「敵の密集へ寄る → 接敵距離を保つ → 瀕死のときだけ離れる → ボス予告は常に回避」という別方針を持つ。

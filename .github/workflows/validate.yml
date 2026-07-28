@@ -190,6 +190,43 @@ jobs:
       - name: Flame telemetry audit
         run: node tests/flame-telemetry-audit.mjs
 
+      # 戦士 基盤（M8-B・カタログ/プール分離/闘気/コンボ/回復/不屈/体勢/スキル/進化/JobLv/保存/決定論/上限/後始末/テレメトリ/3ジョブ非回帰）。
+      # 新しい npm 依存は追加しない（Node.js 標準機能のみ）。
+      - name: Warrior catalog audit
+        run: node tests/warrior-catalog.mjs
+      - name: Warrior pool eligibility audit
+        run: node tests/warrior-pool-eligibility.mjs
+      - name: Warrior draft determinism
+        run: node tests/warrior-draft-determinism.mjs
+      - name: Warrior fury tests
+        run: node tests/warrior-fury.mjs
+      - name: Warrior combo tests
+        run: node tests/warrior-combo.mjs
+      - name: Warrior recovery / mitigation tests
+        run: node tests/warrior-recovery.mjs
+      - name: Warrior unyielding tests
+        run: node tests/warrior-unyielding.mjs
+      - name: Warrior knockback / poise tests
+        run: node tests/warrior-poise.mjs
+      - name: Warrior active skills tests
+        run: node tests/warrior-active-skills.mjs
+      - name: Warrior evolutions tests
+        run: node tests/warrior-evolutions.mjs
+      - name: Warrior job level tests
+        run: node tests/warrior-job-level.mjs
+      - name: Warrior runtime save tests
+        run: node tests/warrior-runtime-save.mjs
+      - name: Warrior save determinism tests
+        run: node tests/warrior-save-determinism.mjs
+      - name: Warrior quality cap audit
+        run: node tests/warrior-quality-cap.mjs
+      - name: Warrior cleanup audit
+        run: node tests/warrior-cleanup.mjs
+      - name: Warrior telemetry / HUD tests
+        run: node tests/warrior-telemetry.mjs
+      - name: Three job non-regression tests
+        run: node tests/three-job-nonregression.mjs
+
       # 状態異常の視認性・実動作検証（M7-B.1・表示状態/デバッグ/ボス氷砕UI/非回帰・Node.js 標準機能のみ）。
       - name: Status visual state tests
         run: node tests/status-visual-state.mjs

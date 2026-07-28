@@ -305,3 +305,48 @@ M7-E は**新しい active / passive / 進化 / ジョブ / 状態異常を一�
   passive 補助 `swift_cast`×2 / `power_amp`×1 / `scorch_expand`×1 / `ember_persist`×0。
 - `ember_persist` は進化補助ではないが `duration` modifier が実装から参照されるため**死に passive ではない**。
 - 詳細な到達率・抽選分析は `./flame-completion-audit.md` / `./flame-draft-analysis.md` / `./flame-balance-report.md`。
+
+## Milestone 8-B: 戦士カタログ 基盤（active5 / passive4 / 進化3）
+
+M8-B で 3人目のジョブ **戦士（warrior）** を追加した。属性は **`physical`**（火 `fire` / 氷 `ice` とは独立）。
+戦士は**近接専用**で、遠距離へ飛ぶ斬撃波を持たない（すべて自分中心・前方 arc の近接判定）。
+火の魔女・氷術師のカタログ（各 active30 / passive4 / 進化18）は**一切変更していない**。
+
+| ジョブ | active | 進化 | passive | 属性 |
+|--------|--------|------|---------|------|
+| 火の魔女 flame_witch | 30 | 18 | 4（火専用） | fire |
+| 氷術師 frost_mage | 30 | 18 | 4（氷専用） | ice |
+| **戦士 warrior** | **5** | **3** | **4（戦士専用）** | **physical** |
+
+### 戦士 active5
+
+| id | 名称 | rarity | 役割 | Lv80 打撃数+1 | 進化 |
+|----|------|--------|------|----------------|------|
+| `great_cleave` | 大薙ぎ | common | 前方 arc の基本斬撃（初期スキル・多段） | ○ | `thousand_blade_dance` |
+| `shield_bash` | 盾撃 | uncommon | 高ノックバック・高体勢削り・短い被ダメージ軽減 | ○ | `unyielding_fortress` |
+| `whirlwind_slash` | 旋風斬り | uncommon | 自分中心の回転斬り（明確な duration） | × | `bloodstorm_whirlwind` |
+| `charge_slash` | 突進斬り | rare | 密集へ短距離ダッシュ・突進中は軽減 | × | （なし） |
+| `ground_slam` | 地砕き | rare | 自分中心 AoE・最大の体勢削り・闘気解放中は二撃目 | ○ | （なし） |
+
+### 戦士 passive4
+
+| id | 名称 | rarity | 効果（modifier） |
+|----|------|--------|------------------|
+| `brute_force` | 剛力 | common | `meleeDamage` / `knockback` / `poiseDamage` |
+| `heavy_armor` | 重装 | uncommon | `damageReduction` / `maxHp` / `unyieldingPower`（不屈の強化） |
+| `combat_instinct` | 戦闘本能 | uncommon | `comboGrace` / `comboDecay` / `attackSpeed` / `comboThresholdBonus` |
+| `bloodlust` | 血気 | rare | `killHeal` / `killHealCap` / `killHealRelease`（**撃破回復はこの passive を取ったときだけ発生する**） |
+
+### 戦士 進化3
+
+| 進化 id | 基礎 active | 補助 passive（Lv4） | 特徴 |
+|---------|-------------|---------------------|------|
+| `thousand_blade_dance` | `great_cleave` | `combat_instinct` | 連続斬撃＋締めの全周斬り（1 発動 = 1 cast） |
+| `bloodstorm_whirlwind` | `whirlwind_slash` | `bloodlust` | 回転中の撃破で duration がわずかに延びる（1 発動あたり上限あり） |
+| `unyielding_fortress` | `shield_bash` | `heavy_armor` | 打撃後に反撃構え（1 構え 1 回だけ反撃） |
+
+- 進化を持たない active は `charge_slash` `ground_slam` の 2 種（M8-B の範囲では進化を追加しない）。
+- 戦士の active / 進化はすべて **残響・分身の対象外**（`echoPolicy` / `clonePolicy` = `forbidden`）。
+  近接が無料で増える経路を作らないための意図的な制約。
+- 検証: `node tests/warrior-catalog.mjs` / `node tests/warrior-pool-eligibility.mjs` / `node tests/three-job-nonregression.mjs`。
+- 設計の詳細は `./jobs.md`（戦士セクション）と `./game-design.md`。

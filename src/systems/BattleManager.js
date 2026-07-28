@@ -46,6 +46,9 @@ export class BattleManager {
         breaks: s.boss._frostBreaks || 0,
         vulnRemainMs: Math.max(0, (s.boss._frostbreakVulnUntil || 0) - s.time.now),
       } : null,
+      // M8-B: 戦士のランタイム状態（闘気/解放/回復/コンボ/不屈CD/ボス体勢/突進軽減窓）。
+      // 再読込で闘気・コンボ・不屈CDを初期化して稼ぐことを防ぐ（戦士以外は null）。
+      warriorState: (s.warrior && s.warrior.enabled) ? s.warrior.serialize() : null,
       updated_at: new Date().toISOString(),
     };
   }

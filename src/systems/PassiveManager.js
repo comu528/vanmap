@@ -94,6 +94,20 @@ export class PassiveManager {
   getIceDamageMultiplier() { return this.getMult('iceDamage'); }             // 氷晶増幅（氷ダメージ）
   getIceStatusDurationMultiplier() { return this.getMult('iceStatusDuration'); } // 余寒残留（氷系状態の持続）
   getChillDecayMultiplier() { return Math.max(0.5, this.getMult('chillDecay')); } // 余寒残留（冷気減衰低下・下限0.5倍）
+  // M8-B: 戦士パッシブの共通経路（スキルクラス・WarriorCombatSystem から passive レベルを直接参照しない）。
+  getMeleeDamageMultiplier() { return this.getMult('meleeDamage'); }        // 剛力
+  getKnockbackMultiplier() { return this.getMult('knockback'); }            // 剛力
+  getPoiseDamageMultiplier() { return this.getMult('poiseDamage'); }        // 剛力
+  getDamageReductionBonus() { return Math.max(0, this.getMult('damageReduction') - 1); } // 重装（加算ぶんのみ）
+  getMaxHpMultiplier() { return this.getMult('maxHp'); }                    // 重装
+  getUnyieldingPowerMultiplier() { return this.getMult('unyieldingPower'); } // 重装
+  getComboGraceMultiplier() { return this.getMult('comboGrace'); }          // 戦闘本能
+  getComboDecayMultiplier() { return Math.max(0.2, this.getMult('comboDecay')); } // 戦闘本能（下限0.2倍）
+  getAttackSpeedMultiplier() { return this.getMult('attackSpeed'); }        // 戦闘本能
+  getComboThresholdBonusMultiplier() { return this.getMult('comboThresholdBonus'); } // 戦闘本能
+  getKillHealMultiplier() { return Math.max(0, this.getMult('killHeal') - 1); }  // 血気（未取得なら 0＝撃破回復なし）
+  getKillHealCapMultiplier() { return this.getMult('killHealCap'); }        // 血気
+  getKillHealReleaseMultiplier() { return this.getMult('killHealRelease'); } // 血気
 
   // ---- セーブ/復元 ----
   serialize() { const o = {}; for (const [id, level] of this.levels) o[id] = level; return o; }

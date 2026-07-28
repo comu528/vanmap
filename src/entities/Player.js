@@ -114,6 +114,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       if (b.hitsLeft <= 0) b.active = false;
     }
 
+    // 2.5) M8-B 戦士: 強靱（接敵/近接発動直後/突進/闘気解放/不屈/盾撃）による軽減と、
+    //      軽減量・被弾量に応じた闘気獲得。戦士以外は onWarriorDamage を持たない/無効で素通りする。
+    if (dmg > 0 && this.scene.onWarriorDamage) dmg = this.scene.onWarriorDamage(dmg);
+
     // 3) 通常HPダメージ
     if (dmg > 0) this.hp = clamp(this.hp - dmg, 0, this.maxHp);
     this._invulnUntil = this.scene.time.now + this.invulnMs;

@@ -950,6 +950,84 @@
       "medium": 6,
       "high": 8,
       "ultra": 10
+    },
+    "maxMeleeTargetsPerHit": {
+      "low": 12,
+      "medium": 18,
+      "high": 24,
+      "ultra": 32
+    },
+    "maxSpinTicksPerFrame": {
+      "low": 1,
+      "medium": 2,
+      "high": 2,
+      "ultra": 3
+    },
+    "maxChargeHits": {
+      "low": 6,
+      "medium": 10,
+      "high": 14,
+      "ultra": 18
+    },
+    "maxCounterHits": {
+      "low": 1,
+      "medium": 1,
+      "high": 1,
+      "ultra": 1
+    },
+    "maxBladeDanceStrikes": {
+      "low": 5,
+      "medium": 6,
+      "high": 8,
+      "ultra": 8
+    },
+    "maxWarriorSlams": {
+      "low": 1,
+      "medium": 2,
+      "high": 2,
+      "ultra": 2
+    },
+    "maxMeleeArcVisuals": {
+      "low": 2,
+      "medium": 4,
+      "high": 6,
+      "ultra": 8
+    },
+    "maxSlashTrails": {
+      "low": 3,
+      "medium": 6,
+      "high": 10,
+      "ultra": 14
+    },
+    "maxSpinVisuals": {
+      "low": 1,
+      "medium": 2,
+      "high": 3,
+      "ultra": 4
+    },
+    "maxDashTrails": {
+      "low": 4,
+      "medium": 8,
+      "high": 12,
+      "ultra": 18
+    },
+    "maxGroundDebris": {
+      "low": 4,
+      "medium": 8,
+      "high": 14,
+      "ultra": 20
+    },
+    "maxWarriorHitSparks": {
+      "low": 4,
+      "medium": 8,
+      "high": 14,
+      "ultra": 20
+    },
+    "maxPoiseIndicators": {
+      "low": 2,
+      "medium": 4,
+      "high": 6,
+      "ultra": 8
     }
   },
   "speedModes": [
@@ -1141,6 +1219,113 @@
     "vulnerability": {
       "blink": true,
       "blinkPeriodMs": 320
+    }
+  },
+  "warrior": {
+    "_comment": "Milestone 8-B: 戦士（warrior）専用の調整値。WarriorCombatSystem が唯一の読み手で、スキル側は skills.json の値を使う。",
+    "fury": {
+      "max": 100,
+      "gainPerMeleeHit": 1.0,
+      "gainPerKill": 2.5,
+      "gainPerComboStep": 0.3,
+      "gainPerMitigatedDamage": 0.06,
+      "gainPerDamageTaken": 0.02,
+      "maxGainPerCast": 6,
+      "maxGainPerSecond": 16,
+      "releaseGainMult": 0.15
+    },
+    "furyRelease": {
+      "durationMs": 5000,
+      "meleeDamageMult": 1.2,
+      "attackSpeedMult": 1.25,
+      "damageReduction": 0.25,
+      "knockbackMult": 1.2,
+      "poiseDamageMult": 1.2,
+      "recovery": {
+        "maxHpPercent": 0.02,
+        "missingHpPercent": 0.08,
+        "durationMs": 5000
+      }
+    },
+    "combo": {
+      "maxValue": 999,
+      "gainPerHit": 1,
+      "maxGainPerCast": 3,
+      "sameTargetWindowMs": 250,
+      "graceMs": 2500,
+      "decayPerSec": 8,
+      "thresholds": [
+        {
+          "at": 10,
+          "attackSpeedMult": 0.05
+        },
+        {
+          "at": 25,
+          "meleeAreaMult": 0.08
+        },
+        {
+          "at": 50,
+          "meleeDamageMult": 0.1
+        },
+        {
+          "at": 100,
+          "poiseDamageMult": 0.15,
+          "furyGainMult": 0.1
+        }
+      ]
+    },
+    "mitigation": {
+      "engagedRadius": 96,
+      "engagedReduction": 0.08,
+      "meleeCastWindowMs": 600,
+      "meleeCastReduction": 0.05,
+      "chargeReduction": 0.3,
+      "maxTotalReduction": 0.7
+    },
+    "unyielding": {
+      "hpThreshold": 0.25,
+      "cooldownMs": 45000,
+      "durationMs": 3000,
+      "damageReduction": 0.5,
+      "healMaxHpPercent": 0.08,
+      "minRunTimeMs": 5000
+    },
+    "killHeal": {
+      "maxHpPercent": 0.0015,
+      "perSecondCapPercent": 0.015,
+      "releaseMult": 1.35,
+      "eliteMult": 3,
+      "bossMult": 8
+    },
+    "poise": {
+      "decayPerSec": 6,
+      "elite": {
+        "threshold": 120,
+        "staggerMs": 600,
+        "immunityMs": 1500,
+        "slowFactor": 0.85,
+        "knockbackToPoise": 0.7,
+        "knockbackReduction": 0.75
+      },
+      "boss": {
+        "threshold": 300,
+        "reactionMs": 300,
+        "exposedMs": 4000,
+        "thresholdGrowth": 1.25,
+        "thresholdMaxMult": 3,
+        "breakCooldownMs": 1500,
+        "exposedMeleeDamageMult": 0.15,
+        "exposedFuryGainMult": 0.25
+      }
+    },
+    "autoMove": {
+      "clusterRadius": 110,
+      "approachWeight": 1.2,
+      "engageRange": 70,
+      "lowHpFraction": 0.35,
+      "retreatWeight": 0.9,
+      "bossTelegraphWeight": 1.3,
+      "maxClusterSamples": 24
     }
   }
 }

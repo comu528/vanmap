@@ -253,6 +253,175 @@
           "perLevel": 0.05
         }
       ]
+    },
+    {
+      "id": "brute_force",
+      "displayName": "剛力",
+      "description": "近接ダメージ・ノックバック・体勢削りが上昇する。",
+      "category": "passive",
+      "tags": [
+        "offense",
+        "warrior"
+      ],
+      "rarity": "uncommon",
+      "weight": 1,
+      "jobs": [
+        "warrior"
+      ],
+      "isCommon": false,
+      "maxLevel": 4,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [],
+      "displayOrder": 115,
+      "iconKey": "icon_brute_force",
+      "enabled": true,
+      "modifiers": [
+        {
+          "key": "meleeDamage",
+          "op": "addMult",
+          "perLevel": 0.07
+        },
+        {
+          "key": "knockback",
+          "op": "addMult",
+          "perLevel": 0.08
+        },
+        {
+          "key": "poiseDamage",
+          "op": "addMult",
+          "perLevel": 0.08
+        }
+      ]
+    },
+    {
+      "id": "heavy_armor",
+      "displayName": "重装",
+      "description": "被ダメージ軽減と最大HPが上がり、不屈の軽減量と回復量が強化される。",
+      "category": "passive",
+      "tags": [
+        "defense",
+        "warrior"
+      ],
+      "rarity": "uncommon",
+      "weight": 1,
+      "jobs": [
+        "warrior"
+      ],
+      "isCommon": false,
+      "maxLevel": 4,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [],
+      "displayOrder": 116,
+      "iconKey": "icon_heavy_armor",
+      "enabled": true,
+      "modifiers": [
+        {
+          "key": "damageReduction",
+          "op": "addMult",
+          "perLevel": 0.03
+        },
+        {
+          "key": "maxHp",
+          "op": "addMult",
+          "perLevel": 0.05
+        },
+        {
+          "key": "unyieldingPower",
+          "op": "addMult",
+          "perLevel": 0.12
+        }
+      ]
+    },
+    {
+      "id": "combat_instinct",
+      "displayName": "戦闘本能",
+      "description": "コンボが途切れにくくなり、減衰が緩やかになる。攻撃速度とコンボ閾値ボーナスも上がる。",
+      "category": "passive",
+      "tags": [
+        "utility",
+        "warrior"
+      ],
+      "rarity": "uncommon",
+      "weight": 1,
+      "jobs": [
+        "warrior"
+      ],
+      "isCommon": false,
+      "maxLevel": 4,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [],
+      "displayOrder": 117,
+      "iconKey": "icon_combat_instinct",
+      "enabled": true,
+      "modifiers": [
+        {
+          "key": "comboGrace",
+          "op": "addMult",
+          "perLevel": 0.12
+        },
+        {
+          "key": "comboDecay",
+          "op": "subMult",
+          "perLevel": 0.1
+        },
+        {
+          "key": "attackSpeed",
+          "op": "addMult",
+          "perLevel": 0.04
+        },
+        {
+          "key": "comboThresholdBonus",
+          "op": "addMult",
+          "perLevel": 0.1
+        }
+      ]
+    },
+    {
+      "id": "bloodlust",
+      "displayName": "血気",
+      "description": "敵を倒すたびにわずかに回復する（毎秒上限あり）。闘気解放中は回復が強化される。",
+      "category": "passive",
+      "tags": [
+        "sustain",
+        "warrior"
+      ],
+      "rarity": "rare",
+      "weight": 1,
+      "jobs": [
+        "warrior"
+      ],
+      "isCommon": false,
+      "maxLevel": 4,
+      "prerequisites": [],
+      "conflicts": [],
+      "unlockCondition": null,
+      "evolutionBranches": [],
+      "displayOrder": 118,
+      "iconKey": "icon_bloodlust",
+      "enabled": true,
+      "modifiers": [
+        {
+          "key": "killHeal",
+          "op": "addMult",
+          "perLevel": 0.25
+        },
+        {
+          "key": "killHealCap",
+          "op": "addMult",
+          "perLevel": 0.15
+        },
+        {
+          "key": "killHealRelease",
+          "op": "addMult",
+          "perLevel": 0.1
+        }
+      ]
     }
   ]
 }

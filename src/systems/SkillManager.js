@@ -112,6 +112,16 @@ import { CrystalSentinelLegionSkill } from '../skills/CrystalSentinelLegionSkill
 import { ContinentalGlacierRushSkill } from '../skills/ContinentalGlacierRushSkill.js';
 import { EternalSealedCoffinSkill } from '../skills/EternalSealedCoffinSkill.js';
 import { PolarNightAuroraSkill } from '../skills/PolarNightAuroraSkill.js';
+// M8-B: 戦士 active5種
+import { GreatCleaveSkill } from '../skills/GreatCleaveSkill.js';
+import { ShieldBashSkill } from '../skills/ShieldBashSkill.js';
+import { WhirlwindSlashSkill } from '../skills/WhirlwindSlashSkill.js';
+import { ChargeSlashSkill } from '../skills/ChargeSlashSkill.js';
+import { GroundSlamSkill } from '../skills/GroundSlamSkill.js';
+// M8-B: 戦士 進化3種
+import { ThousandBladeDanceSkill } from '../skills/ThousandBladeDanceSkill.js';
+import { BloodstormWhirlwindSkill } from '../skills/BloodstormWhirlwindSkill.js';
+import { UnyieldingFortressSkill } from '../skills/UnyieldingFortressSkill.js';
 
 const REGISTRY = {
   fireball: FireballSkill,
@@ -225,6 +235,16 @@ const REGISTRY = {
   continental_glacier_rush: ContinentalGlacierRushSkill,
   eternal_sealed_coffin: EternalSealedCoffinSkill,
   polar_night_aurora: PolarNightAuroraSkill,
+  // M8-B: 戦士 active5種
+  great_cleave: GreatCleaveSkill,
+  shield_bash: ShieldBashSkill,
+  whirlwind_slash: WhirlwindSlashSkill,
+  charge_slash: ChargeSlashSkill,
+  ground_slam: GroundSlamSkill,
+  // M8-B: 戦士 進化3種
+  thousand_blade_dance: ThousandBladeDanceSkill,
+  bloodstorm_whirlwind: BloodstormWhirlwindSkill,
+  unyielding_fortress: UnyieldingFortressSkill,
 };
 
 // 実装クラスが登録されている全スキルID（active＋進化）。SkillCatalog / 監査テストが「実装の有無」を判定するのに使う。
