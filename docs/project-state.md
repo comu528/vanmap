@@ -4,12 +4,13 @@
 > **各 Milestone 完了時に必ず更新する**（完了報告の要約・コミットID・テスト結果・次 Milestone）。
 > compact 後・新セッション開始時は `CLAUDE.md` → `README.md` → `TODO.md` → 本ファイル → `git log -5 --oneline` の順で確認する。
 >
-> 最終更新: Milestone 8-B 完了時点
+> 最終更新: Milestone 8-B.1 完了時点
 
 ## Current branch
 
 - ブランチ: **`claude/funny-heisenberg-frhgq9`**（`CLAUDE.md` の継続ブランチ。指定なき限りここへコミット・プッシュ）
 - 直近コミット:
+  - `__M8B1_COMMIT__` Milestone 8-B.1: passive 再計算バグ修正（status passive を passives.version で単一トリガー化）
   - `4c8bd10` Milestone 8-B: 戦士 基盤実装（active5/passive4/進化3・闘気/コンボ/強靱/不屈/体勢崩し）
   - `ec503fe` docs: M8-A 取り込み後の継続ブランチを docs/project-state.md へ反映
   - `2846906` Milestone 8-A ドキュメント更新: docs/project-state.md へ commit ID を記載
@@ -19,7 +20,19 @@
 
 ## Current milestone
 
-- **Milestone 8-B（戦士 基盤実装）完了・停止中。** 次の指示待ち。
+- **Milestone 8-B.1（passive 再計算バグ修正）完了・停止中。** 次の指示待ち。
+- M8-B.1 は**バグ修正のみ**の Milestone。新しい skill / passive / evolution / job / 状態異常 /
+  属性反応 / UI は追加しておらず、**火・氷・戦士のバランス数値も 1 つも変えていない**。
+  `data/` の変更は 0 件で、変更したのは `src/scenes/BattleScene.js` と docs / tests だけ。
+- 直したバグ: 氷術師の passive **余寒残留 `lingering_cold`** を通常のレベルアップで取得・強化しても、
+  その周回中に効果が反映されなかった（`_refreshStatusPassives()` が
+  `applyCandidate` の経路から呼ばれておらず、周回開始時と F9 デバッグ操作でしか呼ばれていなかった）。
+- 修正: **`PassiveManager.version` を単一トリガー**にする `_refreshStatusPassivesIfNeeded()` を追加し、
+  version が変わったときだけ**現在の passive 所持状態から乗率を完全再構築**する。
+  戦士（M8-B）の `_refreshWarriorMods()` と同じ形へ揃えた。
+- あわせて **status passive の適用を「周回のジョブが氷術師のときだけ」へ明示分離**した。
+
+### （前 Milestone）Milestone 8-B（戦士 基盤実装）
 - M8-B は 3 人目のジョブ **戦士（`warrior`・`physical`）** の**基盤**を追加した Milestone。
   active5 / passive4 / 進化3 / Job Lv1〜100 と、戦士専用の
   **闘気（fury）/ コンボ / 強靱（被ダメージ軽減）/ 不屈 / 撃破回復 / 体勢崩し（poise）** を実装した。
@@ -121,6 +134,13 @@
   Job Lv / passive → 倍率の流し込みは `BattleScene._refreshWarriorMods()` の **1 か所だけ**。
   被弾は `Player.takeDamage` → `scene.onWarriorDamage()` の 1 経路（他ジョブでは素通り）。
   **体勢崩しは氷砕と独立**（別フィールド・別しきい値・別 CD。氷砕は chase 中のみ硬直、体勢崩しは予告/突進も中断）。
+- **passive modifier の 2 系統（M8-B.1）**: passive の効果には
+  **pull 型**（参照側が毎回 `PassiveManager.getMult()` を読む: `damage` / `cooldown` / `area` / `duration` / `iceDamage` …）と
+  **push 型**（別システムへ値を押し込む: `StatusEffectManager.setPassiveMods()` の `chillDecay` / `iceStatusDuration`、
+  `WarriorCombatSystem.setMods()` の戦士 13 キー）がある。
+  **push 型は「いつ押し込むか」を必ず `passives.version` で駆動する**こと
+  （`_refreshStatusPassivesIfNeeded()` / `_refreshWarriorMods()`）。手で呼ぶ設計にすると呼び忘れる（M8-B.1 のバグ）。
+  押し込みは常に**現在の所持状態からの完全再構築**にし、現在値への加算をしない（二重適用を構造的に防ぐ）。
 - **監査基盤**: `SkillCatalog` / `SkillAudit` / `CastPolicy` / `DraftBalanceAnalyzer` / `BalanceWarnings` /
   `FrostBalanceWarnings`（FROST_* 30 コード）/ **`FlameBalanceWarnings`（M8-A 新規・FLAME_* 30 コード）** /
   `BalancePlaytest`（F8）。すべてローカルのみ。
@@ -145,7 +165,8 @@
 | 11 | **M8-A** | M7-E から残っていた**火由来の未参照 quality cap 5 件**を削除（重複 or 参照すると品質で火力が変わるもの）。`SkillBase._initCd` も削除 | `bca7ec3` |
 | 12 | **M8-A** | `eternal_pyre.spreadInfection()` が `enemyPool.forEachActive()` で毎 tick 全敵を総当たりしていたのを炎上索引経由へ（性能改善・対象集合は同じ） | `bca7ec3` |
 | 13 | M8-A | `AshLegionSkill` / `SolarAnnihilationArraySkill` の `serializeState()` が `{}` を返すだけで `restoreState` も無く、`AshDoppelgangerSkill` は保存値 `spawned` を復元していなかった（再開直後に全ユニットが無料で一斉発動） | `bca7ec3` |
-| 14 | **M8-B** | 実装中に作り込みかけた**死にフィールド 2 件を作らずに済ませた**: passive `heavy_armor` の `knockbackResist`（プレイヤーがノックバックされる仕組みが存在しない）と `charge_slash.levels[].visual`（`visualScale()` を使わない）。data・`modifierKeys`・`balance.warrior.mitigation` から削除し、「予約値として残さない」原則を維持 | `4c8bd10` |
+| 15 | **M8-B.1** | **氷術師の passive「余寒残留」が周回中に効かなかった**。`BattleScene._refreshStatusPassives()` が通常のレベルアップ経路（`applyCandidate`）から呼ばれておらず、`StatusEffectManager` へ push 型で渡す `chillDecayMult` / `iceStatusDurationMult` だけが更新されないままだった（pull 型の `iceDamage` / `cooldown` / `area` は影響なし）。`passives.version` を単一トリガーにする `_refreshStatusPassivesIfNeeded()` を追加し、変化時だけ現在の所持状態から完全再構築するようにした | `__M8B1_COMMIT__` |
+| 14 | M8-B | 実装中に作り込みかけた**死にフィールド 2 件を作らずに済ませた**: passive `heavy_armor` の `knockbackResist`（プレイヤーがノックバックされる仕組みが存在しない）と `charge_slash.levels[].visual`（`visualScale()` を使わない）。data・`modifierKeys`・`balance.warrior.mitigation` から削除し、「予約値として残さない」原則を維持 | `4c8bd10` |
 
 ## Non-regression requirements
 
@@ -171,8 +192,11 @@
 - `active_run` / `skillRuntime` / status RNG cursor（**RNG drift 0**）
 - `save_version` = **v6**
 - 外部送信の禁止（telemetry / warnings はすべてローカル）
-- **`tests/three-job-nonregression.mjs` のハッシュ 4 種**（火/氷の候補列・火/氷のランタイムトレース）。
-  火・氷を触ったら必ずここが落ちる。落ちたら「意図した変更か」を必ず確認すること。
+- **`tests/three-job-nonregression.mjs` / `tests/status-passive-nonregression.mjs` のハッシュ 4 種**
+  （火/氷の候補列・火/氷のランタイムトレース）。火・氷を触ったら必ずここが落ちる。
+  落ちたら「意図した変更か」を必ず確認すること。
+- **push 型 passive modifier の反映**（M8-B.1）: status 乗率・戦士 mods は `passives.version` 駆動で、
+  レベルアップ取得の直後に反映されること／未変更フレームで再計算しないこと／完全再構築で二重適用しないこと。
 
 ## Open warnings
 
@@ -191,11 +215,17 @@ M7-E の「火由来の未参照 cap 5 件」は解消済み。**戦士は M8-B 
 （active5 / passive4 / 進化3 すべてが 400 seed の初回候補で出現し、進化 1 種以上の到達率は
 active枠4 / 40 レベルアップで 92.5%、枠6 / 60 レベルアップで 100.0%）。
 
-### M8-B で残した既知の問題（修正していない）
+### M8-B で残した既知の問題 → **M8-B.1 で解消済み**
 
-| 項目 | 内容 | 残した理由 |
-|------|------|-----------|
-| `_refreshStatusPassives()` の呼び出し漏れ | 通常のレベルアップで passive を取得したとき `BattleScene._refreshStatusPassives()` が呼ばれない（呼ばれるのは周回開始時と F9 デバッグ操作時のみ）。氷 passive「余寒残留」の `chillDecayMult` / `iceStatusDurationMult` が周回途中の取得で反映されない可能性がある | **M8-B の絶対条件「氷術師の数値・挙動を変更しない」に抵触する**ため。修正するなら氷術師の挙動が変わる Milestone で行う。戦士側は同じ問題を避けるため `_refreshWarriorMods()` が `passives.version` を毎フレーム見て差分再計算する設計にしてある |
+| 項目 | 状態 |
+|------|------|
+| `_refreshStatusPassives()` の呼び出し漏れ（余寒残留が周回中に効かない） | **M8-B.1 で修正**。`passives.version` を単一トリガーにする `_refreshStatusPassivesIfNeeded()` を追加し、レベルアップ確定時・メインループ（gate 付き）・周回開始/復元（force）から発火するようにした |
+
+### M8-B.1 での意図した挙動変化
+
+| 項目 | 内容 |
+|------|------|
+| F9 氷術師パネルのジョブ制限 | status 乗率の適用を「周回のジョブが氷術師のとき」に限定したため、**火の魔女 / 戦士の周回で F9 から余寒残留を付与しても乗率が動かない**。状態異常の乗率を検証する場合は氷術師の周回で行う（`docs/test-guide.md` に注記） |
 
 ### 既知の問題 / 制約
 
@@ -235,35 +265,48 @@ active枠4 / 40 レベルアップで 92.5%、枠6 / 60 レベルアップで 10
   - M8-A で挙動を変えた箇所（21 種の CD 復元・`eternal_pyre` / `solar_annihilation_array` の残響/分身 ほか）
   - M7-E で追加した F8 のジョブ別分析パネル・F10 の直近イベント履歴の描画
   - draft / evolution / burning / save / performance の手動チェック一式
-- 手順書: `docs/test-guide.md` の **Milestone 8-B** 節（A〜K）／**Milestone 8-A** 節（A〜H）／**Milestone 7-E** 節。
+- **未確認**（要ブラウザ・M8-B.1 分）:
+  - 氷術師で **余寒残留 Lv1 を取得した直後**に冷気の減衰が緩くなること（F10 で冷気を付与して目視）
+  - **Lv2〜Lv5 の各段**で段階的にさらに緩くなること
+  - active / 進化の取得だけでは変わらないこと
+  - **save → reload 後も同じ値**であること（リロードを繰り返しても倍率が二重にならない）
+  - **pause → resume** で値が動かないこと
+  - 氷術師 → 火の魔女 / 戦士 へジョブを切り替えたとき**前ジョブの乗率が残らない**こと
+  - 取得時・リロード時・ジョブ切替時に **JS エラーが出ない**こと
+- 手順書: `docs/test-guide.md` の **Milestone 8-B.1** 節（A〜G）／**Milestone 8-B** 節（A〜K）／
+  **Milestone 8-A** 節（A〜H）／**Milestone 7-E** 節。
 - 例外: M7-B.1 の氷エフェクトと敵停止のみ、ユーザーが実ブラウザで確認済み。
 
 ## Latest test results
 
-- 実行日時点: Milestone 8-B 完了時（コミット `4c8bd10`）
-- **テストスイート: 92 件（`tests/*.mjs` から共通土台 `frost-audit-common.mjs` / `flame-audit-common.mjs` /
-  `warrior-common.mjs` を除く）→ 全 92 通過・失敗 0**
-- `node tests/validate-data.mjs` → **0 エラー / 0 警告**
-- M8-B 新規 17 スイート:
-  `warrior-catalog`（327）/ `warrior-pool-eligibility`（191）/ `warrior-draft-determinism`（72）/
-  `warrior-fury`（52）/ `warrior-combo`（56）/ `warrior-recovery`（41）/ `warrior-unyielding`（43）/
-  `warrior-poise`（61）/ `warrior-active-skills`（100）/ `warrior-evolutions`（115）/ `warrior-job-level`（88）/
-  `warrior-runtime-save`（100）/ `warrior-save-determinism`（6）/ `warrior-quality-cap`（233）/
-  `warrior-cleanup`（76）/ `warrior-telemetry`（147）/ **`three-job-nonregression`（312）**
-- M8-B で更新した既存スイート 3 件（3 ジョブ化に伴う前提の緩和・判定の一般化）:
-  `flame-completion-catalog` / `frost-completion-catalog`（passive の「火 XOR 氷」→「火と氷へ同時に適格でない」）、
-  `passive-pool-audit`（進化の所属ジョブを基礎スキルの `jobs` から決定）
-- **火 / 氷の非回帰**（`three-job-nonregression`）:
-  - ドラフト候補列（300 seed）SHA-256 — 火 `15a8585c…` / 氷 `bd38bcf5…` が **M8-A 時点と完全一致**
-  - 48 スキルの実行トレース SHA-256 — 火 `1f0f2c18…` / 氷 `029a44bd…` が **M8-A 時点と完全一致**
-  - 保存スナップショットの既存キー 33 件が全て残存し、**追加キーは `warriorState` の 1 件のみ**
-  - 火 / 氷の active・passive に `physical` / `warrior` の混入 0、進化条件に戦士 passive の要求 0
-  - `modifierKeys` は追加のみ（既存 11 キー＋火/氷 passive が参照するキーが全て残存）
-- 戦士の主要な監査結果: 他ジョブ混入 0 / 提示 0 の active・passive 0 / 死にフィールド 0 / 未参照 cap 0 /
-  弾生成 0（近接のみ）/ cast 水増し 0 / 破棄後の遅延実行 0 / 内部 Map の無制限成長 0 / 外部通信 0
-- 戦士の進化到達率（実抽選シミュレーション・200 runs）: active枠4 / 40 レベルアップで **92.5%**、
-  active枠6 / 60 レベルアップで **100.0%**（進化 1 種以上）
+- 実行日時点: Milestone 8-B.1 完了時（コミット `__M8B1_COMMIT__`）
+- **テストスイート: 98 件（`tests/*.mjs` から共通土台 `frost-audit-common.mjs` / `flame-audit-common.mjs` /
+  `warrior-common.mjs` / `status-passive-common.mjs` を除く）→ 全 98 通過・失敗 0**
+- `node tests/validate-data.mjs` → **0 エラー / 0 警告**（M8-B.1 は data を変えていないため検証も拡張していない）
+- M8-B.1 新規 6 スイート:
+  `status-passive-refresh`（24）/ `status-passive-levelup-refresh`（32）/ `status-passive-version-gating`（28）/
+  `status-passive-save-reload`（50）/ `status-passive-job-isolation`（32）/ `status-passive-nonregression`（41）
+- テストは **production の `BattleScene.prototype` のメソッドをそのまま呼ぶ**（ロジックを複製しない）。
+  修正を巻き戻すと `status-passive-refresh` が失敗することを確認済み（バグ再発の検知が効く）。
+- **非回帰**（`status-passive-nonregression` / `three-job-nonregression`）:
+  - ドラフト候補列（300 seed）SHA-256 — 火 `15a8585c…` / 氷 `bd38bcf5…` が **M8-A / M8-B 時点と完全一致**
+  - 48 スキルの実行トレース SHA-256 — 火 `1f0f2c18…` / 氷 `029a44bd…` が **完全一致**
+  - status RNG の seed / cursor が再構築で 1 も動かない
+  - 戦士の `_refreshWarriorMods()` が冪等・Job Lv100 の補正・passive 反映とも M8-B から不変
+  - `data/` の差分 0 件・保存キーの追加 0 件・`save_version` = 6
+- M8-B.1 で変更した production ファイルは **`src/scenes/BattleScene.js` 1 本のみ**
 - `src/**/*.js` すべて構文解析 OK（`node --check`）
+
+### M8-B.1 で追加・変更した主要ファイル
+
+- **変更（システム）**: `src/scenes/BattleScene.js`
+  （`_refreshStatusPassives()` をジョブ分離つきの完全再構築へ／`_refreshStatusPassivesIfNeeded()` を新設／
+  メインループ・`applyCandidate`・`startBalancePlaytest`・F9 から gate 経由で呼ぶ／
+  `_refreshWarriorMods()` に PassiveManager インスタンスの保険を追加）
+- **新規（テスト）**: `tests/status-passive-common.mjs` ＋ 6 スイート
+- **変更（CI）**: `.github/workflows/validate.yml`（6 ステップ追加）
+- **変更（docs）**: `README.md`、`TODO.md`、`docs/project-state.md`、`docs/architecture.md`、
+  `docs/save-format.md`、`docs/test-guide.md`、`docs/status-effects.md`、`docs/jobs.md`、`docs/balance-testing.md`
 
 ### M8-B で追加・変更した主要ファイル
 
@@ -294,11 +337,11 @@ active枠4 / 40 レベルアップで 92.5%、枠6 / 60 レベルアップで 10
 **未定（次の指示待ち）。** 候補は以下。
 
 1. **戦士のカタログ拡張**（active5 → 10 → 20 → 30 / 進化も段階拡張）。火・氷と同じ拡張手順・同じ検証基盤が使える。
-   闘気・コンボ・体勢という土台が揃ったので、以後は「その上に乗るスキル」を足すだけで済む。
 2. **戦士 完成監査**（カタログが揃ってから。M7-E / M8-A と同じ 12 観点）。
 3. **火と氷の属性反応** — 炎上⇄冷気/凍結の相互作用（付与時の source element を活用）。
 4. **転生レガシー / ジョブ間継承**（`futureInheritanceSettings` / `extraAllowedIds` が拡張口）。
 5. **周回長の拡張**（10分 / 15分 / 無限モード）・**追加の敵 / ボス / 難易度**。
-6. **実ブラウザでの M7-E / M8-A / M8-B 手動確認**（`docs/test-guide.md` の該当節）— コード変更を伴わない検証タスク。
+6. **実ブラウザでの M7-E / M8-A / M8-B / M8-B.1 手動確認**（`docs/test-guide.md` の該当節）—
+   コード変更を伴わない検証タスク。**M8-B.1 の A〜G は特に短時間で確認できる。**
 
 いずれも**指示された範囲のみ**実装し、未指定の先行実装はしない（`CLAUDE.md` の作業手順）。

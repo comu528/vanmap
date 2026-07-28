@@ -708,15 +708,62 @@ Lv1〜8 データ駆動で、冷気/凍結/粉砕/ボス氷砕は既存 `StatusE
       3 つの `*KnockbackResist` をすべて削除した（「死にフィールド禁止」の原則に従い、予約値として残さない）。
 - [x] **`charge_slash.levels[].visual`** — 実装が `visualScale()` を使わないため未参照だった。データから削除。
 
-### M8-B で残した既知の問題（修正していない・理由を記録）
-- [ ] `BattleScene._refreshStatusPassives()` が**通常のレベルアップでパッシブを取得したときに呼ばれない**
+### M8-B で残した既知の問題（→ M8-B.1 で修正済み）
+- [x] `BattleScene._refreshStatusPassives()` が**通常のレベルアップでパッシブを取得したときに呼ばれない**
       （呼ばれるのは周回開始時と F9 デバッグ操作時のみ）。氷パッシブ「余寒残留」の
-      `chillDecayMult` / `iceStatusDurationMult` が周回途中の取得で反映されない可能性がある。
-      **M8-B の絶対条件「氷術師の数値・挙動を変更しない」に抵触するため、今回は修正していない。**
-      修正するなら氷術師の挙動が変わる Milestone で行うこと。
+      `chillDecayMult` / `iceStatusDurationMult` が周回途中の取得で反映されなかった。
+      M8-B の時点では「氷術師の数値・挙動を変更しない」という絶対条件に抵触するため見送り、
+      **Milestone 8-B.1 で修正した**（下記）。
 
 > **実ブラウザ未確認**: M8-B も Phaser 実プレイ確認は行っていない（Node 純ロジック＋最小モックのスモークのみ）。
 > `docs/test-guide.md` の **Milestone 8-B** 項目（A〜K）を実ブラウザで確認すること。
+
+---
+
+## Milestone 8-B.1: passive 再計算バグ修正 — 完了
+
+M8-B で記録した既知の問題（status passive が周回中に反映されない）を修正した。
+**新規コンテンツ・バランス変更・データ変更は一切ない。**
+
+- [x] **バグの特定**: `BattleScene._refreshStatusPassives()` が呼ばれるのは
+      周回開始時 / 途中再開時 / F9 デバッグ操作の 3 か所だけで、
+      **通常のレベルアップ（`applyCandidate` → `passives.acquireOrLevel`）から呼ばれていなかった**。
+      `StatusEffectManager` へ **push 型**で渡す `chillDecayMult` / `iceStatusDurationMult`（余寒残留）だけが
+      取り残されていた。pull 型で毎回読まれる `iceDamage` / `cooldown` / `area` は影響なし。
+- [x] **`passives.version` を単一トリガー化**: `_refreshStatusPassivesIfNeeded(force)` を追加。
+      version が変わったときだけ再構築し、同じフレームでは何もしない（毎フレーム無条件の再計算はしない）。
+      `PassiveManager` インスタンスが差し替わったとき（F8 検証周回）も取りこぼさない。
+- [x] **完全再構築**: 現在の passive 所持状態から毎回作り直す（現在値への加算をしない）。
+      何回呼んでも・保存復元を繰り返しても倍率が累積しない。
+- [x] **発火経路**: 周回開始/途中再開（force・1回）/ レベルアップ確定（即時）/
+      メインループ（gate・`statusFx.update` の直前）/ F8 検証周回開始（force）/ F9（force）。
+- [x] **ジョブ分離の明示化**: status 乗率は**周回のジョブが氷術師のときだけ**適用する。
+      火の魔女 / 戦士では常に恒等値（1, 1）。判定は周回開始時に固定した `jobId`（`active_run.jobId` が正）で行い、
+      `profile.selectedJobId` を直接読まない。
+- [x] **戦士側の同種ハザードも塞いだ**: `_refreshWarriorMods()` にも
+      「PassiveManager インスタンスが変わったら再計算する」保険を追加（冪等なので値は変わらない）。
+- [x] **自動テスト 6 スイート追加**（`status-passive-refresh` / `-levelup-refresh` / `-version-gating` /
+      `-save-reload` / `-job-isolation` / `-nonregression`）。**全 98 スイート通過・validate-data 0 エラー 0 警告**。
+      テストは production の `BattleScene.prototype` のメソッドを直接呼ぶ（ロジックを複製しない）。
+- [x] **非回帰**: data 変更 0・`save_version` v6 のまま・保存キー追加 0・
+      ドラフト候補列（300 seed）と 火/氷 48 スキルのランタイムトレースが M8-A / M8-B 時点と SHA-256 完全一致・
+      status RNG の cursor 不変・戦士の `_refreshWarriorMods` 挙動不変。
+
+### M8-B.1 で**実装しない**もの（対象外）
+- [ ] 新 skill / passive / evolution / job / 状態異常 / 属性反応
+- [ ] 火・氷・戦士のバランス変更 / 戦士の active 拡張
+- [ ] `save_version` の更新 / UI 追加 / F10 全面改修 / 状態異常システムの再設計
+- [ ] `PassiveManager` の全面書き換え / 無関係な cleanup・refactor
+
+### M8-B.1 での挙動変化（意図したもの）
+- [x] 火の魔女 / 戦士の周回で F9 の氷術師パネルから余寒残留を付与しても、
+      `chillDecay` / `iceStatusDuration` の乗率は変化しなくなった（ジョブ分離の明示化による）。
+      状態異常の乗率を検証する場合は氷術師の周回で行う（`docs/test-guide.md` に注記済み）。
+
+> **実ブラウザ未確認**: M8-B.1 も Phaser 実プレイ確認は行っていない（Node 純ロジックのみ）。
+> `docs/test-guide.md` の **Milestone 8-B.1** 項目（A〜G）を実ブラウザで確認すること。
+
+---
 
 ### 次のマイルストーン候補
 - [ ] **戦士のカタログ拡張**（active10 → 20 → 30 / evolution も段階拡張）— 火・氷と同じ拡張手順が使える

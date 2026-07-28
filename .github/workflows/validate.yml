@@ -227,6 +227,21 @@ jobs:
       - name: Three job non-regression tests
         run: node tests/three-job-nonregression.mjs
 
+      # status passive 再計算バグ修正（M8-B.1・即時反映/レベルアップ/保存復元/ジョブ分離/version gating/非回帰）。
+      # 新しい npm 依存は追加しない（Node.js 標準機能のみ）。
+      - name: Status passive refresh tests
+        run: node tests/status-passive-refresh.mjs
+      - name: Status passive level-up refresh tests
+        run: node tests/status-passive-levelup-refresh.mjs
+      - name: Status passive version gating tests
+        run: node tests/status-passive-version-gating.mjs
+      - name: Status passive save / reload tests
+        run: node tests/status-passive-save-reload.mjs
+      - name: Status passive job isolation tests
+        run: node tests/status-passive-job-isolation.mjs
+      - name: Status passive non-regression tests
+        run: node tests/status-passive-nonregression.mjs
+
       # 状態異常の視認性・実動作検証（M7-B.1・表示状態/デバッグ/ボス氷砕UI/非回帰・Node.js 標準機能のみ）。
       - name: Status visual state tests
         run: node tests/status-visual-state.mjs

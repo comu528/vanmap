@@ -285,7 +285,7 @@ export class BattleScene extends Phaser.Scene {
       const startAdd = (up.startSkillLevel || 0) + (reinc.startSkillLevel || 0);
       if (startAdd > 0 && this.skills.has('fireball')) this.skills.setLevel('fireball', this.skills.getLevel('fireball') + startAdd);
     }
-    this._refreshStatusPassives(); // 氷系パッシブの乗率（再開時は復元済みパッシブから・新規は初期値）
+    this._refreshStatusPassivesIfNeeded(true); // 氷系パッシブの乗率（再開時は復元済みパッシブから・新規は初期値・1回だけ）
     this._refreshWarriorMods(true); // M8-B: 戦士の倍率・最大HP（再開時は復元済みパッシブ/凍結 Job 補正から）
     this.player.moveSpeed = bal.player.moveSpeed * this.bonus.moveMult;
 
@@ -411,13 +411,35 @@ export class BattleScene extends Phaser.Scene {
     this.freezeSys.setThresholdMods(az || { normalThresholdReduction: 0, bossThresholdReduction: 0, frozenDurationMult: 0 });
   }
 
-  // 余寒残留など氷系パッシブの乗率を StatusEffectManager へ反映する（パッシブ取得のたびに呼ぶ）。
+  // 余寒残留など氷系 status パッシブの乗率を StatusEffectManager へ反映する。
+  // 現在の passive 所持状態から**毎回完全に再構築**する（現在値への加算はしない＝何回呼んでも二重適用しない）。
+  // ジョブ分離: status passive は氷術師の周回でだけ効かせる。火/戦士では常に恒等値（1, 1）を書き込む。
+  // 参照する job は `this.jobId`＝周回開始時に固定した値（active_run 再開時は保存された jobId）。
   _refreshStatusPassives() {
     if (!this.statusFx || !this.passives) return;
-    this.statusFx.setPassiveMods({
+    const isFrost = this.jobId === 'frost_mage';
+    this.statusFx.setPassiveMods(isFrost ? {
       chillDecayMult: this.passives.getChillDecayMultiplier(),
       iceStatusDurationMult: this.passives.getIceStatusDurationMultiplier(),
-    });
+    } : { chillDecayMult: 1, iceStatusDurationMult: 1 });
+  }
+
+  // M8-B.1: passives.version を単一トリガーにして、変化したときだけ再構築する。
+  // これまでは passive 取得のたびに手で呼ぶ設計だったため、通常のレベルアップで
+  // status passive（余寒残留）を取得・強化しても周回中に反映されなかった。
+  // 戦士の _refreshWarriorMods() と同じ考え方を status passive 側へも導入する。
+  //   - version が同じフレームでは何もしない（毎フレーム無条件の再集計はしない）
+  //   - PassiveManager インスタンスが差し替わった場合（F8 検証周回の開始）も必ず再構築する
+  //     （新しいインスタンスの version がたまたま一致しても取りこぼさない）
+  // 再構築を行ったら true を返す。
+  _refreshStatusPassivesIfNeeded(force = false) {
+    if (!this.statusFx || !this.passives) return false;
+    const v = this.passives.version;
+    if (!force && this._statusPassiveSrc === this.passives && this._statusPassiveVersion === v) return false;
+    this._statusPassiveSrc = this.passives;
+    this._statusPassiveVersion = v;
+    this._refreshStatusPassives();
+    return true;
   }
 
   // M8-B: 戦士の外部倍率（Job Lv 凍結値 × パッシブ集計）を WarriorCombatSystem へ 1 か所で流し込む。
@@ -426,7 +448,9 @@ export class BattleScene extends Phaser.Scene {
   _refreshWarriorMods(force = false) {
     if (!this.warrior || !this.warrior.enabled || !this.passives) return;
     const v = this.passives.version;
-    if (!force && this._warriorModVersion === v) return;
+    // M8-B.1: version だけでなく PassiveManager インスタンスも見る（差し替え時の取りこぼし防止）。
+    if (!force && this._warriorModSrc === this.passives && this._warriorModVersion === v) return;
+    this._warriorModSrc = this.passives;
     this._warriorModVersion = v;
     const j = this.jobMods;
     const p = this.passives;
@@ -1475,6 +1499,9 @@ export class BattleScene extends Phaser.Scene {
     if (this.telemetry) this.telemetry.noteFrame(delta); // M6-F: FPS/フレーム時間の計測（実フレームms）
 
     this.handleInput(dt);
+    // M8-B.1: status passive（余寒残留）の乗率を反映する。passives.version が変わったフレームだけ再構築し、
+    // 変化が無ければ何もしない。statusFx.update より前に置き、取得したフレームから減衰率が効くようにする。
+    this._refreshStatusPassivesIfNeeded();
     this.statusFx.update(dt); // M7-A: 冷気減衰・凍結/耐性/氷砕脆弱の期限切れ
     // M8-B: 戦士（闘気・コンボ・回復・不屈・体勢崩し）。他ジョブでは enabled=false で即 return する。
     if (this.warrior.enabled) {
@@ -1956,6 +1983,9 @@ export class BattleScene extends Phaser.Scene {
       if (this.telemetry) this.telemetry.noteSkillEvolved(c.baseId, evoId || DataManager.getEvolutionForBase(c.baseId)?.id);
     } else if (c.category === 'passive') {
       this.passives.acquireOrLevel(c.id);
+      // M8-B.1: passive の新規取得・強化を即座に反映する（次フレームの gate 済み再構築とは二重適用にならない）。
+      this._refreshStatusPassivesIfNeeded();
+      this._refreshWarriorMods();
     } else {
       const isNew = c.kind === 'new_active';
       this.skills.acquireOrLevel(c.id);
@@ -2712,15 +2742,15 @@ export class BattleScene extends Phaser.Scene {
     ui.add(this.add.rectangle(cx, GAME_HEIGHT / 2, 512, 356, 0x08131a, 0.97).setScrollFactor(0).setStrokeStyle(1, 0x4fc3f7));
     ui.add(this.add.text(cx, 4, 'DEBUG（M7-A/B/C/D 状態異常・氷術師 active30/進化18・F9）', { fontSize: '11px', color: '#4fc3f7' }).setScrollFactor(0).setOrigin(0.5, 0));
     const redraw = () => { this.toggleFrostDebug(); this.toggleFrostDebug(); };
-    const applyFrostJob = (lv) => { this.jobMods.setResolved(JobModifierManager.resolve(DataManager.getJobProgression('frost_mage'), lv)); this._applyFreezeThresholdMods(); this._refreshStatusPassives(); };
+    const applyFrostJob = (lv) => { this.jobMods.setResolved(JobModifierManager.resolve(DataManager.getJobProgression('frost_mage'), lv)); this._applyFreezeThresholdMods(); this._refreshStatusPassivesIfNeeded(true); };
     const acts = [
       [() => `氷術師 Job Lv: ${this._fd.jobLv}（切替・補正適用）`, () => { const seq = [1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]; this._fd.jobLv = seq[(seq.indexOf(this._fd.jobLv) + 1) % seq.length]; applyFrostJob(this._fd.jobLv); }],
       [() => `検証active: ${this._fd.skill}（切替）`, () => { const i = ACT.indexOf(this._fd.skill); this._fd.skill = ACT[(i + 1) % ACT.length]; }],
       [() => `Lv: ${this._fd.lv}（切替）`, () => { this._fd.lv = this._fd.lv >= 8 ? 1 : this._fd.lv + 1; }],
       ['選択activeを取得/そのLvへ', () => { this.skills.acquireOrLevel(this._fd.skill); this.skills.setLevel(this._fd.skill, this._fd.lv); this.updateHudSkills(); }],
-      ['選択activeの進化条件を達成', () => { const e = EVO[this._fd.skill]; if (!e) return; this.skills.acquireOrLevel(this._fd.skill); this.skills.setLevel(this._fd.skill, 8); const aux = e[1]; if (DataManager.getSkill(aux)) { this.skills.acquireOrLevel(aux); this.skills.setLevel(aux, 4); } else { this.passives.acquireOrLevel(aux); this.passives.setLevel(aux, 4); } this._refreshStatusPassives(); this.updateHudSkills(); }],
+      ['選択activeの進化条件を達成', () => { const e = EVO[this._fd.skill]; if (!e) return; this.skills.acquireOrLevel(this._fd.skill); this.skills.setLevel(this._fd.skill, 8); const aux = e[1]; if (DataManager.getSkill(aux)) { this.skills.acquireOrLevel(aux); this.skills.setLevel(aux, 4); } else { this.passives.acquireOrLevel(aux); this.passives.setLevel(aux, 4); } this._refreshStatusPassivesIfNeeded(true); this.updateHudSkills(); }],
       [() => `検証passive: ${this._fd.passive}（切替）`, () => { const i = PAS.indexOf(this._fd.passive); this._fd.passive = PAS[(i + 1) % PAS.length]; }],
-      ['選択passive Lv+1', () => { this.passives.acquireOrLevel(this._fd.passive); this._refreshStatusPassives(); this.updateHudSkills(); }],
+      ['選択passive Lv+1', () => { this.passives.acquireOrLevel(this._fd.passive); this._refreshStatusPassivesIfNeeded(true); this.updateHudSkills(); }],
       [() => `最寄り敵へ冷気 ${this._fd.chill}（切替付与）`, () => { const seq = [0, 25, 50, 75, 100]; this._fd.chill = seq[(seq.indexOf(this._fd.chill) + 1) % seq.length]; const e = this._debugNearestEnemy(); if (e) { e._chill = this._fd.chill; e._chillSlow = this.freezeSys.slowFactor(this.statusFx.entityType(e), e._chill); if (e._chill > 0) this.statusFx.register('chill', e); } }],
       ['最寄り敵を確定凍結', () => { const e = this._debugNearestEnemy(); if (e) { e._freezeImmuneUntil = 0; this.statusFx.freeze(e); } }],
       ['最寄り敵へ凍結耐性 / 解除', () => { const e = this._debugNearestEnemy(); if (e) { if (this.statusFx.isFreezeImmune(e)) { e._freezeImmuneUntil = 0; this.statusFx.unregister('freeze_immunity', e); } else { e._freezeImmuneUntil = this.time.now + 1500; this.statusFx.register('freeze_immunity', e); } } }],
@@ -2974,6 +3004,7 @@ export class BattleScene extends Phaser.Scene {
     for (const sk of this.skills.skills.values()) sk._cache = null;
 
     // M8-B: 戦士のランタイム（闘気/コンボ/不屈CD/ボス体勢/スキル別統計）も検証周回でリセットする。
+    this._refreshStatusPassivesIfNeeded(true); // M8-B.1: PassiveManager を作り直したので必ず再構築する
     if (this.warrior) { this.warrior.reset(); this._warriorSkillStats = null; this._refreshWarriorMods(true); }
 
     // 新しいテレメトリ（debugRun）。通常統計へ混ぜない。

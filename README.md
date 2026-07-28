@@ -7,7 +7,18 @@
 npm・ビルド処理・バックエンド・データベースは一切使いません。Phaser 3.90.0 を CDN から読み込み、
 すべての素材（プレイヤー・敵・弾・エフェクト等）は JavaScript 上で動的生成しています。
 
-> ⚠️ **開発状況**: 現在 **Milestone 8-B**（戦士 基盤実装）まで実装済みです。
+> ⚠️ **開発状況**: 現在 **Milestone 8-B.1**（passive 再計算バグ修正）まで実装済みです。
+> M8-B.1 は**バグ修正のみ**の Milestone で、新しいスキル / passive / 進化 / ジョブ / 状態異常や、
+> 火・氷・戦士のバランス変更は**一切ありません**。氷術師の passive **余寒残留 `lingering_cold`** を
+> 通常のレベルアップで取得・強化しても、その周回中に効果が反映されないバグを直しました
+> （`BattleScene._refreshStatusPassives()` が通常のレベルアップ経路から呼ばれていなかった）。
+> `PassiveManager.version` を単一トリガーにして、変化したときだけ現在の passive 所持状態から
+> 乗率を**完全再構築**します（毎フレームの再計算はしない・二重適用しない）。
+> あわせて status passive の適用を**周回のジョブが氷術師のときだけ**に明示分離しました。
+> **save_version は v6 のまま**・**data の変更なし**・**ドラフト候補列と RNG 消費は不変**。
+> 実ブラウザでの確認は未実施。詳細は `docs/architecture.md`・`docs/status-effects.md`。
+>
+> （M8-B まで）**Milestone 8-B**（戦士 基盤実装）。
 > M8-B では 3 人目のジョブ **戦士（warrior・physical）** を追加しました
 > （**active5 / passive4 / 進化3 / Job Lv1〜100**）。戦士は**近接専用**で、
 > 専用リソース **闘気（fury）** と **コンボ（combo）**、**強靱（被ダメージ軽減）**、**不屈（瀕死時の基礎能力）**、
@@ -82,6 +93,7 @@ npm・ビルド処理・バックエンド・データベースは一切使い�
 | **M7-C** | **氷術師のスキル拡張・第2波**: active を10種追加して**計25種**、進化を5種追加して**計13種**（passive は4種のまま）。新 active10種（霜輪飛刃/氷鎖連閃/氷晶開花/白霧氷界/極星氷弾/砕氷衝波/氷刻停止/氷晶屈折/冬冠結界/氷彗星群）・新進化5種（冥氷処刑輪/永劫氷鎖/世界氷晶樹/永久白霧/零刻世界）。全て Lv1〜8 データ駆動・冷気/凍結/粉砕/ボス氷砕は既存 `StatusEffectManager` 経路・独自タイマーなし・**Math.random/Date.now/performance.now 不使用（index ベース決定論・同点は _seq→x→y）**・castMode/echoPolicy/clonePolicy/lv80ProjectileTarget/procCoefficient/runtimeState を宣言・品質別 skillCaps 23種追加。**Lv80発射数対象は氷で計5種（frost_shard/glacial_lance/icicle_volley/rime_boomerang/polar_star）・新進化5種は対象外**。全CD/周期/設置/防御/遅延/barrage 型に必要な runtimeState を保存（再開時の無料再発動・二重生成を防止）。CombatTelemetry へスキル固有 extra を追加（外部送信なし）。F9 デバッグへ新 active10・新進化5 を追加。**火の魔女30/18・氷術師既存15/8は非回帰・save_version v6 維持**。実ブラウザ描画/体感は未検証。詳細は `docs/jobs.md`・`docs/skills.md`・`docs/skill-catalog.md` | ✅ 実装済み |
 | **M7-D** | **氷術師のスキル拡張・最終波（カタログ完成）**: active を5種追加して**計30種**、進化を5種追加して**計18種**（passive は4種のまま）で、**火の魔女（active30/進化18/passive4）と同規模のカタログに到達**。新 active5種（氷槍豪雨 `glacial_spear_rain`/六花砲台 `snowflake_sentry`/氷山奔衝 `iceberg_ram`/絶対氷封 `absolute_ice_seal`/極光氷幕 `aurora_veil`）・新進化5種（天墜氷槍葬/六花氷衛軍/大陸氷河奔流/永劫封氷棺/極夜天光）。全て Lv1〜8 データ駆動・冷気/凍結/粉砕/ボス氷砕は既存 `StatusEffectManager` 経路・独自タイマーなし・**Math.random/Date.now/performance.now 不使用（index ベース決定論・黄金角 2.399963・同点は _seq→x→y）**。**Lv80発射数対象は氷で計6種**（既存5＋`glacial_spear_rain`・明示フラグ管理）。**氷印/氷棺は skill-local マーカー**（`StatusEffectRegistry` へ登録せず `Enemy._iceSeal`/`_iceHitCount` で pool 再利用クリア）。`bossGaugeMult`（absolute_ice_seal Lv別1.25→1.50/aurora_veil 1.15→1.35/eternal_sealed_coffin 2.0/polar_night_aurora 1.7/heavenfall 巨大槍1.4）は M7-C 修正済み共通経路でボス氷砕ゲージのみへ1回適用。品質別 skillCaps 19種追加・F9 デバッグへ新 active5・新進化5・自動テスト6種追加（**全51スイート通過**）。**火の魔女30/18・氷術師既存25/13は非回帰・新 passive/ジョブ/状態/属性反応/限界突破なし・save_version v6 維持**。**次工程は完成監査（抽選率/進化到達率/バランス分析）**。実ブラウザ描画/体感は未検証。詳細は `docs/jobs.md`・`docs/skills.md`・`docs/skill-catalog.md` | ✅ 実装済み |
 | **M8-B** | **3 人目のジョブ「戦士（warrior・physical）」の基盤実装**: active5種（大薙ぎ `great_cleave`（初期）/ 盾撃 `shield_bash` / 旋風斬り `whirlwind_slash` / 突進斬り `charge_slash` / 地砕き `ground_slam`）・passive4種（剛力/重装/戦闘本能/血気）・進化3種（千刃乱舞/血戦旋風/不落の城壁）・Job Lv1〜100（到達報酬11段）。**すべて近接**（自分中心の円 or 前方 arc）で、画面を横断する斬撃波・弾を一切生成しない。戦士専用の **闘気（fury）**（近接命中/撃破/コンボ/軽減/被弾で獲得・1発動/1秒/解放中の3層上限・100 で自動的に**闘気解放**＝攻防バフ＋時間経過回復）と **コンボ**（ジョブ全体で1本・猶予後に減衰・閾値4段）、**強靱**（接敵/近接直後/突進/解放/不屈/スキル由来を合成し**上限70%でクランプ**＝永久無敵にならない）、**不屈**（瀕死で1回だけ発動する基礎能力・CD45秒・passive ではない）、**撃破回復**（passive「血気」取得時のみ・**毎秒上限つき**）、**体勢崩し**（通常敵＝ノックバック / エリート＝stagger＋免疫 / ボス＝**予告・突進も中断**して露出。氷砕とは別フィールド・別しきい値・崩すたびに ×1.25 で難化し ×3 で頭打ち）を実装。`WarriorCombatSystem`（Phaser 非依存・乱数なし）へ集約し、スキルは `scene.combat.meleeStrike()` 経由でのみ敵へ触る（全敵総当たり禁止・SpatialGrid 使用）。戦士 HUD（闘気/コンボ/不屈/ボス体勢）・戦士向けオート移動（密集へ接近）・F8 戦士分析・**F9 戦士検証パネル**（火/氷では従来どおり状態異常パネル）・スキル別＋周回テレメトリ（外部送信なし）・`active_run.warriorState` の保存/復元（**再読込で闘気/コンボ/不屈CD/ボス体勢を初期化して稼げない**）。品質別 skillCaps 13種追加（**未参照 cap 0**）・自動テスト17スイート追加（**全92スイート通過**）。**火の魔女・氷術師は数値/挙動/候補列/状態異常/保存とも完全に不変**（`tests/three-job-nonregression.mjs` がハッシュで保証）・**新 status/属性反応/装備/敵/ボス/難易度なし**・**save_version v6 維持**。実ブラウザ描画/体感は未検証。詳細は `docs/warrior-design.md`・`docs/jobs.md`・`docs/skill-catalog.md` | ✅ 実装済み |
+| **M8-B.1** | **passive 再計算バグ修正**（新規コンテンツ・バランス変更なし）: 氷術師の passive **余寒残留 `lingering_cold`** を通常のレベルアップで取得・強化しても、その周回中に効果が反映されないバグを修正。原因は `BattleScene._refreshStatusPassives()` が**通常のレベルアップ経路（`applyCandidate`）から呼ばれていなかった**こと（呼ばれるのは周回開始時・途中再開時・F9 デバッグ操作の 3 か所だけだった）。`StatusEffectManager` へ **push 型**で渡す `chillDecayMult` / `iceStatusDurationMult` だけが取り残されており、pull 型で毎回読まれる `iceDamage`（氷晶増幅）/ `cooldown`（急速冷却）/ `area`（凍域拡張）は影響なし。修正は戦士（M8-B）の `_refreshWarriorMods()` と同じ形に揃え、**`PassiveManager.version` を単一トリガー**とする `_refreshStatusPassivesIfNeeded()` を追加。version が変わったときだけ**現在の passive 所持状態から乗率を完全再構築**する（現在値への加算をしないので何回呼んでも二重適用にならない・毎フレーム無条件の再計算もしない・`PassiveManager` インスタンス差し替え時も取りこぼさない）。発火経路は 周回開始/途中再開（force）/ レベルアップ確定（即時）/ メインループ（gate・`statusFx.update` の直前）/ F8 検証周回開始（force）/ F9（force）。あわせて **status passive の適用を「周回のジョブが氷術師のときだけ」へ明示分離**（火/戦士では常に恒等値。判定は周回開始時に固定した `jobId`＝`active_run.jobId` が正）。自動テスト6スイート追加（**全98スイート通過**）。**data 変更なし・火/氷/戦士のバランス変更なし・ドラフト候補列と status RNG 消費は完全に不変・save_version v6 維持**。実ブラウザ確認は未実施。詳細は `docs/architecture.md`・`docs/status-effects.md` | ✅ 実装済み |
 
 ### 遊びの流れ（M4）
 タイトル →「はじめから / 拠点」→ **拠点**（恒久強化・難易度・熟練度・**転生**・**魂炎強化**）→「戦闘開始」→

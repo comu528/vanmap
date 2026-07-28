@@ -548,3 +548,69 @@ SpatialGrid / CombatTelemetry / SaveManager）を再利用**したうえで、�
 `computeAutoMove()` は既存のまま（火 / 氷は 1 行も変わらない）。冒頭で
 `if (this.isWarrior) return this.computeWarriorAutoMove()` と分岐するだけで、
 戦士版は「敵の密集へ寄る → 接敵距離を保つ → 瀕死のときだけ離れる → ボス予告は常に回避」という別方針を持つ。
+
+## Milestone 8-B.1: passive 再計算の単一トリガー化（`passives.version`）
+
+### 直したバグ
+
+`BattleScene._refreshStatusPassives()` は「passive 取得のたびに手で呼ぶ」設計だったが、
+**通常のレベルアップ（`applyCandidate` → `passives.acquireOrLevel`）の経路から呼ばれていなかった**。
+呼ばれていたのは 周回開始時 / 途中再開時 と F9 デバッグ操作の 3 か所だけである。
+
+そのため氷術師の **余寒残留 `lingering_cold`** を周回中に取得・強化しても、
+`StatusEffectManager` の `_chillDecayMult` / `_iceStatusDurationMult` が更新されず、
+冷気の減衰緩和・凍結/氷砕脆弱の持続延長が効かなかった
+（周回を開始し直すか、F9 を触ったときだけ反映される状態だった）。
+
+同じ modifier でも、**参照タイミングが「読むたび」のものは影響を受けていない**:
+
+| passive | modifier | 消費のしかた | バグの影響 |
+|---------|----------|--------------|-----------|
+| 氷晶増幅 `frost_amplification` | `iceDamage` | `dealDamage` が毎ヒット読む | なし |
+| 急速冷却 `rapid_freezing` | `cooldown` | `SkillBase.passiveCooldownMult()` が毎回読む | なし |
+| 凍域拡張 `frozen_expansion` | `area` | `SkillBase.stats` が `passives.version` でキャッシュ無効化 | なし |
+| **余寒残留 `lingering_cold`** | `chillDecay` / `iceStatusDuration` | **`setPassiveMods()` で押し込む（push 型）** | **あり** |
+
+つまり「push 型で外部システムへ渡す modifier」だけが取り残されていた。
+
+### 修正方針 — 戦士（M8-B）と同じ形に揃える
+
+M8-B の `_refreshWarriorMods()` は最初から `passives.version` を見て差分再計算する設計だった。
+同じ考え方を status passive 側へ導入する。
+
+```
+_refreshStatusPassivesIfNeeded(force)   ← 単一トリガー（version + インスタンス）
+        └─ _refreshStatusPassives()     ← 現在の passive 所持状態から「完全再構築」
+```
+
+- **単一トリガー**は `PassiveManager.version`。level が変わるたびに `_recompute()` が +1 する既存の値を使う
+  （新しいカウンタを増やさない）。
+- **完全再構築**であり、現在値への加算はしない。`StatusEffectManager.setPassiveMods()` は
+  受け取った値をそのまま代入する（既存仕様）ため、何回呼んでも二重適用にならない。
+- **毎フレーム無条件の再計算はしない**。version が同じフレームでは何もしない。
+- `PassiveManager` **インスタンスが差し替わった場合**（F8 の検証周回開始）も再構築する。
+  version がたまたま一致しても取りこぼさないため。同じ保険を `_refreshWarriorMods()` にも入れた
+  （どちらも冪等な完全再構築なので、余分に走っても値は変わらない）。
+
+### 発火する経路
+
+| 経路 | 呼び方 |
+|------|--------|
+| 周回開始 / 途中再開（`create`） | `force`（1 回だけ） |
+| レベルアップでの passive 取得（`applyCandidate`） | gate 付き（即時反映） |
+| メインループ（`update`・`statusFx.update` の直前） | gate 付き（取りこぼしの保険） |
+| F8 検証周回の開始（`startBalancePlaytest`） | `force`（PassiveManager を作り直すため） |
+| F9 氷術師デバッグパネル | `force` |
+
+メインループでの呼び出しを `statusFx.update(dt)` の**直前**に置いているのは、
+取得したフレームから新しい減衰率で冷気が減るようにするため。
+
+### ジョブ分離
+
+`_refreshStatusPassives()` は **周回のジョブが氷術師のときだけ**乗率を適用し、
+火の魔女 / 戦士では明示的に恒等値（1, 1）を書き込む。
+判定に使うのは `this.jobId`＝**周回開始時に固定した値**（途中再開時は `active_run.jobId`）で、
+`profile.selectedJobId` を直接読まない（周回中のジョブ変更を持ち込まないため）。
+
+これまでも抽選のプール分離により火 / 戦士が氷 passive を持つことは無かったが、
+「構造として持てない」ではなく「持っていても効かない」ことを実装で保証する形にした。

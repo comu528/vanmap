@@ -675,3 +675,29 @@ M7-E は監査 Milestone であり、`profile` / `active_run` / `skillRuntime` �
 - `warriorState` が無い旧セーブ、火 / 氷のセーブでは `WarriorCombatSystem` が初期値のまま動く（`enabled=false`）。
 - 型が壊れた `warriorState`（数値でない・配列など）を渡しても、`restore()` は既知キーの数値だけを受け取り、
   それ以外は既定値のままにする。**旧データで起動不能にならない**。
+
+## Milestone 8-B.1: 保存フォーマットの変更なし（v6 維持）
+
+M8-B.1 は **`BattleScene` の呼び出しタイミングの修正**であり、保存されるデータは 1 バイトも変わらない。
+
+- **`save_version` は 6 のまま**。移行処理も不要。
+- `active_run` / `profile` に**キーを追加していない**。特に
+  `_statusPassiveVersion`（最後に status passive を反映した version）は**保存しない**。
+  これは「その Scene インスタンスが何回再構築したか」を表す実行時の値であり、
+  復元時は `PassiveManager` の現在状態から再生成すればよいため。
+- passive の level は従来どおり `active_run.passiveSkills`（`PassiveManager.serialize()`）に保存される。
+
+### 復元時の流れ
+
+1. `restoreFromRun()` が `passiveSkills` を `PassiveManager.loadFrom()` へ渡す
+2. `create()` の最後で `_refreshStatusPassivesIfNeeded(true)` を **1 回だけ** force 実行する
+3. その時点の passive 所持状態から乗率を完全再構築して `StatusEffectManager` へ書き込む
+
+このため **「継続してプレイした場合」と「セーブ → リロードした場合」で乗率が完全に一致**する。
+復元は完全再構築であって差分加算ではないので、リロードを繰り返しても倍率は累積しない。
+
+### 旧セーブ
+
+- `passiveSkills` が無い旧セーブでも壊れない（未取得として恒等値になる）。
+- 未知の passive id・不正な level（文字列 / 負値 / 巨大値）が混ざっていても、
+  `PassiveManager.loadFrom()` が既知 id だけを受け取り、`setLevel()` が 0..maxLevel でクランプする。

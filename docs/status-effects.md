@@ -208,3 +208,41 @@ M7-E では状態異常の**数値・確率式・閾値・持続時間を一切�
 計測（60 秒・敵 24 体・実スキル駆動）: 炎上付与 24 / 延長 4,776 / 同時ピーク 24 体 / 平均持続 1,600ms /
 DoT tick 40,344 回（627,456 ダメージ）/ 爆発 150 回・二次爆発 0 回 / 共鳴 1 パルスあたり連鎖 23.2 本。
 `FLAME_*` 警告は 0 件。氷側（chill / frozen / freeze_immunity / frostbreak_vulnerability）は**一切変更していない**。
+
+## Milestone 8-B.1: status passive（余寒残留）の反映タイミング修正
+
+### 何が壊れていたか
+
+`StatusEffectManager` は 2 つの乗率を **push 型**で受け取る。
+
+| 乗率 | 由来 | 効くところ |
+|------|------|-----------|
+| `_chillDecayMult` | 余寒残留 `lingering_cold` の `chillDecay`（subMult） | 冷気の毎秒減衰（`update()`） |
+| `_iceStatusDurationMult` | 余寒残留 `lingering_cold` の `iceStatusDuration`（addMult） | 凍結時間（`freeze()`）・氷砕脆弱の持続（`frostbreak()`） |
+
+これらは `BattleScene._refreshStatusPassives()` → `StatusEffectManager.setPassiveMods()` で押し込まれるが、
+**通常のレベルアップで passive を取得・強化しても呼ばれていなかった**（周回開始時と F9 デバッグ操作だけ）。
+結果として、周回中に余寒残留を取っても効果が出ない状態だった。
+
+同じ氷 passive でも、`iceDamage`（氷晶増幅）・`cooldown`（急速冷却）・`area`（凍域拡張）は
+**参照側が毎回読む pull 型**のため影響を受けていない。バグは push 型の 2 つに限られる。
+
+### 直しかた
+
+`BattleScene` に `_refreshStatusPassivesIfNeeded()` を追加し、**`PassiveManager.version` を単一トリガー**にした。
+version が変わったフレームだけ、現在の passive 所持状態から乗率を**完全再構築**して押し込む
+（現在値への加算はしないので、何回呼ばれても二重適用にならない）。
+発火経路・ジョブ分離の詳細は `./architecture.md` の Milestone 8-B.1 節。
+
+### 数値・仕様は不変
+
+- `data/status-effects.json`・`data/passives.json` の値は 1 件も変えていない。
+- `StatusEffectManager` / `FreezeSystem` の判定ロジック・status RNG の消費列も変えていない
+  （`setPassiveMods()` は RNG を触らない）。
+- 正式な共通状態異常は引き続き **5 種**（burning / chill / frozen / freeze_immunity / frostbreak_vulnerability）。
+- 変わるのは「余寒残留を周回中に取ったときに、その周回で効くようになる」ことだけである。
+
+### ジョブ分離（M8-B.1 で明示化）
+
+status 乗率は **周回のジョブが氷術師のときだけ**適用する。火の魔女 / 戦士の周回では常に恒等値（1, 1）。
+判定は周回開始時に固定した `jobId`（途中再開時は `active_run.jobId`）で行う。
