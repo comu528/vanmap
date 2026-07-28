@@ -10,7 +10,7 @@
 
 - ブランチ: **`claude/funny-heisenberg-frhgq9`**（`CLAUDE.md` の継続ブランチ。指定なき限りここへコミット・プッシュ）
 - 直近コミット:
-  - `(M8-C)` Milestone 8-C: 戦士スキル拡張 Wave1（active15 / 進化8・処刑/反撃調停/戦吼/引き寄せ）
+  - `bae3f34` Milestone 8-C: 戦士スキル拡張 Wave1（active15 / 進化8・処刑/反撃調停/戦吼/引き寄せ）
   - `4a621b6` Milestone 8-B.1 ドキュメント更新: docs/project-state.md へ commit ID を記載
   - `601fe2a` Milestone 8-B.1: passive 再計算バグ修正（status passive を passives.version で単一トリガー化）
   - `4c8bd10` Milestone 8-B: 戦士 基盤実装（active5/passive4/進化3・闘気/コンボ/強靱/不屈/体勢崩し）
@@ -398,7 +398,7 @@ M7-E の「火由来の未参照 cap 5 件」は解消済み。**戦士は M8-C 
 
 ## Latest test results
 
-- 実行日時点: Milestone 8-C 完了時（コミット `(M8-C)`）
+- 実行日時点: Milestone 8-C 完了時（コミット `bae3f34`）
 - **テストスイート: 116 件（`tests/*.mjs` から共通土台 `frost-audit-common.mjs` / `flame-audit-common.mjs` /
   `warrior-common.mjs` / `status-passive-common.mjs` と `validate-data.mjs` を除く）→ 全 116 通過・失敗 0**
 - `node tests/validate-data.mjs` → **0 エラー / 0 警告**
