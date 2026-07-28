@@ -113,6 +113,21 @@ import { ContinentalGlacierRushSkill } from '../skills/ContinentalGlacierRushSki
 import { EternalSealedCoffinSkill } from '../skills/EternalSealedCoffinSkill.js';
 import { PolarNightAuroraSkill } from '../skills/PolarNightAuroraSkill.js';
 // M8-B: 戦士 active5種
+import { ArmorBreakerSkill } from '../skills/ArmorBreakerSkill.js';
+import { TwinFangSlashSkill } from '../skills/TwinFangSlashSkill.js';
+import { ExecutionStrikeSkill } from '../skills/ExecutionStrikeSkill.js';
+import { LeapSmashSkill } from '../skills/LeapSmashSkill.js';
+import { SweepingAdvanceSkill } from '../skills/SweepingAdvanceSkill.js';
+import { CounterStanceSkill } from '../skills/CounterStanceSkill.js';
+import { WarCrySkill } from '../skills/WarCrySkill.js';
+import { ChainHookSkill } from '../skills/ChainHookSkill.js';
+import { ShockwaveStompSkill } from '../skills/ShockwaveStompSkill.js';
+import { RelentlessComboSkill } from '../skills/RelentlessComboSkill.js';
+import { SkullSplitterSkill } from '../skills/SkullSplitterSkill.js';
+import { CrimsonExecutionSkill } from '../skills/CrimsonExecutionSkill.js';
+import { WarGodRoarSkill } from '../skills/WarGodRoarSkill.js';
+import { AdamantCounterSkill } from '../skills/AdamantCounterSkill.js';
+import { HeavenCrushingDescentSkill } from '../skills/HeavenCrushingDescentSkill.js';
 import { GreatCleaveSkill } from '../skills/GreatCleaveSkill.js';
 import { ShieldBashSkill } from '../skills/ShieldBashSkill.js';
 import { WhirlwindSlashSkill } from '../skills/WhirlwindSlashSkill.js';
@@ -235,6 +250,23 @@ const REGISTRY = {
   continental_glacier_rush: ContinentalGlacierRushSkill,
   eternal_sealed_coffin: EternalSealedCoffinSkill,
   polar_night_aurora: PolarNightAuroraSkill,
+  // M8-C: 戦士 active10種（Wave1）
+  armor_breaker: ArmorBreakerSkill,
+  twin_fang_slash: TwinFangSlashSkill,
+  execution_strike: ExecutionStrikeSkill,
+  leap_smash: LeapSmashSkill,
+  sweeping_advance: SweepingAdvanceSkill,
+  counter_stance: CounterStanceSkill,
+  war_cry: WarCrySkill,
+  chain_hook: ChainHookSkill,
+  shockwave_stomp: ShockwaveStompSkill,
+  relentless_combo: RelentlessComboSkill,
+  // M8-C: 戦士 進化5種（Wave1）
+  skull_splitter: SkullSplitterSkill,
+  crimson_execution: CrimsonExecutionSkill,
+  war_god_roar: WarGodRoarSkill,
+  adamant_counter: AdamantCounterSkill,
+  heaven_crushing_descent: HeavenCrushingDescentSkill,
   // M8-B: 戦士 active5種
   great_cleave: GreatCleaveSkill,
   shield_bash: ShieldBashSkill,

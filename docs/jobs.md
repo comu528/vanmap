@@ -284,7 +284,7 @@ M7-B.1 で、氷術師の状態異常が**通常プレイ中に視認・確認�
 | 50 | `furyRelease` | 闘気解放の時間 +1000ms・回復量 +25% |
 | 60 | `evolvedDamageMult` | 進化スキルのダメージ +20% |
 | 70 | `rarityWeight` | rare ×1.15 / legendary ×1.25 |
-| 80 | `strikeCount` | **打撃数 +1**（明示 flag の `great_cleave` `shield_bash` `ground_slam` のみ） |
+| 80 | `strikeCount` | **打撃数 +1**（明示 flag の 6 種のみ: `great_cleave` `shield_bash` `ground_slam` `armor_breaker` `twin_fang_slash` `relentless_combo`） |
 | 90 | `cooldownMult` | クールダウン -10% |
 | 100 | `warriorApex` | 回復量 +20%・ボス露出中のダメージ +5% |
 
@@ -308,3 +308,25 @@ M8-B.1 で、氷術師の status passive（余寒残留 `lingering_cold`）が�
 これまでも抽選のプール分離により火 / 戦士が氷 passive を持つことは無かったが、
 「持てない」だけでなく「持っていても効かない」ことを実装で保証する形にした。
 詳細は `./architecture.md` の Milestone 8-B.1 節。
+
+## Milestone 8-C: 戦士のカタログ拡張 Wave1
+
+戦士の active を **10 種追加して計 15 種**、進化を **5 種追加して計 8 種**にした。
+passive は 4 種のまま、Job Lv1〜100 の曲線・到達報酬 11 段も据え置き。
+
+| ジョブ | active | 進化 | passive | 属性 | Lv80 打撃+1 対象 |
+|--------|--------|------|---------|------|------------------|
+| 火の魔女 `flame_witch` | 30 | 18 | 4 | fire | 6 種 |
+| 氷術師 `frost_mage` | 30 | 18 | 4 | ice | 6 種 |
+| **戦士 `warrior`** | **15** | **8** | **4** | physical | **6 種** |
+
+- 追加した active10: 兜割り / 双牙斬 / 処刑斬 / 跳躍強襲 / 薙ぎ進軍 / 迎撃の構え / 戦吼 / 鎖鉤 / 震脚 / 怒涛連撃
+- 追加した進化5: 断界兜割 / 血断処刑 / 軍神咆哮 / 金剛迎撃 / 天墜崩撃
+- **プール分離は M8-B と同じ**。戦士の 27 メンバーはすべて `jobs: ["warrior"]` / `isCommon: false` で、
+  火 / 氷の候補へ 1 件も出ない（逆も同様）。`tests/warrior-wave1-pool.mjs` が総当たりで検証する。
+- **進化の補助に active を使えるのは天墜崩撃だけ**（地砕き Lv6）。補助 active は置換されず CD も変わらない。
+- 戦士専用リソース（闘気 / コンボ / 強靱 / 不屈 / 体勢崩し）の数値は M8-C で変更していない。
+  新しく増えたのは「戦吼の一時バフ」「反撃の構え」「処刑の可否」「引き寄せ」の 4 機構で、
+  いずれも `WarriorCombatSystem` と `balance.json` の `warrior.*` に一元化されている。
+
+一覧は `../docs/warrior-skill-matrix.md`、設計意図は `./warrior-wave1.md`。

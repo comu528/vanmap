@@ -701,3 +701,53 @@ M8-B.1 は **`BattleScene` の呼び出しタイミングの修正**であり、
 - `passiveSkills` が無い旧セーブでも壊れない（未取得として恒等値になる）。
 - 未知の passive id・不正な level（文字列 / 負値 / 巨大値）が混ざっていても、
   `PassiveManager.loadFrom()` が既知 id だけを受け取り、`setLevel()` が 0..maxLevel でクランプする。
+
+---
+
+## Milestone 8-C: `warriorState.timedBuffs` の追加（v6 維持）
+
+M8-C は**追加のみ**で、`save_version` は **6 のまま**。移行処理も不要。
+
+### 追加したキー
+
+`active_run.warriorState`（戦士周回のみ・他ジョブでは `null`）へ `timedBuffs` が加わった。
+
+```jsonc
+"warriorState": {
+  // …（M8-B からの既存キー: fury / combo / recovery / unyielding / bossPoise / chargeLeftMs / telemetry）
+  "timedBuffs": {
+    "warCry": { "leftMs": 3200, "meleeDamageBonus": 0.22, "furyGainBonus": 0.3, "comboGraceBonus": 0.45 },
+    "counterWindows": {
+      "counter_stance": { "leftMs": 1400, "used": 1, "max": 2, "priority": 1, "mitigation": 0.38, "gapMs": 260 }
+    }
+  }
+}
+```
+
+`serializeTimedBuffs()` / `restoreTimedBuffs()` が読み書きする。復元時は
+`balance.json` の `warrior.warCry.max*` で必ずクランプするので、
+保存値を書き換えても上限を超えたバフは復元されない。
+
+### 保存するもの / しないもの
+
+| 状態 | 保存 | 理由 |
+|------|------|------|
+| 各スキルのクールダウン（`cdLeft`） | する | 再読込直後の無料発動を防ぐ |
+| 戦吼バフ（残り時間・強度） | する | 復元時も上限内へ正規化する |
+| 反撃の構え（残り時間・**使用回数**・上限・優先度） | する | 再読込で構えを使い直せないようにする |
+| 薙ぎ進軍の残り時間と消化済み打撃数 | する | 「再開」であって「二重化」ではない |
+| 跳躍の途中状態（座標・角度・進捗） | **しない** | 復元で無料の着地衝撃・座標の飛びを作らない |
+| 引き寄せの途中状態 | **しない** | 復元で二重移動を作らない |
+| 連撃の途中状態 | **しない** | 復元で二重 strike を作らない |
+| 敵オブジェクト | **しない** | プール再利用で別の敵を掴む。安定 runtime id（`_seq`）のみ |
+| Graphics / Text / Tween / particle | **しない** | M8-B から同じ方針 |
+
+### 旧セーブ（`timedBuffs` なし）
+
+`restoreTimedBuffs()` は `null` / `undefined` / 型違い / NaN / 巨大値のいずれでも例外を出さず、
+バフ無し・構え無しの初期状態から始める。M8-B 時点の `warriorState` はそのまま読める。
+
+### 再読込で稼げないこと
+
+`tests/warrior-wave1-runtime-save.mjs` が、20 回の保存 → 復元を繰り返しても
+闘気 / コンボ / 反撃回数が 1 も増えないことを検証している。

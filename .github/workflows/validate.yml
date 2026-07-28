@@ -242,6 +242,48 @@ jobs:
       - name: Status passive non-regression tests
         run: node tests/status-passive-nonregression.mjs
 
+      # 戦士スキル拡張 Wave1（M8-C・active15/passive4/進化8）。
+      # カタログ/プール/抽選/進化/各スキル固有仕様/Lv80/保存/決定論/上限/後始末/テレメトリ/3ジョブ非回帰。
+      # 新しい npm 依存は追加しない（Node.js 標準機能のみ）。HEAVY=1 で seed 数を増やせる。
+      - name: Warrior Wave1 catalog audit
+        run: node tests/warrior-wave1-catalog.mjs
+      - name: Warrior Wave1 pool audit
+        run: node tests/warrior-wave1-pool.mjs
+      - name: Warrior Wave1 draft tests
+        run: node tests/warrior-wave1-draft.mjs
+      - name: Warrior Wave1 evolutions tests
+        run: node tests/warrior-wave1-evolutions.mjs
+      - name: Warrior armor breaker / twin fang tests
+        run: node tests/warrior-armor-breaker.mjs
+      - name: Warrior execution tests
+        run: node tests/warrior-execution.mjs
+      - name: Warrior leap tests
+        run: node tests/warrior-leap.mjs
+      - name: Warrior sweeping advance / stomp tests
+        run: node tests/warrior-sweeping.mjs
+      - name: Warrior counter arbitration tests
+        run: node tests/warrior-counter-arbitration.mjs
+      - name: Warrior war cry tests
+        run: node tests/warrior-war-cry.mjs
+      - name: Warrior chain hook tests
+        run: node tests/warrior-chain-hook.mjs
+      - name: Warrior relentless combo tests
+        run: node tests/warrior-relentless-combo.mjs
+      - name: Warrior Wave1 job level 80 tests
+        run: node tests/warrior-wave1-job80.mjs
+      - name: Warrior Wave1 runtime save tests
+        run: node tests/warrior-wave1-runtime-save.mjs
+      - name: Warrior Wave1 determinism tests
+        run: node tests/warrior-wave1-determinism.mjs
+      - name: Warrior Wave1 quality cap audit
+        run: node tests/warrior-wave1-quality-cap.mjs
+      - name: Warrior Wave1 cleanup audit
+        run: node tests/warrior-wave1-cleanup.mjs
+      - name: Warrior Wave1 telemetry / F8 / F9 tests
+        run: node tests/warrior-wave1-telemetry.mjs
+      - name: Three job Wave1 non-regression tests
+        run: node tests/three-job-wave1-nonregression.mjs
+
       # 状態異常の視認性・実動作検証（M7-B.1・表示状態/デバッグ/ボス氷砕UI/非回帰・Node.js 標準機能のみ）。
       - name: Status visual state tests
         run: node tests/status-visual-state.mjs

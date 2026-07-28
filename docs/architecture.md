@@ -614,3 +614,69 @@ _refreshStatusPassivesIfNeeded(force)   ← 単一トリガー（version + イ�
 
 これまでも抽選のプール分離により火 / 戦士が氷 passive を持つことは無かったが、
 「構造として持てない」ではなく「持っていても効かない」ことを実装で保証する形にした。
+
+---
+
+## Milestone 8-C: 戦士 Wave1 で追加した共通経路
+
+M8-B の原則（**スキルは Scene の内部状態を直接いじらず、`scene.combat` の共通経路だけを通る**）を
+そのまま拡張した。M8-C で `BattleScene` へ足したのは次の 5 つ。
+
+| API | 実体 | 一元化しているもの |
+|-----|------|--------------------|
+| `preferredMeleeTarget(x, y, r, mode)` | `BattleScene` | 対象選択（`'tough'` = エリート/ボス優先、`'lowHp'` = 瀕死優先）。全敵総当たりをしない |
+| `executeTarget(e, skillId, opts)` | `BattleScene` | 処刑の実行。**残り HP ぶんのダメージ**を通常の `dealDamage` 経路へ流す |
+| `pullTarget(e, opts)` | `BattleScene` | 引き寄せ。ボス除外 / 壁内クランプ / `enemyGrid.update()` / 慣性リセット |
+| `movePlayerTowards(x, y, d)` | `BattleScene` | プレイヤーの接近。壁内クランプ / NaN 防止 |
+| `bossTelegraphing()` | `BattleScene` | ボスの予告 / 突進判定 |
+
+`meleeStrike()` には `toughBonus` / `execute` / `maxExecutes` / `visualCap` を追加した。
+**判定と演出は完全に分離**されており、`visualCap` は演出だけを打ち切る。
+
+### 処刑の流れ（死亡イベントを二重に出さない）
+
+```
+ExecutionStrikeSkill.fire()
+  → combat.meleeStrike({ execute: params, maxExecutes: cap })
+      ├ WarriorCombatSystem.executePolicy(e, params)   // 可否と追加倍率を返す
+      ├ canExecute なら BattleScene.executeTarget(e, id)
+      │    → dealDamage(e, 残りHP)                     // 死亡イベントはここで 1 回だけ
+      │       → 撃破統計 / 撃破回復 / 進化の撃破フック
+      └ できないなら damageMult を掛けて通常ダメージ
+```
+
+即死用の別 API を作っていないので、`dispatchKill` は 1 回しか走らない。
+
+### 反撃の調停（1 被弾 = 最大 1 系統）
+
+```
+Player.takeDamage
+  → BattleScene.onWarriorDamage(amount, ctx)   // 軽減（構えの mitigation を extra へ）
+  → BattleScene.onWarriorHit(raw, applied)
+      ├ this._inWarriorCounter なら即 return   // counter → counter の再帰を止める
+      ├ warrior.consumeCounterEvent()          // 優先度最上位の 1 系統だけを選ぶ
+      └ 選ばれた skill の performCounter()     // recordCast も新しい構えも作らない
+```
+
+反撃を持つスキルは `get counterSource()` と `performCounter(raw, applied)` を公開し、
+構えの登録は `warrior.beginCounterWindow(source, opts)` で行う。
+**スキル側は自分の窓の残り回数だけを管理し、誰が反撃するかは決めない。**
+
+`UnyieldingFortressSkill`（M8-B の進化）も M8-C でこの調停へ移行した。
+既存の `onPlayerHit()` は `performCounter()` から呼ぶ形になり、挙動そのものは変えていない。
+
+### 進化が基礎 active のクラスを継承するとき
+
+`applyEvolvedSemantics(cls)`（`src/skills/WarriorSkillBase.js`）が
+プロトタイプへ `evoDef` / `baseSkillId` / `isEvolved` / `name` / `maxLevel` / `rawStats` /
+`stats` / `cap()` / `evolvedBonus()` を生やす。`stats` は `{ cooldown: evoDef.cooldown }` を
+合成して返すので、`SkillBase.update()` の発動判定と `super.update()` のチェーンがそのまま働く。
+
+適用しているのは `WarGodRoarSkill`（← `WarCrySkill`）・`AdamantCounterSkill`（← `CounterStanceSkill`）・
+`HeavenCrushingDescentSkill`（← `LeapSmashSkill`）の 3 件。
+
+### 進行中の状態は敵オブジェクトを持たない
+
+`ChainHookSkill` / `RelentlessComboSkill` は対象を **`_seq`（出現順の安定 runtime id）** で保持し、
+毎フレーム `combat.enemiesInRadius()` から引き直す。
+プール返却で別の敵を掴むことがなく、保存にもオブジェクト参照が入らない。

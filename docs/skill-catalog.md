@@ -316,7 +316,7 @@ M8-B で 3人目のジョブ **戦士（warrior）** を追加した。属性は
 |--------|--------|------|---------|------|
 | 火の魔女 flame_witch | 30 | 18 | 4（火専用） | fire |
 | 氷術師 frost_mage | 30 | 18 | 4（氷専用） | ice |
-| **戦士 warrior** | **5** | **3** | **4（戦士専用）** | **physical** |
+| **戦士 warrior** | **5 → 15（M8-C）** | **3 → 8（M8-C）** | **4（戦士専用）** | **physical** |
 
 ### 戦士 active5
 
@@ -350,3 +350,48 @@ M8-B で 3人目のジョブ **戦士（warrior）** を追加した。属性は
   近接が無料で増える経路を作らないための意図的な制約。
 - 検証: `node tests/warrior-catalog.mjs` / `node tests/warrior-pool-eligibility.mjs` / `node tests/three-job-nonregression.mjs`。
 - 設計の詳細は `./jobs.md`（戦士セクション）と `./game-design.md`。
+
+## Milestone 8-C: 戦士スキル拡張 Wave1（active15 / passive4 / 進化8 = 27）
+
+M8-C で戦士へ **active10 種・進化5 種**を追加した（passive は 4 種のまま）。
+既存 5 active・3 進化の数値と挙動は変更していない。火の魔女・氷術師のカタログも不変（各 30/4/18）。
+
+| ジョブ | active | 進化 | passive | 属性 |
+|--------|--------|------|---------|------|
+| 火の魔女 flame_witch | 30 | 18 | 4 | fire |
+| 氷術師 frost_mage | 30 | 18 | 4 | ice |
+| **戦士 warrior** | **15** | **8** | **4** | **physical** |
+
+### 追加した active10（役割を分散させている）
+
+| id | 名称 | rarity | 役割 | Lv80 打撃数+1 | 進化 |
+|----|------|--------|------|----------------|------|
+| `armor_breaker` | 兜割り | uncommon | 単体高体勢ダメージ（エリート/ボス優先） | ○ | `skull_splitter` |
+| `twin_fang_slash` | 双牙斬 | common | 高速コンボ（交差する 2 連斬り） | ○ | （なし） |
+| `execution_strike` | 処刑斬 | rare | 瀕死狙い（通常敵のみ処刑） | × | `crimson_execution` |
+| `leap_smash` | 跳躍強襲 | uncommon | 跳躍接近＋着地 AoE | × | `heaven_crushing_descent` |
+| `sweeping_advance` | 薙ぎ進軍 | uncommon | 移動しながら左右交互に薙ぎ払い | × | （なし） |
+| `counter_stance` | 迎撃の構え | uncommon | 能動 counter（軽減＋反撃） | × | `adamant_counter` |
+| `war_cry` | 戦吼 | rare | 短時間 buff＋短距離 shock | × | `war_god_roar` |
+| `chain_hook` | 鎖鉤 | rare | 引き寄せ／接近補助 | × | （なし） |
+| `shockwave_stomp` | 震脚 | common | 短距離制圧（狭く速い） | × | （なし） |
+| `relentless_combo` | 怒涛連撃 | rare | 連続近接（撃破で引き継ぎ） | ○ | （なし） |
+
+### 追加した evolution5
+
+| 進化 id | 名称 | 基礎 active | 補助 | 特徴 |
+|---------|------|-------------|------|------|
+| `skull_splitter` | 断界兜割 | `armor_breaker` | `brute_force` Lv4 | 二段 overhead。二段目は狭い衝撃で体勢を崩し切る |
+| `crimson_execution` | 血断処刑 | `execution_strike` | `bloodlust` Lv4 | 通常敵の処刑閾値強化＋撃破時の回復強化（1 世代だけ連鎖） |
+| `war_god_roar` | 軍神咆哮 | `war_cry` | `combat_instinct` Lv4 | 範囲とバフを強化し、コンボ猶予を立て直す |
+| `adamant_counter` | 金剛迎撃 | `counter_stance` | `heavy_armor` Lv4 | 構えが長く、反撃後に短い軽減。反撃の優先度は最上位 |
+| `heaven_crushing_descent` | 天墜崩撃 | `leap_smash` | **active** `ground_slam` Lv6 | 着地後に 1 回だけ二次衝撃。地砕きは置換されず CD も変わらない |
+
+- **Job Lv80「打撃数 +1」対象は 6 種**（`great_cleave` `shield_bash` `ground_slam` ＋ M8-C の
+  `armor_breaker` `twin_fang_slash` `relentless_combo`）。進化 8 種はすべて対象外。
+- 進化を持たない active は 6 種（`charge_slash` `ground_slam` `twin_fang_slash` `sweeping_advance`
+  `chain_hook` `shockwave_stomp`）。うち `ground_slam` は天墜崩撃の **active 補助**として機能する。
+- 戦士の active / 進化はすべて **残響・分身の対象外**（`echoPolicy` / `clonePolicy` = `forbidden`）。
+- 検証: `node tests/warrior-wave1-catalog.mjs` / `node tests/warrior-wave1-pool.mjs` /
+  `node tests/three-job-wave1-nonregression.mjs`。
+- 役割・設計意図の詳細は `./warrior-wave1.md`、スキル横断の一覧は `./warrior-skill-matrix.md`。

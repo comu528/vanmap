@@ -55,6 +55,12 @@ export class CombatTelemetry {
       killHeal: 0, killHealCapped: 0,
       knockbacks: 0, poiseDamage: 0, eliteStaggers: 0, bossStanceBreaks: 0,
       exposedUptimeSeconds: 0, exposedBonusDamage: 0, exposedBonusFury: 0,
+      // M8-C: 処刑 / 反撃 / 戦吼 / 引き寄せ・移動系。
+      executions: 0, executeFailures: 0, executeOverkill: 0,
+      counters: 0, counterBySource: {},
+      warCryApplications: 0, warCryUptimeSeconds: 0,
+      chainPulls: 0, chainPullDistance: 0, bossApproaches: 0,
+      leapLandings: 0, sweepDistance: 0, relentlessChains: 0, relentlessRetargets: 0,
     };
     // フレーム集計
     this._frameCount = 0;
@@ -85,6 +91,8 @@ export class CombatTelemetry {
         // M8-B: 戦士（スキル別）。近接命中・物理ダメージ・ノックバック・体勢・コンボ/闘気の寄与。
         meleeHits: 0, physicalDamage: 0, knockbacks: 0, poiseDamage: 0,
         eliteStaggers: 0, bossStanceBreaks: 0, comboGain: 0, furyGain: 0,
+        // M8-C: 処刑 / 反撃 / 引き寄せ / 再ターゲット / 移動距離。
+        executions: 0, counters: 0, pullDistance: 0, retargets: 0, movementDistance: 0,
       };
       this.skills.set(key, s);
     }
@@ -117,7 +125,9 @@ export class CombatTelemetry {
       'bossFrostGaugeApplied', 'damageToChilled', 'damageToFrozen', 'damageToFrostbreakTarget',
       // M8-B: 戦士（スキル別）
       'meleeHits', 'physicalDamage', 'knockbacks', 'poiseDamage',
-      'eliteStaggers', 'bossStanceBreaks', 'comboGain', 'furyGain']) {
+      'eliteStaggers', 'bossStanceBreaks', 'comboGain', 'furyGain',
+      // M8-C: 戦士 Wave1（スキル別）
+      'executions', 'counters', 'pullDistance', 'retargets', 'movementDistance']) {
       if (isNum(delta[k])) s[k] += delta[k];
     }
     // max 系
@@ -248,6 +258,9 @@ export class CombatTelemetry {
         knockbacks: num(s.knockbacks), poiseDamage: num(s.poiseDamage),
         eliteStaggers: num(s.eliteStaggers), bossStanceBreaks: num(s.bossStanceBreaks),
         comboGain: num(s.comboGain), furyGain: num(s.furyGain),
+        // M8-C: 戦士 Wave1（スキル別）
+        executions: num(s.executions), counters: num(s.counters),
+        pullDistance: num(s.pullDistance), retargets: num(s.retargets), movementDistance: num(s.movementDistance),
       };
     }
     const avgFps = this._frameCount > 0 ? 1000 / (this._frameSumMs / this._frameCount) : 0;
@@ -257,7 +270,7 @@ export class CombatTelemetry {
       ...(this.result || {}),
       caps: { ...this.caps },
       status: { ...this.status }, // M7-A: 状態異常（周回全体）
-      warrior: { ...this.warrior, furyBySource: { ...this.warrior.furyBySource }, comboThresholdCounts: { ...this.warrior.comboThresholdCounts } }, // M8-B: 戦士（周回全体）
+      warrior: { ...this.warrior, furyBySource: { ...this.warrior.furyBySource }, comboThresholdCounts: { ...this.warrior.comboThresholdCounts }, counterBySource: { ...this.warrior.counterBySource } }, // M8-B/M8-C: 戦士（周回全体）
       avgFps: num(avgFps), minFps: num(minFps), frameP95Ms: num(this._frameP95Ms()),
       frameCount: this._frameCount,
     };

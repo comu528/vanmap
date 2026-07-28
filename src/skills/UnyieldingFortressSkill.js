@@ -16,7 +16,8 @@ export class UnyieldingFortressSkill extends WarriorEvolvedBase {
   update(dt, ctx) {
     if (this._window.leftMs > 0) {
       this._window.leftMs = Math.max(0, this._window.leftMs - dt);
-      if (this._window.leftMs === 0) this._window.used = 0;
+      // M8-C: 構えが閉じたら調停側の登録も外す（古い構えが残らない）。
+      if (this._window.leftMs === 0) { this._window.used = 0; if (this.warrior) this.warrior.endCounterWindow(this.counterSource); }
     }
     if (this._mitigationLeft > 0) this._mitigationLeft = Math.max(0, this._mitigationLeft - dt);
     super.update(dt, ctx);
@@ -41,6 +42,17 @@ export class UnyieldingFortressSkill extends WarriorEvolvedBase {
     }
     this._mitigationLeft = d.mitigation?.durationMs || 1500;
     this._window = { leftMs: d.counterWindow?.durationMs || 1600, used: 0 };
+    // M8-C: 反撃の調停へ構えを登録する（1 被弾イベントで反撃するのは優先度最上位の 1 系統だけ）。
+    // 実際に反撃できるかの最終判断は本スキルの _window が持ち、warrior 側は「誰が反撃するか」を決める。
+    if (this.warrior) {
+      this.warrior.beginCounterWindow(this.counterSource, {
+        durationMs: this._window.leftMs,
+        maxCounters: this._maxCounters(),
+        priority: d.counterWindow?.priority,
+        mitigation: d.mitigation?.value || 0,
+        counterCooldownMs: d.counterWindow?.counterCooldownMs,
+      });
+    }
     this.scene.skills.recordExtra(this.id, 'counterWindows', 1, 'add');
   }
 
@@ -57,6 +69,9 @@ export class UnyieldingFortressSkill extends WarriorEvolvedBase {
   }
 
   activeMitigation() { return this._mitigationLeft > 0 ? (this.evoDef.mitigation?.value || 0) : 0; }
+  // M8-C: 反撃の調停で使う識別子。BattleScene.onWarriorHit がこの値で反撃担当を探す。
+  get counterSource() { return 'unyielding_fortress'; }
+  performCounter(raw, applied) { return this.onPlayerHit(raw, applied); }
   get counterReady() { return this._window.leftMs > 0 && this._window.used < this._maxCounters(); }
   _maxCounters() {
     const d = this.evoDef;
@@ -91,5 +106,10 @@ export class UnyieldingFortressSkill extends WarriorEvolvedBase {
     this._window = { leftMs: Math.max(0, st.windowLeftMs || 0), used: Math.max(0, st.counterUsed || 0) };
     this._mitigationLeft = Math.max(0, st.mitigationLeft || 0);
   }
-  destroy() { this._dead = true; this._window = { leftMs: 0, used: 0 }; this._mitigationLeft = 0; }
+  destroy() {
+    this._dead = true;
+    this._window = { leftMs: 0, used: 0 };
+    this._mitigationLeft = 0;
+    if (this.warrior) this.warrior.endCounterWindow(this.counterSource);
+  }
 }

@@ -765,13 +765,77 @@ M8-B で記録した既知の問題（status passive が周回中に反映され
 
 ---
 
+## Milestone 8-C: 戦士スキル拡張 Wave1 — 完了
+
+戦士の **active を 10 種追加して計 15 種**、**進化を 5 種追加して計 8 種**にした。
+passive 4 種・Job Lv1〜100 の基盤は据え置き。既存 5 active・3 進化の数値と挙動は変えていない。
+
+- [x] **active10 追加**: 兜割り `armor_breaker` / 双牙斬 `twin_fang_slash` / 処刑斬 `execution_strike` /
+      跳躍強襲 `leap_smash` / 薙ぎ進軍 `sweeping_advance` / 迎撃の構え `counter_stance` /
+      戦吼 `war_cry` / 鎖鉤 `chain_hook` / 震脚 `shockwave_stomp` / 怒涛連撃 `relentless_combo`。
+      すべて `element: physical` / `jobs:["warrior"]` / maxLevel8 / 残響・分身は `forbidden`。
+- [x] **進化5 追加**: 断界兜割（兜割り+剛力Lv4）/ 血断処刑（処刑斬+血気Lv4）/
+      軍神咆哮（戦吼+戦闘本能Lv4）/ 金剛迎撃（迎撃の構え+重装Lv4）/
+      **天墜崩撃（跳躍強襲+active 地砕きLv6）**。地砕きは置換されず CD にも触らない。
+- [x] **処刑の一元化**: `WarriorCombatSystem.executePolicy()` が可否を判断し、
+      `BattleScene.executeTarget()` が「残り HP ぶんのダメージ」を共通 `dealDamage` 経路へ流す。
+      **即死しうるのは通常敵だけ**（エリート/ボスは欠損 HP 参照の追加ダメージのみ・ボスは上限つき）。
+      1 秒あたりの処刑数にも上限があり、死亡イベント・撃破統計・撃破回復は二重に走らない。
+- [x] **反撃の調停**: `consumeCounterEvent()` が 1 被弾につき優先度最上位の 1 系統だけを選ぶ。
+      優先度は `balance.json` の `warrior.counter.priority`（金剛迎撃 3 > 不落の城壁 2 > 迎撃の構え 1）。
+      全体クールダウン＋`_inWarriorCounter` の再入ガードで counter → counter の再帰なし。
+      軽減は合算せず最大値を採り、合計 70% でクランプ。**不屈（基礎能力）は反撃枠を占有しない**。
+- [x] **戦吼の timed buff**: 新しい formal status を作らず `WarriorCombatSystem` 上で持つ。
+      **重ねがけしない**（refresh）。強度・持続は `balance.json` の `warrior.warCry.max*` でクランプ。
+      軍神咆哮の `graceRefill` はコンボ「猶予」だけを戻し、コンボ値は無料で配らない。
+- [x] **移動・引き寄せの共通経路**: `pullTarget` / `movePlayerTowards` / `preferredMeleeTarget` /
+      `bossTelegraphing` / `warriorPullConfig` を `BattleScene` へ追加。スキルは座標を直接書き換えない。
+      **ボスは引き寄せられない**（代わりにこちらが安全距離だけ踏み込む）・エリートは大幅に短い・
+      壁外/NaN/テレポートを作らない・`SpatialGrid` を必ず更新・慣性を残さない。
+- [x] **進化が基礎クラスを再利用する仕組み**: `applyEvolvedSemantics(cls)` を `WarriorSkillBase` へ追加。
+      軍神咆哮 / 金剛迎撃 / 天墜崩撃は基礎スキルのロジックを継承し、data の読み先だけ進化定義へ差し替える。
+- [x] **Job Lv80「打撃数 +1」はちょうど 6 種**（`great_cleave` `shield_bash` `ground_slam` +
+      `armor_breaker` `twin_fang_slash` `relentless_combo`）。弾は 1 つも増えない。進化は全て対象外。
+- [x] **品質別 skillCaps 20 種追加**（ダメージ/イベント系 9・演出系 11。未参照 cap 0・全 185 件が単調）。
+      演出上限を 1 まで落としてもダメージ・命中は変わらない。
+- [x] **保存**: `save_version` は **v6 のまま**。`warriorState.timedBuffs`（戦吼バフ・反撃の構え）を追加。
+      構えは**使用回数も保存**して再読込で使い直せない。跳躍・引き寄せ・連撃の途中状態は復元しない
+      （薙ぎ進軍だけ残り時間と消化済み打撃数を引き継いで「再開」する）。敵オブジェクト参照は保存しない。
+- [x] **テレメトリ / F8 / F9**: 周回全体 14 指標・スキル別 5 指標を追加（`summary()` と 1:1・外部送信なし）。
+      F8 の戦士分析へカタログ規模・Lv80 対象数・Wave1 カウンタ・警告 4 種を追加。
+      F9 の戦士検証パネルへ active15 の切替・進化 8 の条件達成（active 補助対応）・
+      処刑圏内へ / 戦吼バフ付与解除 / 構えを開く / 被弾 1 回で反撃 / 敵を遠方へ配置 を追加。**F10 は不変**。
+- [x] **自動テスト 19 スイート追加**＋`validate-data` の M8-C ブロック＋`validate.yml` へ 19 ステップ。
+      **全 116 スイート通過・validate-data 0 エラー 0 警告**。`HEAVY=1` で seed 数を増やせる。
+- [x] **火の魔女・氷術師は完全に非回帰**（`tests/three-job-wave1-nonregression.mjs` がハッシュ固定で保証）。
+
+### M8-C で**実装しない**もの（対象外）
+- [ ] 戦士の active16 種目以降 / evolution9 種目以降 / 新しい passive
+- [ ] 4 人目のジョブ / 属性反応（physical × fire / ice）/ 新しい formal status
+- [ ] 装備 / 武器選択 / 新しい敵・ボス・難易度
+- [ ] 転生レガシー / UI 全面改修 / 正式画像素材
+- [ ] 遠距離の斬撃波を主軸にした設計
+- [ ] 戦士 完成監査（カタログが揃ってから・M7-E / M8-A と同じ 12 観点）
+
+### M8-C で見つけて直した既存の不備
+- [x] `data` に宣言していた `killChain.killHealBonus` が未参照だったため、
+      `WarriorCombatSystem.noteKillHealBonus()` を追加して血断処刑の撃破回復強化を実装した
+      （撃破回復の毎秒上限は共有するので永久機関にならない）。
+- [x] テスト用モック `tests/warrior-common.mjs` の `combat.nearestEnemy` がボスを候補に含めておらず、
+      production の `BattleScene.nearestTarget` と挙動が食い違っていたのを揃えた。
+
+> **実ブラウザ未確認**: M8-C も Phaser 実プレイ確認は行っていない（Node 純ロジック＋最小モックのみ）。
+> `docs/test-guide.md` の **Milestone 8-C** 項目を実ブラウザで確認すること。
+
+---
+
 ### 次のマイルストーン候補
-- [ ] **戦士のカタログ拡張**（active10 → 20 → 30 / evolution も段階拡張）— 火・氷と同じ拡張手順が使える
+- [ ] **戦士のカタログ拡張 Wave2 以降**（active15 → 20 → 30 / evolution 8 → 13 → 18）— 火・氷と同じ拡張手順が使える
 - [ ] **火と氷の属性反応**（炎上⇄冷気/凍結の相互作用・付与時の source element を活用）
 - [ ] **戦士 完成監査**（カタログが揃ってから。M7-E / M8-A と同じ 12 観点）
 - [ ] **転生レガシー / ジョブ間継承**（`futureInheritanceSettings` / `extraAllowedIds` が拡張口）
 - [ ] **周回長の拡張**（10分 / 15分 / 無限モード）・**追加の敵 / ボス / 難易度**
-- [ ] **実ブラウザでの M7-E / M8-A / M8-B 手動確認**（コード変更を伴わない検証タスク）
+- [ ] **実ブラウザでの M7-E / M8-A / M8-B / M8-C 手動確認**（コード変更を伴わない検証タスク）
 
 ---
 

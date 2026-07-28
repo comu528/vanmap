@@ -21,8 +21,8 @@ section('1. active5 / passive4 / evolution3');
 ok(war.summary.activeCount === EXPECTED.activeCount, `active ${war.summary.activeCount} = 5`);
 ok(war.summary.passiveCount === EXPECTED.passiveCount, `passive ${war.summary.passiveCount} = 4`);
 ok(war.summary.evolutionCount === EXPECTED.evolutionCount, `evolution ${war.summary.evolutionCount} = 3`);
-ok(WARRIOR.activeSkillPool.length === 5 && WARRIOR.passiveSkillPool.length === 4 && WARRIOR.evolutionPool.length === 3,
-  'jobs.json のプール数も 5/4/3');
+ok(WARRIOR.activeSkillPool.length === 15 && WARRIOR.passiveSkillPool.length === 4 && WARRIOR.evolutionPool.length === 8,
+  'jobs.json のプール数も 15/4/8');
 ok(WARRIOR.activeSkillPool.join(',') === EXPECTED.actives.join(','), `activeSkillPool = ${EXPECTED.actives.join(',')}`);
 ok(WARRIOR.passiveSkillPool.join(',') === EXPECTED.passives.join(','), `passiveSkillPool = ${EXPECTED.passives.join(',')}`);
 ok(WARRIOR.evolutionPool.join(',') === EXPECTED.evolutions.join(','), `evolutionPool = ${EXPECTED.evolutions.join(',')}`);
@@ -114,8 +114,12 @@ for (const id of WARRIOR.evolutionPool) {
   ok(WARRIOR.activeSkillPool.includes(e.baseSkillId), `${id}: baseSkillId ${e.baseSkillId} が戦士 active`);
   ok(Array.isArray(e.requiredSkills) && e.requiredSkills.length === 1, `${id}: requiredSkills が 1 件`);
   const aux = e.requiredSkills[0];
-  ok(WARRIOR.passiveSkillPool.includes(aux.skill), `${id}: 補助 ${aux.skill} が戦士 passive プールにある`);
-  ok(aux.level === 4, `${id}: 補助 Lv4 要求`);
+  // M8-C: 補助は passive でも active でもよい（天墜崩撃 = 地砕き Lv6）。必要 Lv は data で明示する。
+  const inPassive = WARRIOR.passiveSkillPool.includes(aux.skill);
+  const inActive = WARRIOR.activeSkillPool.includes(aux.skill);
+  ok(inPassive || inActive, `${id}: 補助 ${aux.skill} が戦士のプールにある`);
+  ok(typeof aux.level === 'number' && aux.level >= 1, `${id}: 補助 ${aux.skill} の必要 Lv${aux.level} が data で明示されている`);
+  if (inActive) ok(e.baseSkillId !== aux.skill && e.replacementSkillId !== aux.skill, `${id}: 補助 active ${aux.skill} は置換されない`);
   ok(e.replacementSkillId === e.id, `${id}: replacementSkillId が自身（置換関係）`);
   ok(e.echoPolicy === 'forbidden' && e.clonePolicy === 'forbidden', `${id}: 残響/分身は forbidden`);
   ok(e.safetyCaps && Object.keys(e.safetyCaps).length > 0, `${id}: safetyCaps がある`);

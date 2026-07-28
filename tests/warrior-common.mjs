@@ -34,11 +34,22 @@ export const FROST = DATA.jobs.find((j) => j.id === 'frost_mage');
 
 // M8-B の期待規模（active5 / passive4 / evolution3）。M8-B 以降で増える場合はここを更新する。
 export const EXPECTED = {
-  activeCount: 5, passiveCount: 4, evolutionCount: 3,
-  actives: ['great_cleave', 'shield_bash', 'whirlwind_slash', 'charge_slash', 'ground_slam'],
+  // M8-C（Wave1）で active5 → 15 / evolution3 → 8 へ拡張。passive は 4 のまま。
+  activeCount: 15, passiveCount: 4, evolutionCount: 8,
+  // M8-B の基礎 5 種（既存テストが参照する）。
+  baseActives: ['great_cleave', 'shield_bash', 'whirlwind_slash', 'charge_slash', 'ground_slam'],
+  baseEvolutions: ['thousand_blade_dance', 'bloodstorm_whirlwind', 'unyielding_fortress'],
+  // M8-C で追加した 10 active / 5 evolution。
+  wave1Actives: ['armor_breaker', 'twin_fang_slash', 'execution_strike', 'leap_smash', 'sweeping_advance',
+    'counter_stance', 'war_cry', 'chain_hook', 'shockwave_stomp', 'relentless_combo'],
+  wave1Evolutions: ['skull_splitter', 'crimson_execution', 'war_god_roar', 'adamant_counter', 'heaven_crushing_descent'],
+  actives: ['great_cleave', 'shield_bash', 'whirlwind_slash', 'charge_slash', 'ground_slam',
+    'armor_breaker', 'twin_fang_slash', 'execution_strike', 'leap_smash', 'sweeping_advance',
+    'counter_stance', 'war_cry', 'chain_hook', 'shockwave_stomp', 'relentless_combo'],
   passives: ['brute_force', 'heavy_armor', 'combat_instinct', 'bloodlust'],
-  evolutions: ['thousand_blade_dance', 'bloodstorm_whirlwind', 'unyielding_fortress'],
-  lv80Targets: ['great_cleave', 'shield_bash', 'ground_slam'],
+  evolutions: ['thousand_blade_dance', 'bloodstorm_whirlwind', 'unyielding_fortress',
+    'skull_splitter', 'crimson_execution', 'war_god_roar', 'adamant_counter', 'heaven_crushing_descent'],
+  lv80Targets: ['great_cleave', 'shield_bash', 'ground_slam', 'armor_breaker', 'twin_fang_slash', 'relentless_combo'],
 };
 
 export function registryMap() {
@@ -54,6 +65,21 @@ export function skillSource(id, map = registryMap()) {
   if (!cls) return null;
   const rel = 'src/skills/' + cls + '.js';
   return srcExists(rel) ? readSrc(rel) : null;
+}
+
+// M8-C: 進化が基礎 active のクラスを継承する場合があるため、`extends` を辿って祖先のソースも連結する。
+// 「継承で満たしている実装」を未実装と誤検出しないための共通ヘルパ。
+export function skillSourceDeep(id, map = registryMap()) {
+  const cls = map[id];
+  if (!cls) return null;
+  const collect = (name, depth = 0) => {
+    const rel = 'src/skills/' + name + '.js';
+    if (!srcExists(rel) || depth > 4) return '';
+    const body = readSrc(rel);
+    const m = body.match(/export class \w+ extends (\w+)/);
+    return m ? body + '\n' + collect(m[1], depth + 1) : body;
+  };
+  return collect(cls);
 }
 
 // DataManager.draftCatalog() 相当（production の SkillDraftManager がそのまま食える形）。
@@ -197,7 +223,11 @@ export function makeScene(opts = {}) {
     const key = String(id || '');
     let st = scene._warriorSkillStats[key];
     if (!st) {
-      st = { meleeHits: 0, physicalDamage: 0, knockbacks: 0, poiseDamage: 0, eliteStaggers: 0, bossStanceBreaks: 0, comboGain: 0, furyGain: 0 };
+      st = {
+        meleeHits: 0, physicalDamage: 0, knockbacks: 0, poiseDamage: 0, eliteStaggers: 0, bossStanceBreaks: 0,
+        comboGain: 0, furyGain: 0,
+        executions: 0, counters: 0, pullDistance: 0, retargets: 0, movementDistance: 0,
+      };
       scene._warriorSkillStats[key] = st;
     }
     return st;
@@ -211,6 +241,11 @@ export function makeScene(opts = {}) {
     const half = (o.arc != null ? o.arc : Math.PI * 2) / 2;
     const full = half >= Math.PI - 1e-6;
     const w = scene.warrior;
+    // M8-C: 1 発動あたりの処刑数の上限（production と同じ）。
+    let executes = 0;
+    const execCap = o.execute
+      ? Math.min(o.maxExecutes != null ? o.maxExecutes : Infinity, capFor('maxExecutesPerCast', quality, 3))
+      : 0;
     let hits = 0;
     for (const e of targetsInRadius(o.x, o.y, radius)) {
       if (hits >= cap) { scene._m.suppressed++; break; }
@@ -224,7 +259,20 @@ export function makeScene(opts = {}) {
       }
       if (o.hitSet) o.hitSet.add(e);
       hits += 1;
-      const dmg = (o.damage || 0) * (w ? w.meleeDamageMultiplier(e) : 1);
+      let dmg = (o.damage || 0) * (w ? w.meleeDamageMultiplier(e) : 1);
+      // M8-C: 硬い相手への追加倍率。
+      if (o.toughBonus && (e.isElite || e.isBoss)) dmg *= (1 + o.toughBonus);
+      // M8-C: 処刑（通常敵のみ即死しうる。エリート/ボスは追加ダメージ倍率だけ）。
+      if (o.execute && w) {
+        const pol = w.executePolicy(e, o.execute);
+        if (pol.canExecute && executes < execCap) {
+          executes += 1;
+          scene.executeTarget(e, o.skillId, { from: { x: o.x, y: o.y } });
+          continue;
+        }
+        if (!pol.canExecute && pol.reason !== 'invalid') w.noteExecute(false, 0);
+        dmg *= pol.damageMult;
+      }
       calls.push(['melee', o.skillId, e, dmg, o.castKey]);
       if (scene.skills) { scene.skills.recordDamage(o.skillId, dmg); scene.skills.recordHit(o.skillId); }
       const died = e.takeDamage(dmg);
@@ -255,15 +303,102 @@ export function makeScene(opts = {}) {
     return { hits };
   };
 
+  // M8-C: 処刑の共通経路（残り HP ぶんのダメージ＝死亡イベントを二重に出さない）。
+  scene.executeTarget = (e, skillId) => {
+    if (!e || !e.alive || e.isBoss || e.isElite) return false;
+    const remain = Math.max(0, e.hp || 0);
+    const died = e.takeDamage(remain);
+    if (scene.skills) { scene.skills.recordDamage(skillId, remain); scene.skills.recordHit(skillId); }
+    if (scene.warrior) scene.warrior.noteExecute(died, 0);
+    if (died) {
+      const ws = warriorSkillStat(skillId);
+      ws.executions = (ws.executions || 0) + 1;
+      if (scene.warrior) { scene.warrior.noteKill(e); scene.warrior.onEnemyRemoved(e); }
+      if (scene.skills) scene.skills.dispatchKill(e, skillId);
+    }
+    return died;
+  };
+
+  // M8-C: 反撃の調停（production の BattleScene.onWarriorHit と同じ流れ）。
+  scene.onWarriorHit = (raw, applied) => {
+    const w = scene.warrior;
+    if (!w || !w.enabled || scene._inWarriorCounter) return null;
+    const pick = w.consumeCounterEvent();
+    if (!pick) return null;
+    let done = null;
+    scene._inWarriorCounter = true;
+    try {
+      for (const sk of scene.skills.skills.values()) {
+        if (sk.counterSource !== pick.source) continue;
+        if (typeof sk.performCounter !== 'function') continue;
+        done = sk.performCounter(raw, applied) ? pick.source : null;
+        break;
+      }
+    } finally { scene._inWarriorCounter = false; }
+    if (done) { const ws = warriorSkillStat(done); ws.counters = (ws.counters || 0) + 1; }
+    return done;
+  };
+
   scene.combat = {
     meleeStrike: (o) => scene.meleeStrike(o),
     warrior: () => scene.warrior,
+    // M8-C: Wave1 の共通経路。
+    preferredMeleeTarget: (x, y, range, mode) => {
+      const cand = targetsInRadius(x, y, Math.max(1, range || 0));
+      if (mode !== 'tough' && mode !== 'lowHp') return scene.combat.nearestEnemy(x, y, range);
+      let best = null, bestScore = -Infinity;
+      for (const e of cand) {
+        if (!e || !e.alive) continue;
+        const dd = Math.hypot(e.x - x, e.y - y);
+        const score = mode === 'tough'
+          ? ((e.isBoss ? 2000000 : (e.isElite ? 1000000 : 0)) - dd)
+          : ((1 - (e.maxHp > 0 ? e.hp / e.maxHp : 1)) * 1000000 - dd);
+        if (score > bestScore) { bestScore = score; best = e; }
+      }
+      return best || scene.combat.nearestEnemy(x, y, range);
+    },
+    executeTarget: (e, skillId, opts) => scene.executeTarget(e, skillId, opts),
+    pullTarget: (e, opts = {}) => {
+      if (!e || !e.alive || e.isBoss) return 0;
+      const p = scene.player;
+      const dx = p.x - e.x, dy = p.y - e.y;
+      const dd = Math.hypot(dx, dy);
+      if (!(dd > 1e-3)) return 0;
+      const want = Math.max(0, Math.min(opts.distance || 0, dd - (opts.stopAt || 0)));
+      if (want <= 0) return 0;
+      const nx = e.x + (dx / dd) * want, ny = e.y + (dy / dd) * want;
+      if (!Number.isFinite(nx) || !Number.isFinite(ny)) return 0;
+      e.x = Math.max(24, Math.min(scene.worldW - 24, nx));
+      e.y = Math.max(24, Math.min(scene.worldH - 24, ny));
+      e._kb = 0;
+      if (scene.warrior) scene.warrior.noteMovement('chainPull', want);
+      return want;
+    },
+    movePlayerTowards: (x, y, distance) => {
+      const p = scene.player;
+      const dx = x - p.x, dy = y - p.y;
+      const dd = Math.hypot(dx, dy);
+      if (!(dd > 1e-3)) return 0;
+      const step = Math.max(0, Math.min(distance || 0, dd));
+      const nx = p.x + (dx / dd) * step, ny = p.y + (dy / dd) * step;
+      if (!Number.isFinite(nx) || !Number.isFinite(ny)) return 0;
+      p.x = Math.max(24, Math.min(scene.worldW - 24, nx));
+      p.y = Math.max(24, Math.min(scene.worldH - 24, ny));
+      return step;
+    },
+    bossTelegraphing: () => !!(scene.boss && scene.boss.alive && (scene.boss.state === 'telegraph' || scene.boss.state === 'charge')),
+    // production の BattleScene.nearestTarget と同じく、ボスも候補に含める。
     nearestEnemy: (x, y, r) => {
       let best = null, bd = Infinity;
       for (const e of enemies) {
         if (!e.alive) continue;
         const d = (e.x - x) * (e.x - x) + (e.y - y) * (e.y - y);
         if (d <= (r || 0) * (r || 0) && d < bd) { bd = d; best = e; }
+      }
+      if (scene.boss && scene.boss.alive) {
+        const b = scene.boss;
+        const d = (b.x - x) * (b.x - x) + (b.y - y) * (b.y - y);
+        if (d <= (r || 0) * (r || 0) && d < bd) { bd = d; best = b; }
       }
       return best;
     },

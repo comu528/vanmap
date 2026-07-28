@@ -948,3 +948,105 @@ node tests/status-passive-save-reload.mjs
 node tests/status-passive-job-isolation.mjs
 node tests/status-passive-nonregression.mjs
 ```
+
+---
+
+## Milestone 8-C: 戦士スキル拡張 Wave1（実ブラウザ確認）
+
+本環境では Phaser を起動できないため、以下は**未実施**。実ブラウザで確認すること。
+前提: 拠点で **戦士** を選択し、`?debug=1` を付けて開く（F9 の戦士検証パネルが使える）。
+
+### A. カタログ規模と抽選
+
+- [ ] レベルアップ候補に M8-C の新 active が出る
+      （兜割り / 双牙斬 / 処刑斬 / 跳躍強襲 / 薙ぎ進軍 / 迎撃の構え / 戦吼 / 鎖鉤 / 震脚 / 怒涛連撃）
+- [ ] 火 / 氷のスキルが戦士の候補に **1 件も出ない**（逆も同様）
+- [ ] F9 の「検証active」切替で 15 種すべてを選べる
+- [ ] F9 の「選択activeの進化条件を達成」で 8 進化すべてを形成できる
+
+### B. 近接であること（最重要）
+
+- [ ] 新 active10 のいずれも**画面を横断する斬撃波・弾を出さない**
+- [ ] 遠くの敵（画面端）には当たらない（鎖鉤の鉤・跳躍・進軍は自分が近づいた結果として当たる）
+- [ ] 震脚の衝撃波は大きく見えるが、**当たるのは足元だけ**
+
+### C. 処刑（execution_strike / crimson_execution）
+
+- [ ] F9「最寄り通常敵を処刑圏内（HP10%）へ」→ 処刑斬で**一撃で倒れる**
+- [ ] F9「最寄りエリート/ボスを HP5% へ」→ 処刑斬を当てても**倒れない**（ダメージは通る）
+- [ ] ボスに当て続けても、追加ダメージが青天井にならない（HP バーの減りが加速し続けない）
+- [ ] 雑魚が大量に瀕死でも、処刑が連鎖して画面が一瞬で空にならない（1 秒あたりの上限）
+- [ ] 血気を取った状態で処刑しても、HP が無限に回復しない
+
+### D. 反撃の調停（counter_stance / adamant_counter / unyielding_fortress）
+
+- [ ] 迎撃の構えを取り、F9「反撃の構えを開く」→ 被弾で 1 回だけ反撃が出る
+- [ ] 3 系統すべてを持った状態で被弾 → **反撃演出は 1 つだけ**（同時に複数出ない）
+- [ ] 金剛迎撃を持っているときは、金剛迎撃の反撃が優先して出る
+- [ ] 連続で被弾しても反撃が毎回は出ない（全体クールダウン）
+- [ ] 構え中でもダメージは通る（**完全無敵にならない**）
+
+### E. 戦吼 / 軍神咆哮
+
+- [ ] 戦吼で自分の周りに衝撃が出て、通常敵が押し返される
+- [ ] HUD / F9 でバフの残り時間が減っていき、時間で確実に切れる
+- [ ] F9「戦吼バフ付与/解除」を連打しても、バフの強度が**積み上がらない**
+- [ ] コンボが途切れかけているときに軍神咆哮を撃つと猶予が戻るが、**コンボ値は増えない**
+- [ ] 状態異常アイコン（F10 の一覧）に戦吼のアイコンが**増えていない**
+
+### F. 移動系（leap_smash / sweeping_advance / chain_hook / heaven_crushing_descent）
+
+- [ ] 跳躍強襲で密集へ跳び込み、着地で周囲を殴る。**壁の外へ出ない**
+- [ ] 跳躍中に被弾してもダメージは通る（軽減はされるが無敵ではない）
+- [ ] ボスが予告 / 突進中は、その真正面へ跳び込まない（少し逸れる）
+- [ ] 薙ぎ進軍で**歩きながら**左右交互に薙ぐ（一点への突進ではない）
+- [ ] 鎖鉤: 通常敵は手前へ引き寄せられる。**引き寄せは滑らかで瞬間移動しない**
+- [ ] 鎖鉤: エリートはほとんど動かない
+- [ ] 鎖鉤: **ボスは 1px も動かず**、代わりに自分が少し踏み込む
+- [ ] 天墜崩撃: 着地の直後に**もう 1 回だけ**大きな衝撃が出る
+- [ ] 天墜崩撃を取っても、**地砕きはスキル欄に残り**、地砕き自身の CD どおりに発動し続ける
+
+### G. Job Lv80
+
+- [ ] F9 で戦士 Job Lv を 80 にする → 大薙ぎ / 盾撃 / 地砕き / 兜割り / 双牙斬 / 怒涛連撃の**打撃が 1 回増える**
+- [ ] それ以外の active は打撃数が変わらない
+- [ ] **どのスキルも弾は増えない**
+
+### H. 保存 / 再開
+
+- [ ] 戦吼バフ中・構え中にタブを閉じ、「続きから」で再開 → バフ / 構えが**短くなって**復元される
+- [ ] 再開直後にスキルが**一斉に無料発動しない**（CD が残っている）
+- [ ] 跳躍 / 引き寄せ / 連撃の途中で保存 → 再開時に**勝手に着地衝撃や打撃が出ない**
+- [ ] 再開を何度繰り返しても闘気 / コンボ / 反撃回数が増えない
+
+### I. 品質設定（F10）
+
+- [ ] `low` に落としても新スキルが機能する（ダメージ・闘気・コンボが発生する）
+- [ ] `low` で演出が減っても、当たり判定の範囲は変わらない
+- [ ] F10 のパネル自体は M8-B から**変わっていない**
+
+### J. F8 / F9 / エラー
+
+- [ ] F8 の戦士分析に「戦士カタログ」「戦士 Wave1（実動作カウンタ）」が表示される
+- [ ] F9 の戦士検証パネルに 戦吼 / 反撃の調停 / 処刑 / 移動 の各セクションが出る
+- [ ] コンソールに JS エラーが出ない（取得時・進化時・保存/再開時・ジョブ切替時）
+- [ ] 火の魔女 / 氷術師の周回が従来どおり遊べる（挙動・演出とも変化がない）
+
+### 自動テスト（本環境で実施済み）
+
+```
+node tests/validate-data.mjs
+node tests/warrior-wave1-catalog.mjs        node tests/warrior-counter-arbitration.mjs
+node tests/warrior-wave1-pool.mjs           node tests/warrior-war-cry.mjs
+node tests/warrior-wave1-draft.mjs          node tests/warrior-chain-hook.mjs
+node tests/warrior-wave1-evolutions.mjs     node tests/warrior-relentless-combo.mjs
+node tests/warrior-armor-breaker.mjs        node tests/warrior-wave1-job80.mjs
+node tests/warrior-execution.mjs            node tests/warrior-wave1-runtime-save.mjs
+node tests/warrior-leap.mjs                 node tests/warrior-wave1-determinism.mjs
+node tests/warrior-sweeping.mjs             node tests/warrior-wave1-quality-cap.mjs
+                                            node tests/warrior-wave1-cleanup.mjs
+                                            node tests/warrior-wave1-telemetry.mjs
+                                            node tests/three-job-wave1-nonregression.mjs
+```
+
+`HEAVY=1` を付けると seed 数・実行回数を増やした詳細計測になる。

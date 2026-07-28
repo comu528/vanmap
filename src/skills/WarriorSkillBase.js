@@ -15,6 +15,7 @@
 import { SkillBase } from './SkillBase.js';
 import { EvolvedSkillBase } from './EvolvedSkillBase.js';
 import { appliesLv80ProjectileCount } from '../systems/SkillAudit.js';
+import { DataManager } from '../systems/DataManager.js';
 
 function facingFor(scene, range) {
   const p = scene.player;
@@ -93,6 +94,39 @@ for (const proto of [WarriorSkillBase.prototype, WarriorEvolvedBase.prototype]) 
   for (const [k, v] of Object.entries(Object.getOwnPropertyDescriptors(warriorMixin))) {
     if (!(k in proto)) Object.defineProperty(proto, k, v);
   }
+}
+
+// M8-C: 「基礎 active のクラスを再利用しつつ、data は進化定義（evoDef）を使う」ための共通ミックスイン。
+// 跳躍・構え・咆哮のように進化が基礎とほぼ同じ挙動を持つ場合、ロジックを複製せず継承したうえで
+// data の読み先だけを進化定義へ差し替える。EvolvedSkillBase と同じ意味論（Lv 固定・safetyCaps・
+// evoDef.cooldown での発火）を与える。
+export function applyEvolvedSemantics(cls) {
+  const proto = cls.prototype;
+  Object.defineProperty(proto, 'evoDef', {
+    configurable: true,
+    get() { return DataManager.getEvolution(this.id) || {}; },
+  });
+  Object.defineProperty(proto, 'baseSkillId', {
+    configurable: true,
+    get() { return this.evoDef.baseSkillId; },
+  });
+  Object.defineProperty(proto, 'isEvolved', { configurable: true, get() { return true; } });
+  Object.defineProperty(proto, 'name', {
+    configurable: true,
+    get() { return this.evoDef.displayName || this.id; },
+  });
+  Object.defineProperty(proto, 'maxLevel', { configurable: true, get() { return 1; } });
+  // 進化は単一形態。cooldown だけを SkillBase.update が読めるよう合成した stats を返す
+  // （ダメージ等は各クラスが evoDef から直接読む）。
+  const evoStats = { configurable: true, get() { return { cooldown: this.evoDef.cooldown ?? 1000 }; } };
+  Object.defineProperty(proto, 'rawStats', evoStats);
+  Object.defineProperty(proto, 'stats', evoStats);
+  proto.cap = function cap(key, fallback) {
+    const v = this.evoDef.safetyCaps?.[key];
+    return (typeof v === 'number') ? v : fallback;
+  };
+  proto.evolvedBonus = function evolvedBonus() { return this.scene._evolvedBonuses?.[this.id] || {}; };
+  return cls;
 }
 
 export { facingFor };

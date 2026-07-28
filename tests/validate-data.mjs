@@ -572,7 +572,9 @@ if (jobProgData) {
   const ATTACK_MODES = new Set(['periodic', 'cooldown', 'continuous', 'resource']);
   const KNOWN_TAGS = new Set(['active', 'fire', 'projectile', 'area', 'explosion', 'dot', 'damageOverTime', 'burn', 'summon', 'beam', 'laser', 'melee', 'slash', 'defensive', 'reactive', 'barrier', 'shield', 'homing', 'chain', 'pierce', 'piercing', 'orbit', 'mark', 'combo', 'ground', 'fissure', 'movingArea', 'formation', 'zone', 'resonance', 'statusScaling', 'pulse', 'overheat', 'escalating', 'burst', 'highRisk', 'deathTriggered', 'delayed', 'trap', 'mine', 'ricochet', 'bouncing', 'clone', 'copy', 'sacrifice', 'projectileAbsorb', 'charge', 'screenEdge', 'wave', 'tether', 'control', 'pull', 'directional', 'spread', 'dash', 'movement', 'retaliation', 'revival', 'witch', 'ice', 'mage', 'slow', 'boomerang', 'placement', 'barrage', 'turret',
     // M8-B: 戦士（物理近接）のタグ
-    'physical', 'warrior', 'blunt', 'defense', 'spin', 'stance_break', 'knockback', 'cleave', 'counter', 'sustain']);
+    'physical', 'warrior', 'blunt', 'defense', 'spin', 'stance_break', 'knockback', 'cleave', 'counter', 'sustain',
+    // M8-C: 戦士 Wave1 のタグ
+    'execute', 'buff', 'pull', 'reactive']);
   const skillsArr = (skillsData && skillsData.skills) || [];
   const evosArr = (evoData && evoData.evolutions) || [];
   const actives = skillsArr.filter((s) => (s.category || 'active') === 'active');
@@ -1495,12 +1497,17 @@ if (jobProgData) {
   const frostJob = (jobsData?.jobs || []).find((j) => j.id === 'frost_mage');
   if (!warriorJob) err('M8-B: jobs.json に warrior が無い');
   else {
+    // M8-C（戦士スキル拡張 Wave1）で active5 → 15 / evolution3 → 8 へ拡張。passive は 4 のまま。
     const EXPECT = {
-      actives: ['great_cleave', 'shield_bash', 'whirlwind_slash', 'charge_slash', 'ground_slam'],
+      actives: ['great_cleave', 'shield_bash', 'whirlwind_slash', 'charge_slash', 'ground_slam',
+        'armor_breaker', 'twin_fang_slash', 'execution_strike', 'leap_smash', 'sweeping_advance',
+        'counter_stance', 'war_cry', 'chain_hook', 'shockwave_stomp', 'relentless_combo'],
       passives: ['brute_force', 'heavy_armor', 'combat_instinct', 'bloodlust'],
-      evolutions: ['thousand_blade_dance', 'bloodstorm_whirlwind', 'unyielding_fortress'],
+      evolutions: ['thousand_blade_dance', 'bloodstorm_whirlwind', 'unyielding_fortress',
+        'skull_splitter', 'crimson_execution', 'war_god_roar', 'adamant_counter', 'heaven_crushing_descent'],
+      lv80: ['great_cleave', 'shield_bash', 'ground_slam', 'armor_breaker', 'twin_fang_slash', 'relentless_combo'],
     };
-    // 1. カタログ規模（M8-B は active5 / passive4 / evolution3）。
+    // 1. カタログ規模（M8-C は active15 / passive4 / evolution8）。
     if ((warriorJob.activeSkillPool || []).join(',') !== EXPECT.actives.join(',')) err(`M8-B: 戦士 activeSkillPool が期待と違う（${(warriorJob.activeSkillPool || []).join(',')}）`);
     if ((warriorJob.passiveSkillPool || []).join(',') !== EXPECT.passives.join(',')) err(`M8-B: 戦士 passiveSkillPool が期待と違う`);
     if ((warriorJob.evolutionPool || []).join(',') !== EXPECT.evolutions.join(',')) err(`M8-B: 戦士 evolutionPool が期待と違う`);
@@ -1561,8 +1568,20 @@ if (jobProgData) {
       if (e.echoPolicy !== 'forbidden' || e.clonePolicy !== 'forbidden') err(`M8-B: ${id} は残響/分身を forbidden にする`);
       if (e.lv80ProjectileTarget !== false) err(`M8-B: ${id} は Lv80 打撃数の対象外にする`);
       if (!e.safetyCaps || Object.keys(e.safetyCaps).length === 0) err(`M8-B: ${id} に safetyCaps が無い`);
+      // 補助は戦士の passive プール、または戦士の active プール（M8-C: 天墜崩撃 = 地砕き Lv6）。
+      // active 補助の場合は必要 Lv を data で明示し、その active が置換されないことを保証する。
       for (const req of e.requiredSkills || []) {
-        if (!(warriorJob.passiveSkillPool || []).includes(req.skill)) err(`M8-B: ${id} の補助 ${req.skill} が戦士 passive プールに無い`);
+        const inPassive = (warriorJob.passiveSkillPool || []).includes(req.skill);
+        const inActive = (warriorJob.activeSkillPool || []).includes(req.skill);
+        if (!inPassive && !inActive) err(`M8-B/M8-C: ${id} の補助 ${req.skill} が戦士のプールに無い`);
+        if (typeof req.level !== 'number' || req.level < 1) err(`M8-C: ${id} の補助 ${req.skill} の必要 Lv が data で明示されていない`);
+        if (inActive) {
+          const sup = (skillsData?.skills || []).find((x) => x.id === req.skill);
+          if (sup && req.level > (sup.maxLevel || 1)) err(`M8-C: ${id} の補助 active ${req.skill} の必要 Lv${req.level} が maxLevel を超える`);
+          // active 補助は置換されない（進化の replacement は base だけ）。
+          if (e.replacementSkillId === req.skill) err(`M8-C: ${id} が補助 active ${req.skill} を置換している`);
+          if (e.baseSkillId === req.skill) err(`M8-C: ${id} の base と補助 active が同じ（${req.skill}）`);
+        }
       }
       const base = (skillsData?.skills || []).find((s) => s.id === e.baseSkillId);
       if (base && !(base.evolutionBranches || []).includes(id)) err(`M8-B: ${e.baseSkillId} の evolutionBranches に ${id} が無い`);
@@ -1607,7 +1626,14 @@ if (jobProgData) {
     // 6. M8-B で追加した skillCaps（4 品質・単調・正・実装から参照）。
     const M8B_CAPS = ['maxMeleeTargetsPerHit', 'maxSpinTicksPerFrame', 'maxChargeHits', 'maxCounterHits',
       'maxBladeDanceStrikes', 'maxWarriorSlams', 'maxMeleeArcVisuals', 'maxSlashTrails', 'maxSpinVisuals',
-      'maxDashTrails', 'maxGroundDebris', 'maxWarriorHitSparks', 'maxPoiseIndicators'];
+      'maxDashTrails', 'maxGroundDebris', 'maxWarriorHitSparks', 'maxPoiseIndicators',
+      // M8-C（Wave1）で追加した damage/event 上限 9 種と演出上限 11 種。
+      'maxOverheadStrikes', 'maxTwinFangStrikes', 'maxExecutesPerCast', 'maxLeapImpacts',
+      'maxSweepStrikesPerFrame', 'maxCounterWindows', 'maxChainPullsPerCast',
+      'maxRelentlessStrikes', 'maxRelentlessRetargets',
+      'maxOverheadSlashVisuals', 'maxTwinSlashVisuals', 'maxExecuteMarkers', 'maxLeapTrails',
+      'maxLandingDebris', 'maxSweepTrails', 'maxCounterFlashes', 'maxWarCryRings',
+      'maxChainHookLines', 'maxStompDebris', 'maxRelentlessSparks'];
     for (const n of M8B_CAPS) {
       const c = balance?.skillCaps?.[n];
       if (!c) { err(`M8-B: skillCaps.${n} が無い`); continue; }
@@ -1615,6 +1641,19 @@ if (jobProgData) {
         if (!(typeof c[q] === 'number' && Number.isInteger(c[q]) && c[q] > 0)) err(`M8-B: skillCaps.${n}.${q} が正の整数でない`);
       }
       if (!(c.low <= c.medium && c.medium <= c.high && c.high <= c.ultra)) err(`M8-B: skillCaps.${n} が品質順で単調でない`);
+    }
+
+    // 6b. Job Lv80「打撃数+1」対象は明示 flag の 6 種だけ（M8-C で 3 → 6 へ）。
+    {
+      const lv80 = (warriorJob.activeSkillPool || []).filter((id) => {
+        const sk = (skillsData?.skills || []).find((x) => x.id === id);
+        return sk && sk.lv80ProjectileTarget === true;
+      });
+      if (lv80.join(',') !== EXPECT.lv80.join(',')) err(`M8-C: 戦士の Lv80 対象が期待と違う（${lv80.join(',')}）`);
+      for (const id of warriorJob.evolutionPool || []) {
+        const e = (evoData?.evolutions || []).find((x) => x.id === id);
+        if (e && e.lv80ProjectileTarget !== false) err(`M8-C: 進化 ${id} は Lv80 対象外にする`);
+      }
     }
 
     // 7. job-progression.json（warrior）。
@@ -1632,17 +1671,27 @@ if (jobProgData) {
       const smSrc = readFileSync(join(__dirname, '..', 'src', 'systems', 'SkillManager.js'), 'utf8');
       const reg = {};
       for (const m of smSrc.matchAll(/([a-z0-9_]+):\s*([A-Za-z0-9_]+Skill),/g)) reg[m[1]] = m[2];
+      // M8-C: 進化が基礎 active のクラスを継承する場合があるため、`extends` を辿って
+      // 祖先クラスのソースも連結して見る（継承で満たしている実装を「未実装」と誤検出しない）。
+      const srcWithAncestors = (cls, depth = 0) => {
+        const f = join(__dirname, '..', 'src', 'skills', cls + '.js');
+        if (!existsSync(f) || depth > 4) return '';
+        const body = readFileSync(f, 'utf8');
+        const m = body.match(/export class \w+ extends (\w+)/);
+        return m ? body + '\n' + srcWithAncestors(m[1], depth + 1) : body;
+      };
       for (const id of [...(warriorJob.activeSkillPool || []), ...(warriorJob.evolutionPool || [])]) {
         if (!reg[id]) { err(`M8-B: ${id} の実装クラスが SkillManager の REGISTRY に無い`); continue; }
         const file = join(__dirname, '..', 'src', 'skills', reg[id] + '.js');
         if (!existsSync(file)) { err(`M8-B: ${id} の実装ファイル ${reg[id]}.js が無い`); continue; }
-        const src = readFileSync(file, 'utf8');
+        const own = readFileSync(file, 'utf8');
+        const src = srcWithAncestors(reg[id]); // 継承も含めた実装の全体
         if (!/serializeState\s*\(/.test(src) || !/restoreState\s*\(/.test(src)) err(`M8-B: ${id} が serializeState / restoreState を実装していない`);
         if (!/cdLeft/.test(src)) err(`M8-B: ${id} がクールダウンを保存していない`);
         if (!/destroy\s*\(\s*\)\s*\{/.test(src)) err(`M8-B: ${id} が destroy を実装していない`);
-        if (/echoCast|cloneCast/.test(src)) err(`M8-B: ${id} は残響/分身の実装を持たない`);
-        if (/enemyPool\.forEachActive/.test(src)) err(`M8-B: ${id} が全敵を総当たりしている（meleeStrike / SpatialGrid を使う）`);
-        if (/Math\.random\s*\(|Date\.now\s*\(|performance\.now\s*\(/.test(src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1'))) {
+        if (/echoCast|cloneCast/.test(own)) err(`M8-B: ${id} は残響/分身の実装を持たない`);
+        if (/enemyPool\.forEachActive/.test(own)) err(`M8-B: ${id} が全敵を総当たりしている（meleeStrike / SpatialGrid を使う）`);
+        if (/Math\.random\s*\(|Date\.now\s*\(|performance\.now\s*\(/.test(own.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1'))) {
           err(`M8-B: ${id} が乱数 / 実時間へ依存している（決定論違反）`);
         }
       }
@@ -1657,7 +1706,7 @@ if (jobProgData) {
       for (const id of warriorJob.evolutionPool || []) {
         const e = (evoData?.evolutions || []).find((x) => x.id === id);
         if (!e || !reg[id]) continue;
-        const src = readFileSync(join(__dirname, '..', 'src', 'skills', reg[id] + '.js'), 'utf8');
+        const src = srcWithAncestors(reg[id]);
         for (const key of Object.keys(e.safetyCaps || {})) {
           if (!src.includes(`'${key}'`) && !src.includes(`"${key}"`)) err(`M8-B: ${id} の safetyCaps.${key} が実装から参照されていない（死にフィールド）`);
         }
@@ -1672,7 +1721,7 @@ if (jobProgData) {
       for (const id of warriorJob.activeSkillPool || []) {
         const s = (skillsData?.skills || []).find((x) => x.id === id);
         if (!s || !reg[id]) continue;
-        const src = readFileSync(join(__dirname, '..', 'src', 'skills', reg[id] + '.js'), 'utf8');
+        const src = srcWithAncestors(reg[id]);
         // level / cooldown は SkillBase（共通基底）が消費するため、各スキルクラス側の参照は求めない。
         const baseHandled = new Set(['level', 'cooldown']);
         for (const key of Object.keys(s.levels?.[0] || {})) {

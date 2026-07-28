@@ -770,6 +770,13 @@ export class BattleScene extends Phaser.Scene {
       // M8-B: 戦士の近接攻撃の共通経路。arc 判定 → ダメージ → ノックバック → 体勢削り → 闘気/コンボを 1 か所で行う。
       meleeStrike: (o) => this.meleeStrike(o),
       warrior: () => this.warrior,
+      // M8-C: 戦士 Wave1 の共通経路（スキルは Scene の内部状態を直接いじらない）。
+      preferredMeleeTarget: (x, y, range, mode) => this.preferredMeleeTarget(x, y, range, mode),
+      executeTarget: (e, skillId, opts) => this.executeTarget(e, skillId, opts),
+      pullTarget: (e, opts) => this.pullTarget(e, opts),
+      movePlayerTowards: (x, y, distance) => this.movePlayerTowards(x, y, distance),
+      bossTelegraphing: () => !!(this.boss && this.boss.alive && (this.boss.state === 'telegraph' || this.boss.state === 'charge')),
+      warriorPullConfig: () => (DataManager.balance.warrior && DataManager.balance.warrior.pull) || {},
       // 同一発動を識別する ID（凍結判定回数の上限に使う。多段攻撃で同じ敵を毎tick凍結しない）。
       nextHitGroupId: () => this.nextHitGroupId(),
     };
@@ -1329,8 +1336,8 @@ export class BattleScene extends Phaser.Scene {
     const cfgR = (DataManager.balance.warrior?.mitigation?.engagedRadius) ?? 96;
     // 接敵判定は SpatialGrid の近傍数え上げ（総当たり禁止）。
     const engaged = !!this.nearestTarget(p.x, p.y, cfgR);
-    // スキル由来の一時軽減（盾撃・不屈の城塞のバフ窓、突進斬りの突進中）。
-    let extra = 0;
+    // スキル由来の一時軽減（盾撃・不落の城塞のバフ窓、突進斬りの突進中、M8-C の構え）。
+    let extra = w.counterMitigation(); // M8-C: 開いている構えの軽減（合算せず最大値）
     let charging = false;
     for (const sk of this.skills.skills.values()) {
       if (typeof sk.activeMitigation === 'function') extra = Math.max(extra, sk.activeMitigation() || 0);
@@ -1338,16 +1345,38 @@ export class BattleScene extends Phaser.Scene {
       if (sk.charging) charging = true;
     }
     const out = w.applyIncomingDamage(amount, { engaged, charging, extra });
-    // 反応スキル（不屈の城塞の反撃）へ被弾を通知する。
+    // 反応スキル（不落の城塞 / 迎撃の構え / 金剛迎撃）へ被弾を通知する。
     this.onWarriorHit(amount, out);
     return out;
   }
 
-  // 被弾フック（反応スキルへの通知のみ。ダメージ計算はしない）。
+  // M8-C: 被弾フック。**1 被弾イベントにつき反撃は最大 1 系統**になるよう、
+  // どの系統が反撃するかの決定を WarriorCombatSystem.consumeCounterEvent() へ一元化する。
+  // ここで選ばれた 1 つだけが performCounter() を実行し、他は何もしない。
+  // 反撃の中からこのフックは呼ばれない（反撃は dealDamage 経由で敵へ当たるだけ）ため再帰しない。
   onWarriorHit(raw, applied) {
-    for (const sk of this.skills.skills.values()) {
-      if (typeof sk.onPlayerHit === 'function') sk.onPlayerHit(raw, applied);
+    const w = this.warrior;
+    if (!w || !w.enabled) return null;
+    if (this._inWarriorCounter) return null; // 念のための再入ガード
+    const pick = w.consumeCounterEvent();
+    if (!pick) return null;
+    let done = null;
+    this._inWarriorCounter = true;
+    try {
+      for (const sk of this.skills.skills.values()) {
+        if (sk.counterSource !== pick.source) continue;
+        if (typeof sk.performCounter !== 'function') continue;
+        done = sk.performCounter(raw, applied) ? pick.source : null;
+        break;
+      }
+    } finally {
+      this._inWarriorCounter = false;
     }
+    if (done) {
+      const ws = this._warriorSkillStat(done);
+      ws.counters = (ws.counters || 0) + 1;
+    }
+    return done;
   }
 
   // 戦士イベント（HUD 表示・演出のフック）。ロジックへは影響しない。
@@ -1370,7 +1399,8 @@ export class BattleScene extends Phaser.Scene {
 
   // 近接 arc 判定の共通経路。SpatialGrid で候補を絞り、arc 内の敵だけへ適用する。
   // o: { x, y, radius, arc, facing, damage, skillId, castKey, knockback, poiseDamage,
-  //      comboGain, furyGain, tags, color, hitSet, poiseOnceSet, maxTargets, visualIndex, debris }
+  //      comboGain, furyGain, tags, color, hitSet, poiseOnceSet, maxTargets, visualIndex, debris,
+  //      toughBonus, execute, maxExecutes, visualCap }（後半は M8-C）
   meleeStrike(o) {
     if (!o || this.gameOver) return { hits: 0 };
     const radius = Math.max(1, o.radius || 0);
@@ -1383,6 +1413,12 @@ export class BattleScene extends Phaser.Scene {
     const w = this.warrior;
     const hitGroupId = ++this._warriorHitGroup;
     let hits = 0;
+    // M8-C: 1 発動あたりの処刑数の上限（品質別 cap とスキル指定の小さい方）。
+    let executes = 0;
+    const execCap = o.execute
+      ? Math.min(o.maxExecutes != null ? o.maxExecutes : Infinity,
+        DataManager.skillCap('maxExecutesPerCast', this.settings?.effectQuality || 'high', 3))
+      : 0;
     const candidates = this.targetsInRadius(o.x, o.y, radius);
     for (const e of candidates) {
       if (hits >= cap) { this._m.suppressed++; break; }
@@ -1397,7 +1433,21 @@ export class BattleScene extends Phaser.Scene {
       if (o.hitSet) o.hitSet.add(e);
       hits += 1;
       // ダメージ（physical・戦士の近接倍率つき）。
-      const dmg = (o.damage || 0) * (w ? w.meleeDamageMultiplier(e) : 1);
+      let dmg = (o.damage || 0) * (w ? w.meleeDamageMultiplier(e) : 1);
+      // M8-C: 硬い相手（エリート/ボス）への追加倍率（兜割り系）。
+      if (o.toughBonus && (e.isElite || e.isBoss)) dmg *= (1 + o.toughBonus);
+      // M8-C: 処刑。可否は WarriorCombatSystem が判断し、通常敵だけが即死しうる。
+      // エリート/ボスは damageMult（失った HP に応じた追加ダメージ）だけを受け取る。
+      if (o.execute && w) {
+        const pol = w.executePolicy(e, o.execute);
+        if (pol.canExecute && executes < execCap) {
+          executes += 1;
+          this.executeTarget(e, o.skillId, { tags: o.tags, color: o.color, from: { x: o.x, y: o.y }, hitGroupId });
+          continue; // 処刑した対象へは通常ダメージを重ねない（撃破処理の二重化を防ぐ）
+        }
+        if (!pol.canExecute && pol.reason !== 'invalid') w.noteExecute(false, 0);
+        dmg *= pol.damageMult;
+      }
       const died = this.dealDamage(e, dmg, o.skillId, {
         element: 'physical', damageTags: o.tags || ['melee'], color: o.color || 0xffd54f,
         from: { x: o.x, y: o.y }, hitGroupId, isMelee: true,
@@ -1440,16 +1490,116 @@ export class BattleScene extends Phaser.Scene {
     this._warriorSkillStats = this._warriorSkillStats || Object.create(null);
     let st = this._warriorSkillStats[key];
     if (!st) {
-      st = { meleeHits: 0, physicalDamage: 0, knockbacks: 0, poiseDamage: 0, eliteStaggers: 0, bossStanceBreaks: 0, comboGain: 0, furyGain: 0 };
+      st = {
+        meleeHits: 0, physicalDamage: 0, knockbacks: 0, poiseDamage: 0, eliteStaggers: 0, bossStanceBreaks: 0,
+        comboGain: 0, furyGain: 0,
+        // M8-C: Wave1 のスキル別統計。
+        executions: 0, counters: 0, pullDistance: 0, retargets: 0, movementDistance: 0,
+      };
       this._warriorSkillStats[key] = st;
     }
     return st;
   }
 
+  // M8-C: 対象の選び方（近接スキルが「誰を狙うか」を宣言できる共通経路）。
+  //   'tough'  … エリート/ボスを優先（兜割り）。いなければ最寄りの通常敵。
+  //   'lowHp'  … HP 割合が最も低い対象を優先（処刑斬）。
+  //   既定      … 最寄り（nearestTarget と同じ）。
+  // いずれも SpatialGrid 経由の候補だけを見る（全敵総当たりをしない）。
+  preferredMeleeTarget(x, y, range, mode) {
+    const r = Math.max(1, range || 0);
+    if (mode !== 'tough' && mode !== 'lowHp') return this.nearestTarget(x, y, r);
+    const cand = this.targetsInRadius(x, y, r);
+    let best = null, bestScore = -Infinity;
+    for (const e of cand) {
+      if (!e || !e.alive) continue;
+      const d = distance(x, y, e.x, e.y);
+      let score;
+      if (mode === 'tough') {
+        // エリート/ボスを最優先。同種なら近い方（距離は減点）。
+        const rank = e.isBoss ? 2000000 : (e.isElite ? 1000000 : 0);
+        score = rank - d;
+      } else {
+        // HP 割合が低いほど高得点。同率なら近い方。
+        const ratio = e.maxHp > 0 ? e.hp / e.maxHp : 1;
+        score = (1 - ratio) * 1000000 - d;
+      }
+      if (score > bestScore) { bestScore = score; best = e; }
+    }
+    return best || this.nearestTarget(x, y, r);
+  }
+
+  // M8-C: 処刑（通常敵のみ）。即死用の別 API を作らず、残り HP ぶんのダメージを共通経路へ流す。
+  // これにより死亡イベント・撃破統計・撃破回復・進化の撃破フックが**二重に走らない**。
+  // エリート / ボスは WarriorCombatSystem.executePolicy が canExecute=false を返すため、ここへは来ない。
+  executeTarget(e, skillId, opts = {}) {
+    if (!e || !e.alive || e.isBoss || e.isElite) return false;
+    const w = this.warrior;
+    const remain = Math.max(0, e.hp || 0);
+    const died = this.dealDamage(e, remain, skillId, {
+      element: 'physical', damageTags: opts.tags || ['melee', 'execute'],
+      color: opts.color || 0xef5350, from: opts.from || { x: this.player.x, y: this.player.y },
+      hitGroupId: opts.hitGroupId, isMelee: true, isExecute: true,
+    });
+    if (w) w.noteExecute(died, 0); // 残り HP ぴったりなので overkill は 0
+    if (died) {
+      const ws = this._warriorSkillStat(skillId);
+      ws.executions = (ws.executions || 0) + 1;
+    }
+    return died;
+  }
+
+  // M8-C: 鎖鉤の引き寄せ。ボスは動かさない（0 距離）。壁外・NaN を作らず SpatialGrid を必ず更新する。
+  pullTarget(e, opts = {}) {
+    if (!e || !e.alive) return 0;
+    const cfg = (DataManager.balance.warrior && DataManager.balance.warrior.pull) || {};
+    // ボスは引き寄せない（data 上も距離 0）。押し引きでハメられないための固定仕様。
+    if (e.isBoss) return Math.max(0, cfg.bossPullDistance ?? 0);
+    const margin = cfg.worldMargin ?? 24;
+    const p = this.player;
+    const dx = p.x - e.x, dy = p.y - e.y;
+    const d = Math.hypot(dx, dy);
+    if (!(d > 1e-3)) return 0;
+    // エリートは引き寄せ距離が大幅に小さい（data 側で指定）。実際に詰められるのは現在距離まで。
+    const want = Math.max(0, Math.min(opts.distance || 0, d - (opts.stopAt || 0)));
+    if (want <= 0) return 0;
+    const nx = e.x + (dx / d) * want;
+    const ny = e.y + (dy / d) * want;
+    if (!Number.isFinite(nx) || !Number.isFinite(ny)) return 0;
+    e.x = Math.max(margin, Math.min(this.worldW - margin, nx));
+    e.y = Math.max(margin, Math.min(this.worldH - margin, ny));
+    // 引き寄せ直後の慣性を残さない（プール返却時の残留も防ぐ）。
+    if (e.setVelocity) e.setVelocity(0, 0);
+    if (e._knockback) { e._knockback.set(0, 0); e._knockbackTimer = 0; }
+    if (this._useSpatial) this.enemyGrid.update(e);
+    const moved = distance(e.x, e.y, e.x - (dx / d) * want, e.y - (dy / d) * want);
+    if (this.warrior) this.warrior.noteMovement('chainPull', moved);
+    return moved;
+  }
+
+  // M8-C: プレイヤーを対象へ「安全距離だけ」近づける（ボス相手は引き寄せの代わりにこちらが踏み込む）。
+  // 壁外へ出ない・NaN を作らない・テレポートしない（距離は呼び出し側が小さく刻む）。
+  movePlayerTowards(x, y, distance_) {
+    const p = this.player;
+    const dx = x - p.x, dy = y - p.y;
+    const d = Math.hypot(dx, dy);
+    if (!(d > 1e-3)) return 0;
+    const cfg = (DataManager.balance.warrior && DataManager.balance.warrior.pull) || {};
+    const margin = cfg.worldMargin ?? 24;
+    const step = Math.max(0, Math.min(distance_ || 0, d));
+    const nx = p.x + (dx / d) * step;
+    const ny = p.y + (dy / d) * step;
+    if (!Number.isFinite(nx) || !Number.isFinite(ny)) return 0;
+    p.x = Math.max(margin, Math.min(this.worldW - margin, nx));
+    p.y = Math.max(margin, Math.min(this.worldH - margin, ny));
+    return step;
+  }
+
   _meleeVisual(o, radius, hits) {
     const q = this.settings?.effectQuality || 'high';
-    const capName = o.debris ? 'maxGroundDebris' : (o.tags && o.tags.includes('spin') ? 'maxSpinVisuals'
-      : (o.tags && o.tags.includes('charge') ? 'maxDashTrails' : 'maxMeleeArcVisuals'));
+    // M8-C: スキルが visualCap を明示していればそれを使う（演出だけの上限。damage 件数へは影響しない）。
+    const capName = o.visualCap || (o.debris ? 'maxGroundDebris' : (o.tags && o.tags.includes('spin') ? 'maxSpinVisuals'
+      : (o.tags && o.tags.includes('charge') ? 'maxDashTrails' : 'maxMeleeArcVisuals')));
     const cap = DataManager.skillCap(capName, q, 4);
     this._warriorVisuals = this._warriorVisuals || {};
     const key = capName + ':' + (o.skillId || '');
@@ -2634,18 +2784,25 @@ export class BattleScene extends Phaser.Scene {
     this.markDebugRun();
     if (this._wardbg) { this._wardbg.destroy(true); this._wardbg = null; return; }
     this._wd = this._wd || { skill: 'great_cleave', passive: 'brute_force', lv: 8, jobLv: 100 };
-    const ACT = ['great_cleave', 'shield_bash', 'whirlwind_slash', 'charge_slash', 'ground_slam'];
+    // M8-C: active5 → 15 / 進化3 → 8 へ拡張（プールから引くので data と必ず一致する）。
+    const ACT = ((DataManager.getJob('warrior') || {}).activeSkillPool || []).slice();
     const PAS = ['brute_force', 'heavy_armor', 'combat_instinct', 'bloodlust'];
+    // 進化元 → [進化 id, 補助 id, 補助に必要な Lv]。補助は passive でも active でもよい（天墜崩撃 = 地砕き Lv6）。
     const EVO = {
-      great_cleave: ['thousand_blade_dance', 'combat_instinct'],
-      whirlwind_slash: ['bloodstorm_whirlwind', 'bloodlust'],
-      shield_bash: ['unyielding_fortress', 'heavy_armor'],
+      great_cleave: ['thousand_blade_dance', 'combat_instinct', 4],
+      whirlwind_slash: ['bloodstorm_whirlwind', 'bloodlust', 4],
+      shield_bash: ['unyielding_fortress', 'heavy_armor', 4],
+      armor_breaker: ['skull_splitter', 'brute_force', 4],
+      execution_strike: ['crimson_execution', 'bloodlust', 4],
+      war_cry: ['war_god_roar', 'combat_instinct', 4],
+      counter_stance: ['adamant_counter', 'heavy_armor', 4],
+      leap_smash: ['heaven_crushing_descent', 'ground_slam', 6],
     };
     const w = this.warrior;
     const cx = GAME_WIDTH / 2;
     const ui = this.add.container(0, 0).setScrollFactor(0).setDepth(4000);
     ui.add(this.add.rectangle(cx, GAME_HEIGHT / 2, 512, 356, 0x1a1008, 0.97).setScrollFactor(0).setStrokeStyle(1, 0xffb74d));
-    ui.add(this.add.text(cx, 4, 'DEBUG（M8-B 戦士 active5/passive4/進化3・F9）', { fontSize: '11px', color: '#ffb74d' }).setScrollFactor(0).setOrigin(0.5, 0));
+    ui.add(this.add.text(cx, 4, `DEBUG（M8-C 戦士 active${ACT.length}/passive${PAS.length}/進化${Object.keys(EVO).length}・F9）`, { fontSize: '11px', color: '#ffb74d' }).setScrollFactor(0).setOrigin(0.5, 0));
     const redraw = () => { this.toggleWarriorDebug(); this.toggleWarriorDebug(); };
     const applyWarriorJob = (lv) => { this.jobMods.setResolved(JobModifierManager.resolve(DataManager.getJobProgression('warrior'), lv)); this._refreshWarriorMods(true); };
     const acts = [
@@ -2653,7 +2810,14 @@ export class BattleScene extends Phaser.Scene {
       [() => `検証active: ${this._wd.skill}（切替）`, () => { const i = ACT.indexOf(this._wd.skill); this._wd.skill = ACT[(i + 1) % ACT.length]; }],
       [() => `Lv: ${this._wd.lv}（切替）`, () => { this._wd.lv = this._wd.lv >= 8 ? 1 : this._wd.lv + 1; }],
       ['選択activeを取得/そのLvへ', () => { this.skills.acquireOrLevel(this._wd.skill); this.skills.setLevel(this._wd.skill, this._wd.lv); this.updateHudSkills(); }],
-      ['選択activeの進化条件を達成', () => { const e = EVO[this._wd.skill]; if (!e) return; this.skills.acquireOrLevel(this._wd.skill); this.skills.setLevel(this._wd.skill, 8); this.passives.acquireOrLevel(e[1]); this.passives.setLevel(e[1], 4); this._refreshWarriorMods(true); this.updateHudSkills(); }],
+      // 補助が active（地砕き）の進化にも対応する。補助 active は置換されず、CD にも触らない。
+      ['選択activeの進化条件を達成', () => {
+        const e = EVO[this._wd.skill]; if (!e) return;
+        this.skills.acquireOrLevel(this._wd.skill); this.skills.setLevel(this._wd.skill, 8);
+        if (DataManager.getSkill(e[1])) { this.skills.acquireOrLevel(e[1]); this.skills.setLevel(e[1], e[2]); }
+        else { this.passives.acquireOrLevel(e[1]); this.passives.setLevel(e[1], e[2]); }
+        this._refreshWarriorMods(true); this.updateHudSkills();
+      }],
       [() => `検証passive: ${this._wd.passive}（切替）`, () => { const i = PAS.indexOf(this._wd.passive); this._wd.passive = PAS[(i + 1) % PAS.length]; }],
       ['選択passive Lv+1', () => { this.passives.acquireOrLevel(this._wd.passive); this._refreshWarriorMods(true); this.updateHudSkills(); }],
       ['闘気 +25 / 満タン', () => { w.addFury(w.fury >= w.cfg.fury.max - 25 ? w.cfg.fury.max : 25, 'meleeHit', null); }],
@@ -2664,6 +2828,13 @@ export class BattleScene extends Phaser.Scene {
       ['エリート×3を密集生成', () => { this.debugClusterEnemies(3); this.enemyPool.forEachActive((e) => { if (e.alive) { e.isElite = true; e.maxHp = e.maxHp * 4; e.hp = e.maxHp; e.setScale(1.15); } }); }],
       ['最寄りエリートの体勢を満タン', () => { const e = this._debugNearestEnemy(); if (e) { e._poiseImmuneUntil = 0; w.applyPoiseDamage(e, w.cfg.poise.elite.threshold); } }],
       ['ボス出現 / 体勢50% / 100%', () => { if (!this.boss || !this.boss.alive) { this.spawnBoss(); this.bossSpawned = true; } if (this.boss) { const th = w.bossPoiseThreshold(); const g = w.bossPoise.gauge; w.bossPoise.cooldownLeftMs = 0; if (g < th * 0.5) w.bossPoise.gauge = th * 0.5; else { w.applyPoiseDamage(this.boss, th); } } }],
+      // ---- M8-C（Wave1）----
+      ['最寄り通常敵を処刑圏内（HP10%）へ', () => { const e = this._debugNearestEnemy(); if (e && !e.isBoss && !e.isElite) e.hp = Math.max(1, Math.round(e.maxHp * 0.1)); }],
+      ['最寄りエリート/ボスを HP5% へ（処刑不可の確認）', () => { const e = (this.boss && this.boss.alive) ? this.boss : this._debugNearestEnemy(); if (e) e.hp = Math.max(1, Math.round(e.maxHp * 0.05)); }],
+      ['戦吼バフを付与 / 解除', () => { if (w.warCryActive) { w.warCry.leftMs = 0; } else { const d = DataManager.getSkill('war_cry'); const lv = (d && d.levels && d.levels[7]) || {}; w.applyWarCryBuff({ durationMs: lv.buffDuration, meleeDamageBonus: lv.meleeDamageBonus, furyGainBonus: lv.furyGainBonus, comboGraceBonus: lv.comboGraceBonus }); } }],
+      ['反撃の構えを開く（迎撃 / 金剛）', () => { for (const id of ['counter_stance', 'adamant_counter', 'unyielding_fortress']) { const sk = this.skills.skills.get(id); if (sk && typeof sk.fire === 'function') sk.fire(); } }],
+      ['被弾 1 回ぶんの反撃を発火（調停の確認）', () => { this.onWarriorHit(40, 30); }],
+      ['敵をプレイヤーの遠方へ配置（鎖鉤の確認）', () => { const p = this.player; let i = 0; this.enemyPool.forEachActive((e) => { if (!e.alive || i >= 6) return; const a = (Math.PI * 2 * i) / 6; e.x = p.x + Math.cos(a) * 240; e.y = p.y + Math.sin(a) * 240; if (this._useSpatial) this.enemyGrid.update(e); i++; }); }],
       ['通常状態へ戻す（補正リセット）', () => { this.jobMods.setResolved(this.resolvedJobModifiers); this._refreshWarriorMods(true); }],
     ];
     let yy = 20;
@@ -2702,9 +2873,26 @@ export class BattleScene extends Phaser.Scene {
     L.push(`最寄り敵: ${e ? `${e.def?.id || '?'} poise ${Math.round(e._poise || 0)}/${w.cfg.poise.elite.threshold} ${this.time.now < (e._staggerUntil || 0) ? 'stagger中' : ''}` : '(なし)'}`);
     const bp = w.bossPoise;
     L.push(`ボス: ${this.boss && this.boss.alive ? `${Math.round(bp.gauge)}/${Math.round(w.bossPoiseThreshold())} 崩し${bp.breaks} 露出${(bp.exposedLeftMs / 1000).toFixed(1)}s` : '(不在)'}`);
+    // ---- M8-C（Wave1）----
+    L.push('— 戦吼（重ねがけなし）—');
+    L.push(`${w.warCryActive ? `残${(w.warCry.leftMs / 1000).toFixed(1)}s Dmg+${(w.warCry.meleeDamageBonus * 100).toFixed(0)}% 闘気+${(w.warCry.furyGainBonus * 100).toFixed(0)}% 猶予+${(w.warCry.comboGraceBonus * 100).toFixed(0)}%` : '×'} 適用${w.telemetry.warCryApplications}回`);
+    L.push('— 反撃の調停（1被弾=最大1系統）—');
+    const cws = [...w.counterWindows.entries()].map(([k, v]) => `${k}:${(v.leftMs / 1000).toFixed(1)}s ${v.used}/${v.max} 優先${v.priority}`);
+    L.push(cws.length ? cws.join(' / ') : '(構えなし)');
+    L.push(`反撃計${w.telemetry.counters} 内訳${JSON.stringify(w.telemetry.counterBySource)} 軽減${(w.counterMitigation() * 100).toFixed(0)}%`);
+    L.push('— 処刑（通常敵のみ）—');
+    const exSkill = this.skills.skills.get('crimson_execution') || this.skills.skills.get('execution_strike');
+    const exP = exSkill && exSkill.executeParams ? exSkill.executeParams() : null;
+    L.push(`閾値 ${exP ? `${Math.round(exP.thresholdNormal * 100)}%` : '(未所持)'} 成立${w.telemetry.executions} 失敗${w.telemetry.executeFailures} 上限${w.cfg.execute.maxExecutesPerSecond}/s`);
+    L.push(`エリート/ボス: 処刑不可（欠損HP参照のみ・ボス上限${Math.round((exP?.bossMissingHpCap ?? w.cfg.execute.bossMissingHpCapDefault) * 100)}%）`);
+    L.push('— 移動 / 引き寄せ —');
+    L.push(`鎖鉤 ${w.telemetry.chainPulls}回 ${Math.round(w.telemetry.chainPullDistance)}px ボス接近${w.telemetry.bossApproaches}回（ボスは動かない）`);
+    L.push(`跳躍着地${w.telemetry.leapLandings} 進軍${Math.round(w.telemetry.sweepDistance)}px 連撃完走${w.telemetry.relentlessChains} 引継${w.telemetry.relentlessRetargets}`);
     L.push('— 所持 —');
     L.push(`active: ${Array.from(this.skills.skills.keys()).join(',') || '(なし)'}`);
     L.push(`passive: ${this.passives.ownedList().map((p) => `${p.id}Lv${p.level}`).join(',') || '(なし)'}`);
+    const lv80 = ((DataManager.getJob('warrior') || {}).activeSkillPool || []).filter((id) => (DataManager.getSkill(id) || {}).lv80ProjectileTarget === true);
+    L.push(`Job Lv80 打撃+1 対象（${lv80.length}種）: ${lv80.join(',')}`);
     L.push('※ 表示のみ。外部送信しません。');
     return L.join('\n');
   }
@@ -2940,9 +3128,25 @@ export class BattleScene extends Phaser.Scene {
       B.push(`不屈 発動${w.unyieldingTriggers} 回復${Math.round(w.unyieldingHealing)} 軽減${Math.round(w.unyieldingMitigated)}`);
       B.push(`ノックバック${w.knockbacks} 体勢${Math.round(w.poiseDamage)} stagger${w.eliteStaggers} 崩し${w.bossStanceBreaks}`);
       B.push(`露出 ${w.exposedUptimeSeconds.toFixed(1)}s 追加Dmg${Math.round(w.exposedBonusDamage)}`);
+      // M8-C（Wave1）: カタログ規模・処刑・反撃・戦吼・引き寄せ・跳躍/進軍・連撃。
+      const wjob = DataManager.getJob('warrior') || {};
+      B.push('— 戦士カタログ（M8-C）—');
+      B.push(`active${(wjob.activeSkillPool || []).length} / passive${(wjob.passiveSkillPool || []).length} / 進化${(wjob.evolutionPool || []).length}`
+        + ` LV80対象${(wjob.activeSkillPool || []).filter((id) => (DataManager.getSkill(id) || {}).lv80ProjectileTarget === true).length}種`);
+      B.push('— 戦士 Wave1（実動作カウンタ）—');
+      B.push(`処刑 ${w.executions}（失敗${w.executeFailures} 超過${Math.round(w.executeOverkill)}）※通常敵のみ`);
+      B.push(`反撃 ${w.counters} 内訳${JSON.stringify(w.counterBySource)}`);
+      B.push(`戦吼 ${w.warCryApplications}回 稼働${w.warCryUptimeSeconds.toFixed(1)}s`);
+      B.push(`引き寄せ ${w.chainPulls}回 ${Math.round(w.chainPullDistance)}px ボス接近${w.bossApproaches}回`);
+      B.push(`着地 ${w.leapLandings}回 進軍 ${Math.round(w.sweepDistance)}px`);
+      B.push(`連撃 完走${w.relentlessChains} 引き継ぎ${w.relentlessRetargets}`);
       if (w.meleeHits === 0 && w.meleeCasts > 0) B.push('⚠ 近接発動はあるが命中0');
       if (w.furyReleases === 0 && w.furyGained > 0) B.push('⚠ 闘気は溜まるが解放0');
       if (w.comboPeak === 0 && w.meleeHits > 0) B.push('⚠ 命中はあるがコンボ0');
+      if (w.executions === 0 && w.executeFailures > 0) B.push('⚠ 処刑判定はあるが成立0（閾値が低すぎる可能性）');
+      if (w.counters === 0 && ownedIds.some((id) => id === 'counter_stance')) B.push('⚠ 構えはあるが反撃0');
+      if (w.warCryApplications > 0 && w.warCryUptimeSeconds === 0) B.push('⚠ 戦吼は発動するが稼働0');
+      if (w.chainPulls === 0 && w.bossApproaches === 0 && ownedIds.includes('chain_hook')) B.push('⚠ 鎖鉤はあるが引き寄せ/接近0');
     }
     B.push('— 性能 / 上限 —');
     B.push(`抑制/f ${(this._mLast || this._m).suppressed}  索引上限 ${JSON.stringify(sfx ? sfx.capReached() : {})}`);

@@ -5,7 +5,7 @@
 // - 再読込で闘気・コンボ・不屈CD・ボス体勢を初期化して稼げないこと
 // 実行: node tests/warrior-runtime-save.mjs
 
-import { DATA, WARRIOR, EXPECTED, makeScene, makeEnemies, makeBoss, makeWarrior, bootRuntime, runner, readSrc, registryMap, skillSource } from './warrior-common.mjs';
+import { DATA, WARRIOR, EXPECTED, makeScene, makeEnemies, makeBoss, makeWarrior, bootRuntime, runner, readSrc, registryMap, skillSourceDeep } from './warrior-common.mjs';
 
 const T = runner('戦士 保存 / 復元（M8-B）');
 const { ok, section, info } = T;
@@ -112,7 +112,7 @@ section('5. active5 + evolution3 すべてが serializeState / restoreState を�
 {
   const map = registryMap();
   for (const id of ALL) {
-    const src = skillSource(id, map) || '';
+    const src = skillSourceDeep(id, map) || '';
     ok(/serializeState\s*\(/.test(src), `${id}: serializeState を実装する`);
     ok(/restoreState\s*\(/.test(src), `${id}: restoreState を実装する`);
     ok(/cdLeft/.test(src), `${id}: クールダウン残りを保存する`);

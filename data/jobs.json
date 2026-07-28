@@ -201,7 +201,17 @@
         "shield_bash",
         "whirlwind_slash",
         "charge_slash",
-        "ground_slam"
+        "ground_slam",
+        "armor_breaker",
+        "twin_fang_slash",
+        "execution_strike",
+        "leap_smash",
+        "sweeping_advance",
+        "counter_stance",
+        "war_cry",
+        "chain_hook",
+        "shockwave_stomp",
+        "relentless_combo"
       ],
       "passiveSkillPool": [
         "brute_force",
@@ -212,7 +222,12 @@
       "evolutionPool": [
         "thousand_blade_dance",
         "bloodstorm_whirlwind",
-        "unyielding_fortress"
+        "unyielding_fortress",
+        "skull_splitter",
+        "crimson_execution",
+        "war_god_roar",
+        "adamant_counter",
+        "heaven_crushing_descent"
       ],
       "baseActiveSlots": 4,
       "basePassiveSlots": 4,

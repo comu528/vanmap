@@ -5,7 +5,7 @@
 // - 不落の城壁の反撃が 1 構え 1 回で、反撃から新しい構えが生まれないこと
 // 実行: node tests/warrior-evolutions.mjs
 
-import { DATA, WARRIOR, EXPECTED, makeScene, makeEnemies, makeBoss, makeWarrior, bootRuntime, runner, registryMap, skillSource } from './warrior-common.mjs';
+import { DATA, WARRIOR, EXPECTED, makeScene, makeEnemies, makeBoss, makeWarrior, bootRuntime, runner, registryMap, skillSource, skillSourceDeep } from './warrior-common.mjs';
 
 const T = runner('戦士 evolution3 実動作（M8-B）');
 const { ok, section, info } = T;
@@ -29,9 +29,13 @@ const run = (ctx, ms = 8000, step = 16) => {
   }
 };
 
-// ===== 1. 3 進化すべてが発動・命中 =====
-section('1. evolution3 すべてが発動し、命中してダメージを与える');
+// M8-C: 「構え」系の進化は発動時に攻撃しない（被弾に反応して反撃する）。命中を要求しない。
+const STANCE_ONLY = new Set(['adamant_counter']);
+
+// ===== 1. 進化すべてが発動・命中 =====
+section('1. evolution（構え系を除く）すべてが発動し、命中してダメージを与える');
 for (const id of EXPECTED.evolutions) {
+  if (STANCE_ONLY.has(id)) continue;
   const ctx = build();
   ctx.sm.acquireOrLevel(id);
   run(ctx);
@@ -64,7 +68,7 @@ section('3. 宣言した safetyCaps がすべて実装から参照される（�
   const map = registryMap();
   for (const id of EXPECTED.evolutions) {
     const e = DATA.evolutions.find((x) => x.id === id);
-    const src = skillSource(id, map) || '';
+    const src = skillSourceDeep(id, map) || '';
     for (const key of Object.keys(e.safetyCaps || {})) {
       ok(src.includes(`'${key}'`) || src.includes(`"${key}"`), `${id}: safetyCaps.${key} を実装が参照する`);
     }

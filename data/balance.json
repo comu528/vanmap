@@ -1028,6 +1028,126 @@
       "medium": 4,
       "high": 6,
       "ultra": 8
+    },
+    "maxOverheadStrikes": {
+      "low": 2,
+      "medium": 2,
+      "high": 3,
+      "ultra": 3
+    },
+    "maxTwinFangStrikes": {
+      "low": 2,
+      "medium": 3,
+      "high": 3,
+      "ultra": 4
+    },
+    "maxExecutesPerCast": {
+      "low": 2,
+      "medium": 3,
+      "high": 3,
+      "ultra": 4
+    },
+    "maxLeapImpacts": {
+      "low": 1,
+      "medium": 2,
+      "high": 2,
+      "ultra": 2
+    },
+    "maxSweepStrikesPerFrame": {
+      "low": 1,
+      "medium": 1,
+      "high": 2,
+      "ultra": 2
+    },
+    "maxCounterWindows": {
+      "low": 2,
+      "medium": 2,
+      "high": 3,
+      "ultra": 3
+    },
+    "maxChainPullsPerCast": {
+      "low": 1,
+      "medium": 1,
+      "high": 1,
+      "ultra": 1
+    },
+    "maxRelentlessStrikes": {
+      "low": 8,
+      "medium": 10,
+      "high": 12,
+      "ultra": 14
+    },
+    "maxRelentlessRetargets": {
+      "low": 2,
+      "medium": 3,
+      "high": 3,
+      "ultra": 4
+    },
+    "maxOverheadSlashVisuals": {
+      "low": 2,
+      "medium": 3,
+      "high": 4,
+      "ultra": 6
+    },
+    "maxTwinSlashVisuals": {
+      "low": 2,
+      "medium": 4,
+      "high": 6,
+      "ultra": 8
+    },
+    "maxExecuteMarkers": {
+      "low": 1,
+      "medium": 2,
+      "high": 3,
+      "ultra": 4
+    },
+    "maxLeapTrails": {
+      "low": 3,
+      "medium": 5,
+      "high": 8,
+      "ultra": 12
+    },
+    "maxLandingDebris": {
+      "low": 4,
+      "medium": 6,
+      "high": 10,
+      "ultra": 14
+    },
+    "maxSweepTrails": {
+      "low": 3,
+      "medium": 5,
+      "high": 8,
+      "ultra": 10
+    },
+    "maxCounterFlashes": {
+      "low": 1,
+      "medium": 2,
+      "high": 3,
+      "ultra": 4
+    },
+    "maxWarCryRings": {
+      "low": 1,
+      "medium": 2,
+      "high": 3,
+      "ultra": 4
+    },
+    "maxChainHookLines": {
+      "low": 1,
+      "medium": 1,
+      "high": 2,
+      "ultra": 2
+    },
+    "maxStompDebris": {
+      "low": 3,
+      "medium": 5,
+      "high": 8,
+      "ultra": 12
+    },
+    "maxRelentlessSparks": {
+      "low": 4,
+      "medium": 6,
+      "high": 10,
+      "ultra": 14
     }
   },
   "speedModes": [
@@ -1326,6 +1446,37 @@
       "retreatWeight": 0.9,
       "bossTelegraphWeight": 1.3,
       "maxClusterSamples": 24
+    },
+    "warCry": {
+      "_comment": "M8-C: 戦吼／軍神咆哮の一時バフ。formal status ではなく WarriorCombatSystem 上の timed buff として管理する。",
+      "maxDurationMs": 12000,
+      "maxMeleeDamageBonus": 0.5,
+      "maxFuryGainBonus": 0.6,
+      "maxComboGraceBonus": 1.0,
+      "stack": "refresh"
+    },
+    "counter": {
+      "_comment": "M8-C: 反撃の調停。1 被弾イベントにつき反撃は最大 1 系統。数値は優先度と最小間隔のみ。",
+      "maxPerDamageEvent": 1,
+      "globalCooldownMs": 200,
+      "priority": {
+        "adamant_counter": 3,
+        "unyielding_fortress": 2,
+        "counter_stance": 1
+      }
+    },
+    "execute": {
+      "_comment": "M8-C: 処刑。通常敵のみ即死可能で、エリート/ボスは失ったHPに応じた追加ダメージだけ。",
+      "allowElite": false,
+      "allowBoss": false,
+      "bossMissingHpCapDefault": 0.5,
+      "maxExecutesPerSecond": 6
+    },
+    "pull": {
+      "_comment": "M8-C: 鎖鉤の引き寄せ。ボスは動かさず、プレイヤー側が近づく。",
+      "bossPullDistance": 0,
+      "worldMargin": 24,
+      "maxPullPerCast": 1
     }
   }
 }

@@ -192,3 +192,52 @@ M6-E で用意した炎上索引（`combat.burningEnemies()`）経由へ付け�
 - 残響・分身は data で `forbidden`。`echoCast` / `cloneCast` を実装していない。
 
 一覧と役割は `./skill-catalog.md` の Milestone 8-B 節、設計意図は `./warrior-design.md`。
+
+## Milestone 8-C: 戦士スキル拡張 Wave1（active15 / evolution8）
+
+M8-B の骨格（`WarriorSkillBase` / `WarriorEvolvedBase` / `meleeStrike()` 一本化）はそのまま。
+M8-C で足したのは **共通経路の追加**と、**進化が基礎クラスを再利用する仕組み**の 2 点だけ。
+
+### 追加した共通経路（`scene.combat` 経由でのみ触る）
+
+| API | 用途 | 保証 |
+|-----|------|------|
+| `preferredMeleeTarget(x, y, r, mode)` | 硬い相手 / 瀕死を優先して狙う | 全敵総当たりをしない（`mode`: `'tough'` / `'lowHp'`） |
+| `executeTarget(e, skillId, opts)` | 処刑（残り HP ぶんのダメージ） | 死亡イベント・撃破統計・撃破回復が 1 回だけ走る |
+| `pullTarget(e, opts)` | 引き寄せ | ボスは動かない / 壁内へクランプ / `SpatialGrid` 更新 / 慣性を残さない |
+| `movePlayerTowards(x, y, d)` | 自分が近づく | 壁内へクランプ / NaN を作らない |
+| `bossTelegraphing()` | ボスの予告 / 突進の確認 | 真正面へ踏み込まないための判断材料 |
+| `warriorPullConfig()` | `balance.warrior.pull` の取得 | data と実装を 1 か所で結ぶ |
+
+`meleeStrike()` には `toughBonus`（硬い相手への追加倍率）・`execute`（処刑パラメータ）・
+`maxExecutes`・`visualCap`（演出専用の品質 cap）を追加した。判定と演出は完全に分離されている。
+
+### 進化が基礎 active のクラスを継承するとき
+
+軍神咆哮 / 金剛迎撃 / 天墜崩撃は `EvolvedSkillBase` ではなく**基礎スキルのクラス**を継承している
+（ロジックをそのまま使いたいため）。data の読み先だけを進化定義へ差し替えるために
+`WarriorSkillBase.js` の `applyEvolvedSemantics(cls)` をプロトタイプへ適用する。
+
+```js
+export class AdamantCounterSkill extends CounterStanceSkill {
+  stanceParams() { /* evoDef から読む */ }
+}
+applyEvolvedSemantics(AdamantCounterSkill);
+```
+
+これで `evoDef` / `baseSkillId` / `isEvolved` / `name` / `maxLevel` / `cap()` / `evolvedBonus()` が生え、
+`stats` は `{ cooldown: evoDef.cooldown }` を合成して返すので `SkillBase.update()` の発動判定が
+そのまま働く。テスト側は `skillSourceDeep()` が `extends` を辿って祖先のソースも見る。
+
+### Wave1 のスキルが守る規約（M8-B から継続 + 追加）
+
+- 判定は「自分中心の円」か「前方の扇」のみ。**弾を生成しない**（`spawnPlayerProjectile` を呼ばない）
+- 1 発動 = 1 `castKey` = 1 `recordCast`（多段・tick・引き継ぎで cast を増やさない）
+- 乱数を使わない（`Math.random` / Phaser RNG を 1 度も呼ばない）
+- 進行中の状態は敵オブジェクトを保持せず、**安定 runtime id（`_seq`）と座標だけ**を持つ
+- 進行中の効果は**距離と時間の両方**で必ず終わる
+- `serializeState` / `restoreState`（最低でも `cdLeft`）と `destroy()`（`_dead` ガード）を持つ
+- Job Lv80「打撃数 +1」は `lv80ProjectileTarget: true` の 6 種だけ
+
+一覧と役割は `./skill-catalog.md` の Milestone 8-C 節と `./warrior-skill-matrix.md`、
+設計意図は `./warrior-wave1.md`。

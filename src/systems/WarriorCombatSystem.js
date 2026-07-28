@@ -63,6 +63,17 @@ export const WARRIOR_DEFAULTS = {
     clusterRadius: 110, approachWeight: 1.2, engageRange: 70, lowHpFraction: 0.35,
     retreatWeight: 0.9, bossTelegraphWeight: 1.3, maxClusterSamples: 24,
   },
+  // M8-C: 戦吼の一時バフ（formal status ではなく本クラス上の timed buff）。
+  warCry: { maxDurationMs: 12000, maxMeleeDamageBonus: 0.5, maxFuryGainBonus: 0.6, maxComboGraceBonus: 1.0, stack: 'refresh' },
+  // M8-C: 反撃の調停（1 被弾イベントにつき最大 1 系統）。
+  counter: {
+    maxPerDamageEvent: 1, globalCooldownMs: 200,
+    priority: { adamant_counter: 3, unyielding_fortress: 2, counter_stance: 1 },
+  },
+  // M8-C: 処刑（通常敵のみ即死可能）。
+  execute: { allowElite: false, allowBoss: false, bossMissingHpCapDefault: 0.5, maxExecutesPerSecond: 6 },
+  // M8-C: 鎖鉤の引き寄せ（ボスは動かさない）。
+  pull: { bossPullDistance: 0, worldMargin: 24, maxPullPerCast: 1 },
 };
 
 // 闘気の獲得源（telemetry のキーと 1:1）。
@@ -77,7 +88,7 @@ function mergeDefaults(cfg) {
     if (!s || typeof s !== 'object') { out[k] = JSON.parse(JSON.stringify(d)); continue; }
     out[k] = { ...JSON.parse(JSON.stringify(d)), ...s };
     // 1 段だけネストを持つブロック（recovery / elite / boss）はさらにマージする。
-    for (const nk of ['recovery', 'elite', 'boss']) {
+    for (const nk of ['recovery', 'elite', 'boss', 'priority']) {
       if (d[nk] && typeof d[nk] === 'object') out[k][nk] = { ...d[nk], ...(s[nk] || {}) };
     }
     if (k === 'combo' && Array.isArray(s.thresholds)) out[k].thresholds = s.thresholds;
@@ -120,6 +131,12 @@ export class WarriorCombatSystem {
     this._killHealWindow = { startMs: -Infinity, healed: 0 };
     this._lastMeleeCastAt = -Infinity;
     this._chargeUntilMs = 0;
+    // M8-C: 戦吼の一時バフ（重ねがけせず上書き更新する）。
+    this.warCry = { leftMs: 0, meleeDamageBonus: 0, furyGainBonus: 0, comboGraceBonus: 0 };
+    // M8-C: 反撃の構え（source ごとに 1 つ。1 被弾イベントで反撃するのは優先度が最も高い 1 系統だけ）。
+    this.counterWindows = new Map(); // source -> { leftMs, used, max, priority, mitigation, gapLeftMs, gapMs }
+    this._counterGlobalCdLeftMs = 0;
+    this._executeSecondWindow = { startMs: -Infinity, count: 0 };
     this._runStartMs = this._now();
     this.telemetry = this._emptyTelemetry();
   }
@@ -139,6 +156,12 @@ export class WarriorCombatSystem {
       killHeal: 0, killHealCapped: 0,
       knockbacks: 0, poiseDamage: 0, eliteStaggers: 0, bossStanceBreaks: 0,
       exposedUptimeMs: 0, exposedBonusDamage: 0, exposedBonusFury: 0,
+      // M8-C: 処刑 / 反撃 / 戦吼 / 引き寄せ。
+      executions: 0, executeFailures: 0, executeOverkill: 0,
+      counters: 0, counterBySource: {},
+      warCryApplications: 0, warCryUptimeMs: 0,
+      chainPulls: 0, chainPullDistance: 0, bossApproaches: 0,
+      leapLandings: 0, sweepDistance: 0, relentlessChains: 0, relentlessRetargets: 0,
     };
   }
 
@@ -171,6 +194,7 @@ export class WarriorCombatSystem {
   meleeDamageMultiplier(target) {
     const c = this.comboBonuses();
     let m = (1 + c.meleeDamageMult) * this.mods.meleeDamageMult;
+    if (this.warCry.leftMs > 0) m *= (1 + this.warCry.meleeDamageBonus); // M8-C: 戦吼
     if (this.releaseActive) m *= num(this.cfg.furyRelease.meleeDamageMult, 1);
     if (target && target.isBoss && this.exposedActive) {
       m *= (1 + num(this.cfg.poise.boss.exposedMeleeDamageMult, 0) + this.mods.exposedDamageBonus);
@@ -219,6 +243,7 @@ export class WarriorCombatSystem {
     if (this.releaseActive) amt *= num(this.cfg.fury.releaseGainMult, 0.15);
     // コンボ閾値 / Job Lv / passive の獲得倍率。
     amt *= this.mods.furyGainMult * (1 + this.comboBonuses().furyGainMult);
+    if (this.warCry.leftMs > 0) amt *= (1 + this.warCry.furyGainBonus); // M8-C: 戦吼
     // ボス体勢崩し中（exposed）は獲得増加。
     if (this.exposedActive) amt *= (1 + num(this.cfg.poise.boss.exposedFuryGainMult, 0));
     if (amt <= 0) return 0;
@@ -325,7 +350,8 @@ export class WarriorCombatSystem {
     }
     const before = this.combo;
     this.combo = clamp(this.combo + n * num(cfg.gainPerHit, 1), 0, num(cfg.maxValue, 999));
-    this.comboGraceLeftMs = num(cfg.graceMs, 2500) * Math.max(0.1, this.mods.comboGraceMult);
+    this.comboGraceLeftMs = num(cfg.graceMs, 2500) * Math.max(0.1, this.mods.comboGraceMult)
+      * (this.warCry.leftMs > 0 ? (1 + this.warCry.comboGraceBonus) : 1); // M8-C: 戦吼
     const gained = this.combo - before;
     if (this.combo > this.telemetry.comboPeak) this.telemetry.comboPeak = this.combo;
     // 閾値の到達（またぐたびに 1 回）。
@@ -378,13 +404,22 @@ export class WarriorCombatSystem {
     return this._killHeal(enemy);
   }
 
-  _killHeal(enemy) {
+  // M8-C: 進化「血断処刑」が撃破時の回復を強めるための追加口。
+  // 通常の撃破回復と同じ毎秒上限を共有するので、永久機関にはならない。
+  noteKillHealBonus(enemy, bonus) {
+    if (!this.enabled) return 0;
+    const b = Math.max(0, num(bonus, 0));
+    if (b <= 0) return 0;
+    return this._killHeal(enemy, b);
+  }
+
+  _killHeal(enemy, extraMult = 1) {
     const mult = this.mods.killHealMult;
     if (!(mult > 0)) return 0;
     const cfg = this.cfg.killHeal;
     const maxHp = num(this._maxHp, 0);
     if (maxHp <= 0) return 0;
-    let amount = maxHp * num(cfg.maxHpPercent, 0) * mult;
+    let amount = maxHp * num(cfg.maxHpPercent, 0) * mult * Math.max(0, num(extraMult, 1));
     if (enemy && enemy.isBoss) amount *= num(cfg.bossMult, 1);
     else if (enemy && enemy.isElite) amount *= num(cfg.eliteMult, 1);
     if (this.releaseActive) amount *= num(cfg.releaseMult, 1) * this.mods.killHealReleaseMult;
@@ -439,6 +474,146 @@ export class WarriorCombatSystem {
 
   // 突進中の軽減ウィンドウ（charge_slash が dash 開始時に登録する）。
   setChargeWindow(ms) { this._chargeUntilMs = this._now() + Math.max(0, num(ms, 0)); }
+
+  // ================= M8-C: 戦吼の一時バフ =================
+  // formal status を増やさず、本クラス上の timed buff として持つ。**重ねがけしない**（refresh / 上書き）。
+  // 同じ skill を連打しても持続と強度は「新しい値で上書き」され、無限 stack にならない。
+  applyWarCryBuff(o = {}) {
+    if (!this.enabled) return null;
+    const cfg = this.cfg.warCry;
+    const dur = clamp(num(o.durationMs, 0), 0, num(cfg.maxDurationMs, 12000));
+    if (dur <= 0) return null;
+    // 重ねがけ規則。'refresh'（既定）= 上書き更新。それ以外は「既にバフ中なら何もしない」。
+    // どちらの場合も stack して強くなることはない。
+    const mode = o.stack || cfg.stack || 'refresh';
+    if (mode !== 'refresh' && this.warCry.leftMs > 0) return null;
+    this.warCry = {
+      leftMs: dur, // 上書き（加算しない）
+      meleeDamageBonus: clamp(num(o.meleeDamageBonus, 0), 0, num(cfg.maxMeleeDamageBonus, 0.5)),
+      furyGainBonus: clamp(num(o.furyGainBonus, 0), 0, num(cfg.maxFuryGainBonus, 0.6)),
+      comboGraceBonus: clamp(num(o.comboGraceBonus, 0), 0, num(cfg.maxComboGraceBonus, 1)),
+    };
+    // 進化「軍神咆哮」の grace 回復（コンボ値そのものは増やさない＝無料コンボを配らない）。
+    const refill = clamp(num(o.graceRefill, 0), 0, 1);
+    if (refill > 0 && this.combo > 0) {
+      const full = num(this.cfg.combo.graceMs, 2500) * Math.max(0.1, this.mods.comboGraceMult)
+        * (1 + this.warCry.comboGraceBonus);
+      this.comboGraceLeftMs = Math.max(this.comboGraceLeftMs, full * refill);
+    }
+    this.telemetry.warCryApplications += 1;
+    this._emit('warCry', { durationMs: dur, ...this.warCry });
+    return { ...this.warCry };
+  }
+  get warCryActive() { return this.warCry.leftMs > 0; }
+
+  // ================= M8-C: 反撃の調停 =================
+  // 反撃を持つ skill は「構え（counter window）」をここへ登録し、被弾時は consumeCounterEvent() が
+  // **優先度の最も高い 1 系統だけ**を選ぶ。1 被弾イベントで複数系統が同時に反撃することはない。
+  // 同じ source の再登録は refresh（上書き）で、重ねがけにならない。
+  beginCounterWindow(source, o = {}) {
+    if (!this.enabled || !source) return null;
+    const pr = this.cfg.counter.priority || {};
+    const w = {
+      leftMs: Math.max(0, num(o.durationMs, 0)),
+      used: 0,
+      max: Math.max(1, Math.round(num(o.maxCounters, 1))),
+      priority: num(o.priority, num(pr[source], 0)),
+      mitigation: clamp(num(o.mitigation, 0), 0, 1),
+      gapMs: Math.max(0, num(o.counterCooldownMs, 0)),
+      gapLeftMs: 0,
+    };
+    if (w.leftMs <= 0) return null;
+    this.counterWindows.set(source, w); // refresh（重ねない）
+    return { ...w };
+  }
+  endCounterWindow(source) { this.counterWindows.delete(source); }
+  counterWindowOf(source) { const w = this.counterWindows.get(source); return w ? { ...w } : null; }
+  // 現在開いている構えの軽減量（最大値。合算しない）。damageReduction の ctx.extra へ渡す。
+  counterMitigation() {
+    if (!this.enabled) return 0;
+    let m = 0;
+    for (const w of this.counterWindows.values()) if (w.leftMs > 0) m = Math.max(m, w.mitigation);
+    return m;
+  }
+  // 反撃可能な系統の中から優先度が最も高い 1 つを選び、その使用回数を進めて source 名を返す。
+  // 反撃できるものが無ければ null。**反撃の中からこれを再度呼んでも新しい反撃は起きない**
+  // （globalCooldownMs があり、かつ呼び出し側が反撃中は consume しないため）。
+  consumeCounterEvent() {
+    if (!this.enabled) return null;
+    if (this._counterGlobalCdLeftMs > 0) return null;
+    let best = null, bestSource = null;
+    for (const [src, w] of this.counterWindows) {
+      if (w.leftMs <= 0 || w.used >= w.max || w.gapLeftMs > 0) continue;
+      if (!best || w.priority > best.priority) { best = w; bestSource = src; }
+    }
+    if (!best) return null;
+    best.used += 1;
+    best.gapLeftMs = best.gapMs;
+    this._counterGlobalCdLeftMs = num(this.cfg.counter.globalCooldownMs, 0);
+    this.telemetry.counters += 1;
+    this.telemetry.counterBySource[bestSource] = (this.telemetry.counterBySource[bestSource] || 0) + 1;
+    this._emit('counter', { source: bestSource, used: best.used, max: best.max });
+    return { source: bestSource, used: best.used, max: best.max, priority: best.priority };
+  }
+
+  // ================= M8-C: 処刑の可否 =================
+  // 通常敵だけが即死可能。エリート/ボスは失った HP に応じた追加ダメージ倍率のみを返す。
+  // o: { thresholdNormal, missingHpBonusElite, missingHpBonusBoss, bossMissingHpCap }
+  executePolicy(target, o = {}) {
+    const out = { canExecute: false, damageMult: 1, reason: 'none' };
+    if (!this.enabled || !target || !target.alive) { out.reason = 'invalid'; return out; }
+    const maxHp = num(target.maxHp, 0);
+    const hp = num(target.hp, 0);
+    if (maxHp <= 0) { out.reason = 'invalid'; return out; }
+    const missing = clamp(1 - hp / maxHp, 0, 1);
+    const cfg = this.cfg.execute;
+    if (target.isBoss) {
+      if (cfg.allowBoss !== true) {
+        const cap = clamp(num(o.bossMissingHpCap, num(cfg.bossMissingHpCapDefault, 0.5)), 0, 1);
+        out.damageMult = 1 + Math.min(missing, cap) * Math.max(0, num(o.missingHpBonusBoss, 0));
+        out.reason = 'bossNoExecute';
+        return out;
+      }
+    } else if (target.isElite) {
+      if (cfg.allowElite !== true) {
+        out.damageMult = 1 + missing * Math.max(0, num(o.missingHpBonusElite, 0));
+        out.reason = 'eliteNoExecute';
+        return out;
+      }
+    } else {
+      const th = clamp(num(o.thresholdNormal, 0), 0, 1);
+      if (hp / maxHp <= th) {
+        // 1 秒あたりの処刑回数に上限を置く（無限処刑の防止）。
+        const now = this._now();
+        const w = this._executeSecondWindow;
+        if (now - w.startMs >= 1000) { w.startMs = now; w.count = 0; }
+        if (w.count >= num(cfg.maxExecutesPerSecond, 6)) { out.reason = 'rateLimited'; return out; }
+        w.count += 1;
+        out.canExecute = true;
+        out.reason = 'execute';
+        return out;
+      }
+      out.reason = 'aboveThreshold';
+    }
+    return out;
+  }
+  // 処刑の結果を統計へ記録する（実際の kill は Scene 側の dealDamage 経路が行う）。
+  noteExecute(ok, overkill) {
+    if (!this.enabled) return;
+    if (ok) { this.telemetry.executions += 1; this.telemetry.executeOverkill += Math.max(0, num(overkill, 0)); }
+    else this.telemetry.executeFailures += 1;
+  }
+  // 鎖鉤 / 跳躍 / 進軍の移動系の統計（judgement には影響しない）。
+  noteMovement(kind, amount) {
+    if (!this.enabled) return;
+    const v = Math.max(0, num(amount, 0));
+    if (kind === 'chainPull') { this.telemetry.chainPulls += 1; this.telemetry.chainPullDistance += v; }
+    else if (kind === 'bossApproach') { this.telemetry.bossApproaches += 1; this.telemetry.chainPullDistance += v; }
+    else if (kind === 'leapLanding') this.telemetry.leapLandings += 1;
+    else if (kind === 'sweep') this.telemetry.sweepDistance += v;
+    else if (kind === 'relentlessChain') this.telemetry.relentlessChains += 1;
+    else if (kind === 'relentlessRetarget') this.telemetry.relentlessRetargets += 1;
+  }
 
   // ---- 不屈（瀕死時の基礎能力）----
   // 毎フレーム setHp のあとに呼ぶ。発動したら true。
@@ -587,6 +762,24 @@ export class WarriorCombatSystem {
     } else if (bp.gauge > 0) {
       bp.gauge = Math.max(0, bp.gauge - num(this.cfg.poise.decayPerSec, 6) * (d / 1000));
     }
+    // M8-C: 戦吼の一時バフ（時間で必ず切れる。重ねがけしていないので単純減算でよい）。
+    if (this.warCry.leftMs > 0) {
+      this.warCry.leftMs = Math.max(0, this.warCry.leftMs - d);
+      this.telemetry.warCryUptimeMs += d;
+      if (this.warCry.leftMs === 0) {
+        this.warCry = { leftMs: 0, meleeDamageBonus: 0, furyGainBonus: 0, comboGraceBonus: 0 };
+        this._emit('warCryEnd', {});
+      }
+    }
+    // M8-C: 反撃の構え（時間切れで閉じる。使い切った構えも時間で消える）。
+    if (this._counterGlobalCdLeftMs > 0) this._counterGlobalCdLeftMs = Math.max(0, this._counterGlobalCdLeftMs - d);
+    if (this.counterWindows.size > 0) {
+      for (const [src, w] of this.counterWindows) {
+        w.leftMs = Math.max(0, w.leftMs - d);
+        if (w.gapLeftMs > 0) w.gapLeftMs = Math.max(0, w.gapLeftMs - d);
+        if (w.leftMs === 0) this.counterWindows.delete(src);
+      }
+    }
     // 不屈の判定（HP は setHp で毎フレーム更新済み）。
     this.checkUnyielding();
   }
@@ -602,8 +795,58 @@ export class WarriorCombatSystem {
       unyielding: { ...this.unyielding },
       bossPoise: { ...this.bossPoise },
       chargeLeftMs: Math.max(0, this._chargeUntilMs - this._now()),
+      // M8-C: 一時バフ・反撃の構え（対象オブジェクトは保存しない＝残り時間と回数だけ）。
+      timedBuffs: this.serializeTimedBuffs(),
       telemetry: this._serializeTelemetry(),
     };
+  }
+
+  // M8-C: 時間つき状態（戦吼バフ・反撃の構え）の保存 / 復元。
+  // enemy / boss / Timer / Tween / Graphics / callback は一切保存しない（残り時間と使用回数のみ）。
+  serializeTimedBuffs() {
+    const windows = {};
+    for (const [src, w] of this.counterWindows) {
+      if (w.leftMs <= 0) continue;
+      windows[src] = { leftMs: w.leftMs, used: w.used, max: w.max, priority: w.priority, mitigation: w.mitigation, gapMs: w.gapMs, gapLeftMs: w.gapLeftMs };
+    }
+    return {
+      warCry: { ...this.warCry },
+      counterWindows: windows,
+      counterGlobalCdLeftMs: this._counterGlobalCdLeftMs,
+    };
+  }
+  restoreTimedBuffs(s) {
+    this.warCry = { leftMs: 0, meleeDamageBonus: 0, furyGainBonus: 0, comboGraceBonus: 0 };
+    this.counterWindows = new Map();
+    this._counterGlobalCdLeftMs = 0;
+    if (!s || typeof s !== 'object') return;
+    const cfg = this.cfg.warCry;
+    const wc = s.warCry;
+    if (wc && typeof wc === 'object' && num(wc.leftMs, 0) > 0) {
+      // 復元でも上限クランプを通す（壊れた保存で無限バフにならない）。
+      this.warCry = {
+        leftMs: clamp(num(wc.leftMs, 0), 0, num(cfg.maxDurationMs, 12000)),
+        meleeDamageBonus: clamp(num(wc.meleeDamageBonus, 0), 0, num(cfg.maxMeleeDamageBonus, 0.5)),
+        furyGainBonus: clamp(num(wc.furyGainBonus, 0), 0, num(cfg.maxFuryGainBonus, 0.6)),
+        comboGraceBonus: clamp(num(wc.comboGraceBonus, 0), 0, num(cfg.maxComboGraceBonus, 1)),
+      };
+    }
+    const ws = s.counterWindows;
+    if (ws && typeof ws === 'object') {
+      for (const [src, w] of Object.entries(ws)) {
+        if (!w || typeof w !== 'object') continue;
+        const leftMs = num(w.leftMs, 0);
+        if (leftMs <= 0) continue;
+        const max = Math.max(1, Math.round(num(w.max, 1)));
+        // used も復元する＝再読込で構えを使い直せない。
+        this.counterWindows.set(src, {
+          leftMs, used: clamp(Math.round(num(w.used, 0)), 0, max), max,
+          priority: num(w.priority, 0), mitigation: clamp(num(w.mitigation, 0), 0, 1),
+          gapMs: Math.max(0, num(w.gapMs, 0)), gapLeftMs: Math.max(0, num(w.gapLeftMs, 0)),
+        });
+      }
+    }
+    this._counterGlobalCdLeftMs = Math.max(0, num(s.counterGlobalCdLeftMs, 0));
   }
 
   _serializeTelemetry() {
@@ -623,6 +866,12 @@ export class WarriorCombatSystem {
       knockbacks: t.knockbacks, poiseDamage: t.poiseDamage,
       eliteStaggers: t.eliteStaggers, bossStanceBreaks: t.bossStanceBreaks,
       exposedUptimeMs: t.exposedUptimeMs, exposedBonusDamage: t.exposedBonusDamage, exposedBonusFury: t.exposedBonusFury,
+      executions: t.executions, executeFailures: t.executeFailures, executeOverkill: t.executeOverkill,
+      counters: t.counters, counterBySource: { ...t.counterBySource },
+      warCryApplications: t.warCryApplications, warCryUptimeMs: t.warCryUptimeMs,
+      chainPulls: t.chainPulls, chainPullDistance: t.chainPullDistance, bossApproaches: t.bossApproaches,
+      leapLandings: t.leapLandings, sweepDistance: t.sweepDistance,
+      relentlessChains: t.relentlessChains, relentlessRetargets: t.relentlessRetargets,
     };
   }
 
@@ -674,7 +923,10 @@ export class WarriorCombatSystem {
         if (typeof s.telemetry.furyBySource[k] === 'number') t.furyBySource[k] = s.telemetry.furyBySource[k];
       }
       if (s.telemetry.comboThresholdCounts) t.comboThresholdCounts = { ...s.telemetry.comboThresholdCounts };
+      if (s.telemetry.counterBySource) t.counterBySource = { ...s.telemetry.counterBySource };
     }
+    // M8-C: 一時バフ・反撃の構え（残り時間と使用回数を引き継ぐ＝再読込で撃ち直せない）。
+    this.restoreTimedBuffs(s.timedBuffs);
   }
 
   // ---- 後始末（Scene 終了 / 周回終了 / ジョブ切替）----
@@ -688,6 +940,10 @@ export class WarriorCombatSystem {
     this.unyielding.healRemain = 0;
     this.bossPoise.exposedLeftMs = 0;
     this.bossPoise.reactionLeftMs = 0;
+    // M8-C: 一時バフ・反撃の構えも破棄する（Scene 終了で持ち越さない）。
+    this.warCry = { leftMs: 0, meleeDamageBonus: 0, furyGainBonus: 0, comboGraceBonus: 0 };
+    this.counterWindows.clear();
+    this._counterGlobalCdLeftMs = 0;
     this._emit = () => {};
     this._heal = () => 0;
   }
@@ -731,6 +987,13 @@ export class WarriorCombatSystem {
       eliteStaggers: t.eliteStaggers, bossStanceBreaks: t.bossStanceBreaks,
       exposedUptimeSeconds: t.exposedUptimeMs / 1000,
       exposedBonusDamage: t.exposedBonusDamage, exposedBonusFury: t.exposedBonusFury,
+      // M8-C
+      executions: t.executions, executeFailures: t.executeFailures, executeOverkill: t.executeOverkill,
+      counters: t.counters, counterBySource: { ...t.counterBySource },
+      warCryApplications: t.warCryApplications, warCryUptimeSeconds: t.warCryUptimeMs / 1000,
+      chainPulls: t.chainPulls, chainPullDistance: t.chainPullDistance, bossApproaches: t.bossApproaches,
+      leapLandings: t.leapLandings, sweepDistance: t.sweepDistance,
+      relentlessChains: t.relentlessChains, relentlessRetargets: t.relentlessRetargets,
       // 現在値（F8/F9 のライブ表示用。CombatTelemetry へは取り込まれない）。
       fury: this.fury, combo: this.combo, bossPoiseGauge: this.bossPoise.gauge,
     };

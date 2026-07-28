@@ -31,9 +31,13 @@ const run = (ctx, ms = 8000, step = 16) => {
   }
 };
 
-// ===== 1. 5 種すべてが発動・命中する =====
-section('1. active5 すべてが発動し、命中してダメージを与える');
+// M8-C: 「構え」系は発動時に攻撃しない（被弾に反応して反撃する）。命中を要求しない。
+const STANCE_ONLY = new Set(['counter_stance']);
+
+// ===== 1. active すべてが発動・命中する =====
+section('1. active（構え系を除く）すべてが発動し、命中してダメージを与える');
 for (const id of EXPECTED.actives) {
+  if (STANCE_ONLY.has(id)) continue;
   const ctx = build();
   ctx.sm.acquireOrLevel(id);
   ctx.sm.setLevel(id, 8);
@@ -75,7 +79,7 @@ for (const id of EXPECTED.actives) {
   const cd = s.levels[7].cooldown;
   const maxCasts = Math.ceil(ms / cd) + 2;
   ok((st.casts || 0) <= maxCasts, `${id}: cast ${st.casts} ≤ 理論上限 ${maxCasts}（CD ${cd}ms）`);
-  ok((st.hits || 0) >= (st.casts || 0), `${id}: hits ≥ casts（多段は hits 側で数える）`);
+  if (!STANCE_ONLY.has(id)) ok((st.hits || 0) >= (st.casts || 0), `${id}: hits ≥ casts（多段は hits 側で数える）`);
   ok(ctx.w.telemetry.meleeCasts <= maxCasts, `${id}: meleeCasts ${ctx.w.telemetry.meleeCasts} も上限以内`);
 }
 
@@ -107,7 +111,8 @@ for (const id of EXPECTED.actives) {
   const hi = build(); hi.sm.acquireOrLevel(id); hi.sm.setLevel(id, 8); run(hi, 8000);
   const d1 = (lo.sm.statsList().find((s) => s.id === id) || {}).damage || 0;
   const d8 = (hi.sm.statsList().find((s) => s.id === id) || {}).damage || 0;
-  ok(d8 > d1, `${id}: Lv8 の総ダメージ ${Math.round(d8)} > Lv1 ${Math.round(d1)}`);
+  if (STANCE_ONLY.has(id)) ok(true, `${id}: 構え系は発動時に攻撃しない（Lv 比較の対象外）`);
+  else ok(d8 > d1, `${id}: Lv8 の総ダメージ ${Math.round(d8)} > Lv1 ${Math.round(d1)}`);
 }
 
 // ===== 6. スキル固有の役割 =====

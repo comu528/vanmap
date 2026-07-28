@@ -30,7 +30,7 @@ const BASELINE_RUNTIME = {
 // ===== 1. カタログ規模 =====
 section('1. 3 ジョブのカタログ規模が変わっていない');
 {
-  const expect = { flame_witch: [30, 4, 18], frost_mage: [30, 4, 18], warrior: [5, 4, 3] };
+  const expect = { flame_witch: [30, 4, 18], frost_mage: [30, 4, 18], warrior: [15, 4, 8] }; // M8-C で戦士が 15/4/8 へ
   for (const [jid, [a, p, e]] of Object.entries(expect)) {
     const j = DATA.jobs.find((x) => x.id === jid);
     ok(j.activeSkillPool.length === a, `${jid}: active ${j.activeSkillPool.length} = ${a}`);

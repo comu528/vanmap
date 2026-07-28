@@ -99,9 +99,13 @@ section('6. 進化条件（補助 passive Lv4）が戦士プール内で成立�
 for (const id of WARRIOR.evolutionPool) {
   const e = DATA.evolutions.find((x) => x.id === id);
   for (const req of e.requiredSkills || []) {
+    // M8-C: 補助は passive でも active でもよい（天墜崩撃 = 地砕き Lv6）。
     const p = DATA.passives.find((x) => x.id === req.skill);
-    ok(!!p && WARRIOR.passiveSkillPool.includes(req.skill), `${id}: 補助 ${req.skill} が戦士 passive プールにある`);
-    ok(p && p.maxLevel >= req.level, `${id}: 補助 ${req.skill} は Lv${req.level} まで上げられる（maxLevel ${p?.maxLevel}）`);
+    const a = DATA.skills.find((x) => x.id === req.skill);
+    const inPool = (p && WARRIOR.passiveSkillPool.includes(req.skill)) || (a && WARRIOR.activeSkillPool.includes(req.skill));
+    ok(!!inPool, `${id}: 補助 ${req.skill} が戦士のプールにある`);
+    const maxLv = (p || a || {}).maxLevel;
+    ok(maxLv >= req.level, `${id}: 補助 ${req.skill} は Lv${req.level} まで上げられる（maxLevel ${maxLv}）`);
   }
 }
 

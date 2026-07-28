@@ -1154,3 +1154,89 @@ M7-E で氷術師へ適用した「宣言した値は必ず実装で参照する
 到達報酬 11 段。M8-B で **7 つの新しい `type`** を追加した（`validate-data.mjs` の `KNOWN_TYPES` にも登録）:
 `maxHpMult` / `furyGainMult` / `damageReductionBonus` / `comboThresholdBonus` / `furyRelease` /
 `strikeCount` / `warriorApex`。
+
+---
+
+## Milestone 8-C: 戦士スキル拡張 Wave1 のデータ
+
+### `skills.json` — 戦士 active（5 → 15 件）
+
+追加した 10 件は既存 5 件と同じ形（`element:"physical"` / `jobs:["warrior"]` / `isCommon:false` /
+`maxLevel:8` / Lv1〜8 の `levels[]` / `echoPolicy`・`clonePolicy` = `forbidden` /
+`canTriggerEcho`・`canBeCopiedByClone` = `false` / `meleeRange` / `castMode:"cooldown"` /
+`mainCastEvent` / `lv80ProjectileTarget`）。
+
+スキル固有の `levels[]` キーは次のとおり。**すべて実装から参照される**。
+
+| スキル | 固有キー |
+|--------|----------|
+| `armor_breaker` | `strikes` `bossBonus` |
+| `twin_fang_slash` | `strikes` `secondStrikeMultiplier` |
+| `execution_strike` | `executeThresholdNormal` `missingHpBonusElite` `missingHpBonusBoss` |
+| `leap_smash` | `leapDistance` `mitigationValue` |
+| `sweeping_advance` | `duration` `interval` `speed` `width` `maxStrikes` |
+| `counter_stance` | `windowDuration` `mitigationValue` `counterDamage` `counterArea` `maxCounters` |
+| `war_cry` | `buffDuration` `meleeDamageBonus` `furyGainBonus` `comboGraceBonus` |
+| `chain_hook` | `pullDistanceNormal` `pullDistanceElite` `playerApproachBoss` |
+| `shockwave_stomp` | （固有キーなし・`radius` / `knockback` / `poiseDamage` のみ） |
+| `relentless_combo` | `strikes` `interval` `retargetRange` `finalStrikeMultiplier` |
+
+`config`（レベル非依存の定数）も全件が実装から参照される。例:
+`preferTough` / `preferLowHp` / `poiseOncePerTargetPerCast` / `buffStack` /
+`counterPriority` / `counterCooldownMs` / `pullSpeed` / `bossApproachSpeed` / `safeMargin` /
+`maxPullMs` / `leapSpeed` / `minLeapDistance` / `landingDelayMs` / `maxLeapMs` /
+`retargetIntervalMs` / `maxKnockbackPush` / `shockwaveVisualScale` / `maxRetargets`。
+
+### `skill-evolutions.json` — 戦士 evolution（3 → 8 件）
+
+追加 5 件が持つブロック（既存の `damage` / `area` / `knockback` / `poiseDamage` /
+`comboGain` / `furyGain` / `safetyCaps` に加えて）:
+
+| 進化 | 追加ブロック |
+|------|-------------|
+| `skull_splitter` | `projectileCount`（`strikes` / `strikeIntervalMs`）・`bossBonus` |
+| `crimson_execution` | `execute`（`thresholdNormal` / `missingHpBonusElite` / `missingHpBonusBoss` / `bossMissingHpCap`）・`killChain`（`maxGenerations` / `extraKills` / `killHealBonus`） |
+| `war_god_roar` | `buff`（`durationMs` / `meleeDamageBonus` / `furyGainBonus` / `comboGraceBonus` / `graceRefill` / `stack`） |
+| `adamant_counter` | `mitigation`・`counterWindow`（`durationMs` / `maxCountersPerWindow` / `priority` / `counterCooldownMs`）・`onCounter`（`mitigationValue` / `mitigationMs`） |
+| `heaven_crushing_descent` | `leap`（`distance` / `speed` / `mitigationValue` / `minDistance` / `maxLeapMs`）・`secondaryImpact`（`delayMs`） |
+
+- **補助に active を使えるのは天墜崩撃だけ**（`requiredSkills: [{ skill: "ground_slam", level: 6 }]`）。
+  `validate-data.mjs` は「補助 active は `replacementSkillId` と異なり、進化元とも異なること」を確認する。
+- 全 5 件とも `replacementSkillId` は自分自身・`lv80ProjectileTarget: false`。
+
+### `jobs.json` — warrior
+
+`activeSkillPool` 15 件 / `passiveSkillPool` 4 件 / `evolutionPool` 8 件。
+
+### `balance.json` — `warrior` ブロックへ追加した 4 グループ
+
+| ブロック | キー | 役割 |
+|----------|------|------|
+| `warCry` | `maxDurationMs` `maxMeleeDamageBonus` `maxFuryGainBonus` `maxComboGraceBonus` `stack` | 戦吼バフの上限と重ねがけ規則（既定 `'refresh'`） |
+| `counter` | `priority`（系統ごとの優先度）`globalCooldownMs` | 反撃の調停。**1 被弾 = 最大 1 系統** |
+| `execute` | `allowElite` `allowBoss` `maxExecutesPerSecond` `bossMissingHpCapDefault` | 処刑の可否と上限。エリート / ボスは既定で不可 |
+| `pull` | `bossPullDistance`（0）`worldMargin` `maxPullPerCast` | 引き寄せの上限。ボスは動かせない |
+
+`validate-data.mjs` は上記の全キーが実装から参照されることを検証する（**死にフィールド禁止**）。
+
+### `balance.skillCaps` — M8-C で追加した 20 件（合計 185 件）
+
+ダメージ / イベント系（9）: `maxOverheadStrikes` / `maxTwinFangStrikes` / `maxExecutesPerCast` /
+`maxLeapImpacts` / `maxSweepStrikesPerFrame` / `maxCounterWindows` / `maxChainPullsPerCast` /
+`maxRelentlessStrikes` / `maxRelentlessRetargets`。
+
+演出系（11）: `maxOverheadSlashVisuals` / `maxTwinSlashVisuals` / `maxExecuteMarkers` /
+`maxLeapTrails` / `maxLandingDebris` / `maxSweepTrails` / `maxCounterFlashes` /
+`maxWarCryRings` / `maxChainHookLines` / `maxStompDebris` / `maxRelentlessSparks`。
+
+いずれも 4 品質（low ≤ medium ≤ high ≤ ultra）で正の整数。**未参照 cap は 0 件**。
+演出系の cap を 1 まで落としてもダメージ・命中は変わらない。
+
+### `job-progression.json` — warrior（変更なし）
+
+M8-C では曲線も到達報酬 11 段も変更していない。Lv80 の `strikeCount`（打撃数 +1）の
+**対象が 3 種から 6 種へ増えた**が、これは `skills.json` の `lv80ProjectileTarget` 側の変更である。
+
+### タグ
+
+`validate-data.mjs` の `KNOWN_TAGS` へ `execute` / `buff` / `pull` / `reactive` を追加した。

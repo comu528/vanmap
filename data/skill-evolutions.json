@@ -2260,6 +2260,419 @@
       "mainCastEvent": "bash",
       "echoDescription": "残響非対応（戦士は残響/分身の対象外）",
       "cloneDescription": "複製不可（戦士は残響/分身の対象外）"
+    },
+    {
+      "id": "skull_splitter",
+      "displayName": "断界兜割",
+      "description": "二段構えの上段斬り。一撃目で装甲を割り、二撃目の狭い衝撃で体勢を完全に崩す。通常敵の処刑は行わない。",
+      "baseSkillId": "armor_breaker",
+      "requiredSkills": [
+        {
+          "skill": "brute_force",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "skull_splitter",
+      "visualTier": "evolved",
+      "icon": "icon_skull_splitter",
+      "element": "physical",
+      "tags": [
+        "active",
+        "physical",
+        "melee",
+        "slash",
+        "stance_break"
+      ],
+      "damageTags": [
+        "melee",
+        "slash"
+      ],
+      "procCoefficient": 1,
+      "echoPolicy": "forbidden",
+      "clonePolicy": "forbidden",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "safetyCaps": {
+        "maxStrikesPerCast": 2,
+        "maxTargetsPerStrike": 12,
+        "maxPoisePerTargetPerCast": 1
+      },
+      "displayOrder": 129,
+      "damage": {
+        "first": 108,
+        "second": 72
+      },
+      "area": {
+        "range": 104,
+        "width": 1.1,
+        "secondRange": 72,
+        "secondWidth": 1.6
+      },
+      "knockback": {
+        "first": 62,
+        "second": 88
+      },
+      "poiseDamage": {
+        "first": 132,
+        "second": 96
+      },
+      "comboGain": {
+        "perFirst": 1,
+        "perSecond": 1,
+        "maxPerCast": 2
+      },
+      "furyGain": {
+        "perFirst": 1,
+        "perSecond": 1,
+        "maxPerCast": 5
+      },
+      "projectileCount": {
+        "strikes": 2,
+        "strikeIntervalMs": 180
+      },
+      "bossBonus": 0.5,
+      "cooldown": 1900,
+      "meleeRange": 104,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "overhead",
+      "echoDescription": "残響非対応（戦士は残響/分身の対象外）",
+      "cloneDescription": "複製不可（戦士は残響/分身の対象外）"
+    },
+    {
+      "id": "crimson_execution",
+      "displayName": "血断処刑",
+      "description": "瀕死の敵を確実に断つ処刑術。通常敵の処刑閾値が上がり、仕留めた瞬間に血気の回復が強まる。エリートとボスは処刑できない。",
+      "baseSkillId": "execution_strike",
+      "requiredSkills": [
+        {
+          "skill": "bloodlust",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "crimson_execution",
+      "visualTier": "evolved",
+      "icon": "icon_crimson_execution",
+      "element": "physical",
+      "tags": [
+        "active",
+        "physical",
+        "melee",
+        "slash",
+        "execute"
+      ],
+      "damageTags": [
+        "melee",
+        "slash"
+      ],
+      "procCoefficient": 1,
+      "echoPolicy": "forbidden",
+      "clonePolicy": "forbidden",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "safetyCaps": {
+        "maxExecutesPerCast": 3,
+        "maxTargetsPerStrike": 10,
+        "maxKillChainGenerations": 1
+      },
+      "displayOrder": 130,
+      "damage": {
+        "strike": 84
+      },
+      "area": {
+        "range": 104,
+        "arc": 1.5
+      },
+      "knockback": {
+        "strike": 46
+      },
+      "poiseDamage": {
+        "strike": 52
+      },
+      "comboGain": {
+        "perStrike": 1,
+        "maxPerCast": 2
+      },
+      "furyGain": {
+        "perStrike": 1,
+        "maxPerCast": 5
+      },
+      "execute": {
+        "thresholdNormal": 0.42,
+        "missingHpBonusElite": 1.0,
+        "missingHpBonusBoss": 0.34,
+        "bossMissingHpCap": 0.5
+      },
+      "killChain": {
+        "maxGenerations": 1,
+        "extraKills": 2,
+        "killHealBonus": 0.6
+      },
+      "cooldown": 2200,
+      "meleeRange": 104,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "execute",
+      "echoDescription": "残響非対応（戦士は残響/分身の対象外）",
+      "cloneDescription": "複製不可（戦士は残響/分身の対象外）"
+    },
+    {
+      "id": "war_god_roar",
+      "displayName": "軍神咆哮",
+      "description": "戦場を震わす咆哮。押し返しの範囲が広がり、自身の高揚がより強く長く続く。途切れかけたコンボの猶予も立て直す。",
+      "baseSkillId": "war_cry",
+      "requiredSkills": [
+        {
+          "skill": "combat_instinct",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "war_god_roar",
+      "visualTier": "evolved",
+      "icon": "icon_war_god_roar",
+      "element": "physical",
+      "tags": [
+        "active",
+        "physical",
+        "melee",
+        "blunt",
+        "buff",
+        "area"
+      ],
+      "damageTags": [
+        "melee",
+        "blunt"
+      ],
+      "procCoefficient": 1,
+      "echoPolicy": "forbidden",
+      "clonePolicy": "forbidden",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "safetyCaps": {
+        "maxTargetsPerShock": 24,
+        "maxBuffDurationMs": 12000,
+        "maxShocksPerCast": 1
+      },
+      "displayOrder": 131,
+      "damage": {
+        "shock": 38
+      },
+      "area": {
+        "radius": 168
+      },
+      "knockback": {
+        "shock": 62
+      },
+      "poiseDamage": {
+        "shock": 44
+      },
+      "comboGain": {
+        "perShock": 1,
+        "maxPerCast": 2
+      },
+      "furyGain": {
+        "perShock": 1,
+        "maxPerCast": 5
+      },
+      "buff": {
+        "durationMs": 8000,
+        "meleeDamageBonus": 0.3,
+        "furyGainBonus": 0.4,
+        "comboGraceBonus": 0.6,
+        "graceRefill": 1.0,
+        "stack": "refresh"
+      },
+      "cooldown": 6000,
+      "meleeRange": 168,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "warCry",
+      "echoDescription": "残響非対応（戦士は残響/分身の対象外）",
+      "cloneDescription": "複製不可（戦士は残響/分身の対象外）"
+    },
+    {
+      "id": "adamant_counter",
+      "displayName": "金剛迎撃",
+      "description": "鉄壁の迎撃姿勢。構えが長く続き、1度の構えで受け流せる回数がわずかに増える。反撃が決まると短時間だけ守りが固くなる。",
+      "baseSkillId": "counter_stance",
+      "requiredSkills": [
+        {
+          "skill": "heavy_armor",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "adamant_counter",
+      "visualTier": "evolved",
+      "icon": "icon_adamant_counter",
+      "element": "physical",
+      "tags": [
+        "active",
+        "physical",
+        "melee",
+        "counter",
+        "defense",
+        "reactive"
+      ],
+      "damageTags": [
+        "melee",
+        "blunt",
+        "counter"
+      ],
+      "procCoefficient": 1,
+      "echoPolicy": "forbidden",
+      "clonePolicy": "forbidden",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "safetyCaps": {
+        "maxCounterPerWindow": 3,
+        "maxTargetsPerStrike": 20,
+        "maxCounterMitigationMs": 2000
+      },
+      "displayOrder": 132,
+      "damage": {
+        "counter": 124
+      },
+      "area": {
+        "counterRadius": 104
+      },
+      "knockback": {
+        "counter": 96
+      },
+      "poiseDamage": {
+        "counter": 80
+      },
+      "comboGain": {
+        "perCounter": 0,
+        "maxPerCast": 2
+      },
+      "furyGain": {
+        "perCounter": 0,
+        "maxPerCast": 4
+      },
+      "mitigation": {
+        "value": 0.42,
+        "durationMs": 1200
+      },
+      "counterWindow": {
+        "durationMs": 2600,
+        "maxCountersPerWindow": 3,
+        "priority": 3,
+        "counterCooldownMs": 220
+      },
+      "onCounter": {
+        "mitigationValue": 0.25,
+        "mitigationMs": 1400
+      },
+      "cooldown": 5200,
+      "meleeRange": 104,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "stance",
+      "echoDescription": "残響非対応（戦士は残響/分身の対象外）",
+      "cloneDescription": "複製不可（戦士は残響/分身の対象外）"
+    },
+    {
+      "id": "heaven_crushing_descent",
+      "displayName": "天墜崩撃",
+      "description": "天へ跳び上がり、全体重を乗せて墜ちる。着地の直後にもう一度だけ巨大な衝撃が走るが、届く範囲はあくまで自分の周囲だけ。",
+      "baseSkillId": "leap_smash",
+      "requiredSkills": [
+        {
+          "skill": "ground_slam",
+          "level": 6
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "heaven_crushing_descent",
+      "visualTier": "evolved",
+      "icon": "icon_heaven_crushing_descent",
+      "element": "physical",
+      "tags": [
+        "active",
+        "physical",
+        "melee",
+        "blunt",
+        "movement",
+        "area",
+        "stance_break"
+      ],
+      "damageTags": [
+        "melee",
+        "blunt"
+      ],
+      "procCoefficient": 1,
+      "echoPolicy": "forbidden",
+      "clonePolicy": "forbidden",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "safetyCaps": {
+        "maxImpactsPerCast": 2,
+        "maxTargetsPerImpact": 28,
+        "maxLeapDistance": 360
+      },
+      "displayOrder": 133,
+      "damage": {
+        "impact": 96,
+        "secondary": 68
+      },
+      "area": {
+        "radius": 112,
+        "secondaryRadius": 148
+      },
+      "knockback": {
+        "impact": 132,
+        "secondary": 96
+      },
+      "poiseDamage": {
+        "impact": 88,
+        "secondary": 60
+      },
+      "comboGain": {
+        "perImpact": 1,
+        "perSecondary": 1,
+        "maxPerCast": 2
+      },
+      "furyGain": {
+        "perImpact": 1,
+        "perSecondary": 1,
+        "maxPerCast": 6
+      },
+      "leap": {
+        "distance": 290,
+        "speed": 700,
+        "mitigationValue": 0.44,
+        "minDistance": 48,
+        "maxLeapMs": 760
+      },
+      "secondaryImpact": {
+        "delayMs": 280
+      },
+      "cooldown": 5000,
+      "meleeRange": 148,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "leapStart",
+      "echoDescription": "残響非対応（戦士は残響/分身の対象外）",
+      "cloneDescription": "複製不可（戦士は残響/分身の対象外）"
     }
   ]
 }

@@ -5,7 +5,7 @@
 // - 内部 Map が無制限に伸びないこと
 // 実行: node tests/warrior-cleanup.mjs
 
-import { EXPECTED, makeScene, makeEnemies, makeBoss, makeWarrior, bootRuntime, runner, readSrc, registryMap, skillSource } from './warrior-common.mjs';
+import { EXPECTED, makeScene, makeEnemies, makeBoss, makeWarrior, bootRuntime, runner, readSrc, registryMap, skillSourceDeep } from './warrior-common.mjs';
 
 const T = runner('戦士 後始末・リーク防止（M8-B）');
 const { ok, section, info } = T;
@@ -35,7 +35,7 @@ section('1. active5 + evolution3 すべてが destroy を実装する');
 {
   const map = registryMap();
   for (const id of ALL) {
-    const src = skillSource(id, map) || '';
+    const src = skillSourceDeep(id, map) || '';
     ok(/destroy\s*\(\s*\)\s*\{/.test(src), `${id}: destroy を実装する`);
     ok(/_dead\s*=\s*true/.test(src), `${id}: 破棄フラグ _dead を立てる`);
     ok(/this\._dead\s*\|\|/.test(src) || !/delayedCall/.test(src), `${id}: 遅延処理に破棄ガードがある`);

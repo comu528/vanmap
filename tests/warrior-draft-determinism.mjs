@@ -138,13 +138,16 @@ section('5. 実抽選シミュレーション: active枠4/6 での進化到達�
     }
     return evolved.size;
   };
-  for (const [slotMax, levelUps] of [[4, 40], [6, 60]]) {
+  // M8-C: active が 5 → 15 種へ増えたため、同じレベルアップ回数での進化到達率は必然的に下がる
+  //（1 種あたりの提示確率が下がり、Lv8 まで伸ばすのに必要な選択回数が増えるため）。
+  // 枠が狭いほど影響が大きいので、枠ごとに基準を分ける。
+  for (const [slotMax, levelUps, minRate] of [[4, 40, 35], [6, 60, 80], [8, 80, 90]]) {
     let atLeast1 = 0;
     const runs = 200;
     for (let s = 1; s <= runs; s++) if (simulate(s, slotMax, levelUps) >= 1) atLeast1++;
     const rate = atLeast1 / runs * 100;
     info(`active枠${slotMax} / ${levelUps}回レベルアップ: 進化1種以上 ${rate.toFixed(1)}%`);
-    ok(rate >= 50, `active枠${slotMax}: 進化1種以上の到達率 ${rate.toFixed(1)}% ≥ 50%`);
+    ok(rate >= minRate, `active枠${slotMax}: 進化1種以上の到達率 ${rate.toFixed(1)}% ≥ ${minRate}%`);
   }
 }
 
