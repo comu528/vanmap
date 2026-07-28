@@ -8,10 +8,12 @@
 
 ## Current branch
 
-- ブランチ: **`claude/flame-witch-audit-m8a-xoh048`**（M8-A の指定ブランチ。指定なき限りここへコミット・プッシュ）
+- ブランチ: **`claude/funny-heisenberg-frhgq9`**（`CLAUDE.md` の継続ブランチ。指定なき限りここへコミット・プッシュ）
+  - M8-A は `claude/flame-witch-audit-m8a-xoh048` で実装し、**fast-forward で本ブランチへ取り込み済み**
+    （分岐なし・コンフリクト 0・両ブランチの内容は一致）。
 - 直近コミット:
+  - `2846906` Milestone 8-A ドキュメント更新: docs/project-state.md へ commit ID を記載
   - `bca7ec3` Milestone 8-A: 火の魔女 完成監査（CD保存漏れ/残響未発火/死にフィールド/未参照capの修正）
-  - （本ファイルの commit ID 追記は直後の docs 更新コミット。M7-D と同じ 2 コミット構成）
   - `338f25c` 環境整備: CLAUDE.md へ Compact Instructions を追記し docs/project-state.md を新規作成
   - `3e6c7ed` Milestone 7-E: 氷術師 完成監査（抽選率・進化到達率・全体バランス分析）
   - `3a3f9cc` Milestone 7-D ドキュメント更新: 氷術師 active30/進化18（カタログ完成）
