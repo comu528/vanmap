@@ -10,7 +10,7 @@
 
 - ブランチ: **`claude/funny-heisenberg-frhgq9`**（`CLAUDE.md` の継続ブランチ。指定なき限りここへコミット・プッシュ）
 - 直近コミット:
-  - `__M8B1_COMMIT__` Milestone 8-B.1: passive 再計算バグ修正（status passive を passives.version で単一トリガー化）
+  - `601fe2a` Milestone 8-B.1: passive 再計算バグ修正（status passive を passives.version で単一トリガー化）
   - `4c8bd10` Milestone 8-B: 戦士 基盤実装（active5/passive4/進化3・闘気/コンボ/強靱/不屈/体勢崩し）
   - `ec503fe` docs: M8-A 取り込み後の継続ブランチを docs/project-state.md へ反映
   - `2846906` Milestone 8-A ドキュメント更新: docs/project-state.md へ commit ID を記載
@@ -165,7 +165,7 @@
 | 11 | **M8-A** | M7-E から残っていた**火由来の未参照 quality cap 5 件**を削除（重複 or 参照すると品質で火力が変わるもの）。`SkillBase._initCd` も削除 | `bca7ec3` |
 | 12 | **M8-A** | `eternal_pyre.spreadInfection()` が `enemyPool.forEachActive()` で毎 tick 全敵を総当たりしていたのを炎上索引経由へ（性能改善・対象集合は同じ） | `bca7ec3` |
 | 13 | M8-A | `AshLegionSkill` / `SolarAnnihilationArraySkill` の `serializeState()` が `{}` を返すだけで `restoreState` も無く、`AshDoppelgangerSkill` は保存値 `spawned` を復元していなかった（再開直後に全ユニットが無料で一斉発動） | `bca7ec3` |
-| 15 | **M8-B.1** | **氷術師の passive「余寒残留」が周回中に効かなかった**。`BattleScene._refreshStatusPassives()` が通常のレベルアップ経路（`applyCandidate`）から呼ばれておらず、`StatusEffectManager` へ push 型で渡す `chillDecayMult` / `iceStatusDurationMult` だけが更新されないままだった（pull 型の `iceDamage` / `cooldown` / `area` は影響なし）。`passives.version` を単一トリガーにする `_refreshStatusPassivesIfNeeded()` を追加し、変化時だけ現在の所持状態から完全再構築するようにした | `__M8B1_COMMIT__` |
+| 15 | **M8-B.1** | **氷術師の passive「余寒残留」が周回中に効かなかった**。`BattleScene._refreshStatusPassives()` が通常のレベルアップ経路（`applyCandidate`）から呼ばれておらず、`StatusEffectManager` へ push 型で渡す `chillDecayMult` / `iceStatusDurationMult` だけが更新されないままだった（pull 型の `iceDamage` / `cooldown` / `area` は影響なし）。`passives.version` を単一トリガーにする `_refreshStatusPassivesIfNeeded()` を追加し、変化時だけ現在の所持状態から完全再構築するようにした | `601fe2a` |
 | 14 | M8-B | 実装中に作り込みかけた**死にフィールド 2 件を作らずに済ませた**: passive `heavy_armor` の `knockbackResist`（プレイヤーがノックバックされる仕組みが存在しない）と `charge_slash.levels[].visual`（`visualScale()` を使わない）。data・`modifierKeys`・`balance.warrior.mitigation` から削除し、「予約値として残さない」原則を維持 | `4c8bd10` |
 
 ## Non-regression requirements
@@ -279,7 +279,7 @@ active枠4 / 40 レベルアップで 92.5%、枠6 / 60 レベルアップで 10
 
 ## Latest test results
 
-- 実行日時点: Milestone 8-B.1 完了時（コミット `__M8B1_COMMIT__`）
+- 実行日時点: Milestone 8-B.1 完了時（コミット `601fe2a`）
 - **テストスイート: 98 件（`tests/*.mjs` から共通土台 `frost-audit-common.mjs` / `flame-audit-common.mjs` /
   `warrior-common.mjs` / `status-passive-common.mjs` を除く）→ 全 98 通過・失敗 0**
 - `node tests/validate-data.mjs` → **0 エラー / 0 警告**（M8-B.1 は data を変えていないため検証も拡張していない）
