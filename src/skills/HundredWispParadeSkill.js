@@ -41,10 +41,18 @@ export class HundredWispParadeSkill extends EvolvedSkillBase {
     if (this.scene.rng() >= (d.projectileCount?.splitChance || 0.35)) return;
     if (this.scene.countProjBySkill(this.id) >= this.scene.combat.skillCap('maxSplitWisps', 40) + this.scene.combat.skillCap('maxHomingWisps', 50)) return;
     const t = this.scene.combat.nearestEnemy(e.x, e.y, 100000);
-    const ang = this.scene.rng() * Math.PI * 2;
-    this.scene.combat.spawnPlayerProjectile(e.x, e.y, ang, 120, {
-      skillId: this.id, damage: (d.damage?.base || 22) * (d.damage?.splitFactor || 0.6), pierce: 0,
-      homingRate: 0.005, homingSpeed: 240, homingTarget: t, wanderMs: 120, retargets: 2, lifeMs: 2600, scale: 0.6, tint: 0xff8a65, element: 'fire',
-    });
+    // chain.splitOnKill = 撃破1回あたりに分裂する鬼火の数（世代は作らない＝無限増殖なし）。
+    const splits = Math.max(0, Math.min(d.chain?.splitOnKill ?? 1, this.cap('maxSplitGenerations', 1) * 4));
+    for (let k = 0; k < splits; k++) {
+      const ang = this.scene.rng() * Math.PI * 2;
+      this.scene.combat.spawnPlayerProjectile(e.x, e.y, ang, 120, {
+        skillId: this.id, damage: (d.damage?.base || 22) * (d.damage?.splitFactor || 0.6), pierce: 0,
+        homingRate: 0.005, homingSpeed: 240, homingTarget: t, wanderMs: 120, retargets: 2, lifeMs: 2600, scale: 0.6, tint: 0xff8a65, element: 'fire',
+      });
+    }
   }
+
+  // M8-A: クールダウンを保存し、再開直後の無料発動を防ぐ（百鬼燎乱）。
+  serializeState() { return { cdLeft: this._cd }; }
+  restoreState(s) { if (s && typeof s.cdLeft === 'number') this._cd = s.cdLeft; }
 }

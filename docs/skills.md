@@ -135,3 +135,44 @@ M7-D で氷術師へ **新 active5種・新進化5種** を追加し、火の魔
 `maxAbsoluteZeroRayBranches` / `maxWorldEndAvalancheWaves` / `maxSentryProjectiles`（砲台弾の同時数）/
 `maxGlacialSpearTelegraphs` / `maxShatterProjectiles`（粉砕由来の弾数）を実装へ接続した。
 `CrystalSentinelLegionSkill` は砲台数の上限に「1フレームあたりの氷線予算」を混ぜていた名前違いを解消した（実効値は不変）。
+
+
+---
+
+## Milestone 8-A: 火の魔女スキルの監査と修正（新規追加なし）
+
+active30 / 進化18 を対象に監査し、**死にパラメータ 21 件・未参照 quality cap 5 件を 0 件**にした。
+新規スキルは追加していない。詳細は `./flame-completion-audit.md`。
+
+### クールダウン保存漏れの修正（21 種）
+`fireball` `flame_pillar` `burning_trail` `orbiting_flame` `meteor` `flame_lance` `scatter_flame` `homing_wisp`
+`chain_flame` `lava_bomb` `flame_vortex` `fire_spirit` `detonation_mark` と、
+進化 `infernal_barrage` `purgatory_eruption` `eternal_pyre` `thousand_flame_lances` `hundred_wisp_parade`
+`solar_core_collapse` `infernal_vortex_wheel` `apocalypse_chain` は `serializeState()` を持たず、
+**リロードで CD が全回復して無料発動**できていた。CD 型は `cdLeft`、常設型（`orbiting_flame` / `fire_spirit` /
+`eternal_pyre`）は回転位相・主発動スロットル・射撃タイマーを保存するようにした。
+`ash_doppelganger` / `ash_legion` / `solar_annihilation_array` も、複製タイマー・ユニットタイマー・
+集束ビームの残り時間を保存する（以前は再開直後に全ユニットが無料で一斉発動）。
+
+### 残響・分身が発生しなかった 2 進化の修正
+`eternal_pyre` / `solar_annihilation_array` は常設型で `recordCast` を一度も呼ばず、
+data で宣言した残響・分身が**絶対に発生しない**状態だった（進化元では発生する＝進化で機能を失っていた）。
+`config.castPulseMs`（500 / 600ms）で主発動をスロットル記録し、`echoPolicy`/`clonePolicy` を実装に合わせて
+`custom`（攻撃部分のみ）へ修正、`eternal_pyre` には `echoCast()`（領域の追加パルス）を実装した。
+
+### 実装へ接続した宣言値（挙動は不変）
+`infernal_barrage.chain.onKillExtra` / `.chainExplosion`、`purgatory_eruption.pull.excludeBoss`、
+`solar_core_collapse.pull.excludeBoss`、`thousand_flame_lances.chain.splitOnPierce` / `damage.rampMax`、
+`hundred_wisp_parade.chain.splitOnKill`、`infernal_vortex_wheel.chain.infect`、
+`apocalypse_chain.chain.spreadOnChain` / `projectileCount.spreadCount`、
+`solar_annihilation_array.projectileCount.auxBeams`、`hellfire_mine_network.projectileCount.markTargets`、
+`hexagram_inferno_array.projectileCount.vertices`。いずれも宣言値＝従来のハードコード値。
+
+### 削除した予約値（実装すると火力が変わるため）
+`skills.json` の旧 `evolution` ブロック 3 件、`bloodfire_pact.buffDamage`/`buffMs`、
+`four_sided_inferno.burnMs`、`inferno_blade_domain.projectileCount.sweeps`、
+`necroflame_mausoleum.area.senseRadius`、`universal_flame_resonance.config.countRadius`。
+
+### 性能
+`eternal_pyre.spreadInfection()` が `enemyPool.forEachActive()` で毎 tick 全敵を走査していたのを、
+M6-E で用意した炎上索引（`combat.burningEnemies()`）経由へ付け替えた（対象集合は同じ）。

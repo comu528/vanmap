@@ -44,4 +44,8 @@ export class FlameVortexSkill extends SkillBase {
   }
 
   destroy() { for (const v of this.vortices) if (v.sprite) v.sprite.destroy(); this.vortices = []; }
+
+  // M8-A: クールダウンを保存（渦本体は寿命つきの設置物のため保存せず二重生成しない）。
+  serializeState() { return { cdLeft: this._cd }; }
+  restoreState(s) { if (s && typeof s.cdLeft === 'number') this._cd = s.cdLeft; }
 }

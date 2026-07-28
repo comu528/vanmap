@@ -151,15 +151,18 @@
       "lv80ProjectileTarget": false,
       "castMode": "periodic",
       "mainCastEvent": "emitStart",
-      "echoDescription": "燃焼地帯を追加（死亡爆発は対象外）",
-      "cloneDescription": "燃焼地帯を複製",
-      "echoPolicy": "standard",
-      "clonePolicy": "standard",
+      "echoDescription": "残響では炎の領域を1回ぶん追加パルスする（領域そのものは増やさない）",
+      "cloneDescription": "分身も追加パルスのみを再現する",
+      "echoPolicy": "custom",
+      "clonePolicy": "custom",
       "canTriggerEcho": true,
       "canBeCopiedByClone": true,
       "isDefensive": false,
       "isReactive": false,
-      "usesResourceCost": false
+      "usesResourceCost": false,
+      "config": {
+        "castPulseMs": 500
+      }
     },
     {
       "id": "thousand_flame_lances",
@@ -449,8 +452,8 @@
       "replacementSkillId": "solar_annihilation_array",
       "visualTier": "evolved",
       "icon": "icon_solar_annihilation_array",
-      "echoPolicy": "standard",
-      "clonePolicy": "standard",
+      "echoPolicy": "custom",
+      "clonePolicy": "custom",
       "isDefensive": false,
       "isReactive": false,
       "usesResourceCost": false,
@@ -483,8 +486,11 @@
       "lv80ProjectileTarget": false,
       "castMode": "continuous",
       "mainCastEvent": "beamStart",
-      "echoDescription": "照射を追加（各tickは対象外）",
-      "cloneDescription": "照射を複製"
+      "echoDescription": "残響では主光線の追加バーストのみを行う（鏡や集束は増やさない）",
+      "cloneDescription": "分身も主光線の追加バーストのみを再現する",
+      "config": {
+        "castPulseMs": 600
+      }
     },
     {
       "id": "hellfire_mine_network",
@@ -574,8 +580,7 @@
         "arc": 6.2
       },
       "projectileCount": {
-        "blades": 4,
-        "sweeps": 3
+        "blades": 4
       },
       "lv80ProjectileTarget": false,
       "castMode": "cooldown",
@@ -699,7 +704,6 @@
       "area": {
         "smallRadius": 46,
         "bigRadius": 122,
-        "senseRadius": 44,
         "burnRadius": 40
       },
       "cooldown": 2600,
@@ -881,8 +885,7 @@
         "maxChains": 8,
         "maxResonancePoints": 40,
         "finalBlastMinBurning": 15,
-        "finalBlastMs": 3000,
-        "countRadius": 300
+        "finalBlastMs": 3000
       },
       "safetyCaps": {
         "maxResonanceTargets": 60,

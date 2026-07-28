@@ -222,3 +222,24 @@ M7-B.1 で、氷術師の状態異常が**通常プレイ中に視認・確認�
   `rime_boomerang` `polar_star` `glacial_spear_rain`）。進化 18 種は全て対象外で、tag からの自動導出はしない。
 - **Job modifier / milestone に死にものは無い**。`resolvedJobModifiers` は周回開始時に凍結され reload で変化しない。
   Lv50 の氷砕連鎖は非再帰、Lv100 の絶対零度でもボスは通常凍結しない（ゲージへ変換）。
+
+
+---
+
+## Milestone 8-A: 火の魔女 完成監査（active30 / passive4 / 進化18 で確定）
+
+- カタログは **active30 / passive4 / 進化18（合計 52）**・`SkillCatalog` の issues **0 件**で確定。
+- **プール分離**: 火 active は `jobs:["flame_witch"]`＋`isCommon:false`、火 passive は `passiveSkillPool` 所属。
+  `jobs` 未指定を暗黙共通にしない。氷術師へ 1 件も漏れない（逆も同様）。
+- **進化非対象 active は 12 種**: `orbiting_flame` `meteor` `scatter_flame` `chain_flame` `fire_spirit`
+  `phoenix_feather` `flame_barrier` `ricochet_ember` `bloodfire_pact` `four_sided_inferno` `molten_chains` `blazing_step`。
+  いずれも提示・取得ともに発生し、ハズレ候補ではない（多くは進化補助としての役割も持つ）。
+- **Job Lv80「発射数+1」対象は明示 flag の 6 種のみ**（`fireball` `flame_lance` `scatter_flame` `homing_wisp`
+  `ricochet_ember` `core_overdrive`）。進化 18 種は全て対象外で、tag からの自動導出はしない。
+- **Job Lv1〜100 に死に milestone は無い**。11 件の milestone（Lv5/10/20/30/40/50/60/70/80/90/100）はすべて
+  `JobModifierManager.resolve()` の `case` に対応する。基本成長（火ダメ+0.35%/Lv・DoT+0.50%/Lv・範囲+0.10%/Lv）も実装が参照。
+- 属性ダメージ補正は `primaryElement` 一致時のみ適用され、**氷へ誤適用しない / 火へ氷補正が乗らない**。
+  `resolvedJobModifiers` は周回開始時に凍結され reload で不変。スキルが `profile.jobLevel` を直接参照するものは 0 件。
+- Lv100「完全残響」でも `CastPolicy` の generation 上限により再帰キャストは生じない。
+- passive `ember_persist` は進化補助として要求されないが、`duration` modifier が実装から参照されるため
+  **死に passive ではない**（火は 18 進化中 14 件が active 補助で、passive 補助は 4 件のみ）。

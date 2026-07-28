@@ -54,4 +54,8 @@ export class BurningTrailSkill extends SkillBase {
     for (const p of this.patches) if (p.sprite) p.sprite.destroy();
     this.patches = [];
   }
+
+  // M8-A: クールダウンを保存（炎パッチ自体は寿命の短い設置物のため保存せず、再開時に作り直さない）。
+  serializeState() { return { cdLeft: this._cd }; }
+  restoreState(s) { if (s && typeof s.cdLeft === 'number') this._cd = s.cdLeft; }
 }

@@ -26,8 +26,11 @@ export class AshDoppelgangerSkill extends SkillBase {
       const spr = this.scene.add.image(p.x, p.y, TEX.FIREBALL)
         .setBlendMode(Phaser.BlendModes.ADD).setDepth(50).setScale(0.85).setTint(0x9e9e9e).setAlpha(0.7);
       // コピー開始位相をずらして同時多発を避ける。
-      this.clones.push({ sprite: spr, offsetAngle: 0, copyTimer: (s.copyIntervalMs || 1000) * (0.3 + 0.7 * this.scene.rng()) });
+      // M8-A: 途中再開の直後だけ、保存しておいた複製タイマーを引き継ぐ（無料の一斉複製を作らない）。
+      const restored = this._pendingCopyTimers && this._pendingCopyTimers.length ? this._pendingCopyTimers.shift() : null;
+      this.clones.push({ sprite: spr, offsetAngle: 0, copyTimer: typeof restored === 'number' ? restored : (s.copyIntervalMs || 1000) * (0.3 + 0.7 * this.scene.rng()) });
     }
+    if (this._pendingCopyTimers && !this._pendingCopyTimers.length) this._pendingCopyTimers = null;
     while (this.clones.length > want) { const c = this.clones.pop(); if (c.sprite) c.sprite.destroy(); }
 
     const n = this.clones.length;
@@ -55,9 +58,11 @@ export class AshDoppelgangerSkill extends SkillBase {
     if (n) this.scene.skills.recordExtra(this.id, 'highestConcurrentObjects', n, 'max');
   }
 
-  // 分身数はレベル値から update で再構築するため、個数のみ保存すれば十分。
-  serializeState() { return { spawned: this.clones.length }; }
-  restoreState(/* s */) { /* 個数は update() が stats.cloneCount から再構築する */ }
+  // 分身数はレベル値から update() が再構築するため保存しない（二重生成しない）。
+  // M8-A: 各分身の複製タイマーは保存して復元する（以前は保存値 spawned が復元されない死にフィールドで、
+  // 再開直後に全分身が同時に無料複製していた）。
+  serializeState() { return { copyTimers: this.clones.map((c) => c.copyTimer) }; }
+  restoreState(s) { if (s && Array.isArray(s.copyTimers)) this._pendingCopyTimers = s.copyTimers.slice(0, 8); }
 
   destroy() { for (const c of this.clones) if (c.sprite) c.sprite.destroy(); this.clones = []; }
 }

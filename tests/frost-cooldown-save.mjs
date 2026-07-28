@@ -132,8 +132,8 @@ section('4. 火の魔女の runtimeState 保存へ影響しない');
   const rt = new Set(skillsWithRuntimeState());
   // 既存の runtimeState 火スキルが引き続き含まれる（欠落していない）。
   for (const id of ['funeral_pyres', 'magma_vein', 'ember_minefield', 'bloodfire_pact', 'core_overdrive', 'flame_barrier', 'phoenix_feather']) ok(rt.has(id), `火スキル ${id} は引き続き runtimeState を保存`);
-  // serializeState を持たない火スキルは引き続き非対象。
-  for (const id of ['fireball', 'meteor', 'flame_pillar']) ok(!rt.has(id), `火スキル ${id} は従来どおり runtimeState 非対象（変化なし）`);
+  // M8-A: 火の魔女側の CD 保存漏れ（再開直後の無料発動）を修正したため、これらも runtimeState 対象になった。
+  for (const id of ['fireball', 'meteor', 'flame_pillar']) ok(rt.has(id), `火スキル ${id} は M8-A で runtimeState（CD）を保存する`);
   // 火スキルの serializeRuntime 出力が氷追加の影響を受けない（火のみ所持の manager で氷キーが出ない）。
   const A = makeScene(); A.sm.acquireOrLevel('funeral_pyres');
   const out = A.sm.serializeRuntime();

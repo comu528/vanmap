@@ -15,4 +15,8 @@ export class ChainFlameSkill extends SkillBase {
       scale: 0.9, lifeMs: 1200, tint: 0xffee58, element: 'fire',
     });
   }
+
+  // M8-A: クールダウンを保存し、再開直後の無料発動を防ぐ（連鎖炎）。
+  serializeState() { return { cdLeft: this._cd }; }
+  restoreState(s) { if (s && typeof s.cdLeft === 'number') this._cd = s.cdLeft; }
 }

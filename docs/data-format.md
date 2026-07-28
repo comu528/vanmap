@@ -1024,3 +1024,26 @@ M6-E〜M7-C までの `skillCaps` へ、氷スキル/進化の品質別（`low �
 
 `opts.frozenBonus`（凍結対象への追加ダメージ倍率・既定 0）と `Projectile.bossGaugeMult`（既定 1）は
 `dealDamage` / `damageArea` / 弾の共通オプションとして追加した。未指定のスキルの挙動は変わらない。
+
+
+---
+
+## Milestone 8-A: 火の魔女側の「死にフィールド」除去
+
+M7-E で氷術師へ適用した「宣言した値は必ず実装で参照するか、data から削除する」原則を火の魔女へ適用した。
+
+- **`skills.json` の `evolution` ブロックを廃止**。進化の正は `skill-evolutions.json` のみ。
+  `fireball` / `flame_pillar` / `burning_trail` に残っていた旧定義（`id` / `name` / `description` / `requires`）を削除した。
+  `validate-data.mjs` は「`skills.json` に `evolution` があればエラー」を検査する。
+- **削除した予約値**: `bloodfire_pact.buffDamage` / `buffMs`、`four_sided_inferno.burnMs`、
+  `inferno_blade_domain.projectileCount.sweeps`、`necroflame_mausoleum.area.senseRadius`、
+  `universal_flame_resonance.config.countRadius`。
+- **実装へ接続した宣言値**: `chain.onKillExtra` / `chain.chainExplosion` / `pull.excludeBoss` /
+  `chain.splitOnPierce` / `damage.rampMax` / `chain.splitOnKill` / `chain.infect` / `chain.spreadOnChain` /
+  `projectileCount.spreadCount` / `projectileCount.auxBeams` / `projectileCount.markTargets` /
+  `projectileCount.vertices`。いずれも宣言値＝従来のハードコード値のため挙動は不変。
+- **`config.castPulseMs`** を進化側にも追加（`eternal_pyre` 500 / `solar_annihilation_array` 600）。
+  常設型スキルの主発動（`recordCast`）スロットル間隔を data で持つ既存の仕組み（`orbiting_flame.config.castPulseMs`）と同じ。
+- **`balance.json.skillCaps` から未参照 5 件を削除**（`maxBarrierEffects` / `maxBurningEnemyIndex` /
+  `maxChainTargets` / `maxCopyGeneration` / `maxMainCastEventsPerFrame`）。157 → 152 件。
+  重複（`maxChainDepth` / `maxEchoCloneGeneration`）または「参照すると品質でダメージが変わってしまう」ものだった。

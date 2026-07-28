@@ -785,7 +785,7 @@ export class BattleScene extends Phaser.Scene {
         ctx.visited.add(o);
         const om = o._mark; o._mark = null;
         this._doMarkExplosion(o.x, o.y, om.detonateRadius || m.detonateRadius, om.detonateDamage || m.detonateDamage, m.skillId, 0xff8a65);
-        if (ctx.spread < (m.maxSpread || 6)) this._spreadMark(o.x, o.y, m, ctx);
+        if (m.spreadOnChain !== false && ctx.spread < (m.maxSpread || 6)) this._spreadMark(o.x, o.y, m, ctx);
         this.chainDetonate(o.x, o.y, m, ctx);
       }
     }
@@ -799,11 +799,14 @@ export class BattleScene extends Phaser.Scene {
   }
 
   _spreadMark(x, y, m, ctx) {
+    // 1回の連鎖起爆で拡散できる数（data の projectileCount.spreadCount）。総数は maxSpread が上限。
+    let perDetonation = Math.max(1, m.spreadPerDetonation || 3);
     for (const o of this.targetsInRadius(x, y, m.chainRadius || 90)) {
-      if (ctx.spread >= (m.maxSpread || 6)) break;
+      if (ctx.spread >= (m.maxSpread || 6) || perDetonation <= 0) break;
       if (o.isBoss || o._mark || ctx.visited.has(o)) continue;
-      o._mark = { skillId: m.skillId, hits: 0, hitsNeeded: m.hitsNeeded || 2, until: this.time.now + (m.markDuration || 6000), detonateDamage: m.detonateDamage, detonateRadius: m.detonateRadius, deathDamage: m.deathDamage, chain: m.chain, chainRadius: m.chainRadius, maxDepth: m.maxDepth, maxSpread: m.maxSpread, finalBlast: m.finalBlast, finalRadius: m.finalRadius, markDuration: m.markDuration };
+      o._mark = { skillId: m.skillId, hits: 0, hitsNeeded: m.hitsNeeded || 2, until: this.time.now + (m.markDuration || 6000), detonateDamage: m.detonateDamage, detonateRadius: m.detonateRadius, deathDamage: m.deathDamage, chain: m.chain, spreadOnChain: m.spreadOnChain, spreadPerDetonation: m.spreadPerDetonation, chainRadius: m.chainRadius, maxDepth: m.maxDepth, maxSpread: m.maxSpread, finalBlast: m.finalBlast, finalRadius: m.finalRadius, markDuration: m.markDuration };
       ctx.spread++;
+      perDetonation--;
     }
   }
 
@@ -1470,7 +1473,8 @@ export class BattleScene extends Phaser.Scene {
             this.aoe(proj.x, proj.y, proj.explosionRadius, proj.damage * 0.5, proj.skillId, { exclude: e, quiet: true, isExplosion: true, element: proj.element });
           }
           // M6-B: ラム威力上昇（千条炎槍）・連鎖（連鎖炎）。
-          if (proj.ramp > 0) proj.damage = Math.min(proj.damage * (1 + proj.ramp), (proj._rampBase || proj.damage) * 1.6);
+          // 上昇の上限は data の damage.rampMax（既定 0.6 ＝ 基礎の 1.6 倍）。
+          if (proj.ramp > 0) proj.damage = Math.min(proj.damage * (1 + proj.ramp), (proj._rampBase || proj.damage) * (1 + (proj.rampMax ?? 0.6)));
           if (proj.behavior === 'chain') this._chainHit(proj, e);
           proj.consumePierce();
           // 貫通後の威力減衰（進化弾は減衰が緩い）。
@@ -1532,14 +1536,18 @@ export class BattleScene extends Phaser.Scene {
     } else if (skillId === 'infernal_barrage') {
       const t = this.nearestTarget(e.x, e.y, 240);
       if (t && t !== e && t.alive) {
-        this._extraFbBudget--;
         const evo = DataManager.getEvolution('infernal_barrage');
+        // chain.onKillExtra = 撃破1回あたりの追撃火球数（毎周回の安全予算 _extraFbBudget 内でクランプ）。
+        const extra = Math.max(0, Math.min(evo?.chain?.onKillExtra ?? 1, this._extraFbBudget));
         const ang = Math.atan2(t.y - e.y, t.x - e.x);
-        this.projPool.spawn(e.x, e.y, ang, 300, {
-          skillId: 'infernal_barrage', damage: (evo?.damage?.base || 46) * 0.7,
-          pierce: 1, pierceFalloff: 0.9, explosionRadius: (evo?.area?.explosionRadius || 30) * 0.7,
-          scale: 1.1, lifeMs: 1200, tint: 0xffca28,
-        });
+        for (let k = 0; k < extra; k++) {
+          this._extraFbBudget--;
+          this.projPool.spawn(e.x, e.y, ang + (k - (extra - 1) / 2) * 0.18, 300, {
+            skillId: 'infernal_barrage', damage: (evo?.damage?.base || 46) * 0.7,
+            pierce: 1, pierceFalloff: 0.9, explosionRadius: (evo?.area?.explosionRadius || 30) * 0.7,
+            scale: 1.1, lifeMs: 1200, tint: 0xffca28,
+          });
+        }
       }
     }
     // 起爆刻印: 刻印されたまま死亡した場合は小規模な死亡時起爆（M6-B）。

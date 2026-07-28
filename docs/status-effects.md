@@ -183,3 +183,28 @@ M7-E では状態異常の**数値・確率式・閾値・持続時間を一切�
 - 粉砕から粉砕は再帰しない（`isShatter`）。Lv50 の氷砕連鎖も無限連鎖しない。
 - **氷印 / 氷棺は正式状態ではない**（`status-effects.json` は burning / chill / frozen / freeze_immunity /
   frostbreak_vulnerability の **5 種のまま**）。`validate-data` がマーカーの誤登録をエラーにする。
+
+
+---
+
+## Milestone 8-A: 炎上（burning）の監査結果（数値・仕様は不変）
+
+火の魔女の炎上は `status-effects.json` の正式状態（5 種のうちの `burning`）だが、
+**継続ダメージそのものは持たないマーカー**である（`Enemy.ignited` / `_igniteUntil` / `_igniteGen`）。
+実際の継続ダメージは各スキルの設置物・領域が `dealDamage(..., { tag: 'dot' })` で与える。
+この設計は M6-E から不変で、M8-A でも変更していない。
+
+- 炎上を付与するのは `eternal_pyre` / `infernal_vortex_wheel` / `solar_core_collapse` /
+  `scorching_resonance`（既に炎上中の敵の**延長**のみ）。
+- 炎上数は共鳴段階（tier）の入力になる（`scorching_resonance` / `universal_flame_resonance`）。
+- 同一対象への再付与は「延長」であり**スタックしない**。既存の炎上が長ければ短縮しない（`igniteEnemy`）。
+- 炎上索引（`_burningIndex`）は登録・解除・走査時の掃除で有界。全敵死亡後は空になる（残留 0）。
+  `Enemy.reset()` が `_igniteUntil` / `_igniteGen` をクリアし、プール再利用の残留を防ぐ。
+- **`eternal_pyre` の感染が `enemyPool.forEachActive()` で全敵総当たりしていたのを、
+  炎上索引（`combat.burningEnemies()`）経由へ修正した**（対象集合は同じ・性能改善）。
+- 未参照だった `skillCaps.maxBurningEnemyIndex` は削除した。索引は `maxEnemies` で自然に有界であり、
+  上限を付けると低品質で共鳴段階＝火力が変わってしまうため。
+
+計測（60 秒・敵 24 体・実スキル駆動）: 炎上付与 24 / 延長 4,776 / 同時ピーク 24 体 / 平均持続 1,600ms /
+DoT tick 40,344 回（627,456 ダメージ）/ 爆発 150 回・二次爆発 0 回 / 共鳴 1 パルスあたり連鎖 23.2 本。
+`FLAME_*` 警告は 0 件。氷側（chill / frozen / freeze_immunity / frostbreak_vulnerability）は**一切変更していない**。

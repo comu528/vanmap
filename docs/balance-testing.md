@@ -252,3 +252,42 @@ node tests/frost-status-balance.mjs           # 冷気/凍結/耐性/hitGroup/�
   実際の抑止は凍結耐性（immunity）が担っており、同ハーネスでも 9,910 回の抑止が発生している。
 - 抽選シミュレーションは **level-up 回数に依存**する（30 回では平均進化数 0.15、90 回では 4.88）。
   枠数と進化数の関係も回数によって逆転するため、比較は必ず同じ `levelUps` で行う。
+
+
+---
+
+## Milestone 8-A: 火の魔女 完成監査の走らせ方
+
+```bash
+# 12 本すべて（通常 CI と同じ 200 seed）
+for f in tests/flame-*.mjs; do node "$f" || break; done
+
+# 重い計測（500 seed）
+HEAVY=1 node tests/flame-draft-balance.mjs
+HEAVY=1 node tests/flame-evolution-distribution.mjs
+
+# データ検証（M8-A ブロックを含む）
+node tests/validate-data.mjs
+```
+
+| テスト | 内容 |
+|--------|------|
+| `flame-completion-catalog` | カタログ整合性・プール分離・duplicate・未登録/孤立クラス・Lv80 対象 |
+| `flame-evolution-reachability` | 進化対応表・到達可能性・自己/循環参照・枠不増加・通常抽選へ出ない |
+| `flame-draft-balance` | production 抽選の 200 seed シミュレーション・警告基準・rarity/passive の偏り |
+| `flame-evolution-distribution` | 個別進化の段階別到達率・低率の要因分解・進化前後の比較 |
+| `flame-dead-content-audit` | 死にパラメータ / 死に milestone / 未参照 cap / 予約フィールド |
+| `flame-complete-skill-audit` | SkillAudit 全件・recordCast・echo/clone の再帰・上限/索引/テレメトリの接続 |
+| `flame-complete-runtime-save` | 48 件の runtime 往復・二重生成なし・冪等・進化前後の同時稼働なし |
+| `flame-complete-determinism` | Math.random 不使用・同一入力で一致・継続 vs reload・CD 保存の効果 |
+| `flame-status-balance` | 炎上 / DoT / 爆発 / 二次爆発 / 共鳴の実測と `FLAME_*` 警告 |
+| `flame-quality-cap-audit` | quality cap の妥当性・未参照 0・存在しない参照 0・low で 0 件化しない |
+| `flame-cleanup-audit` | destroy / 進化置換 / Enemy.reset / 炎上索引 / delayedCall ガード |
+| `flame-telemetry-audit` | 全件のテレメトリ・二重計上なし・debugRun 分離・外部送信なし |
+
+## 既知の制約（M8-A）
+- ヘッドレスハーネスは「敵が移動せず死なない」飽和条件であり、刻印起爆・分身の複製対象・炎上源など
+  BattleScene 側の相互作用も再現しない。**DPS の実測値は火力バランスの判定に使えない**。
+  進化前後の比較は data 由来の項目差分で行う。
+- 抽選シミュレーションは level-up 回数に強く依存する（火: 30 回で 0.24 / 60 回で 2.20 / 90 回で 2.37）。
+  比較は必ず同じ `levelUps` で行う。

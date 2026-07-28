@@ -595,6 +595,65 @@ Lv1〜8 データ駆動で、冷気/凍結/粉砕/ボス氷砕は既存 `StatusE
 - [ ] 火と氷の属性反応、または 3 人目のジョブ
 - [ ] 周回長の拡張・追加の敵/ボス
 
+## Milestone 8-A: 火の魔女 完成監査（抽選率／進化到達率／全体バランス分析）— 完了
+新しい active / passive / 進化 / ジョブ / 状態異常 / 敵 / ボス / 難易度は**追加していない**（監査と不具合修正のみ）。
+**save_version は v6 のまま**・**氷術師は数値/挙動/候補列/状態異常/保存/カタログとも不変**。
+
+- [x] **カタログ整合性**: `SkillCatalog` で火 active30 / passive4 / 進化18・合計52・issues 0。氷 30/4/18 も非回帰。
+      duplicate id/name 0・未登録クラス 0・孤立クラス 0・`SkillCatalog` = `poolEligibility` = `SkillDraftManager` の一致。
+- [x] **プール分離**: 火 active は `jobs:["flame_witch"]`＋`isCommon:false`、火 passive は `passiveSkillPool` 所属。
+      明示共通（`isCommon:true`/`jobs:["*"]`）は 0 件。`jobs` 未指定を暗黙共通にしない。火⇄氷の混入 0。
+- [x] **進化到達可能性**: 18 進化すべて base/support がプール内・必要Lv が上限内・自己/循環参照 0・分岐 0・
+      枠不増加・進化後は追加Lvなし・通常抽選へ出ない。条件成立後の未提示 0%。
+- [x] **抽選シミュレーション**（production の `SkillDraftManager`＋`SeededRandom`・200 seed / 60 level-up / slot 4・6・8 / 5戦略）:
+      他ジョブ混入・不正候補・重複候補・slot違反・不正進化・進化後の元active再提示は**すべて 0**。
+      **M7-E と同じ 9 つの警告基準をすべて満たす**（slot4 ≥1=90.0%/平均1.44/0個10.0%、slot6 ≥1=96.0%/≥2=78.5%/平均2.20、
+      slot8 ≥1=97.0%/≥2=78.5%/平均2.29）。`FLAME_*` 警告 0 件。
+- [x] **重大バグ修正1**: 火の魔女スキル **21 種の CD が保存されず、リロードで全回復して無料発動**していた
+      （氷術師で M7-A 後に修正した `bad8bd4` と同じクラス）。48 件すべてが runtimeState を保存するようにした。
+      常設型は位相・主発動スロットル・各インスタンスのタイマーを保存（設置物本体は保存せず二重生成しない）。
+- [x] **重大バグ修正2**: `eternal_pyre` / `solar_annihilation_array` が `recordCast` を一度も呼ばず、
+      **data で宣言した残響・分身が一度も発生しなかった**（進化元では発生する＝進化で機能を失う逆転）。
+      `config.castPulseMs` で主発動をスロットル記録し、`echoPolicy`/`clonePolicy` を実装に合わせ `custom` へ修正。
+      `eternal_pyre` に `echoCast()`（領域の追加パルス）を実装。
+- [x] **重大バグ修正3**: `eternal_pyre.spreadInfection()` が `enemyPool.forEachActive()` で毎 tick 全敵を総当たり
+      していたのを、M6-E の炎上索引（`combat.burningEnemies()`）経由へ修正（対象集合は同じ・性能改善）。
+- [x] **死にコンテンツ監査**: 死にパラメータ **21 件 → 0 件**（実装へ接続 13 件・削除 8 件）。
+      `skills.json` の旧 `evolution` ブロック 3 件も削除（進化の正は `skill-evolutions.json` のみ）。
+      `SkillBase._initCd`（未参照フィールド）を削除。`serializeState(){return {}}` の no-op 実装を解消。
+- [x] **quality cap 監査**: M7-E から残っていた**火由来の未参照 cap 5 件を削除**（`maxBarrierEffects` /
+      `maxBurningEnemyIndex` / `maxChainTargets` / `maxCopyGeneration` / `maxMainCastEventsPerFrame`）。
+      重複または「参照すると品質でダメージが変わる」ものだった。`skillCaps` 157 → 152 件、許容リストは空。
+- [x] **SkillAudit 完全監査 / recordCast / echo・clone / Lv80**: 48 件で未解決 issue 0
+      （残るのは「防御/反応は意図的に recordCast 0」「echo/clone とも forbidden の常設型は意図的に 0」の 2 種の仕様のみ）。
+      再帰（echo→echo / clone→clone / 爆発→爆発）0・`powerMultiplier` 1 回・`rootSkillId` 維持。
+- [x] **Job Lv 監査（Lv1〜100）**: 11 milestone すべてが `JobModifierManager.resolve()` に対応（死に milestone 0）。
+      属性一致時のみ適用・`resolvedJobModifiers` は周回開始時に凍結・Lv80 対象は明示 flag の 6 種のみ・Lv100 でも再帰なし。
+- [x] **炎上/DoT/爆発/共鳴**: 実スキル駆動で計測（炎上付与24/延長4,776/ピーク24体/DoT 40,344 tick /
+      爆発150・二次爆発0 / 共鳴 1 パルスあたり連鎖23.2本）。索引残留 0・low/ultra で DoT が消えない。
+- [x] **保存・復元・決定論**: 48 件の runtime 往復・二重生成なし・冪等・進化前後の同時稼働なし・
+      Math.random/Date.now 不使用・継続 vs save→reload で無料 cast 0・`save_version` v6 維持。
+- [x] **cleanup / telemetry**: 48 件の `destroy()`・`Enemy.reset()`・炎上索引・`delayedCall` ガードを検証。
+      debugRun 分離・二重計上なし・外部送信なし。
+- [x] **警告基盤**: `FlameBalanceWarnings`（FLAME_* 30 コード・閾値は既定値＋引数・ローカルのみ）を新規追加。
+- [x] **新規テスト12種**＋`validate-data` の M8-A ブロック＋`validate.yml` ステップ。**全75スイート通過・0エラー0警告**。
+- [x] docs: `flame-completion-audit.md` / `flame-draft-analysis.md` / `flame-balance-report.md` を新規作成し、既存 docs を更新。
+
+### M8-A で**実装しない**もの（対象外）
+- [ ] active31 以降 / evolution19 以降 / 新 passive / 3 人目の job / 属性反応 / 新 status / 新 enemy・boss・difficulty
+- [ ] 転生 legacy / job 間継承 / 限界突破 / equipment / pet / UI 全面改修 / 正式素材 / 新 game mode
+- [ ] `save_version` の更新 / `frost_mage` のバランス変更
+
+> **実ブラウザ未確認**: M8-A も Phaser 実プレイ確認は行っていない（Node 純ロジック＋最小モックのスモークのみ）。
+> `docs/test-guide.md` の **Milestone 8-A** 項目（A〜H）を実ブラウザで確認すること。
+
+### 次のマイルストーン候補
+- [ ] **火と氷の属性反応**（炎上⇄冷気/凍結の相互作用・付与時の source element を活用）
+- [ ] **3 人目のジョブ**（雷/毒 など新属性・`StatusEffectManager` に新状態を追加）
+- [ ] **転生レガシー / ジョブ間継承**（`futureInheritanceSettings` / `extraAllowedIds` が拡張口）
+- [ ] **周回長の拡張**（10分 / 15分 / 無限モード）・**追加の敵 / ボス / 難易度**
+- [ ] **実ブラウザでの M7-E / M8-A 手動確認**（コード変更を伴わない検証タスク）
+
 ---
 
 ## 拡張余地（今後）

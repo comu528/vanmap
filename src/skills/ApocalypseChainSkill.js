@@ -21,10 +21,17 @@ export class ApocalypseChainSkill extends EvolvedSkillBase {
       e._mark = {
         skillId: this.id, hits: 0, hitsNeeded: d.projectileCount?.hitsNeeded || 2, until: now + markDur,
         detonateDamage: d.damage?.detonate || 70, detonateRadius: (d.area?.detonateRadius || 70) * areaMul, deathDamage: d.damage?.death || 40,
-        chain: true, chainRadius: (d.area?.chainRadius || 90) * areaMul, maxDepth: this.cap('maxChainDepth', 8), maxSpread: this.cap('maxSpreadPerChain', 6),
+        // chain.spreadOnChain=0 なら連鎖時に未刻印へ拡散しない。spreadCount は1回の連鎖起爆で拡散する上限。
+        chain: true, spreadOnChain: (d.chain?.spreadOnChain ?? 1) > 0,
+        spreadPerDetonation: Math.max(1, d.projectileCount?.spreadCount || 3),
+        chainRadius: (d.area?.chainRadius || 90) * areaMul, maxDepth: this.cap('maxChainDepth', 8), maxSpread: this.cap('maxSpreadPerChain', 6),
         finalBlast: d.damage?.finalBlast || 180, finalRadius: (d.area?.finalRadius || 120) * areaMul, markDuration: markDur,
       };
       budget--;
     }
   }
+
+  // M8-A: クールダウンを保存（刻印は敵側の状態のため保存しない＝再開後に無料起爆しない）。
+  serializeState() { return { cdLeft: this._cd }; }
+  restoreState(s) { if (s && typeof s.cdLeft === 'number') this._cd = s.cdLeft; }
 }

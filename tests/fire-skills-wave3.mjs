@@ -54,7 +54,7 @@ section('1. 新 active5種のデータ整合');
 section('2. 上限・段階・熱量の宣言');
 {
   // 死亡履歴・毎フレーム上限。
-  for (const n of ['maxDeathEventsTracked', 'maxDeathEventsPerFrame', 'maxFuneralPyres', 'maxPyreEruptionsPerFrame', 'maxMagmaSegments', 'maxTriArrays', 'maxResonanceTargets', 'maxOverdriveProjectiles', 'maxOverdriveCastsPerFrame', 'maxBurningEnemyIndex']) {
+  for (const n of ['maxDeathEventsTracked', 'maxDeathEventsPerFrame', 'maxFuneralPyres', 'maxPyreEruptionsPerFrame', 'maxMagmaSegments', 'maxTriArrays', 'maxResonanceTargets', 'maxOverdriveProjectiles', 'maxOverdriveCastsPerFrame']) { // M8-A: maxBurningEnemyIndex は未参照のため削除
     const c = balance.skillCaps[n];
     ok(c && c.low <= c.medium && c.medium <= c.high && c.high <= c.ultra, `${n} が品質順で非減少`);
   }

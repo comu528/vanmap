@@ -26,9 +26,14 @@ export class InfernalBarrageSkill extends EvolvedSkillBase {
         pierce,
         pierceFalloff: d.damage?.pierceFalloff ?? 0.92,
         knockback: 30,
-        explosionRadius: (d.area?.explosionRadius || 30) * areaMul,
+        // chain.chainExplosion=0 なら着弾爆発を起こさない（宣言値を実装が読む）。
+        explosionRadius: (d.chain?.chainExplosion ?? 1) > 0 ? (d.area?.explosionRadius || 30) * areaMul : 0,
         scale: 1.4, lifeMs: 1600, tint: 0xffca28,
       });
     }
   }
+
+  // M8-A: クールダウンを保存し、再開直後の無料発動を防ぐ（業火弾幕）。
+  serializeState() { return { cdLeft: this._cd }; }
+  restoreState(s) { if (s && typeof s.cdLeft === 'number') this._cd = s.cdLeft; }
 }

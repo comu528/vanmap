@@ -22,8 +22,11 @@ export class AshLegionSkill extends EvolvedSkillBase {
       const spr = this.scene.add.image(0, 0, type === 'clone' ? TEX.PLAYER : TEX.FIREBALL)
         .setBlendMode(Phaser.BlendModes.ADD).setDepth(50).setAlpha(0.5).setScale(type === 'clone' ? 0.8 : 0.7).setTint(tint);
       const interval = type === 'clone' ? (d.projectileCount?.copyIntervalMs || 900) : (d.projectileCount?.boltInterval || 1100);
-      this.units.push({ sprite: spr, type, interval, timer: this.scene.rng() * interval });
+      // M8-A: 途中再開の直後だけ、保存しておいた発動タイマーを引き継ぐ（無料の一斉発動を作らない）。
+      const restored = this._pendingTimers && this._pendingTimers.length ? this._pendingTimers.shift() : null;
+      this.units.push({ sprite: spr, type, interval, timer: typeof restored === 'number' ? restored : this.scene.rng() * interval });
     }
+    if (this._pendingTimers && !this._pendingTimers.length) this._pendingTimers = null;
     while (this.units.length > want) { const u = this.units.pop(); if (u.sprite) u.sprite.destroy(); }
   }
 
@@ -58,5 +61,13 @@ export class AshLegionSkill extends EvolvedSkillBase {
   }
 
   destroy() { for (const u of this.units) if (u.sprite) u.sprite.destroy(); this.units = []; }
-  serializeState() { return {}; }
+
+  // M8-A: 隊列の位相と各ユニットの発動タイマーを保存する（ユニット本体は _ensure() が作り直すため二重生成しない）。
+  // 以前は空オブジェクトを返すだけで restoreState も無く、再開直後に全ユニットが無料で一斉発動していた。
+  serializeState() { return { angle: this._angle, timers: this.units.map((u) => u.timer) }; }
+  restoreState(s) {
+    if (!s) return;
+    if (typeof s.angle === 'number') this._angle = s.angle;
+    if (Array.isArray(s.timers)) this._pendingTimers = s.timers.slice(0, 16);
+  }
 }

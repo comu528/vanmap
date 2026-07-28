@@ -81,12 +81,6 @@
       "high": 30,
       "ultra": 40
     },
-    "maxChainTargets": {
-      "low": 4,
-      "medium": 6,
-      "high": 8,
-      "ultra": 10
-    },
     "maxChainDepth": {
       "low": 4,
       "medium": 6,
@@ -110,12 +104,6 @@
       "medium": 1,
       "high": 2,
       "ultra": 2
-    },
-    "maxBarrierEffects": {
-      "low": 1,
-      "medium": 2,
-      "high": 2,
-      "ultra": 3
     },
     "maxActiveBeams": {
       "low": 2,
@@ -261,12 +249,6 @@
       "high": 140,
       "ultra": 220
     },
-    "maxCopyGeneration": {
-      "low": 1,
-      "medium": 1,
-      "high": 1,
-      "ultra": 1
-    },
     "maxEchoCloneGeneration": {
       "low": 1,
       "medium": 1,
@@ -386,18 +368,6 @@
       "medium": 6,
       "high": 8,
       "ultra": 10
-    },
-    "maxBurningEnemyIndex": {
-      "low": 120,
-      "medium": 200,
-      "high": 320,
-      "ultra": 480
-    },
-    "maxMainCastEventsPerFrame": {
-      "low": 8,
-      "medium": 12,
-      "high": 16,
-      "ultra": 24
     },
     "maxFrozenEnemies": {
       "low": 30,

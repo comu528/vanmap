@@ -22,7 +22,7 @@ export class PurgatoryEruptionSkill extends EvolvedSkillBase {
     const pull = d.pull;
     if (pull) {
       this.scene.combat.forEachEnemyInRadius(cx, cy, pull.radius, (e) => {
-        if (e.isBoss) return;                 // ボスには引き寄せを適用しない
+        if (e.isBoss && pull.excludeBoss !== false) return; // pull.excludeBoss（data）でボス除外を制御
         if (e.applyKnockback) e.applyKnockback(2 * cx - e.x, 2 * cy - e.y, pull.strength); // 反対点からのノックバック＝中心へ牽引
       });
     }
@@ -91,4 +91,8 @@ export class PurgatoryEruptionSkill extends EvolvedSkillBase {
     for (const p of this.burnPatches) if (p.sprite) p.sprite.destroy();
     this.burnPatches = [];
   }
+
+  // M8-A: クールダウンを保存（燃焼地帯は寿命つきのため保存しない）。
+  serializeState() { return { cdLeft: this._cd }; }
+  restoreState(s) { if (s && typeof s.cdLeft === 'number') this._cd = s.cdLeft; }
 }

@@ -54,7 +54,9 @@ export class InfernalVortexWheelSkill extends EvolvedSkillBase {
           // 炎上感染（上限内・ボス除外）
           if (infectBudget > 0 && e.ignited && !e.isBoss) {
             infectBudget -= 1;
-            this.scene.combat.forEachEnemyInRadius(e.x, e.y, v.infectR, (o) => { if (!o.isBoss && o.ignite && !o.ignited) o.ignite(1200, 1); });
+            // chain.infect = 感染の世代番号（BattleScene の maxInfectGenerations が上限を持つ）。
+            const gen = this.evoDef.chain?.infect ?? 1;
+            this.scene.combat.forEachEnemyInRadius(e.x, e.y, v.infectR, (o) => { if (!o.isBoss && o.ignite && !o.ignited) o.ignite(1200, gen); });
           }
         });
       }
@@ -85,4 +87,8 @@ export class InfernalVortexWheelSkill extends EvolvedSkillBase {
     for (const p of this.patches) if (p.sprite) p.sprite.destroy();
     this.vortices = []; this.patches = [];
   }
+
+  // M8-A: クールダウンを保存（竜巻/燃焼地帯は寿命つきのため保存せず二重生成しない）。
+  serializeState() { return { cdLeft: this._cd }; }
+  restoreState(s) { if (s && typeof s.cdLeft === 'number') this._cd = s.cdLeft; }
 }

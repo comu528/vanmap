@@ -20,4 +20,8 @@ export class HomingWispSkill extends SkillBase {
       });
     }
   }
+
+  // M8-A: クールダウンを保存し、再開直後の無料発動を防ぐ（追尾鬼火）。
+  serializeState() { return { cdLeft: this._cd }; }
+  restoreState(s) { if (s && typeof s.cdLeft === 'number') this._cd = s.cdLeft; }
 }

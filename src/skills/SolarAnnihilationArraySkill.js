@@ -4,6 +4,7 @@ import { EvolvedSkillBase } from './EvolvedSkillBase.js';
 import { TEX } from '../config/game-config.js';
 
 const BIG = 100000;
+const CAST_PULSE_SAFE = 600; // 安全用 fallback（正は data/skill-evolutions.json solar_annihilation_array.config.castPulseMs）。
 
 export class SolarAnnihilationArraySkill extends EvolvedSkillBase {
   constructor(scene, id, level) {
@@ -14,6 +15,7 @@ export class SolarAnnihilationArraySkill extends EvolvedSkillBase {
     this._focus = this.evoDef.projectileCount?.focusIntervalMs || 2600;
     this._focusWindow = 0;
     this._focusSpot = null;
+    this._castPulse = 0;   // M8-A: 主発動イベント（beamStart）のスロットル
   }
   canFire() { return false; } // 常時 update で管理
 
@@ -50,13 +52,21 @@ export class SolarAnnihilationArraySkill extends EvolvedSkillBase {
 
   update(dt) {
     const p = this.scene.player; const d = this.evoDef;
+    // M8-A: 常設型のため基底 update を使わず、主発動（beamStart）を一定間隔でスロットルして1回だけ記録する。
+    // これが無いと、実装済みの echoCast/cloneCast（custom）が一度も呼ばれなかった。
+    if (this._castPulse > 0) this._castPulse -= dt;
+    if (this._castPulse <= 0) {
+      this._castPulse = (d.config && d.config.castPulseMs) || CAST_PULSE_SAFE;
+      this.scene.skills.recordCast(this.id);
+    }
     this._focus -= dt;
     if (this._focusWindow > 0) this._focusWindow -= dt;
     if (this._focus <= 0) { this._focus = (d.projectileCount?.focusIntervalMs || 2600); this._doFocus(); }
 
     const focusing = this._focusWindow > 0 && this._focusSpot;
     const beamCap = Math.max(0, this.scene.combat.skillCap('maxActiveBeams', 10) - 1);
-    const mirrorCap = Math.min(d.projectileCount?.mirrors || 4, this.cap('maxSolarMirrors', 6), beamCap);
+    // 補助光線は「鏡の数」と「auxBeams（data の補助光線本数）」の小さい方まで。
+    const mirrorCap = Math.min(d.projectileCount?.mirrors || 4, d.projectileCount?.auxBeams ?? 4, this.cap('maxSolarMirrors', 6), beamCap);
     this._mirrorAngle += dt * 0.0018;
 
     const beams = [];
@@ -134,6 +144,15 @@ export class SolarAnnihilationArraySkill extends EvolvedSkillBase {
   }
   cloneCast() { this.echoCast(); }
 
-  serializeState() { return {}; }
+  // M8-A: 集束ビーム（focusIntervalMs）と tick の残り時間・鏡の位相を保存する。
+  // 以前は空オブジェクトを返すだけで restoreState も無く、再開直後に集束爆発が無料で発生していた。
+  serializeState() { return { focusLeft: this._focus, tickLeft: this._tick, mirrorAngle: this._mirrorAngle, castPulse: this._castPulse }; }
+  restoreState(s) {
+    if (!s) return;
+    if (typeof s.focusLeft === 'number') this._focus = s.focusLeft;
+    if (typeof s.tickLeft === 'number') this._tick = s.tickLeft;
+    if (typeof s.mirrorAngle === 'number') this._mirrorAngle = s.mirrorAngle;
+    if (typeof s.castPulse === 'number') this._castPulse = s.castPulse;
+  }
   destroy() { for (const b of this.beams) if (b) b.destroy(); this.beams = []; this._focusSpot = null; }
 }

@@ -595,3 +595,29 @@ M7-E は監査 Milestone であり、`profile` / `active_run` / `skillRuntime` �
 - 進化後は元 active のインスタンスも runtime も残らず、再開後も進化済みのまま（元 active が復活しない）。
 - 状態異常 RNG は保存/復元で cursor・state・以後の乱数列が**完全一致**する（RNG drift 0）。
 - F10 の直近イベント履歴・表示状態・選択中デバッグ対象は**保存しない**。
+
+
+---
+
+## Milestone 8-A: 保存フォーマットの変更なし（v6 維持）
+
+`save_version` は **v6 のまま**。スキーマの追加・削除・改名はしていない。
+
+ただし `active_run.skillRuntime` に載るスキルが増えた（**火の魔女 48 件すべて**）。
+これは既存フィールド（`skillRuntime` は `{ skillId: {...} }` の自由形式）への加算的な変更で、移行処理は不要。
+旧セーブ（一部スキルの runtime を持たない）から復元しても、`restoreState` が呼ばれないだけで従来どおり動く。
+
+新しく保存されるキー（抜粋）:
+
+| skill | キー |
+|-------|------|
+| `fireball` / `flame_pillar` / `meteor` / `flame_lance` / `scatter_flame` / `homing_wisp` / `chain_flame` / `detonation_mark` / `burning_trail` / `lava_bomb` / `flame_vortex` / 進化 8 種 | `cdLeft` |
+| `orbiting_flame` | `angle` / `castPulse` |
+| `fire_spirit` | `angle` / `castPulse` / `shotTimers[]` |
+| `eternal_pyre` | `auraTick` / `infectTick` / `castPulse` |
+| `ash_doppelganger` | `copyTimers[]` |
+| `ash_legion` | `angle` / `timers[]` |
+| `solar_annihilation_array` | `focusLeft` / `tickLeft` / `mirrorAngle` / `castPulse` |
+
+設置物・召喚物・分身の**実体は保存しない**（寿命つき、または `_rebuild`/`_ensure` が data の個数へ再構築するため
+二重生成しない）。Graphics / Text / Tween / Timer / enemy / projectile 参照も保存しない。

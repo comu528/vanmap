@@ -63,14 +63,15 @@ section('1. 新 active 10種のデータ整合');
 // ===== 2. 性能上限（skillCaps） =====
 section('2. 新 skillCaps（品質順で逆転しない・非負整数）');
 {
-  const need = ['maxActiveBeams', 'maxBeamTicksPerFrame', 'maxMines', 'maxMineExplosionsPerFrame', 'maxRicochetProjectiles', 'maxRicochetChecksPerFrame', 'maxClones', 'maxCloneCastsPerFrame', 'maxBloodfireProjectiles', 'maxAbsorbedBulletsPerSecond', 'maxFurnaceCharge', 'maxFurnaceProjectiles', 'maxScreenEdgeWaves', 'maxTethers', 'maxTetherRetargetsPerFrame', 'maxBlazingTrails', 'maxSolarMirrors', 'maxMineNetworkDepth', 'maxMineNetworkExplosions', 'maxInfernoBlades', 'maxAshLegionUnits', 'maxAshLegionCastsPerFrame', 'maxStarFurnaceCores', 'maxStarFurnaceProjectiles', 'maxCopyGeneration', 'maxEchoCloneGeneration'];
+  const need = ['maxActiveBeams', 'maxBeamTicksPerFrame', 'maxMines', 'maxMineExplosionsPerFrame', 'maxRicochetProjectiles', 'maxRicochetChecksPerFrame', 'maxClones', 'maxCloneCastsPerFrame', 'maxBloodfireProjectiles', 'maxAbsorbedBulletsPerSecond', 'maxFurnaceCharge', 'maxFurnaceProjectiles', 'maxScreenEdgeWaves', 'maxTethers', 'maxTetherRetargetsPerFrame', 'maxBlazingTrails', 'maxSolarMirrors', 'maxMineNetworkDepth', 'maxMineNetworkExplosions', 'maxInfernoBlades', 'maxAshLegionUnits', 'maxAshLegionCastsPerFrame', 'maxStarFurnaceCores', 'maxStarFurnaceProjectiles', 'maxEchoCloneGeneration']; // M8-A: maxCopyGeneration は maxEchoCloneGeneration と完全重複のため削除
   const caps = balance.skillCaps || {};
   for (const n of need) {
     const c = caps[n];
     ok(c && c.low <= c.medium && c.medium <= c.high && c.high <= c.ultra, `${n} が品質順で非減少`);
     ok(c && [c.low, c.medium, c.high, c.ultra].every((v) => Number.isInteger(v) && v >= 0), `${n} が非負整数`);
   }
-  ok(caps.maxCopyGeneration.ultra === 1 && caps.maxEchoCloneGeneration.ultra === 1, '複製世代上限は1（無限複製防止）');
+  ok(caps.maxEchoCloneGeneration.ultra === 1, '複製世代上限は1（無限複製防止）');
+  ok(caps.maxCopyGeneration === undefined, 'M8-A: 重複していた maxCopyGeneration は削除済み');
 }
 
 // ===== 3. 抽選出現 =====

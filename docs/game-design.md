@@ -549,3 +549,23 @@ hitGroup 上限・状態カウンタ・ボス氷砕状態を数値で確認で�
 
 詳細な数値は `docs/frost-draft-analysis.md`、監査の全項目は `docs/frost-completion-audit.md`、
 修正内容と残した警告は `docs/frost-balance-report.md` を参照。実ブラウザでの体感は本環境では未確認。
+
+
+---
+
+## Milestone 8-A: 火の魔女 完成監査（抽選率／進化到達率／全体バランス）
+
+新しい active / passive / 進化 / ジョブ / 状態異常 / 敵 / ボス / 難易度は**追加していない**（監査と不具合修正のみ）。
+
+- **カタログ確定**: active30 / passive4 / 進化18（合計 52）・issues 0・プール分離 0 漏れ。
+- **進化到達率は 9 つの警告基準をすべて満たす**（`evolution-first`・60 level-up・200 seed）。
+  slot4: ≥1 が 90.0% / 平均 1.44 / 0 個 10.0%、slot6: ≥1 が 96.0% / ≥2 が 78.5% / 平均 2.20、
+  slot8: ≥1 が 97.0% / ≥2 が 78.5% / 平均 2.29。
+- **提示 0 / 取得 0 の active・passive・進化は 0 件**。到達不能進化も 0 件。
+- **炎上（burning）はマーカー**であり、継続ダメージは各スキルの設置物・領域が `tag:'dot'` で与える。
+  炎上を撒くのは `eternal_pyre` / `infernal_vortex_wheel` / `solar_core_collapse` / `scorching_resonance`（延長）で、
+  炎上数が共鳴段階（`scorching_resonance` / `universal_flame_resonance` の tier）を決める。
+- **爆発は再帰しない**（`isMarkDetonation` / `_explosionBudget` / `_deathExpBudget` / `_extraFbBudget` /
+  `chainDetonate` の `maxDepth`・`maxSpread`）。二次爆発が一次爆発を上回らないことを実測で確認。
+- **進化 18 件すべてが base Lv8 に対して明確な優位を持つ**（全項目で上回る必要はない設計）。
+- 詳細は `./flame-completion-audit.md` / `./flame-draft-analysis.md` / `./flame-balance-report.md`。

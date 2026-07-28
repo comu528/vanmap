@@ -22,8 +22,15 @@ export class ThousandFlameLancesSkill extends EvolvedSkillBase {
     if (this.scene.projPool.activeCount >= this.scene.projPool.maxSize) return;
     this.scene.combat.spawnPlayerProjectile(x, y, ang, d.projectileCount?.speed || 600, {
       skillId: this.id, damage: d.damage?.base || 60, pierce: Math.min(this.cap('maxPierce', 10), d.projectileCount?.pierce || 8),
-      behavior: 'split_lance', splitGen: this.cap('maxSplitGenerations', 2), splitCount: d.chain?.splitCount || 2, splitFactor: d.damage?.splitFactor || 0.55,
-      ramp: d.damage?.rampPerHit || 0.06, scale: 0.85, lifeMs: 1300, tint: 0xffd54f, element: 'fire',
+      behavior: 'split_lance',
+      // chain.splitOnPierce = 貫通を使い切ったときの分裂世代数（安全上限 maxSplitGenerations でクランプ）。
+      splitGen: Math.min(this.cap('maxSplitGenerations', 2), d.chain?.splitOnPierce ?? 2),
+      splitCount: d.chain?.splitCount || 2, splitFactor: d.damage?.splitFactor || 0.55,
+      ramp: d.damage?.rampPerHit || 0.06, rampMax: d.damage?.rampMax ?? 0.6, scale: 0.85, lifeMs: 1300, tint: 0xffd54f, element: 'fire',
     });
   }
+
+  // M8-A: クールダウンを保存し、再開直後の無料発動を防ぐ（千条炎槍）。
+  serializeState() { return { cdLeft: this._cd }; }
+  restoreState(s) { if (s && typeof s.cdLeft === 'number') this._cd = s.cdLeft; }
 }

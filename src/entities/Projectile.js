@@ -53,6 +53,7 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     this.chainFalloff = 0.85;
     this.chainVisited = null;   // 連鎖の共有 visited（Set 参照）
     this.ramp = 0;             // 連続命中ごとの威力上昇率（thousand lances）
+    this.rampMax = 0.6;        // 上昇の上限（基礎ダメージ比・data の damage.rampMax）
     this._rampBase = 0;
     this.splitGen = 0;         // 分裂の残り世代
     this.splitCount = 0;
@@ -123,6 +124,7 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     this.chainFalloff = opts.chainFalloff || 0.85;
     this.chainVisited = opts.chainVisited || null;
     this.ramp = opts.ramp || 0;
+    this.rampMax = (typeof opts.rampMax === 'number') ? opts.rampMax : 0.6;
     this._rampBase = this.ramp > 0 ? this.damage : 0;
     this.splitGen = opts.splitGen || 0;
     this.splitCount = opts.splitCount || 0;

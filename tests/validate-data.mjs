@@ -666,7 +666,8 @@ if (jobProgData) {
     if (base && !(base.evolutionBranches || []).includes(id)) err(`M6-E: ${m.base} の evolutionBranches に ${id} がない`);
   }
   // 新 skillCaps が品質順（low<=medium<=high<=ultra）で存在する。
-  const NEW_CAPS = ['maxDeathEventsTracked', 'maxDeathEventsPerFrame', 'maxFuneralPyres', 'maxPyreEruptionsPerFrame', 'maxMagmaVeins', 'maxMagmaSegments', 'maxMagmaIntersections', 'maxTriArrays', 'maxArrayTicksPerFrame', 'maxResonanceTargets', 'maxResonanceChains', 'maxResonanceExplosions', 'maxOverdriveProjectiles', 'maxOverdriveCastsPerFrame', 'maxMausoleums', 'maxHexagramArrays', 'maxHexagramBeams', 'maxDoomsdayProjectiles', 'maxDoomsdayExplosions', 'maxBurningEnemyIndex', 'maxMainCastEventsPerFrame'];
+  const NEW_CAPS = ['maxDeathEventsTracked', 'maxDeathEventsPerFrame', 'maxFuneralPyres', 'maxPyreEruptionsPerFrame', 'maxMagmaVeins', 'maxMagmaSegments', 'maxMagmaIntersections', 'maxTriArrays', 'maxArrayTicksPerFrame', 'maxResonanceTargets', 'maxResonanceChains', 'maxResonanceExplosions', 'maxOverdriveProjectiles', 'maxOverdriveCastsPerFrame', 'maxMausoleums', 'maxHexagramArrays', 'maxHexagramBeams', 'maxDoomsdayProjectiles', 'maxDoomsdayExplosions'];
+  // ※ maxBurningEnemyIndex / maxMainCastEventsPerFrame は M8-A で削除（実装から一度も参照されない予約値だった）。
   for (const n of NEW_CAPS) {
     const c = balance?.skillCaps?.[n];
     if (!c) { err(`M6-E: skillCaps.${n} がない`); continue; }
@@ -1275,7 +1276,8 @@ if (jobProgData) {
     if (statusIds.length !== 5) err(`M7-E: 正式状態が ${statusIds.length} 種（期待 5・M7-E で新規状態は追加しない）`);
     // 8. quality cap の妥当性 + 未使用 cap / 存在しない cap の検出。
     const caps = (balance || {}).skillCaps || {};
-    const FLAME_LEGACY_UNUSED = new Set(['maxBarrierEffects', 'maxBurningEnemyIndex', 'maxChainTargets', 'maxCopyGeneration', 'maxMainCastEventsPerFrame']);
+    // M8-A: 火の魔女由来の未参照 cap 5件は削除済み。以後、未参照 cap は 0 件でなければならない（許容リストは空）。
+    const FLAME_LEGACY_UNUSED = new Set();
     let srcAll = '';
     const walkSrc = (dir) => {
       for (const f of readdirSync(dir)) {
@@ -1332,6 +1334,153 @@ if (jobProgData) {
       const jobsMd = readFileSync(join(__dirname, '..', 'docs', 'jobs.md'), 'utf8');
       if (!/active\s*30|active30/.test(jobsMd)) warn('M7-E: docs/jobs.md に active30 の記載が見つからない');
     } catch (e) { warn(`M7-E: docs の確認に失敗 (${e.message})`); }
+  }
+}
+
+// ==========================================================================================
+// Milestone 8-A（火の魔女 完成監査）の検証。
+// 新しい active / passive / 進化 / ジョブ / 状態 / 敵 / ボス / 難易度は追加しない前提で、
+// カタログ数・プール分離・進化到達可能性・cast メタ・runtime 保存・死にフィールド・未使用 cap を検証する。
+// ==========================================================================================
+{
+  const flameJob = (jobsData.jobs || []).find((j) => j.id === 'flame_witch');
+  const frostJob = (jobsData.jobs || []).find((j) => j.id === 'frost_mage');
+  if (!flameJob) err('M8-A: jobs.json に flame_witch が無い');
+  else {
+    const S = (id) => (skillsData.skills || []).find((x) => x.id === id);
+    const E = (id) => (evoData.evolutions || []).find((x) => x.id === id);
+    const P = (id) => (passivesData.passives || []).find((x) => x.id === id);
+
+    // 1. カタログ数（active30 / passive4 / evolution18・合計52）。
+    if ((flameJob.activeSkillPool || []).length !== 30) err(`M8-A: 火の魔女 activeSkillPool が ${(flameJob.activeSkillPool || []).length} 種（期待 30）`);
+    if ((flameJob.passiveSkillPool || []).length !== 4) err(`M8-A: 火の魔女 passiveSkillPool が ${(flameJob.passiveSkillPool || []).length} 種（期待 4）`);
+    if ((flameJob.evolutionPool || []).length !== 18) err(`M8-A: 火の魔女 evolutionPool が ${(flameJob.evolutionPool || []).length} 種（期待 18）`);
+
+    // 2. duplicate id / name（グローバル一意）。
+    const seenId = new Set(), seenName = new Set();
+    for (const x of [...(skillsData.skills || []), ...(evoData.evolutions || []), ...(passivesData.passives || [])]) {
+      if (seenId.has(x.id)) err(`M8-A: id "${x.id}" が重複している`);
+      seenId.add(x.id);
+      const nm = x.name || x.displayName;
+      if (nm) { if (seenName.has(nm)) err(`M8-A: 表示名 "${nm}" が重複している`); seenName.add(nm); }
+    }
+
+    // 3. プール分離（jobs / isCommon / 暗黙共通の禁止・他ジョブ混入の禁止）。
+    const frostActive = new Set((frostJob && frostJob.activeSkillPool) || []);
+    for (const id of flameJob.activeSkillPool || []) {
+      const s = S(id);
+      if (!s) { err(`M8-A: 火の魔女プールの ${id} が skills.json に無い`); continue; }
+      if (!Array.isArray(s.jobs) || s.jobs.length !== 1 || s.jobs[0] !== 'flame_witch') err(`M8-A: ${id} の jobs が ["flame_witch"] でない`);
+      if (s.isCommon !== false) err(`M8-A: ${id} の isCommon が false でない（ジョブ専用スキルを共通扱いしない）`);
+      if (frostActive.has(id)) err(`M8-A: ${id} が氷術師プールにも入っている（プール混入）`);
+      if (s.maxLevel !== 8) err(`M8-A: ${id} の maxLevel が 8 でない`);
+      if (!Array.isArray(s.tags) || !s.tags.includes('fire')) err(`M8-A: ${id} の tags に fire が無い`);
+      if (!RARITIES.has(s.rarity)) err(`M8-A: ${id} の rarity が不正 (${s.rarity})`);
+      if (!s.castMode) err(`M8-A: ${id} に castMode が無い`);
+      if (['periodic', 'cooldown', 'continuous', 'resource'].includes(s.castMode) && !s.mainCastEvent) err(`M8-A: ${id} に mainCastEvent が無い`);
+      // levels の健全性（NaN / Infinity / 負数の禁止・Lv ごとに1項目は変化）。
+      const lv = s.levels || [];
+      if (lv.length !== s.maxLevel) err(`M8-A: ${id} の levels が maxLevel と一致しない (${lv.length})`);
+      for (const l of lv) for (const [k, v] of Object.entries(l)) {
+        if (typeof v === 'number' && (!Number.isFinite(v) || v < 0)) err(`M8-A: ${id} Lv${l.level}.${k} が不正な数値 (${v})`);
+      }
+      for (let i = 1; i < lv.length; i++) {
+        const changed = Object.keys(lv[i]).some((k) => k !== 'level' && lv[i][k] !== lv[i - 1][k]);
+        if (!changed) err(`M8-A: ${id} の Lv${i} → Lv${i + 1} で成長する項目が無い`);
+      }
+      // 旧 evolution ブロック（skill-evolutions.json との二重管理）を残さない。
+      if (s.evolution) err(`M8-A: ${id} に旧 evolution ブロックが残っている（進化の正は skill-evolutions.json）`);
+    }
+    for (const id of flameJob.passiveSkillPool || []) {
+      const p = P(id);
+      if (!p) { err(`M8-A: 火 passive ${id} が passives.json に無い`); continue; }
+      if (p.isCommon === true || (Array.isArray(p.jobs) && p.jobs.includes('*'))) err(`M8-A: passive ${id} を明示共通にしない（ジョブ分離）`);
+      if (!Array.isArray(p.jobs) || !p.jobs.includes('flame_witch')) err(`M8-A: passive ${id} の jobs に flame_witch が無い`);
+      if (!Array.isArray(p.modifiers) || p.modifiers.length === 0) err(`M8-A: passive ${id} に modifier が無い（死に passive）`);
+    }
+
+    // 4. 進化の参照と到達可能性（base/support がプール内・必要Lvが上限内・自己/循環参照なし・分岐なし）。
+    const fEvoIds = new Set(flameJob.evolutionPool || []);
+    const fActive = new Set(flameJob.activeSkillPool || []);
+    const fPassive = new Set(flameJob.passiveSkillPool || []);
+    const baseSeen = new Map();
+    for (const eid of flameJob.evolutionPool || []) {
+      const ev = E(eid);
+      if (!ev) { err(`M8-A: 進化 ${eid} が skill-evolutions.json に無い`); continue; }
+      if (!fActive.has(ev.baseSkillId)) err(`M8-A: 進化 ${eid} の base ${ev.baseSkillId} が火の魔女プールに無い（到達不能）`);
+      if (ev.baseSkillId === eid) err(`M8-A: 進化 ${eid} の base が自分自身（自己参照）`);
+      if (fEvoIds.has(ev.baseSkillId)) err(`M8-A: 進化 ${eid} の base が別の進化（進化の進化）`);
+      if (ev.replacementSkillId !== eid) err(`M8-A: 進化 ${eid} の replacementSkillId が自分自身でない`);
+      if (ev.visualTier !== 'evolved') err(`M8-A: 進化 ${eid} の visualTier が evolved でない`);
+      if (ev.lv80ProjectileTarget === true) err(`M8-A: 進化 ${eid} が Job Lv80 発射数対象になっている（進化は対象外）`);
+      if (Array.isArray(ev.levels) && ev.levels.length > 1) err(`M8-A: 進化 ${eid} が追加 Lv を持っている（単一形態）`);
+      if (baseSeen.has(ev.baseSkillId)) err(`M8-A: base ${ev.baseSkillId} から複数の進化へ分岐している（${baseSeen.get(ev.baseSkillId)} / ${eid}）`);
+      baseSeen.set(ev.baseSkillId, eid);
+      const base = S(ev.baseSkillId);
+      if (base && !(base.evolutionBranches || []).includes(eid)) err(`M8-A: ${ev.baseSkillId} の evolutionBranches に ${eid} が無い`);
+      for (const r of ev.requiredSkills || []) {
+        const isActive = fActive.has(r.skill), isPassive = fPassive.has(r.skill);
+        if (!isActive && !isPassive) err(`M8-A: 進化 ${eid} の補助 ${r.skill} が火の魔女プールに無い（到達不能）`);
+        if (r.skill === ev.baseSkillId || r.skill === eid) err(`M8-A: 進化 ${eid} の補助が自分/自分の base（自己参照）`);
+        if (fEvoIds.has(r.skill)) err(`M8-A: 進化 ${eid} の補助が進化スキル`);
+        const max = isActive ? ((S(r.skill) || {}).maxLevel || 8) : ((P(r.skill) || {}).maxLevel || 5);
+        if (!(r.level >= 1 && r.level <= max)) err(`M8-A: 進化 ${eid} の補助 ${r.skill} の必要Lv ${r.level} が上限 ${max} を超える（到達不能）`);
+      }
+      // 進化も cast メタと安全上限を宣言する。
+      if (!ev.castMode) err(`M8-A: 進化 ${eid} に castMode が無い`);
+      if (!ev.safetyCaps || Object.keys(ev.safetyCaps).length === 0) err(`M8-A: 進化 ${eid} に safetyCaps が無い`);
+      for (const [k, v] of Object.entries(ev.safetyCaps || {})) {
+        if (typeof v !== 'number' || !Number.isFinite(v) || v < 0) err(`M8-A: 進化 ${eid}.safetyCaps.${k} が不正 (${v})`);
+      }
+    }
+
+    // 5. echo / clone / Lv80 の宣言整合（火の魔女の全 active / 進化）。
+    const LV80_EXPECT = ['fireball', 'flame_lance', 'scatter_flame', 'homing_wisp', 'ricochet_ember', 'core_overdrive'].sort().join(',');
+    const lv80Actual = (flameJob.activeSkillPool || []).filter((id) => (S(id) || {}).lv80ProjectileTarget === true).sort().join(',');
+    if (lv80Actual !== LV80_EXPECT) err(`M8-A: Job Lv80 発射数対象が [${lv80Actual}]（期待 [${LV80_EXPECT}]）`);
+    for (const id of [...(flameJob.activeSkillPool || []), ...(flameJob.evolutionPool || [])]) {
+      const d = S(id) || E(id) || {};
+      for (const key of ['echoPolicy', 'clonePolicy']) {
+        if (d[key] && !['standard', 'custom', 'forbidden'].includes(d[key])) err(`M8-A: ${id}.${key} が不正 (${d[key]})`);
+      }
+      if (d.echoPolicy === 'forbidden' && d.canTriggerEcho !== false) err(`M8-A: ${id} は echoPolicy=forbidden だが canTriggerEcho が false でない`);
+      if (d.clonePolicy === 'forbidden' && d.canBeCopiedByClone !== false) err(`M8-A: ${id} は clonePolicy=forbidden だが canBeCopiedByClone が false でない`);
+      if ((d.isDefensive || d.isReactive) && d.canTriggerEcho !== false) err(`M8-A: ${id} は防御/反応だが canTriggerEcho が false でない`);
+    }
+
+    // 6. 実装との対応（runtime 保存 / 死にフィールド / 未使用 cap）。
+    try {
+      const smSrc = readFileSync(join(__dirname, '..', 'src', 'systems', 'SkillManager.js'), 'utf8');
+      const clsMap = {};
+      for (const m of smSrc.matchAll(/([a-z0-9_]+):\s*([A-Za-z0-9_]+Skill),/g)) clsMap[m[1]] = m[2];
+      for (const id of [...(flameJob.activeSkillPool || []), ...(flameJob.evolutionPool || [])]) {
+        if (!clsMap[id]) { err(`M8-A: ${id} の実装クラスが REGISTRY に無い`); continue; }
+        const src = readFileSync(join(__dirname, '..', 'src', 'skills', clsMap[id] + '.js'), 'utf8');
+        // 全 active / 進化が runtimeState（CD・周期・設置状態）を保存する（再開直後の無料発動の防止）。
+        if (!/serializeState\s*\(/.test(src)) err(`M8-A: ${id} に serializeState が無い（再開で CD が全回復し無料発動になる）`);
+        if (!/restoreState\s*\(/.test(src)) err(`M8-A: ${id} に restoreState が無い`);
+        // custom 宣言に対する実装。
+        const d = S(id) || E(id) || {};
+        if (d.echoPolicy === 'custom' && !/echoCast\s*\(/.test(src)) err(`M8-A: ${id} は echoPolicy=custom だが echoCast が無い（no-op）`);
+        if (d.clonePolicy === 'custom' && !/cloneCast\s*\(|echoCast\s*\(/.test(src)) err(`M8-A: ${id} は clonePolicy=custom だが cloneCast/echoCast が無い（no-op）`);
+        // Lv80 対象と fireProjectileCount の一致。
+        const usesCount = /fireProjectileCount\s*\(/.test(src);
+        if ((d.lv80ProjectileTarget === true) !== usesCount) err(`M8-A: ${id} の lv80ProjectileTarget=${!!d.lv80ProjectileTarget} と fireProjectileCount の使用が一致しない`);
+        // 全敵総当たりの禁止（炎上索引 / SpatialGrid を使う）。
+        if (/enemyPool\.forEachActive/.test(src)) err(`M8-A: ${id} が enemyPool.forEachActive で全敵を総当たりしている`);
+      }
+      // 予約フィールドの禁止（SkillBase の未参照フィールド・空の serializeState）。
+      const baseSrc = readFileSync(join(__dirname, '..', 'src', 'skills', 'SkillBase.js'), 'utf8');
+      if (/_initCd/.test(baseSrc)) err('M8-A: SkillBase に未参照フィールド _initCd が残っている');
+    } catch (e) { warn(`M8-A: 実装との対応確認に失敗 (${e.message})`); }
+
+    // 7. docs のカタログ記載。
+    try {
+      const docsCatalog = readFileSync(join(__dirname, '..', 'docs', 'skill-catalog.md'), 'utf8');
+      for (const id of [...(flameJob.activeSkillPool || []), ...(flameJob.evolutionPool || []), ...(flameJob.passiveSkillPool || [])]) {
+        if (!docsCatalog.includes(id)) err(`M8-A: docs/skill-catalog.md に ${id} の記載が無い`);
+      }
+    } catch (e) { warn(`M8-A: docs の確認に失敗 (${e.message})`); }
   }
 }
 

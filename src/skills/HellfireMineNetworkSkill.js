@@ -91,7 +91,8 @@ export class HellfireMineNetworkSkill extends EvolvedSkillBase {
 
   _markEnemies(m) {
     const d = this.evoDef; const now = this.scene.time.now;
-    let room = this.cap('maxMarks', 40) - this.scene.combat.markedCount();
+    // markTargets = 1回の爆発で刻印する対象数の上限（総数は safetyCaps.maxMarks が上限）。
+    let room = Math.min(d.projectileCount?.markTargets ?? 6, this.cap('maxMarks', 40) - this.scene.combat.markedCount());
     if (room <= 0) return;
     this.scene.combat.forEachEnemyInRadius(m.x, m.y, m.explosionRadius, (e) => {
       if (room <= 0 || e.isBoss) return;

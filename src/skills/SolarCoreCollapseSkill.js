@@ -24,7 +24,7 @@ export class SolarCoreCollapseSkill extends EvolvedSkillBase {
       this.scene.time.delayedCall((tg * k) / 4, () => {
         if (this.scene.gameOver) return;
         this.scene.combat.forEachEnemyInRadius(x, y, (d.area?.pullRadius || 150) * areaMul, (e) => {
-          if (e.isBoss) return;
+          if (e.isBoss && (d.pull?.excludeBoss !== false)) return; // pull.excludeBoss（data）でボス除外を制御
           if (e.applyKnockback) e.applyKnockback(2 * x - e.x, 2 * y - e.y, (this.evoDef.pull?.strength || 90) * 0.4);
         });
       });
@@ -63,4 +63,8 @@ export class SolarCoreCollapseSkill extends EvolvedSkillBase {
   }
 
   destroy() { for (const p of this.patches) if (p.sprite) p.sprite.destroy(); this.patches = []; }
+
+  // M8-A: クールダウンを保存し、再開直後の無料発動を防ぐ（太陽核崩壊・長CD）。
+  serializeState() { return { cdLeft: this._cd }; }
+  restoreState(s) { if (s && typeof s.cdLeft === 'number') this._cd = s.cdLeft; }
 }

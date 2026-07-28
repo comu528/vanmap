@@ -259,3 +259,49 @@ M7-E は**新しい active / passive / 進化 / ジョブ / 状態異常を一�
 - **補助の共有**: passive は `frost_amplification`×4 / `rapid_freezing`×4 / `frozen_expansion`×4 / `lingering_cold`×3、active 補助は `ice_prison`×2 / `ice_wall`×1。
 - rarity 分布（active30）: common 9 / uncommon 10 / rare 8 / legendary 3。
 - 詳細な到達率・抽選分析は `./frost-completion-audit.md` / `./frost-draft-analysis.md` / `./frost-balance-report.md`。
+
+
+---
+
+## Milestone 8-A: 火の魔女 完成監査（カタログ確定・新規追加なし）
+
+火の魔女の **active30 / passive4 / 進化18（合計 52）** を `SkillCatalog` で再検証し、確定させた。
+新しい active / passive / 進化 / ジョブ / 状態異常 / 敵 / ボス / 難易度は**追加していない**。
+
+- `catalog.issues` **0 件**、duplicate id / displayName **0 件**（skills / evolutions / passives でグローバル一意）。
+- 未登録クラス（JSON だけ存在）**0 件** / 孤立クラス（REGISTRY だけ存在）**0 件**。
+- `SkillCatalog` の一覧 = `poolEligibility.memberAllowedForJob` の適格集合 = `SkillDraftManager` の候補元。
+- 火 skill が氷へ / 氷 skill が火へ出ることは **0 件**。明示共通（`isCommon:true` / `jobs:["*"]`）は **0 件**。
+- rarity 分布（active30）: **common 8 / uncommon 10 / rare 9 / legendary 3**。
+- Job Lv80「発射数+1」対象は明示 flag の **6 種のみ**
+  （`fireball` `flame_lance` `scatter_flame` `homing_wisp` `ricochet_ember` `core_overdrive`）。進化 18 種は対象外。
+
+### 進化対応表（18 件・すべて base Lv8 ＋ 補助 Lv4・分岐なし）
+
+| evolution | base | 補助 | 種別 |
+|---|---|---|---|
+| `infernal_barrage` | `fireball` | `orbiting_flame` | active |
+| `purgatory_eruption` | `flame_pillar` | `meteor` | active |
+| `eternal_pyre` | `burning_trail` | `orbiting_flame` | active |
+| `thousand_flame_lances` | `flame_lance` | `swift_cast` | passive |
+| `hundred_wisp_parade` | `homing_wisp` | `fire_spirit` | active |
+| `solar_core_collapse` | `lava_bomb` | `scorch_expand` | passive |
+| `infernal_vortex_wheel` | `flame_vortex` | `burning_trail` | active |
+| `apocalypse_chain` | `detonation_mark` | `power_amp` | passive |
+| `solar_annihilation_array` | `scorching_ray` | `swift_cast` | passive |
+| `hellfire_mine_network` | `ember_minefield` | `detonation_mark` | active |
+| `inferno_blade_domain` | `flame_crescent` | `flame_barrier` | active |
+| `ash_legion` | `ash_doppelganger` | `fire_spirit` | active |
+| `star_devouring_furnace` | `bullet_furnace` | `phoenix_feather` | active |
+| `necroflame_mausoleum` | `funeral_pyres` | `phoenix_feather` | active |
+| `world_scorching_rift` | `magma_vein` | `burning_trail` | active |
+| `hexagram_inferno_array` | `tri_flame_array` | `flame_vortex` | active |
+| `universal_flame_resonance` | `scorching_resonance` | `chain_flame` | active |
+| `doomsday_core` | `core_overdrive` | `bloodfire_pact` | active |
+
+- **進化対象 active 18 種 / 非対象 12 種**（`orbiting_flame` `meteor` `scatter_flame` `chain_flame` `fire_spirit`
+  `phoenix_feather` `flame_barrier` `ricochet_ember` `bloodfire_pact` `four_sided_inferno` `molten_chains` `blazing_step`）。
+- **補助の共有**: active 補助 `orbiting_flame`×2 / `fire_spirit`×2 / `burning_trail`×2 / `phoenix_feather`×2、
+  passive 補助 `swift_cast`×2 / `power_amp`×1 / `scorch_expand`×1 / `ember_persist`×0。
+- `ember_persist` は進化補助ではないが `duration` modifier が実装から参照されるため**死に passive ではない**。
+- 詳細な到達率・抽選分析は `./flame-completion-audit.md` / `./flame-draft-analysis.md` / `./flame-balance-report.md`。

@@ -111,21 +111,6 @@
           "visual": "huge"
         }
       ],
-      "evolution": {
-        "id": "infernal_barrage",
-        "name": "業火弾幕",
-        "description": "多数の火球を扇状に発射し、敵撃破時に追加火球を生成、着弾で連鎖爆発。",
-        "requires": [
-          {
-            "skill": "fireball",
-            "level": 8
-          },
-          {
-            "skill": "orbiting_flame",
-            "level": 4
-          }
-        ]
-      },
       "castMode": "cooldown",
       "mainCastEvent": "fire",
       "echoDescription": "火球を追加発射",
@@ -258,21 +243,6 @@
           "visual": "huge"
         }
       ],
-      "evolution": {
-        "id": "purgatory_eruption",
-        "name": "煉獄噴火",
-        "description": "複数の火柱が連続発生し地面に炎を残し、最後に大爆発する。",
-        "requires": [
-          {
-            "skill": "flame_pillar",
-            "level": 8
-          },
-          {
-            "skill": "meteor",
-            "level": 4
-          }
-        ]
-      },
       "castMode": "cooldown",
       "mainCastEvent": "fire",
       "echoDescription": "火柱を追加生成",
@@ -390,21 +360,6 @@
           "visual": "huge"
         }
       ],
-      "evolution": {
-        "id": "eternal_pyre",
-        "name": "永劫火界",
-        "description": "プレイヤー周辺が常時炎上し、炎が敵へ感染、炎上した敵の死亡で爆発する。",
-        "requires": [
-          {
-            "skill": "burning_trail",
-            "level": 8
-          },
-          {
-            "skill": "orbiting_flame",
-            "level": 4
-          }
-        ]
-      },
       "castMode": "periodic",
       "mainCastEvent": "emitStart",
       "echoDescription": "燃焼地帯を追加設置",
@@ -2603,8 +2558,6 @@
           "cooldown": 6000,
           "radius": 70,
           "extraBolts": 0,
-          "buffMs": 2000,
-          "buffDamage": 0.12,
           "hpCostPercent": 0.12,
           "safeHpPercent": 0.25
         },
@@ -2614,8 +2567,6 @@
           "cooldown": 5840,
           "radius": 74,
           "extraBolts": 0,
-          "buffMs": 2120,
-          "buffDamage": 0.126,
           "hpCostPercent": 0.12,
           "safeHpPercent": 0.25
         },
@@ -2625,8 +2576,6 @@
           "cooldown": 5680,
           "radius": 78,
           "extraBolts": 2,
-          "buffMs": 2240,
-          "buffDamage": 0.132,
           "hpCostPercent": 0.13,
           "safeHpPercent": 0.25
         },
@@ -2636,8 +2585,6 @@
           "cooldown": 5520,
           "radius": 82,
           "extraBolts": 2,
-          "buffMs": 2360,
-          "buffDamage": 0.139,
           "hpCostPercent": 0.13,
           "safeHpPercent": 0.25
         },
@@ -2647,8 +2594,6 @@
           "cooldown": 5360,
           "radius": 86,
           "extraBolts": 4,
-          "buffMs": 2480,
-          "buffDamage": 0.146,
           "hpCostPercent": 0.14,
           "safeHpPercent": 0.25
         },
@@ -2658,8 +2603,6 @@
           "cooldown": 5200,
           "radius": 90,
           "extraBolts": 4,
-          "buffMs": 2600,
-          "buffDamage": 0.153,
           "hpCostPercent": 0.14,
           "safeHpPercent": 0.25
         },
@@ -2669,8 +2612,6 @@
           "cooldown": 5040,
           "radius": 94,
           "extraBolts": 6,
-          "buffMs": 2720,
-          "buffDamage": 0.161,
           "hpCostPercent": 0.15,
           "safeHpPercent": 0.25
         },
@@ -2680,8 +2621,6 @@
           "cooldown": 4880,
           "radius": 98,
           "extraBolts": 8,
-          "buffMs": 2840,
-          "buffDamage": 0.169,
           "hpCostPercent": 0.15,
           "safeHpPercent": 0.25
         }
@@ -2863,7 +2802,6 @@
           "directions": 1,
           "wallWidth": 30,
           "waveSpeed": 90,
-          "burnMs": 1200,
           "staggerMs": 260
         },
         {
@@ -2873,7 +2811,6 @@
           "directions": 1,
           "wallWidth": 32,
           "waveSpeed": 95,
-          "burnMs": 1280,
           "staggerMs": 252
         },
         {
@@ -2883,7 +2820,6 @@
           "directions": 2,
           "wallWidth": 34,
           "waveSpeed": 100,
-          "burnMs": 1360,
           "staggerMs": 244
         },
         {
@@ -2893,7 +2829,6 @@
           "directions": 2,
           "wallWidth": 36,
           "waveSpeed": 105,
-          "burnMs": 1440,
           "staggerMs": 236
         },
         {
@@ -2903,7 +2838,6 @@
           "directions": 2,
           "wallWidth": 38,
           "waveSpeed": 110,
-          "burnMs": 1520,
           "staggerMs": 228
         },
         {
@@ -2913,7 +2847,6 @@
           "directions": 3,
           "wallWidth": 40,
           "waveSpeed": 115,
-          "burnMs": 1600,
           "staggerMs": 220
         },
         {
@@ -2923,7 +2856,6 @@
           "directions": 3,
           "wallWidth": 42,
           "waveSpeed": 120,
-          "burnMs": 1680,
           "staggerMs": 212
         },
         {
@@ -2933,7 +2865,6 @@
           "directions": 4,
           "wallWidth": 44,
           "waveSpeed": 125,
-          "burnMs": 1760,
           "staggerMs": 204
         }
       ],

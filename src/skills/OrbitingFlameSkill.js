@@ -82,4 +82,9 @@ export class OrbitingFlameSkill extends SkillBase {
     this.orbs = [];
     this._hitCooldown.clear();
   }
+
+  // M8-A: 常設型のため CD は使わないが、回転位相と主発動スロットルを保存して
+  // 再開直後に recordCast が無料で走らないようにする（火球本体は update が作り直す）。
+  serializeState() { return { angle: this.angle, castPulse: this._castPulse }; }
+  restoreState(s) { if (!s) return; if (typeof s.angle === 'number') this.angle = s.angle; if (typeof s.castPulse === 'number') this._castPulse = s.castPulse; }
 }

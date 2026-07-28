@@ -34,8 +34,11 @@ export class HexagramInfernoArraySkill extends EvolvedSkillBase {
   _makeHexagram(center, spread) {
     const r = spread * 0.5;
     const verts = [];
-    for (let k = 0; k < 6; k++) {
-      const ang = (Math.PI / 3) * k; // 60°刻み
+    // 頂点数は data の projectileCount.vertices（六芒星なので既定 6・偶数のみ＝2枚の三角形に割れる）。
+    const raw = (this.evoDef.projectileCount && this.evoDef.projectileCount.vertices) || 6;
+    const n = Math.max(6, raw - (raw % 2));
+    for (let k = 0; k < n; k++) {
+      const ang = (Math.PI * 2 / n) * k;
       verts.push({ x: center.x + Math.cos(ang) * r, y: center.y + Math.sin(ang) * r });
     }
     // 2枚の三角形（偶数頂点・奇数頂点）。

@@ -468,3 +468,25 @@ M7-A〜M7-C の状態異常/凍結基盤・複数ジョブ補正・状態表示�
   `frost-dead-content-audit` / `frost-complete-skill-audit` / `frost-complete-runtime-save` / `frost-complete-determinism` /
   `frost-status-balance` / `frost-quality-cap-audit` / `frost-cleanup-audit` / `frost-telemetry-audit`（共通土台は `tests/frost-audit-common.mjs`）。
   **全63スイート通過・validate-data 0エラー0警告**。実ブラウザ挙動は本環境では**未検証**。
+
+
+---
+
+## Milestone 8-A: 火の魔女 完成監査（新規コンテンツなし・監査基盤の追加）
+
+- **`src/systems/FlameBalanceWarnings.js`（新規）**: カタログ / 抽選 / 監査 / 炎上・DoT・爆発・共鳴の集計から
+  `FLAME_*` 30 コードの開発用警告を生成する純ロジック。自動調整はしない。閾値は既定値＋引数のみ。
+  外部送信なし。M7-E の `FrostBalanceWarnings` と同じ構造で、火固有の項目だけを差し替えている。
+- **`tests/flame-audit-common.mjs`（新規）**: 火の魔女監査 12 本が共有する土台。
+  実データ読み込み・`draftCatalog()` 相当・production 抽選コンテキスト・Phaser 非依存のヘッドレス scene
+  （`scene.rng` は seed 由来の決定論 RNG、`combat` API は**半径を実際に見る** SpatialGrid 相当）。
+- **runtimeState の全件化**: 火の魔女 48 スキルすべてが `serializeState`/`restoreState` を持つようになり、
+  `SkillManager.skillsWithRuntimeState()` に全件が含まれる。常設型は CD を持たない代わりに
+  位相・主発動スロットル・各インスタンスのタイマーを保存する（設置物本体は保存せず `_rebuild`/`_ensure` が再構築＝二重生成しない）。
+- **主発動イベントの一貫化**: 常設型（`orbiting_flame` / `fire_spirit` / `eternal_pyre` / `solar_annihilation_array`）は
+  `config.castPulseMs` でスロットルして `recordCast` を 1 回だけ行う。これにより
+  `recordCast → _onSkillCast → jobMods.registerCast → _triggerEcho` の共通経路にすべての攻撃系スキルが乗る。
+- **`SkillBase._initCd` を削除**（宣言のみで一度も読まれない予約フィールドだった）。
+- **`Projectile.rampMax`**: 連続命中の上昇上限を data（`damage.rampMax`）から受け取るようにした（既定 0.6 ＝従来の ×1.6）。
+- **未参照 quality cap の全廃**: `skillCaps` は 152 件になり、`validate-data.mjs` の許容リストは空。
+  以後、未参照 cap があるとデータ検証がエラーになる。

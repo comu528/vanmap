@@ -7,7 +7,15 @@
 npm・ビルド処理・バックエンド・データベースは一切使いません。Phaser 3.90.0 を CDN から読み込み、
 すべての素材（プレイヤー・敵・弾・エフェクト等）は JavaScript 上で動的生成しています。
 
-> ⚠️ **開発状況**: 現在 **Milestone 7-D**（氷術師のスキル拡張・最終波＝**active30/passive4/進化18**）まで実装済みです。
+> ⚠️ **開発状況**: 現在 **Milestone 8-A**（火の魔女 完成監査）まで実装済みです。
+> M8-A は**監査 Milestone** で、新しい active / passive / 進化 / ジョブ / 状態異常 / 敵 / ボス / 難易度は**一切追加していません**。
+> 火の魔女（**active30 / passive4 / 進化18 / Job Lv1〜100**）のカタログ整合性・プール分離・全18進化の到達可能性・
+> production 抽選シミュレーション・死にコンテンツ・SkillAudit・保存/復元/決定論・炎上/DoT/爆発/共鳴・quality cap・
+> cleanup・テレメトリを一括監査し、見つかった不具合を修正しました。**氷術師は数値・挙動・候補列・保存・カタログとも不変**。
+> **save_version は v6 のまま**。実ブラウザでの描画・体感は未検証。詳細は
+> `docs/flame-completion-audit.md`・`docs/flame-draft-analysis.md`・`docs/flame-balance-report.md`。
+>
+> （M7-D まで）**Milestone 7-D**（氷術師のスキル拡張・最終波＝**active30/passive4/進化18**）まで実装済みです。
 > M7-D では氷術師へ新 active5種・新進化5種を追加し、**氷術師を active30種・進化18種・passive4種（追加なし）・Job Lv1〜100** へ拡張、
 > **火の魔女（active30/進化18/passive4）と同規模のカタログに到達**しました（氷術師カタログ完成）。全て `data/skills.json`/`data/skill-evolutions.json` の
 > Lv1〜8 データ駆動・冷気/凍結/粉砕/ボス氷砕は既存 `StatusEffectManager` 経路・独自凍結タイマーなし・**Math.random/Date.now 不使用（index ベース決定論・黄金角）**。
@@ -866,3 +874,30 @@ production の `SkillDraftManager`＋`SeededRandom` による抽選シミュレ�
 ヘッドレスでは未計測**です。GitHub Pages を実ブラウザ（`?debug=1` の F8/F9/F10）で開き、`docs/test-guide.md` の
 M7-E 項目を手動確認してください（実行していない項目を「確認済み」と報告しません）。
 詳細は `docs/frost-completion-audit.md` / `docs/frost-draft-analysis.md` / `docs/frost-balance-report.md`。
+
+
+**Milestone 8-A の検証**: 火の魔女の**完成監査**（新スキル追加なし）。カタログ整合性・プール分離・全18進化の到達可能性・
+production の `SkillDraftManager`＋`SeededRandom` による抽選シミュレーション（**200 seed / 60 level-up / active枠4・6・8 /
+5 戦略**）・死にコンテンツ・SkillAudit 完全監査・保存/復元/決定論・炎上/DoT/爆発/共鳴・quality cap・cleanup・テレメトリを
+`node tests/flame-completion-catalog.mjs` ほか**新規12スイート**で検証しました（`HEAVY=1` で 500 seed）。
+他ジョブ混入・不正候補・重複候補・slot違反・不正進化・進化後の元active再提示は**すべて 0 件**、
+提示0/取得0の active・passive・進化も **0 件**、到達不能な進化も **0 件**、`FLAME_*` 警告も **0 件**です。
+進化到達率は M7-E と同じ 9 つの警告基準を**すべて満たします**（slot4 ≥1=90.0% / slot6 ≥1=96.0%・≥2=78.5% /
+slot8 ≥1=97.0%・≥2=78.5%）。
+
+監査で見つかった重大な不具合を修正しました。
+**(1) 火の魔女スキル21種のクールダウンが保存されず、リロードで全回復して無料発動できていた**（氷術師で M7-A 後に
+修正した不具合と同じクラス）→ 48 件すべてが runtimeState を保存するようにしました。
+**(2) `eternal_pyre` / `solar_annihilation_array` が `recordCast` を一度も呼ばず、data で宣言した残響・分身が
+一度も発生しなかった**（進化元では発生する＝進化で機能を失っていた）→ 主発動をスロットル記録し、
+`echoPolicy`/`clonePolicy` を実装に合わせて `custom` へ修正しました。
+**(3) 死にパラメータ21件・未参照 quality cap 5件**（M7-E から残っていた火由来分）→ 実装へ接続 13 件・削除 13 件で **0 件**に。
+**(4) `eternal_pyre` の炎上感染が毎 tick 全敵を総当たりしていた** → 炎上索引経由へ修正（性能改善）。
+
+`FlameBalanceWarnings`（FLAME_* 30コード・ローカルのみ）を追加しました。**全75スイート通過・`validate-data` 0エラー0警告**、
+`save_version` は v6 のままです。氷術師の data・実装は 1 件も変更しておらず、
+**同 seed のドラフト候補列（300 seed）と 48 スキルの実行トレースは変更前後で SHA-256 完全一致**です。
+**実際の描画・当たり判定・体感バランス・60FPS 維持は Phaser 依存のためヘッドレスでは未計測**です。
+GitHub Pages を実ブラウザ（`?debug=1` の F8/F9/F10）で開き、`docs/test-guide.md` の
+**Milestone 8-A** 項目を手動確認してください（実行していない項目を「確認済み」と報告しません）。
+詳細は `docs/flame-completion-audit.md` / `docs/flame-draft-analysis.md` / `docs/flame-balance-report.md`。

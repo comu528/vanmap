@@ -53,4 +53,8 @@ export class LavaBombSkill extends SkillBase {
   }
 
   destroy() { for (const p of this.patches) if (p.sprite) p.sprite.destroy(); this.patches = []; }
+
+  // M8-A: クールダウンを保存（溶岩パッチは寿命の短い設置物のため保存しない）。
+  serializeState() { return { cdLeft: this._cd }; }
+  restoreState(s) { if (s && typeof s.cdLeft === 'number') this._cd = s.cdLeft; }
 }

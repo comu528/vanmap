@@ -11,8 +11,7 @@ export class SkillBase {
     this.scene = scene;
     this.id = id;
     this.level = level;
-    this._cd = 0;
-    this._initCd = true; // 初回は少し撃てるように 0 開始
+    this._cd = 0; // 初回は 0 開始（取得直後に1回撃てる）
   }
 
   get def() { return DataManager.getSkill(this.id); }

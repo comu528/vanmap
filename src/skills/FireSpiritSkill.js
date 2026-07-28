@@ -19,8 +19,11 @@ export class FireSpiritSkill extends SkillBase {
     const want = this._targetCount();
     while (this.spirits.length < want) {
       const spr = this.scene.add.image(0, 0, TEX.FIREBALL).setBlendMode(Phaser.BlendModes.ADD).setDepth(51).setScale(0.7).setTint(0xffca28);
-      this.spirits.push({ sprite: spr, shotTimer: this.scene.rng() * 400 });
+      // M8-A: 途中再開の直後だけ、保存しておいた射撃タイマーを引き継ぐ（無料の一斉射撃を作らない）。
+      const restored = this._pendingShotTimers && this._pendingShotTimers.length ? this._pendingShotTimers.shift() : null;
+      this.spirits.push({ sprite: spr, shotTimer: typeof restored === 'number' ? restored : this.scene.rng() * 400 });
     }
+    if (this._pendingShotTimers && !this._pendingShotTimers.length) this._pendingShotTimers = null;
     while (this.spirits.length > want) { const sp = this.spirits.pop(); if (sp.sprite) sp.sprite.destroy(); }
     if (this.spirits.length) this.scene.skills.recordExtra(this.id, 'maxConcurrent', this.spirits.length, 'max');
   }
@@ -76,4 +79,14 @@ export class FireSpiritSkill extends SkillBase {
 
   onLevelChanged() { /* 個数は update の _ensure で追従 */ }
   destroy() { for (const sp of this.spirits) if (sp.sprite) sp.sprite.destroy(); this.spirits = []; }
+
+  // M8-A: 常設型のため CD は使わないが、周回位相と一斉射撃スロットル・各精霊の射撃タイマーを保存する
+  // （精霊本体は _ensure() が再構築するため二重生成しない）。
+  serializeState() { return { angle: this._angle, castPulse: this._castPulse, shotTimers: this.spirits.map((sp) => sp.shotTimer) }; }
+  restoreState(s) {
+    if (!s) return;
+    if (typeof s.angle === 'number') this._angle = s.angle;
+    if (typeof s.castPulse === 'number') this._castPulse = s.castPulse;
+    if (Array.isArray(s.shotTimers)) { this._pendingShotTimers = s.shotTimers.slice(0, 16); }
+  }
 }

@@ -63,7 +63,8 @@ section('1. 新 active 10種のデータ整合');
 // ===== 2. 性能上限（skillCaps） =====
 section('2. 性能上限 skillCaps（品質順で逆転しない）');
 {
-  const need = ['maxHomingWisps', 'maxSplitWisps', 'maxFlameLances', 'maxSummons', 'maxSummonProjectiles', 'maxActiveVortices', 'maxMarks', 'maxChainTargets', 'maxChainDepth', 'maxSimultaneousExplosions', 'maxEvolutionProjectiles', 'maxPhoenixEffects', 'maxBarrierEffects'];
+  const need = ['maxHomingWisps', 'maxSplitWisps', 'maxFlameLances', 'maxSummons', 'maxSummonProjectiles', 'maxActiveVortices', 'maxMarks', 'maxChainDepth', 'maxSimultaneousExplosions', 'maxEvolutionProjectiles', 'maxPhoenixEffects'];
+  // M8-A: maxChainTargets（maxChainDepth と完全重複）と maxBarrierEffects（未参照）は削除済み。
   const caps = balance.skillCaps || {};
   for (const n of need) {
     const c = caps[n];
