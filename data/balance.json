@@ -399,18 +399,6 @@
       "high": 16,
       "ultra": 24
     },
-    "maxStatusApplicationsPerFrame": {
-      "low": 40,
-      "medium": 80,
-      "high": 140,
-      "ultra": 220
-    },
-    "maxFreezeChecksPerFrame": {
-      "low": 24,
-      "medium": 48,
-      "high": 80,
-      "ultra": 130
-    },
     "maxFrozenEnemies": {
       "low": 30,
       "medium": 60,
@@ -586,10 +574,10 @@
       "ultra": 110
     },
     "maxIcePrisons": {
-      "low": 1,
-      "medium": 2,
-      "high": 3,
-      "ultra": 4
+      "low": 3,
+      "medium": 4,
+      "high": 5,
+      "ultra": 6
     },
     "maxIcePrisonTargetsPerFrame": {
       "low": 6,
@@ -676,7 +664,7 @@
       "ultra": 110
     },
     "maxWorldEndAvalancheWaves": {
-      "low": 2,
+      "low": 3,
       "medium": 3,
       "high": 4,
       "ultra": 6
@@ -780,12 +768,6 @@
     "maxCrystalBloomPulsesPerFrame": {
       "low": 8,
       "medium": 16,
-      "high": 28,
-      "ultra": 44
-    },
-    "maxSnowblindMistParticles": {
-      "low": 10,
-      "medium": 18,
       "high": 28,
       "ultra": 44
     },
@@ -920,12 +902,6 @@
       "medium": 44,
       "high": 72,
       "ultra": 110
-    },
-    "maxSentryLinksPerFrame": {
-      "low": 4,
-      "medium": 8,
-      "high": 14,
-      "ultra": 22
     },
     "maxIcebergRams": {
       "low": 1,

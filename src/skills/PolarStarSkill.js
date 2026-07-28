@@ -42,6 +42,13 @@ export class PolarStarSkill extends SkillBase {
         this.scene.skills.recordExtra(this.id, 'pulseHits', 1, 'add');
       }
       const hit = this.scene.combat.nearestEnemy(st.x, st.y, (s.radius || 70) * 0.4);
+      // M7-E: 直撃した敵へは impactDamage（Lv成長項目）を先に与える。射程終端の自然爆発では発生しない。
+      if (hit) {
+        this.scene.combat.dealDamage(hit, s.impactDamage || 0, this.id, {
+          element: 'ice', chillAmount: s.chillAmount, baseFreezeChance: 0,
+          procCoefficient: this.def?.procCoefficient ?? 0.70, hitGroupId: this.scene.nextHitGroupId(), color: 0x9fe8ff,
+        });
+      }
       if (hit || st.traveled >= st.maxTravel) { this._burst(st.x, st.y, s); if (st.gfx) st.gfx.destroy(); this.stars.splice(i, 1); }
     }
   }

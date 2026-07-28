@@ -579,3 +579,19 @@ profile/active_run の既存構造を変えない。そのため **`saveVersion`
 - **保存しない**: 飛行中の projectile（氷槍/砲台弾）・Graphics/Text/Tween・entity 参照・particle・overlay・**氷印/氷棺の表示 overlay**・F10 選択対象・**表示状態全般**。これらはレベル＋runtimeState と再開後の戦闘から自然に再構築する。
 - **再読込での悪用防止**: barrage・砲台・氷山・氷河・aurora 帯・氷印 CD を保存・復元し、**無料の再発動・二重生成・氷印の無料起爆・進化前後の同時稼働**を防ぐ。一時停止中は update が止まるため CD/待機/barrage も進まない。
 - `SkillManager.serializeRuntime()`／`restoreRuntime()` が各スキルの `serializeState/restoreState` を集約し、`BattleScene.restoreFromRun()` が復元する（`tests/frost-runtime-save-wave4.mjs` で実スキルクラスを graphics 対応の最小 Phaser モックで駆動し、CD/barrage/砲台/氷山/marker（ボスのみ復元・通常敵は捨てる）/aurora 保存と二重生成・無料起爆防止を検証）。加算的追加のため **`save_version` は 6 のまま**。
+
+## Milestone 7-E: 保存フォーマットの変更なし（v6 維持）
+M7-E は監査 Milestone であり、`profile` / `active_run` / `skillRuntime` のスキーマを一切変更していない
+（`save_version` は **v6** のまま・移行処理も不要）。
+
+監査で固定した保存側の不変条件（`tests/frost-complete-runtime-save.mjs` / `frost-complete-determinism.mjs`）:
+
+- 氷術師 active30 + 進化18 = 48 件すべてで `SkillManager.serializeRuntime()` → `restoreRuntime()` の往復が成立し、
+  **runtimeState を保存するのは 45 件**（残りは基底の CD 管理のみで固有状態を持たない）。
+- runtimeState に **Graphics / Text / Tween / Timer / entity 参照を含まない**（JSON 化可能・循環参照なし）。
+- CD（`cdLeft` / `markLeft` / `deployLeft` / `recastLeft` などの残り時間）は**必ず**保存・復元する（再開直後の無料 cast の防止）。
+- 設置 / 召喚 / 砲台 / 印 / 波 / 弾幕は復元で二重生成せず、`restoreRuntime` を 2 回適用しても増えない（**冪等**）。
+- 氷印 / 氷棺は**ボス印だけ**復元し、通常敵の印は破棄する。復元後の命中数は数え直す（無料起爆の防止）。
+- 進化後は元 active のインスタンスも runtime も残らず、再開後も進化済みのまま（元 active が復活しない）。
+- 状態異常 RNG は保存/復元で cursor・state・以後の乱数列が**完全一致**する（RNG drift 0）。
+- F10 の直近イベント履歴・表示状態・選択中デバッグ対象は**保存しない**。

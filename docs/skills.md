@@ -102,3 +102,36 @@ M7-D で氷術師へ **新 active5種・新進化5種** を追加し、火の魔
 ## 検証（M7-D）
 `frost-skills-wave4.mjs`／`frost-evolutions-wave4.mjs`／`frost-policy-audit-wave4.mjs`／`frost-runtime-save-wave4.mjs`／`frost-determinism-wave4.mjs`／`frost-boss-gauge-wave4.mjs`・`validate-data.mjs`（M7-D 検証ブロック）。
 **全51スイート通過・validate-data 0エラー0警告**。実ブラウザでの描画・当たり判定・視認性・体感バランス・60FPS は本環境では**未検証**（`./docs/test-guide.md` の M7-D 項目）。実行していない項目を「確認済み」と報告しない。
+
+## Milestone 7-E: 氷術師スキルの監査と修正（新規追加なし）
+
+### 宣言値を実適用へ変更したもの（死にパラメータの解消）
+| スキル | 値 | 変更前 | 変更後 |
+|--------|----|--------|--------|
+| `crystal_bloom` | 設置間隔 | `interval` が未参照で一律 1000ms | キー名を `cooldown` へ改名し Lv1 1600ms → Lv8 1150ms（熟練度/パッシブの CD 倍率も乗る） |
+| `polar_star` | 直撃ダメージ | `impactDamage` が未参照 | 直撃した敵へ Lv1 30 / Lv8 66 を適用（射程終端の自然爆発では発生しない） |
+| `absolute_ice_seal` | 凍結対象への起爆 | `frozenDamageBonus` が未参照 | ×1.20（Lv1）〜 ×1.50（Lv8） |
+| `eternal_sealed_coffin` | 凍結対象への起爆 | `frozenDamageBonus` が未参照 | ×1.50 |
+| `heaven_piercing_glacier` | 基礎凍結確率 | `freeze.baseChance` が未参照（進化後の方が凍結しない） | 0.12 を弾へ適用 |
+| `crystal_sentinel_legion` | `pulseProc` | 基礎からの複写残骸（pulse 機構なし） | data から削除 |
+
+### ボス氷砕ゲージ倍率の付け替え
+`heaven_piercing_glacier` / `absolute_zero_ray` は `bossGauge.multiplier` を `chillAmount` へ乗算していたため
+通常敵の冷気まで増えていた。M7-C の共通経路（ボス氷砕ゲージ量のみへ 1 回）へ付け替え、
+通常敵の冷気は 48→30 / 12→8（tick）へ戻した。**ボス側のゲージ量は不変**。
+
+### `custom` echo / clone の実装
+| スキル | 残響（echoCast） | 分身（cloneCast） |
+|--------|------------------|-------------------|
+| `absolute_zero_ray` | 追加照射 1 回（粉砕なし・セッションを再生成しない） | 射程 60% の短い光線 1 回 |
+| `world_end_avalanche` | 追加の氷河波 1 本のみ | 波の接触ダメージ 1 回のみ（波実体・残留物なし） |
+| `continental_glacier_rush` | 縮小氷河 1 本（`cloneCast` へ委譲） | 縮小氷河 1 本 |
+
+いずれも `recordCast` を呼ばない（発動数の二重計上なし）。`forbidden` のスキルは従来どおり複製・残響の対象外。
+
+### 上限の接続（既定品質では実効値が変わらない位置でクランプ）
+`maxFrostShards`（`frost_shard` の発射数）/ `maxGlacialLances` / `maxFrostNovaTargetsPerFrame` /
+`maxIcePrisons`（同時氷牢数）/ `maxIcebergRams` / `maxContinentalGlacierRushes`（同時1つ）/
+`maxAbsoluteZeroRayBranches` / `maxWorldEndAvalancheWaves` / `maxSentryProjectiles`（砲台弾の同時数）/
+`maxGlacialSpearTelegraphs` / `maxShatterProjectiles`（粉砕由来の弾数）を実装へ接続した。
+`CrystalSentinelLegionSkill` は砲台数の上限に「1フレームあたりの氷線予算」を混ぜていた名前違いを解消した（実効値は不変）。

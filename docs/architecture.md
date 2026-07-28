@@ -447,3 +447,24 @@ M7-A〜M7-C の状態異常/凍結基盤・複数ジョブ補正・状態表示�
 - **状態表示との疎結合**: スキルクラスは状態演出を直接生成せず、冷気/凍結/粉砕/ボス氷砕を既存経路で起こすだけで M7-B.1 の `StatusVisualManager`/`BossFrostbreakDisplay`/`StatusDebugPanel`（F10・chill/freeze/hitGroup/counter）・状態カウンタへ**自動反映**される（判定・ダメージ・状態RNG cursor は不変）。氷印だけ最小限の skill-local overlay を持つ。
 - **デバッグ**: `?debug=1` の **F9** で新 active5・新進化5 を付与/Lv切替/進化条件達成/即時進化でき、`debugRun` として通常 profile 統計/Job XP/残り火/魂炎へ影響しない。
 - 検証: `frost-skills-wave4.mjs`／`frost-evolutions-wave4.mjs`／`frost-policy-audit-wave4.mjs`／`frost-runtime-save-wave4.mjs`（実スキルクラスを graphics 対応の最小 Phaser モックで駆動）／`frost-determinism-wave4.mjs`（Math.random/Date.now/performance.now 不使用のソース走査＋決定論トレース）／`frost-boss-gauge-wave4.mjs`（`bossGaugeMult` がボス氷砕ゲージのみへ1回・通常敵/damage/chill/proc/炎不変）・`validate-data.mjs`（M7-D ブロック）。**全51テストスイート通過・validate-data 0エラー0警告**。実ブラウザ挙動（実際の描画・当たり判定・視認性・60FPS）は本環境では**未検証**。
+
+## Milestone 7-E: 氷術師 完成監査（新規コンテンツなし・監査基盤の追加）
+- **`DraftBalanceAnalyzer` 拡張**: 戦略に `balanced` / `random-valid` / `new-skill-priority` / `one-build-focus` を追加（`M7E_POLICIES`）。
+  抽選そのものは production の `SkillDraftManager` を使い、ここで足すのは**プレイヤーの選び方と集計**だけ（抽選ロジックの再実装はしない）。
+  追加指標: 取得率 / active Lv8 率 / passive Lv4 率 / rarity 取得 / reroll・banish・skip / pity / synergy 適用数 /
+  候補内訳（強化・新規・進化）/ 枠充足 / 候補なし / **必ず0の健全性カウンタ**（他ジョブ混入・不正候補・重複候補・
+  slot 違反・不正進化・進化後の元 active 再提示）/ 進化ごとの段階内訳（base→base Lv8→support→条件→提示→取得）。
+- **`FrostBalanceWarnings`（新規）**: カタログ／抽選サマリ／監査結果／状態異常集計から `FROST_*` 30 コードの警告を生成する純ロジック。
+  自動調整はせず警告のみ。閾値は `DEFAULT_FROST_THRESHOLDS`（引数で上書き可）。**ローカル専用・外部送信なし**。
+- **共通経路の小さな追加**（既定値で既存挙動は不変）: `dealDamage`/`damageArea` の `opts.frozenBonus`（凍結対象への追加倍率・既定0）、
+  `Projectile.bossGaugeMult`（弾からもボス氷砕ゲージ倍率を渡す・既定1）、粉砕由来の弾数上限 `maxShatterProjectiles`。
+- **上限の二層構造を明文化**: 進化の `safetyCaps`（`EvolvedSkillBase.cap()` が読む絶対上限）と
+  `balance.json` の `skillCaps`（`combat.skillCap()`/`frameBudget()` が読む**品質別**上限）。
+  同じ意味の上限を両方で持つ場合は品質別の方が実効値になる。**未参照の上限は不具合**として `validate-data` とテストで検出する。
+- **恒久ガード**: `validate-data.mjs` の M7-E ブロックが「Lv 成長項目が実装から参照されない」「quality cap が未参照/不在/名前違い」
+  「成長しない成長項目」「skill-local マーカーを正式 status へ登録した」「docs にスキル id の記載が無い」をエラーにする。
+- **F8 のジョブ別分析パネル**（`BattleScene.toggleJobAnalysis` / `jobAnalysisReport`）: 表示のみ・profile 不変・外部送信なし。
+- 検証: `frost-completion-catalog` / `frost-evolution-reachability` / `frost-draft-balance` / `frost-evolution-distribution` /
+  `frost-dead-content-audit` / `frost-complete-skill-audit` / `frost-complete-runtime-save` / `frost-complete-determinism` /
+  `frost-status-balance` / `frost-quality-cap-audit` / `frost-cleanup-audit` / `frost-telemetry-audit`（共通土台は `tests/frost-audit-common.mjs`）。
+  **全63スイート通過・validate-data 0エラー0警告**。実ブラウザ挙動は本環境では**未検証**。

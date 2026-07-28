@@ -39,7 +39,8 @@ export class AbsoluteZeroRaySkill extends EvolvedSkillBase {
     // 主対象の冷気量で分岐数を決める。
     const mainT = this.scene.combat.nearestEnemy(p.x, p.y, range + 20);
     const chill = mainT ? this.scene.combat.chillOf(mainT) : 0;
-    const branches = Math.min(Math.floor(chill / (br.chillDivisor || 40)), br.maxBranches || 4, this.cap('maxBranches', 6));
+    // M7-E: safetyCaps に加えて品質別上限 maxAbsoluteZeroRayBranches でもクランプ（値は branch.maxBranches 以上＝通常は恒等）。
+    const branches = Math.min(Math.floor(chill / (br.chillDivisor || 40)), br.maxBranches || 4, this.cap('maxBranches', 6), this.scene.combat.skillCap('maxAbsoluteZeroRayBranches', 6));
     const damageBoost = 1 + Math.min(0.5, chill * (br.damageBoostPerChill || 0.004));
     const angles = [beam.angle];
     for (let b = 0; b < branches; b++) angles.push(beam.angle + (b + 1) * 0.4 * (b % 2 === 0 ? 1 : -1));
@@ -53,7 +54,8 @@ export class AbsoluteZeroRaySkill extends EvolvedSkillBase {
     const dx = Math.cos(angle), dy = Math.sin(angle);
     const seen = this._seen; seen.clear();
     const hg = this.scene.nextHitGroupId();
-    let bossMult = (ev.bossGauge || {}).multiplier || 1;
+    // M7-E: bossGauge.multiplier はボス氷砕ゲージのみへ（以前は chillAmount へ乗算し通常敵の冷気まで増えていた）。
+    const bossMult = (ev.bossGauge || {}).multiplier || 1;
     for (const e of this.scene.combat.enemiesInRadius(p.x, p.y, range + halfW)) {
       if (!e.alive || seen.has(e)) continue;
       const rx = e.x - p.x, ry = e.y - p.y;
@@ -66,10 +68,32 @@ export class AbsoluteZeroRaySkill extends EvolvedSkillBase {
       if (this.scene.combat.isFrozen(e)) dmg *= (1 + ((ev.damage || {}).frozenBonus || 0.6));
       this.scene.combat.dealDamage(e, dmg, this.id, {
         element: 'ice', tag: 'dot', quiet: true, color: 0x80d8ff,
-        chillAmount: ((ev.chill || {}).perTick || 8) * bossMult, baseFreezeChance: 0,
+        chillAmount: (ev.chill || {}).perTick || 8, bossGaugeMult: bossMult, baseFreezeChance: 0,
         procCoefficient: ev.procCoefficient ?? 0.12, hitGroupId: hg,
       });
     }
+  }
+
+  // 残響（custom・M7-E）: 照射セッションを再生成せず「追加照射を1回」だけ行う（常設光線を無料で延長/二重生成しない）。
+  echoCast() {
+    const p = this.scene.player;
+    const range = (p.cfg && p.cfg.attackRange) ? p.cfg.attackRange : 220;
+    const t = this.scene.combat.nearestEnemy(p.x, p.y, 100000);
+    if (!t) return;
+    const angle = this._beam ? this._beam.angle : Math.atan2(t.y - p.y, t.x - p.x);
+    let ticks = 0; const cap = this.scene.combat.skillCap('maxFreezingRayTicksPerFrame', 16);
+    this._beamLine(p, angle, range, 1, false, () => (ticks++ < cap)); // 追加照射は粉砕しない
+    this.scene.skills.recordExtra(this.id, 'echoBeams', 1, 'add');
+  }
+  // 分身（custom・M7-E）: 短い追加光線のみ（射程 60%・粉砕なし・分岐なし）。
+  cloneCast() {
+    const p = this.scene.player;
+    const range = ((p.cfg && p.cfg.attackRange) ? p.cfg.attackRange : 220) * 0.6;
+    const t = this.scene.combat.nearestEnemy(p.x, p.y, 100000);
+    if (!t) return;
+    let ticks = 0; const cap = this.scene.combat.skillCap('maxFreezingRayTicksPerFrame', 16);
+    this._beamLine(p, Math.atan2(t.y - p.y, t.x - p.x), range, 1, false, () => (ticks++ < cap));
+    this.scene.skills.recordExtra(this.id, 'cloneBeams', 1, 'add');
   }
 
   _draw(p, beam, range) { const img = beam.img; if (!img) return; img.setPosition(p.x, p.y).setRotation(beam.angle).setDisplaySize(range, Math.max(3, this.evoDef.beamWidth || 14)).setAlpha(0.25 + 0.35 * Math.min(1, beam.timeLeft / 200)); }

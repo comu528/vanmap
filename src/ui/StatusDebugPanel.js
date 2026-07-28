@@ -96,6 +96,30 @@ export class StatusDebugPanel {
     this.container = null;
     this.target = null;   // 選択中の敵/ボス（弱参照的に保持・死亡で解除）
     this.visible = false;
+    // M7-E: 直近の状態イベント履歴（表示のみ・保存しない・上限は品質別 maxStatusDebugHistory）。
+    this.history = [];
+    this._unsub = null;
+  }
+
+  // StatusEffectManager のイベントを購読して履歴へ積む（判定・RNG・保存へは一切影響しない）。
+  subscribe(sfx) {
+    if (!sfx || !sfx.on || this._unsub) return;
+    this._unsub = sfx.on((type, e, data) => this.pushHistory(type, e, data));
+  }
+
+  _historyCap() { return this.scene.combat ? this.scene.combat.skillCap('maxStatusDebugHistory', 24) : 24; }
+
+  pushHistory(type, e, data) {
+    const cap = Math.max(0, this._historyCap());
+    if (cap <= 0) { this.history.length = 0; return; }
+    const t = this.scene.time ? Math.round(this.scene.time.now) : 0;
+    const who = e && e.isBoss ? 'boss' : (e && e.isElite ? 'elite' : 'normal');
+    let extra = '';
+    if (data && data.chill != null) extra = ` chill=${Number(data.chill).toFixed(0)}`;
+    else if (data && data.gauge != null) extra = ` gauge=${Number(data.gauge).toFixed(0)}/${Number(data.threshold || 0).toFixed(0)}`;
+    else if (data && data.damage != null) extra = ` dmg=${Number(data.damage).toFixed(0)}`;
+    this.history.push(`${t} ${type}(${who})${extra}`);
+    while (this.history.length > cap) this.history.shift();
   }
 
   toggle() { this.visible ? this.close() : this.open(); }
@@ -152,10 +176,14 @@ export class StatusDebugPanel {
       indexSize: idxSize, visualCapReached: this._sumReached(this.scene.statusVisuals && this.scene.statusVisuals.capReached()),
       applicationCapReached: this._sumReached(sfx.capReached && sfx.capReached()), telemetry: this.scene.telemetry,
     })) L.push(s);
+    if (this.history.length) {
+      L.push(`― 直近イベント（最大${this._historyCap()}件・保存しない）―`);
+      for (const h of this.history.slice(-6)) L.push(h);
+    }
     this.body.setText(L.join('\n'));
   }
 
   _sumReached(obj) { if (!obj) return 0; let n = 0; for (const k in obj) n += obj[k]; return n; }
 
-  destroy() { this.close(); }
+  destroy() { this.close(); if (this._unsub) { this._unsub(); this._unsub = null; } this.history.length = 0; }
 }

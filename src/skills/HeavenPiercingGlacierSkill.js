@@ -14,14 +14,18 @@ export class HeavenPiercingGlacierSkill extends EvolvedSkillBase {
     const frag = this.evoDef.fragments || {};
     const lances = Math.min(1, this.cap('maxLances', 3)); // 単一の大型槍（同時槍数の上限内）
     const pierce = Math.min(pc.pierce || 10, this.cap('maxPierce', 14));
-    const bossMult = (this.evoDef.bossGauge || {}).multiplier || 1; // ボス氷砕ゲージを高く蓄積（冷気量へ反映）
+    // M7-E: bossGauge.multiplier は「ボスの氷砕ゲージ」だけへ掛ける（M7-C で確立した共通経路 opts.bossGaugeMult）。
+    // 以前は chillAmount へ乗算していたため通常敵/エリートの冷気まで増えていた（状態異常経路の誤接続）。
+    const bossMult = (this.evoDef.bossGauge || {}).multiplier || 1;
     const baseAng = Math.atan2(target.y - p.y, target.x - p.x);
     const hg = this.scene.nextHitGroupId();
     for (let i = 0; i < lances; i++) {
       this.scene.combat.spawnPlayerProjectile(p.x, p.y, baseAng, 380, {
         skillId: this.id, element: 'ice', damage: dmg.base || 70,
         pierce, pierceFalloff: dmg.pierceFalloff || 0.95,
-        chillAmount: ((this.evoDef.chill || {}).amount || 30) * bossMult, procCoefficient: this.evoDef.procCoefficient ?? 1.0,
+        chillAmount: (this.evoDef.chill || {}).amount || 30, bossGaugeMult: bossMult,
+        baseFreezeChance: (this.evoDef.freeze || {}).baseChance || 0, // M7-E: 宣言済みの凍結確率を実適用（進化前 glacial_lance より凍結が弱くならない）
+        procCoefficient: this.evoDef.procCoefficient ?? 1.0,
         hitGroupId: hg, bonusPerChill: dmg.bonusPerChill || 0.006,
         shatterOnFrozen: true, shatterMultiplier: (this.evoDef.shatter || {}).multiplier || 1.5,
         fragmentCount: Math.min(frag.count || 4, this.cap('maxFragments', 6)), fragmentDamageFactor: frag.damageFactor || 0.35,

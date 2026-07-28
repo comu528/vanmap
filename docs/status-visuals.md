@@ -110,3 +110,10 @@ M7-D で氷術師へ追加した新 active5種・進化5種も、冷気/凍結/�
 - **例外は氷印/氷棺だけ**: `absolute_ice_seal`/`eternal_sealed_coffin` は正式 status ではなく **skill-local マーカー**なので、頭上状態アイコン（frozen/burning/immunity/chill_high）や氷殻とは別に、最小限の **skill-local overlay**（氷印マーカーの印だけ）を描く。正式 status 表示へ氷印を追加せず（`StatusVisualManager` のアイコン優先度・上限には載せない）、重複させない。
 品質別の表示上限・cleanup・保存しない方針は M7-B.1 のまま（表示状態・氷印 overlay は保存しない・`save_version` は v6 のまま）。
 実際の見た目・視認性・60FPS は本環境では未検証（`docs/test-guide.md` の M7-D 項目）。
+
+## Milestone 7-E: 表示上限の接続（判定への影響なし）
+- 確定凍結の事前通知（`chillThresholdNear` → `_nearFlash`）に、品質別の再点滅クールダウン
+  `skillCaps.chillNearThresholdEffectCooldown`（既定 1500ms）を接続した。同じ対象で光り続けるのを防ぐ**表示だけ**の変更で、
+  冷気量・凍結確率・状態 RNG・索引には一切影響しない（到達回数は `capReached()` の `nearThreshold` に加算される）。
+- 表示上限（`StatusVisualManager`）と判定上限（`skillCaps` の状態索引・凍結数）は引き続き**完全に分離**されている。
+  `tests/frost-quality-cap-audit.mjs` が「表示マネージャは `dealDamage` / `applyIceHit` を呼ばない」ことを固定している。

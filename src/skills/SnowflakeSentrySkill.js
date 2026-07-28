@@ -40,6 +40,8 @@ export class SnowflakeSentrySkill extends SkillBase {
   _shoot(t, s) {
     const target = this._pickTarget(t, s.seekRange || 200);
     if (!target) return;
+    // M7-E: 同時に飛んでいる砲台弾の総数を品質別上限 maxSentryProjectiles で抑える（通常の砲台数では恒等）。
+    if (this.scene.countProjBySkill(this.id) >= this.scene.combat.skillCap('maxSentryProjectiles', 72)) return;
     const ang = Math.atan2(target.y - t.y, target.x - t.x);
     this.scene.combat.spawnPlayerProjectile(t.x, t.y, ang, s.projectileSpeed || 340, {
       skillId: this.id, element: 'ice', damage: s.projectileDamage, pierce: 0,

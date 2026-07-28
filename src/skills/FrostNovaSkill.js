@@ -11,7 +11,12 @@ export class FrostNovaSkill extends SkillBase {
     const hg = this.scene.nextHitGroupId();
     this.scene.effects.explosion(p.x, p.y, s.radius, 0x9fe8ff);
     // 同じ発動で同じ敵へ1回だけ命中（enemiesInRadius は一意集合）。
+    // M7-E: 1発動あたりの対象数を品質別上限 maxFrostNovaTargetsPerFrame でクランプ（通常の密度では恒等）。
+    const tcap = this.scene.combat.skillCap('maxFrostNovaTargetsPerFrame', 60);
+    let hits = 0;
     for (const e of this.scene.combat.enemiesInRadius(p.x, p.y, s.radius)) {
+      if (hits >= tcap) break;
+      hits++;
       // 凍結中なら先に粉砕（凍結状態のうちに）。粉砕は氷ダメージとして計上し isShatter で再帰しない。
       if (this.scene.combat.isFrozen(e)) {
         this.scene.combat.shatterEnemy(e, { skillId: this.id, multiplier: s.shatterDamageMultiplier || 1, skillPower: s.damage });

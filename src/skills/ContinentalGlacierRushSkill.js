@@ -6,7 +6,8 @@ import { EvolvedSkillBase } from './EvolvedSkillBase.js';
 
 export class ContinentalGlacierRushSkill extends EvolvedSkillBase {
   constructor(scene, id, level) { super(scene, id, level); this.rush = null; this.residues = []; this._nextId = 1; }
-  canFire(ctx) { return ctx.hasEnemies && !this.rush; }
+  // 同時1つ（構造的制限）＋品質別の安全上限 maxContinentalGlacierRushes（M7-E: 宣言済みの上限を実参照。low=1 で恒等）。
+  canFire(ctx) { return ctx.hasEnemies && !this.rush && this.scene.combat.skillCap('maxContinentalGlacierRushes', 2) >= 1; }
 
   fire() {
     const e = this.evoDef; const p = this.scene.player;
@@ -78,6 +79,8 @@ export class ContinentalGlacierRushSkill extends EvolvedSkillBase {
     for (let i = 0; i < n; i++) { const a = (Math.PI * 2 * i) / Math.max(1, rd.count || 4); const rr = (e.collapseRadius || 130) * 0.5; const rx = x + Math.cos(a) * rr, ry = y + Math.sin(a) * rr; const gfx = this.scene.add.circle(rx, ry, rd.radius || 34, 0x80deea, 0.2).setDepth(5).setStrokeStyle(1, 0xbde8ff, 0.3); this.residues.push({ x: rx, y: ry, radius: rd.radius || 34, damage: rd.damage || 4, proc: rd.proc || 0.12, until: rd.durationMs || 1200, max: rd.durationMs || 1200, tickLeft: 0, gfx }); }
   }
 
+  // 残響（custom・M7-E）: 縮小氷河を追加する（fire() は同時1つ制限で早期 return するため、明示的に縮小版を出す）。
+  echoCast() { this.cloneCast(); }
   cloneCast() { if (this.rush) return; const e = this.evoDef; const p = this.scene.player; const spot = this.scene.combat.densestPoint(150, 0) || { x: p.x + 120, y: p.y }; const ang = Math.atan2(spot.y - p.y, spot.x - p.x); this._spawn(p.x, p.y, Math.cos(ang), Math.sin(ang), e, this._nextId++, 0.6); }
 
   serializeState() {

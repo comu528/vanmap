@@ -8,7 +8,9 @@ const GOLDEN = 2.399963229728653; // 決定論的な角度分散（黄金角・R
 
 export class GlacialSpearRainSkill extends SkillBase {
   constructor(scene, id, level) { super(scene, id, level); this._barrage = null; this.spears = []; }
-  canFire(ctx) { return ctx.hasEnemies; }
+  // 予告（telegraph）付き barrage は同時1本（構造的制限）＋品質別上限 maxGlacialSpearTelegraphs（M7-E: 宣言済みの上限を実参照）。
+  canFire(ctx) { return ctx.hasEnemies && this._activeTelegraphs() < this.scene.combat.skillCap('maxGlacialSpearTelegraphs', 6); }
+  _activeTelegraphs() { return (this._barrage && this._barrage.active && this._barrage.telegraphLeft > 0) ? 1 : 0; }
 
   fire() {
     const s = this.stats;

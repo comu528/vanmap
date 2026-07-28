@@ -11,7 +11,8 @@ export class FrostShardSkill extends SkillBase {
     if (!target) return;
 
     const baseAng = Math.atan2(target.y - p.y, target.x - p.x);
-    const count = this.fireProjectileCount(s.count || 1); // Lv80: 発射数+1（未解放/Lv1 では恒等）
+    // Lv80: 発射数+1（未解放/Lv1 では恒等）。M7-E: 品質別の安全上限 maxFrostShards でクランプ（通常値では恒等）。
+    const count = Math.min(this.fireProjectileCount(s.count || 1), this.scene.combat.skillCap('maxFrostShards', 72));
     const proc = this.def?.procCoefficient ?? 0.9;
     const hg = this.scene.nextHitGroupId();
     const scale = this.visualScale();

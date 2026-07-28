@@ -10,8 +10,16 @@
 import { SkillDraftManager } from './SkillDraftManager.js';
 import { SeededRandom } from './SeededRandom.js';
 import { evolutionPartnerIds } from './SkillCatalog.js';
+import { memberAllowedForJob } from './poolEligibility.js';
 
 export const DEFAULT_POLICIES = ['random', 'evolution-first', 'diversity'];
+
+// M7-E（氷術師完成監査）で追加した戦略。抽選そのものは SkillDraftManager が正で、ここは「プレイヤーの選び方」だけ。
+//   balanced           : active/passive/強化/進化へ極端に偏らせない（進化は高優先・レアリティも考慮）
+//   random-valid       : production 候補から SeededRandom で選ぶ（候補は既に slot/所持を満たす＝常に valid）
+//   new-skill-priority : 空き枠のあいだは新規 active 優先 → その後は強化 → 進化があれば最優先
+//   one-build-focus    : 最初に選んだ「進化可能な active」1本を Lv8 まで伸ばし、補助を必要Lvへ、進化後に次の軸へ
+export const M7E_POLICIES = ['evolution-first', 'balanced', 'random-valid', 'new-skill-priority', 'one-build-focus'];
 
 // ---- policy（純関数・所持状態とレシピから候補 index を選ぶ） ----
 // 返り値は candidates の index（0..len-1）。空なら -1。
@@ -69,11 +77,69 @@ function pickRandom(cands, st) {
   return st.pickRng.int(cands.length);
 }
 
+// balanced（M7-E）: 進化 > 進化に近づく強化 > 「不足している側」を補う > レアリティが高い新規 > 何でも。
+// 「不足している側」= 所持 active 数と passive 数の充足率が低い方（極端な偏りを避ける）。
+const RARITY_RANK = { legendary: 3, rare: 2, uncommon: 1, common: 0 };
+function pickBalanced(cands, st) {
+  let i;
+  i = firstIdx(cands, (c) => c.kind === 'evolution'); if (i >= 0) return i;
+  i = firstIdx(cands, (c) => (c.kind === 'up_active' || c.kind === 'up_passive') && (st.baseSet.has(c.id) || st.partnerSet.has(c.id))); if (i >= 0) return i;
+  const aFill = st.slots.activeMax > 0 ? st.ownedActiveCount / st.slots.activeMax : 1;
+  const pFill = st.slots.passiveMax > 0 ? st.ownedPassiveCount / st.slots.passiveMax : 1;
+  const wantCat = aFill <= pFill ? 'active' : 'passive';
+  i = firstIdx(cands, (c) => c.kind === 'new_' + wantCat); if (i >= 0) return i;
+  i = firstIdx(cands, (c) => c.kind === 'new_active' || c.kind === 'new_passive'); if (i >= 0) return i;
+  // 強化はレアリティの高い順（同率は候補順＝決定論）。
+  let best = -1, bestRank = -1;
+  for (let k = 0; k < cands.length; k++) {
+    const c = cands[k];
+    if (c.kind !== 'up_active' && c.kind !== 'up_passive') continue;
+    const r = RARITY_RANK[c.rarity] != null ? RARITY_RANK[c.rarity] : 0;
+    if (r > bestRank) { bestRank = r; best = k; }
+  }
+  if (best >= 0) return best;
+  return cands.length ? 0 : -1;
+}
+
+// new-skill-priority（M7-E）: 進化 > 空き枠がある間は新規 active > 新規 passive > 強化。
+function pickNewSkillPriority(cands, st) {
+  let i;
+  i = firstIdx(cands, (c) => c.kind === 'evolution'); if (i >= 0) return i;
+  if (st.ownedActiveCount < st.slots.activeMax) { i = firstIdx(cands, (c) => c.kind === 'new_active'); if (i >= 0) return i; }
+  if (st.ownedPassiveCount < st.slots.passiveMax) { i = firstIdx(cands, (c) => c.kind === 'new_passive'); if (i >= 0) return i; }
+  i = firstIdx(cands, (c) => c.kind === 'up_active' || c.kind === 'up_passive'); if (i >= 0) return i;
+  i = firstIdx(cands, (c) => c.kind === 'new_active' || c.kind === 'new_passive'); if (i >= 0) return i;
+  return cands.length ? 0 : -1;
+}
+
+// one-build-focus（M7-E）: 進化可能な active を1本決め、その base を Lv8・補助を必要Lvまで最優先。
+// 進化が成立して実行できたら次の軸へ移る（focus を捨てる）。focus 未定なら候補中の base/新規から決定論的に決める。
+function pickOneBuildFocus(cands, st) {
+  let i;
+  i = firstIdx(cands, (c) => c.kind === 'evolution'); if (i >= 0) { st.focus = null; return i; } // 進化したら次の軸へ
+  if (!st.focus) {
+    const cand = cands.find((c) => (c.kind === 'new_active' || c.kind === 'up_active') && st.baseSet.has(c.id));
+    if (cand) st.focus = cand.id;
+  }
+  if (st.focus) {
+    const recipe = st.recipes.find((r) => r.baseSkillId === st.focus);
+    i = firstIdx(cands, (c) => c.id === st.focus && (c.kind === 'new_active' || c.kind === 'up_active')); if (i >= 0) return i;
+    if (recipe) {
+      const auxIds = new Set([...recipe.auxActive.map((a) => a.skill), ...recipe.auxPassive.map((a) => a.skill)]);
+      i = firstIdx(cands, (c) => auxIds.has(c.id)); if (i >= 0) return i;
+    }
+  }
+  return pickEvolutionFirst(cands, st);
+}
+
 function selectIndex(policy, cands, st) {
   if (!cands.length) return -1;
-  if (policy === 'random') return pickRandom(cands, st);
+  if (policy === 'random' || policy === 'random-valid') return pickRandom(cands, st);
   if (policy === 'evolution-first') return pickEvolutionFirst(cands, st);
   if (policy === 'diversity') return pickDiversity(cands, st);
+  if (policy === 'balanced') return pickBalanced(cands, st);
+  if (policy === 'new-skill-priority') return pickNewSkillPriority(cands, st);
+  if (policy === 'one-build-focus') return pickOneBuildFocus(cands, st);
   if (policy.startsWith('build:')) return pickBuild(cands, st, policy.slice(6));
   return pickEvolutionFirst(cands, st);
 }
@@ -139,8 +205,29 @@ export function simulate(opts) {
     legendaryNeverRuns: 0, auxPartnerNeverRuns: 0,
     activeFullBlockedRuns: 0, passiveFullBlockedRuns: 0,
     partnerNeededDrafts: 0, partnerPresentDrafts: 0,
+    // ---- M7-E（氷術師完成監査）で追加した指標 ----
+    activePick: {}, passivePick: {},                 // 取得（新規/強化どちらでも1回）回数
+    activeMaxRuns: {}, passiveLv4Runs: {},           // active Lv8 到達 run / passive Lv4 到達 run
+    rarityPick: { common: 0, uncommon: 0, rare: 0, legendary: 0 },
+    rerollsUsed: 0, banishesUsed: 0, skipsUsed: 0,
+    pityDrafts: 0, synergyAppliedCandidates: 0,
+    emptyDrafts: 0, slotFullDrafts: 0,
+    upgradeCandidates: 0, newCandidates: 0, evolutionCandidates: 0,
+    duplicateCandidates: 0, invalidCandidates: 0, otherJobCandidates: 0,
+    illegalEvolutionPicks: 0, slotViolationPicks: 0, reofferedEvolvedBase: 0,
+    activeSlotFillSum: 0, passiveSlotFillSum: 0,
+    evoOfferedRuns: {}, evoDetail: {},
+    evoPerRunMax: 0,
   };
-  for (const r of recipes) { M.evoFeasibleRuns[r.evolutionId] = 0; M.evoExecutedRuns[r.evolutionId] = 0; }
+  for (const r of recipes) {
+    M.evoFeasibleRuns[r.evolutionId] = 0; M.evoExecutedRuns[r.evolutionId] = 0; M.evoOfferedRuns[r.evolutionId] = 0;
+    M.evoDetail[r.evolutionId] = { baseAcqRuns: 0, baseMaxRuns: 0, supportAcqRuns: 0, supportLvRuns: 0, condRuns: 0, offeredRuns: 0, executedRuns: 0, condNotOfferedRuns: 0 };
+  }
+  // 適格 id 集合（他ジョブ混入・プール外・不正候補の検出に使う。SkillDraftManager と同じ poolEligibility が正）。
+  const eligibleIds = new Set();
+  for (const m of catalog) if (memberAllowedForJob(m, job, opts.extraAllowedIds || [])) eligibleIds.add(m.id);
+  const evoIdSet = new Set(recipes.map((r) => r.evolutionId));
+  const pityThreshold = (opts.synergy && opts.synergy.noProgressDraftThreshold) || Infinity;
 
   // draft manager は 1 度だけ生成し、seed ごとに reset（production 同様に構成）。
   const draft = new SkillDraftManager({
@@ -154,13 +241,18 @@ export function simulate(opts) {
     draft.reset(seed >>> 0, { rerolls: 1, banishes: 1, skips: 1 });
     const ownedActive = {}; const ownedPassive = {}; const evolvedSet = new Set();
     const pickRng = new SeededRandom(SeededRandom.derive(seed >>> 0, 0x9e3, 777));
-    const st = { ownedActive, ownedPassive, recipes, partnerSet: new Set(), baseSet, pickRng };
+    const st = {
+      ownedActive, ownedPassive, recipes, partnerSet: new Set(), baseSet, pickRng,
+      slots: { activeMax, passiveMax }, ownedActiveCount: 0, ownedPassiveCount: 0, focus: null, // M7-E: balanced / new-skill-priority / one-build-focus 用
+    };
 
     // per-run 集計状態。
     const seenRun = {}; // id -> 初出 levelUp（1-based）
     const candidateIdsRun = new Set();
     const feasibleRun = new Set();
     const executedRun = [];
+    const offeredEvoRun = new Set();          // M7-E: この周回で「進化候補として提示された」進化
+    let rerollsUsedRun = 0, banishesUsedRun = 0, skipsUsedRun = 0; // M7-E
     let sawLegendary = false;
     let prevKey = null;
     let maxActiveReached = false; let maxPassiveReached = false;
@@ -173,8 +265,10 @@ export function simulate(opts) {
 
       const activeUsed = distinctOwned(ownedActive);
       const passiveUsed = distinctOwned(ownedPassive);
+      st.ownedActiveCount = activeUsed; st.ownedPassiveCount = passiveUsed; // M7-E: 枠充足を見る戦略へ渡す
       if (activeUsed >= activeMax) maxActiveReached = true;
       if (passiveUsed >= passiveMax) maxPassiveReached = true;
+      if (activeUsed >= activeMax && passiveUsed >= passiveMax) M.slotFullDrafts += 1;
 
       const ctx = {
         catalog, job,
@@ -191,13 +285,13 @@ export function simulate(opts) {
       if (useReroll && draft.rerollsRemaining > 0 && partnerSet.size > 0 &&
           !cands.some((c) => c.kind === 'evolution') && !cands.some((c) => partnerSet.has(c.id))) {
         const r = draft.reroll(ctx);
-        if (r.ok) cands = r.candidates;
+        if (r.ok) { cands = r.candidates; M.rerollsUsed += 1; rerollsUsedRun += 1; }
       }
       // banish 方針: 進化相手が欲しいのに無関係な新規が邪魔なら 1 回だけ追放して再生成を試す。
       if (useBanish && draft.banishesRemaining > 0 && partnerSet.size > 0 &&
           !cands.some((c) => c.kind === 'evolution') && !cands.some((c) => partnerSet.has(c.id))) {
         const victim = cands.find((c) => (c.kind === 'new_active' || c.kind === 'new_passive') && !partnerSet.has(c.id) && !baseSet.has(c.id));
-        if (victim) { const b = draft.banish(victim.id, ctx); if (b.ok) cands = b.candidates; }
+        if (victim) { const b = draft.banish(victim.id, ctx); if (b.ok) { cands = b.candidates; M.banishesUsed += 1; banishesUsedRun += 1; } }
       }
 
       // ---- 指標: ドラフト単位 ----
@@ -228,10 +322,43 @@ export function simulate(opts) {
         if (cands.some((c) => c.kind === 'evolution' || partnerSet.has(c.id))) M.partnerPresentDrafts += 1;
       }
 
+      // ---- M7-E: 候補の健全性（不正候補・他ジョブ混入・重複・種別内訳・pity・synergy）----
+      if (cands.length === 0) M.emptyDrafts += 1;
+      if (draft.draftsSinceProgress > pityThreshold && partnerSet.size > 0) M.pityDrafts += 1;
+      const dupSeen = new Set();
+      for (const c of cands) {
+        const dupKey = c.kind + ':' + c.id;
+        if (dupSeen.has(dupKey)) M.duplicateCandidates += 1; else dupSeen.add(dupKey);
+        if (c.kind === 'evolution') {
+          M.evolutionCandidates += 1;
+          if (!evoIdSet.has(c.id)) M.invalidCandidates += 1;
+          else { offeredEvoRun.add(c.id); if (evolvedSet.has(c.id)) M.invalidCandidates += 1; } // 進化済みの再提示は不正
+          if (evolvedSet.has(c.baseId)) M.reofferedEvolvedBase += 1;
+          continue;
+        }
+        if (c.kind === 'up_active' || c.kind === 'up_passive') M.upgradeCandidates += 1; else M.newCandidates += 1;
+        if (!eligibleIds.has(c.id)) { M.invalidCandidates += 1; M.otherJobCandidates += 1; }
+        if (c.synergyMult != null && c.synergyMult !== 1) M.synergyAppliedCandidates += 1;
+        // 枠違反: 満枠なのに未取得の新規が出ている。
+        if (c.kind === 'new_active' && activeUsed >= activeMax) M.invalidCandidates += 1;
+        if (c.kind === 'new_passive' && passiveUsed >= passiveMax) M.invalidCandidates += 1;
+      }
+      // 進化候補として提示された進化は、この時点で成立していること（不正提示の検出）。
+      for (const c of cands) if (c.kind === 'evolution' && !feasibleRun.has(c.id)) M.invalidCandidates += 1;
+
       // ---- policy が 1 つ選ぶ → 所持状態へ反映 ----
       const idx = selectIndex(policy, cands, st);
-      if (idx < 0) { if (useSkip && draft.skipsRemaining > 0) draft.skip(); continue; }
+      if (idx < 0) { if (useSkip && draft.skipsRemaining > 0 && draft.skip()) { M.skipsUsed += 1; skipsUsedRun += 1; } continue; }
       const pick = cands[idx];
+      // M7-E: 取得の健全性（不正進化・枠違反を数える。production 候補が正しければ常に0）。
+      if (pick.kind === 'evolution' && !feasibleRun.has(pick.id)) M.illegalEvolutionPicks += 1;
+      if (pick.kind === 'new_active' && activeUsed >= activeMax) M.slotViolationPicks += 1;
+      if (pick.kind === 'new_passive' && passiveUsed >= passiveMax) M.slotViolationPicks += 1;
+      if (pick.kind !== 'evolution') {
+        const bucket = pick.category === 'passive' ? M.passivePick : M.activePick;
+        bucket[pick.id] = (bucket[pick.id] || 0) + 1;
+        M.rarityPick[pick.rarity] = (M.rarityPick[pick.rarity] || 0) + 1;
+      }
       if (pick.kind === 'evolution') {
         evolvedSet.add(pick.id);
         executedRun.push(pick.id);
@@ -278,6 +405,32 @@ export function simulate(opts) {
     }
     if (activeBlocked) M.activeFullBlockedRuns += 1;
     if (passiveBlocked) M.passiveFullBlockedRuns += 1;
+
+    // ---- M7-E: 周回単位の追加指標 ----
+    if (executedRun.length > M.evoPerRunMax) M.evoPerRunMax = executedRun.length;
+    M.activeSlotFillSum += activeMax > 0 ? Math.min(1, distinctOwned(ownedActive) / activeMax) : 0;
+    M.passiveSlotFillSum += passiveMax > 0 ? Math.min(1, distinctOwned(ownedPassive) / passiveMax) : 0;
+    for (const id in ownedActive) if ((ownedActive[id] || 0) >= (catMaxLevel[id] || 8)) M.activeMaxRuns[id] = (M.activeMaxRuns[id] || 0) + 1;
+    for (const id in ownedPassive) if ((ownedPassive[id] || 0) >= 4) M.passiveLv4Runs[id] = (M.passiveLv4Runs[id] || 0) + 1; // 進化補助の要求Lvは4
+    for (const eid of offeredEvoRun) M.evoOfferedRuns[eid] += 1;
+    // 進化ごとの内訳（条件形成の各段階・提示・取得）。
+    const execSet = new Set(executedRun);
+    for (const r of recipes) {
+      const d = M.evoDetail[r.evolutionId];
+      const baseLv = ownedActive[r.baseSkillId] || 0;
+      if (baseLv >= 1) d.baseAcqRuns += 1;
+      if (baseLv >= (catMaxLevel[r.baseSkillId] || 8)) d.baseMaxRuns += 1;
+      const aux = [...r.auxActive.map((a) => ({ ...a, cat: 'active' })), ...r.auxPassive.map((a) => ({ ...a, cat: 'passive' }))];
+      const own = (a) => (a.cat === 'active' ? (ownedActive[a.skill] || 0) : (ownedPassive[a.skill] || 0));
+      if (aux.length === 0 || aux.every((a) => own(a) >= 1)) d.supportAcqRuns += 1;
+      if (aux.length === 0 || aux.every((a) => own(a) >= a.level)) d.supportLvRuns += 1;
+      const cond = feasibleRun.has(r.evolutionId);
+      if (cond) d.condRuns += 1;
+      if (offeredEvoRun.has(r.evolutionId)) d.offeredRuns += 1;
+      if (execSet.has(r.evolutionId)) d.executedRuns += 1;
+      if (cond && !offeredEvoRun.has(r.evolutionId)) d.condNotOfferedRuns += 1;
+    }
+    void rerollsUsedRun; void banishesUsedRun; void skipsUsedRun; // 周回内訳は集計側（M.rerollsUsed 等）を正とする
   }
 
   return M;
@@ -293,6 +446,8 @@ export function summarize(M) {
   const mean = evoPer.length ? evoPer.reduce((a, b) => a + b, 0) / evoPer.length : 0;
   const ge1 = evoPer.length ? evoPer.filter((n) => n >= 1).length / evoPer.length : 0;
   const ge2 = evoPer.length ? evoPer.filter((n) => n >= 2).length / evoPer.length : 0;
+  const ge3 = evoPer.length ? evoPer.filter((n) => n >= 3).length / evoPer.length : 0;
+  const eq0 = evoPer.length ? evoPer.filter((n) => n === 0).length / evoPer.length : 0;
 
   const firstAppear = {};
   for (const id of Object.keys(M.firstAppearSum).sort()) firstAppear[id] = r5(M.firstAppearSum[id] / M.firstAppearCnt[id]);
@@ -318,5 +473,50 @@ export function summarize(M) {
     passiveAppearRate: rateMap(M.passiveAppear, D),
     firstAppearLevel: firstAppear,
     maxReachRate: rateMap(M.maxReachRuns, S),
+    // ---- M7-E（氷術師完成監査）で追加した要約 ----
+    evoAtLeast3Rate: r5(ge3),
+    evoZeroRate: r5(eq0),
+    evolutionsPerRunMax: M.evoPerRunMax,
+    activePickRate: rateMap(M.activePick, S),          // 1周回あたり何回選ばれたか（>1 は強化を重ねた回数）
+    passivePickRate: rateMap(M.passivePick, S),
+    activeMaxLevelRate: rateMap(M.activeMaxRuns, S),   // active Lv8 到達 run 率
+    passiveLv4Rate: rateMap(M.passiveLv4Runs, S),      // passive Lv4（進化補助の要求Lv）到達 run 率
+    rarityPickRate: rateMap(M.rarityPick, S),
+    activeSlotFillRate: r5(M.activeSlotFillSum / S),
+    passiveSlotFillRate: r5(M.passiveSlotFillSum / S),
+    rerollsPerRun: r5(M.rerollsUsed / S),
+    banishesPerRun: r5(M.banishesUsed / S),
+    skipsPerRun: r5(M.skipsUsed / S),
+    pityDraftRate: r5(M.pityDrafts / D),
+    synergyAppliedPerDraft: r5(M.synergyAppliedCandidates / D),
+    emptyDraftRate: r5(M.emptyDrafts / D),
+    slotFullDraftRate: r5(M.slotFullDrafts / D),
+    upgradeCandidatesPerDraft: r5(M.upgradeCandidates / D),
+    newCandidatesPerDraft: r5(M.newCandidates / D),
+    evolutionCandidatesPerDraft: r5(M.evolutionCandidates / D),
+    // 以下は必ず 0（不正候補・他ジョブ混入・重複候補・不正進化・枠違反・進化後の元active再提示）。
+    duplicateCandidates: M.duplicateCandidates,
+    invalidCandidates: M.invalidCandidates,
+    otherJobCandidates: M.otherJobCandidates,
+    illegalEvolutionPicks: M.illegalEvolutionPicks,
+    slotViolationPicks: M.slotViolationPicks,
+    reofferedEvolvedBase: M.reofferedEvolvedBase,
+    evoOfferedRate: rateMap(M.evoOfferedRuns, S),
+    evoDetailRate: evoDetailRates(M.evoDetail, S),
   };
+}
+
+// 進化ごとの内訳を率へ（§8「個別進化到達率」）。
+function evoDetailRates(detail, S) {
+  const out = {};
+  for (const id of Object.keys(detail || {}).sort()) {
+    const d = detail[id];
+    out[id] = {
+      baseAcq: r5(d.baseAcqRuns / S), baseMax: r5(d.baseMaxRuns / S),
+      supportAcq: r5(d.supportAcqRuns / S), supportLv: r5(d.supportLvRuns / S),
+      condition: r5(d.condRuns / S), offered: r5(d.offeredRuns / S), executed: r5(d.executedRuns / S),
+      conditionNotOffered: r5(d.condNotOfferedRuns / S),
+    };
+  }
+  return out;
 }

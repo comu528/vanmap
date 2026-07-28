@@ -12,7 +12,8 @@ export class GlacialLanceSkill extends SkillBase {
     if (!target) return;
 
     const baseAng = Math.atan2(target.y - p.y, target.x - p.x);
-    const count = this.fireProjectileCount(s.count || 1); // Lv80: 発射数+1
+    // Lv80: 発射数+1。M7-E: 品質別の安全上限 maxGlacialLances でクランプ（通常値では恒等）。
+    const count = Math.min(this.fireProjectileCount(s.count || 1), this.scene.combat.skillCap('maxGlacialLances', 22));
     const proc = this.def?.procCoefficient ?? 1.0;
     const hg = this.scene.nextHitGroupId();
     const scale = this.visualScale();

@@ -47,7 +47,7 @@ export class EternalSealedCoffinSkill extends EvolvedSkillBase {
     this.scene.effects.explosion(x, y, e.detonationRadius || 80, 0x9fe8ff);
     const hg = this.scene.nextHitGroupId();
     for (const t of this.scene.combat.enemiesInRadius(x, y, e.detonationRadius || 80)) { if (this.scene.combat.isFrozen(t)) this.scene.combat.shatterEnemy(t, { skillId: this.id, multiplier: (this.evoDef.shatter || {}).multiplier || 1.8, skillPower: e.detonationDamage || 70 }); }
-    this.scene.combat.damageArea(x, y, e.detonationRadius || 80, e.detonationDamage || 70, this.id, { element: 'ice', chillAmount: (e.chill || {}).amount || 30, baseFreezeChance: 0, procCoefficient: this.evoDef.procCoefficient ?? 0.90, hitGroupId: hg, isExplosion: true, color: 0x9fe8ff, bossGaugeMult: e.bossGaugeMult || 1 });
+    this.scene.combat.damageArea(x, y, e.detonationRadius || 80, e.detonationDamage || 70, this.id, { element: 'ice', chillAmount: (e.chill || {}).amount || 30, baseFreezeChance: 0, procCoefficient: this.evoDef.procCoefficient ?? 0.90, hitGroupId: hg, isExplosion: true, color: 0x9fe8ff, bossGaugeMult: e.bossGaugeMult || 1, frozenBonus: e.frozenDamageBonus || 0 }); // M7-E: frozenDamageBonus を実適用
     this.scene.skills.recordExtra(this.id, natural ? 'naturalDetonations' : 'earlyDetonations', 1, 'add');
     // 伝播（最大1世代・副棺は再伝播しない）。
     const prop = e.propagation || {};

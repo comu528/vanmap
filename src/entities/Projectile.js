@@ -34,6 +34,7 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     this.hitGroupId = null;      // 同一発動の凍結判定回数上限に使う
     this.bonusPerChill = 0;      // 冷気1あたりの追加ダメージ倍率（氷槍）
     this.frozenBonus = 0;        // 凍結中の敵への追加ダメージ倍率（ダイヤモンドブリザード）
+    this.bossGaugeMult = 1;      // M7-E: ボス氷砕ゲージのみに掛かるスキル固有倍率（既定1・通常敵の冷気には掛からない）
     this.shatterOnFrozen = false;// 凍結中の敵へ命中したら粉砕（氷槍・氷河槍）
     this.shatterMultiplier = 1;
     this.fragmentCount = 0;      // 粉砕地点から飛散する小型氷片の数（天穿氷河槍・氷片から再粉砕しない）
@@ -103,6 +104,7 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     this.hitGroupId = opts.hitGroupId != null ? opts.hitGroupId : null;
     this.bonusPerChill = opts.bonusPerChill || 0;
     this.frozenBonus = opts.frozenBonus || 0;
+    this.bossGaugeMult = opts.bossGaugeMult != null ? opts.bossGaugeMult : 1;
     this.shatterOnFrozen = !!opts.shatterOnFrozen;
     this.shatterMultiplier = opts.shatterMultiplier || 1;
     this.fragmentCount = opts.fragmentCount || 0;

@@ -1825,8 +1825,7 @@
       },
       "shatter": {
         "multiplier": 1.5
-      },
-      "pulseProc": 0.18
+      }
     },
     {
       "id": "continental_glacier_rush",
@@ -1938,7 +1937,7 @@
         "amount": 30
       },
       "frozenDamageBonus": 0.5,
-      "bossGaugeMult": 2.0,
+      "bossGaugeMult": 2,
       "propagation": {
         "generations": 1,
         "radius": 120

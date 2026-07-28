@@ -590,3 +590,71 @@ Node テストで検証したのは **純ロジックのみ**（氷 active30/進
 - [ ] `node tests/frost-determinism-wave4.mjs` が成功する（Math.random/Date.now/performance.now 不使用のソース走査＋同一状態で同一攻撃パターンの決定論トレース）
 - [ ] `node tests/frost-boss-gauge-wave4.mjs` が成功する（`bossGaugeMult` がボス氷砕ゲージのみへ1命中1回・通常敵/damage/chill/proc/炎には掛からず二重加算しない・cooldown/threshold/vulnerability 不変）
 - [ ] `validate-data.mjs` に M7-D 検証ブロック（氷 active30/進化18・skillCaps 19種・cast/監査/procCoefficient/config・bossGaugeMult per-Lv 単調増加・propagation.generations・lv80 対象が6種）が加わり、**全51テストスイートが通過**する
+
+## Milestone 7-E: 氷術師 完成監査
+
+### M7-E の Node テスト（CI・上の「データ検証（CI）」へ追加）
+- [ ] `node tests/frost-completion-catalog.mjs`（active30/passive4/進化18・合計52・issues0・duplicate id/name・未登録/孤立クラス・プール分離・Lv80 対象6種・docs 一致）
+- [ ] `node tests/frost-evolution-reachability.mjs`（18進化の base/support 実在と到達可能性・自己/循環参照なし・分岐なし・枠不増加・進化後は通常抽選へ出ない）
+- [ ] `node tests/frost-draft-balance.mjs`（production 抽選で 200 seed × 60 level-up × slot4/6/8 × 5戦略。混入/不正/重複/slot違反/不正進化/再提示が 0・提示0/取得0なし・rarity 偏りなし・reroll/banish/pity/synergy の実動作）
+- [ ] `HEAVY=1 node tests/frost-draft-balance.mjs`（500 seed の詳細計測・手動）
+- [ ] `node tests/frost-evolution-distribution.mjs`（18進化の base→base Lv8→support→条件→提示→取得の段階内訳・条件成立後の未提示 0・到達不能 0）
+- [ ] `node tests/frost-dead-content-audit.mjs`（**死にパラメータ 0**・成長しない成長項目なし・bossGaugeMult がボス分岐のみ・宣言メタと実装の一致）
+- [ ] `node tests/frost-complete-skill-audit.mjs`（48件の SkillAudit 完全監査・recordCast 1回・派生/echo/clone で呼ばない・再帰なし）
+- [ ] `node tests/frost-complete-runtime-save.mjs`（48件の runtime 往復・表示物を保存しない・CD 復元・二重生成なし・冪等・進化前後の同時稼働なし・v6）
+- [ ] `node tests/frost-complete-determinism.mjs`（Math.random/Date.now 不使用・同一入力で呼び出し列一致・継続 vs reload・status RNG drift 0）
+- [ ] `node tests/frost-status-balance.mjs`（通常敵/エリート/ボス別の chill/freeze/immunity/hitGroup/shatter/frostbreak/vulnerability・ボス通常凍結 0）
+- [ ] `node tests/frost-quality-cap-audit.mjs`（正数・low≤medium≤high≤ultra・未参照 cap 0〈火の既存5件のみ許容〉・存在しない cap 0・low で 0 件化しない）
+- [ ] `node tests/frost-cleanup-audit.mjs`（48件の destroy・進化置換・Enemy.reset・状態索引・マーカー解放・購読解除）
+- [ ] `node tests/frost-telemetry-audit.mjs`（48件のテレメトリ接続・recordCast=casts・残響/分身で増えない・debugRun 分離・外部送信なし）
+- [ ] `validate-data.mjs` に M7-E ブロック（カタログ数・プール/共通指定・進化参照と到達性・Lv80 6種・NaN/負数・成長しない成長項目・**死に成長項目**・**未参照/不在/名前違いの quality cap**・marker を正式 status に登録していない・docs の id 記載）が加わり、**全63テストスイートが通過**する
+
+### M7-E の実ブラウザ確認（`?debug=1`・未実施は「確認済み」と書かない）
+
+#### draft（レベルアップ抽選）
+- [ ] active 枠 4 / 6 / 8、passive 枠 4 でそれぞれ 60 回ぶん程度レベルアップし、候補が常に 3 件出る（終盤の満枠時を除く）
+- [ ] rarity の見た目（common が多く legendary が稀）が体感と一致する
+- [ ] reroll / banish / skip がそれぞれ 1 回使え、banish 後にそのスキルが二度と出ない
+- [ ] pity（進展なしが続くと進化相手が出やすくなる）・synergy（base 所持時に補助が出やすい）を体感で確認
+- [ ] 進化条件が揃った次のレベルアップで**進化候補が必ず出る**
+- [ ] **火の魔女のスキルが 1 件も混ざらない**（氷術師でプレイ）
+
+#### evolution（進化）
+- [ ] 18 進化それぞれを F9 の「進化条件を達成」→ 通常レベルアップで進化できる
+- [ ] `world_end_avalanche` / `zero_hour_world` / `eternal_sealed_coffin` は **active 補助**（`ice_wall` / `ice_prison`）が必要で、補助は置換されない
+- [ ] 進化しても active 枠は増えない（元 active が置換される）
+- [ ] 進化後にセーブ→リロードしても進化済みのまま（元 active が復活しない）
+
+#### status（状態異常）
+- [ ] chill の蓄積 → slow → 確定凍結 → 粉砕の流れが見える（F10 で実数も確認）
+- [ ] 凍結解除後に凍結耐性が付き、連続凍結にならない
+- [ ] Lv50 の氷砕連鎖が無限連鎖しない
+- [ ] ボスは凍結せず氷砕ゲージが溜まり、FROST BREAK と脆弱表示が出る
+- [ ] `absolute_ice_seal` / `aurora_veil` / `frozen_clock` などの `bossGaugeMult` でゲージの伸びが速いことを確認（即時 break 連打にならない）
+- [ ] **F10 の直近イベント履歴**が表示され、上限を超えて伸びない
+
+#### skill behavior
+- [ ] projectile（`frost_shard` `glacial_lance` `icicle_volley` `polar_star` `glacial_spear_rain`）
+- [ ] field / 常設（`permafrost_field` `snowblind_mist` `aurora_veil` `polar_night_aurora`）
+- [ ] summon / sentry（`frost_spirit` `snowflake_sentry` `crystal_sentinel_legion` `frost_queen_court`）
+- [ ] defensive（`mirror_ice` `winter_halo`）— 敵弾を実際に受け止める
+- [ ] marker（`absolute_ice_seal` `eternal_sealed_coffin`）— 印が付き、時間か命中数で起爆する
+- [ ] barrage（`glacial_spear_rain` `heavenfall_glacier_lances` `comet_sleet`）
+- [ ] **M7-E で修正した挙動**: `crystal_bloom` の設置間隔が Lv で短くなる / `polar_star` の直撃ダメージ /
+      氷封・氷棺の凍結対象への追加ダメージ / `heaven_piercing_glacier` が凍結を起こす /
+      `absolute_zero_ray`・`world_end_avalanche`・`continental_glacier_rush` の残響・分身が**限定的**（全体再発動しない）
+
+#### save
+- [ ] 各 runtime 型（CD / barrage / 砲台 / 氷山 / field / mist / aurora / marker / defensive）で
+      セーブ→リロード後に**二重生成・無料発動・無料起爆が起きない**
+- [ ] ボス戦中のリロードでゲージ・break 回数・脆弱が引き継がれる
+
+#### performance
+- [ ] low / medium / high / ultra の各品質で、敵 100 体・2 倍速・active 8 枠・常設＋召喚＋弾幕＋状態表示を同時に出しても
+      **60FPS 目安**を維持し、HUD / 敵弾 / ボス予告 / status アイコンが視認できる
+- [ ] JS エラーが出ない
+- [ ] **低品質で氷牢の対象数・終末氷河の波数が減らない**（M7-E で cap 値を調整した箇所）
+
+#### F8 分析パネル
+- [ ] F8 →「📊 ジョブ分析を表示」で 2 カラムの分析が表示され、`debugRun: はい` と出る
+- [ ] 通常 profile の統計・Job XP・残り火・魂炎・熟練度が変化しない

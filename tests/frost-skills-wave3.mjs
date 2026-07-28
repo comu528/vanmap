@@ -82,7 +82,7 @@ section('3. 火の魔女に氷スキルが出ない / Lv80対象は rime_boomera
 
 section('4. 新 skillCaps（品質順・非負）');
 {
-  const CAPS = ['maxRimeBoomerangs', 'maxRimeBoomerangHitsPerFrame', 'maxFrostChainSegmentsPerFrame', 'maxCrystalBlooms', 'maxCrystalBloomPulsesPerFrame', 'maxSnowblindMistParticles', 'maxSnowblindMistTicksPerFrame', 'maxPolarStars', 'maxPolarStarShards', 'maxIcebreakerEffects', 'maxIcebreakerHitsPerFrame', 'maxFrozenClockWaves', 'maxFrozenClockHitsPerFrame', 'maxRefractionProjectiles', 'maxWinterHaloVisualShards', 'maxWinterHaloInterceptsPerFrame', 'maxCometSleetProjectiles', 'maxCometImpactsPerFrame'];
+  const CAPS = ['maxRimeBoomerangs', 'maxRimeBoomerangHitsPerFrame', 'maxFrostChainSegmentsPerFrame', 'maxCrystalBlooms', 'maxCrystalBloomPulsesPerFrame', 'maxSnowblindMistTicksPerFrame', 'maxPolarStars', 'maxPolarStarShards', 'maxIcebreakerEffects', 'maxIcebreakerHitsPerFrame', 'maxFrozenClockWaves', 'maxFrozenClockHitsPerFrame', 'maxRefractionProjectiles', 'maxWinterHaloVisualShards', 'maxWinterHaloInterceptsPerFrame', 'maxCometSleetProjectiles', 'maxCometImpactsPerFrame'];
   for (const n of CAPS) {
     const c = balance.skillCaps[n];
     if (!c) { ok(false, `skillCaps.${n} がある`); continue; }

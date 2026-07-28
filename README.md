@@ -852,3 +852,17 @@ M7-A 項目を手動確認してください（実行していない項目を「
 > ページが非フォーカス扱いになり自動一時停止が働くため、「リザルト→再挑戦後の実時間ループ継続」や
 > 「時間依存のボス攻撃間隔」は自動計測が不安定でした。これらは判定ロジックを決定論的に別途検証済みですが、
 > **体感を含む最終確認は GitHub Pages 公開 URL を実ブラウザで開いて行ってください。**
+
+**Milestone 7-E の検証**: 氷術師の**完成監査**（新スキル追加なし）。カタログ整合性・プール分離・全18進化の到達可能性・
+production の `SkillDraftManager`＋`SeededRandom` による抽選シミュレーション（**200 seed / 60 level-up / active枠4・6・8 /
+5 戦略**）・死にコンテンツ・SkillAudit 完全監査・保存/復元/決定論・状態異常バランス・quality cap・cleanup・テレメトリを
+`node tests/frost-completion-catalog.mjs` ほか**新規12スイート**で検証しました（`HEAVY=1` で 500 seed）。
+他ジョブ混入・不正候補・重複候補・slot違反・不正進化・進化後の元active再提示は**すべて 0 件**、
+提示0/取得0の active・passive・進化も **0 件**、到達不能な進化も **0 件**です。
+監査で見つかった**死にパラメータ6件・状態異常経路の誤接続2件・`custom` echo/clone の未実装3件・未参照 quality cap 11件**を修正し、
+`FrostBalanceWarnings`（FROST_* 30コード・ローカルのみ）を追加しました。**全63スイート通過・`validate-data` 0エラー0警告**、
+`save_version` は v6 のままです。火の魔女の data・実装は 1 件も変更していません（同 seed 候補列も不変）。
+**F8 のジョブ別分析パネル・F10 の直近イベント履歴の描画、実際の体感バランス・60FPS 維持は Phaser 依存のため
+ヘッドレスでは未計測**です。GitHub Pages を実ブラウザ（`?debug=1` の F8/F9/F10）で開き、`docs/test-guide.md` の
+M7-E 項目を手動確認してください（実行していない項目を「確認済み」と報告しません）。
+詳細は `docs/frost-completion-audit.md` / `docs/frost-draft-analysis.md` / `docs/frost-balance-report.md`。

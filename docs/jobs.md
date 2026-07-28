@@ -204,3 +204,21 @@ M7-B.1 で、氷術師の状態異常が**通常プレイ中に視認・確認�
 - 主発動時のみ `recordCast`（各槍/砲台弾/pulse/接触/氷印起爆/tick/burst/粉砕/frostbreak では記録しない）。echo/clone は1世代・再帰なし（`absolute_ice_seal`/`aurora_veil`/`eternal_sealed_coffin`/`polar_night_aurora` は forbidden）。
 - ボスは通常 frozen にせず chill→氷砕ゲージへ変換し、`bossGaugeMult` はボス氷砕ゲージ量のみへ1命中1回だけ適用する（M7-C 修正済み共通経路・damage/chill/proc や通常敵・炎には掛からず二重加算しない。ボス氷砕の cooldown/threshold/vulnerability は不変）。
 - 検証: `frost-skills-wave4.mjs`／`frost-evolutions-wave4.mjs`／`frost-policy-audit-wave4.mjs`／`frost-runtime-save-wave4.mjs`／`frost-determinism-wave4.mjs`／`frost-boss-gauge-wave4.mjs`・`validate-data.mjs`（M7-D 検証ブロック）。**全51スイート通過・validate-data 0エラー0警告**。実描画・体感は本環境では未検証。詳細は `./docs/skills.md`・`./docs/skill-catalog.md`・`./docs/status-effects.md`。
+
+## Milestone 7-E: 氷術師 完成監査（active30 / passive4 / 進化18 で確定）
+氷術師のカタログは **active30 / passive4 / 進化18** で確定した（火の魔女と同規模・M7-E では新規追加なし）。
+プール分離・進化到達性・抽選率・状態異常バランスの監査結果は
+`./frost-completion-audit.md` / `./frost-draft-analysis.md` / `./frost-balance-report.md` を参照。
+
+- **プール分離**: 氷 active 30 種は `jobs:["frost_mage"]`＋`isCommon:false`、氷 passive 4 種は `frost_mage.passiveSkillPool` 所属。
+  `jobs` 未指定を暗黙共通として扱わない（`poolEligibility.memberAllowedForJob` が単一の正）。実抽選 200 seed で**他ジョブ混入 0**。
+- **進化補助の要求数**: `frost_amplification`×4 / `rapid_freezing`×4 / `frozen_expansion`×4 / `lingering_cold`×3、
+  active 補助は `ice_prison`×2（`zero_hour_world` / `eternal_sealed_coffin`）・`ice_wall`×1（`world_end_avalanche`）。
+  **死に passive は無い**（4 種すべてが 3 つ以上の進化から要求される）。
+- **進化非対象 active 12 種**: `permafrost_field` `ice_wall` `frost_orbit` `cryo_mine` `ice_prison` `mirror_ice`
+  `glacier_drop` `polar_star` `icebreaker_wave` `crystal_refraction` `winter_halo` `comet_sleet`。
+  いずれも提示・取得ともに発生し、ハズレ候補ではない（`ice_wall` / `ice_prison` は進化補助としての役割も持つ）。
+- **Job Lv80「発射数+1」対象は明示 flag の 6 種のみ**（`frost_shard` `glacial_lance` `icicle_volley`
+  `rime_boomerang` `polar_star` `glacial_spear_rain`）。進化 18 種は全て対象外で、tag からの自動導出はしない。
+- **Job modifier / milestone に死にものは無い**。`resolvedJobModifiers` は周回開始時に凍結され reload で変化しない。
+  Lv50 の氷砕連鎖は非再帰、Lv100 の絶対零度でもボスは通常凍結しない（ゲージへ変換）。

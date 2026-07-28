@@ -212,3 +212,50 @@ active30種化で進化相手が候補へ極端に出にくくならないよう
 
 - **Job Lv80「発射数+1」対象**は明示フラグ（`lv80ProjectileTarget:true`）で `SkillAudit` が一元管理し、M7-D 新 active では `glacial_spear_rain` のみ・新進化5種は全て対象外。氷全体の対象は**計6種**（`frost_shard`/`glacial_lance`/`icicle_volley`/`rime_boomerang`/`polar_star`/`glacial_spear_rain`）。
 - `eternal_sealed_coffin` の条件に使う `ice_prison` は補助 active で置換しない・起爆時に**副棺を最大1世代だけ伝播**（副棺は再伝播しない）。`bossGaugeMult` はボス氷砕ゲージ量のみへ1命中1回だけ適用する（M7-C 修正済み共通経路・damage/chill/proc には掛からず二重加算しない）。検証は `frost-policy-audit-wave4.mjs`・`frost-boss-gauge-wave4.mjs`・`skill-catalog` 相当。詳細は `./docs/skills.md`・`./docs/jobs.md`。
+
+## Milestone 7-E: 氷術師 完成監査（カタログ確定・新規追加なし）
+M7-E は**新しい active / passive / 進化 / ジョブ / 状態異常を一切追加しない**監査 Milestone。`SkillCatalog.buildCatalog('frost_mage')` は
+**active30 / passive4 / 進化18・合計52・issues 0** で確定した（火の魔女も active30 / passive4 / 進化18 で不変）。
+
+### 氷術師 active30（id 一覧・確定）
+`frost_shard` / `frost_nova` / `glacial_lance` / `permafrost_field` / `ice_wall` /
+`icicle_volley` / `frost_orbit` / `freezing_ray` / `hailstorm` / `cryo_mine` /
+`frost_spirit` / `ice_prison` / `avalanche` / `mirror_ice` / `glacier_drop` /
+`rime_boomerang` / `frost_chain` / `crystal_bloom` / `snowblind_mist` / `polar_star` /
+`icebreaker_wave` / `frozen_clock` / `crystal_refraction` / `winter_halo` / `comet_sleet` /
+`glacial_spear_rain` / `snowflake_sentry` / `iceberg_ram` / `absolute_ice_seal` / `aurora_veil`
+
+### 氷術師 passive4（確定）
+`frost_amplification` / `rapid_freezing` / `frozen_expansion` / `lingering_cold`（いずれも `jobs:["frost_mage"]`・`isCommon:false`）
+
+### 氷術師 進化18（id 一覧・確定）
+`diamond_blizzard` / `absolute_zero_domain` / `heaven_piercing_glacier` / `crystal_tempest` / `absolute_zero_ray` / `whiteout_cataclysm` /
+`frost_queen_court` / `world_end_avalanche` / `rime_execution_wheel` / `eternal_frost_chain` / `crystal_world_tree` / `everlasting_white_mist` /
+`zero_hour_world` / `heavenfall_glacier_lances` / `crystal_sentinel_legion` / `continental_glacier_rush` / `eternal_sealed_coffin` / `polar_night_aurora`
+
+### 進化対応表（base Lv8 ＋ 補助）
+| 進化 | base | base rarity | 補助 | 補助種別 | 必要Lv |
+|------|------|-------------|------|----------|--------|
+| `diamond_blizzard` | `frost_shard` | common | `rapid_freezing` | passive | 4 |
+| `absolute_zero_domain` | `frost_nova` | common | `frozen_expansion` | passive | 4 |
+| `heaven_piercing_glacier` | `glacial_lance` | uncommon | `frost_amplification` | passive | 4 |
+| `crystal_tempest` | `icicle_volley` | common | `frost_amplification` | passive | 4 |
+| `absolute_zero_ray` | `freezing_ray` | uncommon | `rapid_freezing` | passive | 4 |
+| `whiteout_cataclysm` | `hailstorm` | uncommon | `lingering_cold` | passive | 4 |
+| `frost_queen_court` | `frost_spirit` | uncommon | `frozen_expansion` | passive | 4 |
+| `world_end_avalanche` | `avalanche` | uncommon | `ice_wall` | **active** | 4 |
+| `rime_execution_wheel` | `rime_boomerang` | common | `frost_amplification` | passive | 4 |
+| `eternal_frost_chain` | `frost_chain` | uncommon | `rapid_freezing` | passive | 4 |
+| `crystal_world_tree` | `crystal_bloom` | common | `frozen_expansion` | passive | 4 |
+| `everlasting_white_mist` | `snowblind_mist` | uncommon | `lingering_cold` | passive | 4 |
+| `zero_hour_world` | `frozen_clock` | legendary | `ice_prison` | **active** | 4 |
+| `heavenfall_glacier_lances` | `glacial_spear_rain` | common | `frost_amplification` | passive | 4 |
+| `crystal_sentinel_legion` | `snowflake_sentry` | uncommon | `rapid_freezing` | passive | 4 |
+| `continental_glacier_rush` | `iceberg_ram` | rare | `frozen_expansion` | passive | 4 |
+| `eternal_sealed_coffin` | `absolute_ice_seal` | rare | `ice_prison` | **active** | 4 |
+| `polar_night_aurora` | `aurora_veil` | legendary | `lingering_cold` | passive | 4 |
+
+- **分岐進化なし**（1 base → 1 進化）。**進化対象 active 18 種 / 非対象 12 種**（`permafrost_field` `ice_wall` `frost_orbit` `cryo_mine` `ice_prison` `mirror_ice` `glacier_drop` `polar_star` `icebreaker_wave` `crystal_refraction` `winter_halo` `comet_sleet`）。
+- **補助の共有**: passive は `frost_amplification`×4 / `rapid_freezing`×4 / `frozen_expansion`×4 / `lingering_cold`×3、active 補助は `ice_prison`×2 / `ice_wall`×1。
+- rarity 分布（active30）: common 9 / uncommon 10 / rare 8 / legendary 3。
+- 詳細な到達率・抽選分析は `./frost-completion-audit.md` / `./frost-draft-analysis.md` / `./frost-balance-report.md`。

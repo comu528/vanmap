@@ -155,3 +155,31 @@ M7-D で氷術師へ追加した新 active5種・進化5種も、**独自の凍�
 - **粉砕を起こすスキルと起こさないスキル**: 大型槍のみ（`glacial_spear_rain`）/凍結中の接触・崩壊（`iceberg_ram`）/氷印起爆（`absolute_ice_seal`）/burst のみ（`aurora_veil`）は `frozen` 中の通常敵・エリートを既存の**粉砕**で砕く（再帰なし・ボスは frostbreak で代替）。`snowflake_sentry`（六花砲台）の砲台弾は**粉砕しない**（冷気/pulse のみ）。
 - **`bossGaugeMult` はボス氷砕ゲージ量のみへ適用**: `absolute_ice_seal`/`aurora_veil`/`eternal_sealed_coffin`/`polar_night_aurora`/`heavenfall_glacier_lances`（巨大槍）の `bossGaugeMult` は、M7-C 修正済みの共通経路（`StatusEffectManager.applyIceHit` のボス分岐で chill→ゲージ変換に1命中1回だけ→`addBossGauge(e, chillAmt × bossGaugeMult)`）を維持する。damage/chillAmount/procCoefficient や通常敵/エリート・炎には掛からず二重加算もしない（ボス氷砕の cooldown/threshold/vulnerability 値は M7-B から不変）。
 - **表示への自動反映**: 上記はすべて既存経路を通るため、M7-B.1 の `StatusVisualManager`/`BossFrostbreakDisplay`/`StatusDebugPanel`（F10）・状態カウンタへ**自動反映**される。氷印だけ最小限の skill-local overlay を描画し、正式 status の頭上アイコン等とは重複させない（`tests/frost-policy-audit-wave4.mjs`・`tests/frost-boss-gauge-wave4.mjs`・`tests/frost-determinism-wave4.mjs` で確認）。
+
+## Milestone 7-E: 状態異常の監査結果（数値・仕様は不変）
+M7-E では状態異常の**数値・確率式・閾値・持続時間を一切変更していない**。以下は計測と修正の記録。
+
+### 修正（状態異常経路の誤接続）
+`heaven_piercing_glacier` と `absolute_zero_ray` の `bossGauge.multiplier` が `chillAmount` そのものへ乗算されており、
+**通常敵・エリートの冷気まで増えていた**。M7-C で確立した共通経路（`opts.bossGaugeMult` →
+`StatusEffectManager.applyIceHit` のボス分岐 → `addBossGauge` の量にだけ 1 回）へ付け替えた。
+
+| 対象 | 通常敵の冷気（変更前 → 変更後） | ボス氷砕ゲージ |
+|------|-------------------------------|----------------|
+| `heaven_piercing_glacier` | 48 → **30** | 48（不変） |
+| `absolute_zero_ray` | 12/tick → **8/tick** | 12/tick（不変） |
+
+また `heaven_piercing_glacier` は宣言済みの `freeze.baseChance = 0.12` を弾へ渡していなかったため、
+**進化後の方が進化前より凍結しない**状態だった（0 → 0.12 へ修正）。
+
+### 計測（`tests/frost-status-balance.mjs`・決定論ヘッドレス）
+| 区分 | 結果 |
+|------|------|
+| 通常敵（60秒・毎秒8命中・多段） | 冷気付与 9,095 回 / 合計 35,117・凍結 判定375→成功350・**耐性で抑止 9,910**・**hitGroup で抑止 50**・凍結ピーク 10 体・粉砕 350 回 |
+| エリート | 冷気合計 29,231（通常敵 35,117 より低い＝`chillGainMultiplier` の耐性が効いている）・凍結時間も短い |
+| ボス（120秒） | **通常凍結 0**・ゲージ付与 960 回・氷砕 22 回（毎分 11.0）・脆弱 82.0 秒（継続率 68.4%）・**粉砕 0**（frostbreak で代替） |
+
+- 氷砕の**間隔は回数を重ねるほど広がる**（閾値成長 ×1.30/break）。短時間での連打にならない。
+- 粉砕から粉砕は再帰しない（`isShatter`）。Lv50 の氷砕連鎖も無限連鎖しない。
+- **氷印 / 氷棺は正式状態ではない**（`status-effects.json` は burning / chill / frozen / freeze_immunity /
+  frostbreak_vulnerability の **5 種のまま**）。`validate-data` がマーカーの誤登録をエラーにする。

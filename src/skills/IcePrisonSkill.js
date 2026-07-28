@@ -21,7 +21,10 @@ export class IcePrisonSkill extends SkillBase {
       const da = (a.x - spot.x) ** 2 + (a.y - spot.y) ** 2, db = (b.x - spot.x) ** 2 + (b.y - spot.y) ** 2;
       return da - db;
     });
-    const targets = cand.slice(0, Math.min(s.targetCount || 1, cap));
+    // M7-E: 同時氷牢数は品質別の安全上限 maxIcePrisons で抑える（値は targetCount 最大3を上回るため通常は恒等。
+    // 制御スキルの主効果である対象数を品質で削らないよう、上限は「同時存在数の暴走防止」としてだけ働かせる）。
+    const room = Math.max(0, this.scene.combat.skillCap('maxIcePrisons', 5) - this.prisons.length);
+    const targets = cand.slice(0, Math.min(s.targetCount || 1, cap, room));
     let imprisoned = 0;
     const now = this.scene.time.now;
     const hg = this.scene.nextHitGroupId();

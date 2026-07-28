@@ -12,7 +12,8 @@ export class WorldEndAvalancheSkill extends EvolvedSkillBase {
     const p = this.scene.player;
     const spot = this.scene.combat.densestPoint(120, 0) || this.scene.combat.nearestEnemy(p.x, p.y, 100000) || { x: p.x + 100, y: p.y };
     const baseAng = Math.atan2(spot.y - p.y, spot.x - p.x);
-    const count = Math.min(wv.count || 3, this.cap('maxWaves', 4));
+    // M7-E: safetyCaps に加えて品質別上限 maxWorldEndAvalancheWaves でもクランプ（値は wave.count 以上＝通常は恒等）。
+    const count = Math.min(wv.count || 3, this.cap('maxWaves', 4), this.scene.combat.skillCap('maxWorldEndAvalancheWaves', 4));
     const now = this.scene.time.now;
     for (let i = 0; i < count; i++) {
       // 複数方向へ時間差（波同士は delayMs だけずらす）。
@@ -82,6 +83,25 @@ export class WorldEndAvalancheSkill extends EvolvedSkillBase {
       }
       if (r.until <= 0) { if (r.gfx) r.gfx.destroy(); this.residues.splice(i, 1); }
     }
+  }
+
+  // 残響（custom・M7-E）: 追加の氷河波を1本だけ予約する（fire() の全波セットを無料で再発動しない）。
+  echoCast() {
+    const p = this.scene.player;
+    const spot = this.scene.combat.densestPoint(120, 0) || this.scene.combat.nearestEnemy(p.x, p.y, 100000) || { x: p.x + 100, y: p.y };
+    if (this._pending.length + this.waves.length >= this.cap('maxWaves', 4) + 1) return; // 上限を超えて溜めない
+    this._pending.push({ at: this.scene.time.now, ang: Math.atan2(spot.y - p.y, spot.x - p.x) });
+    this.scene.skills.recordExtra(this.id, 'echoWaves', 1, 'add');
+  }
+  // 分身（custom・M7-E）: 波の接触ダメージのみを1回複製（波実体・残留物は作らない）。
+  cloneCast() {
+    const ev = this.evoDef; const p = this.scene.player;
+    const spot = this.scene.combat.densestPoint(120, 0) || { x: p.x, y: p.y };
+    this.scene.combat.damageArea(spot.x, spot.y, ((ev.wave || {}).width || 120) / 2, (ev.damage || {}).base || 20, this.id, {
+      element: 'ice', chillAmount: (ev.chill || {}).amount || 13, procCoefficient: ev.procCoefficient ?? 0.55,
+      hitGroupId: this.scene.nextHitGroupId(), quiet: true, color: 0x9fe8ff,
+    });
+    this.scene.skills.recordExtra(this.id, 'cloneContacts', 1, 'add');
   }
 
   _spawnResidue(x, y) {

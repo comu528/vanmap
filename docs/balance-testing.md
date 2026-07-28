@@ -231,3 +231,24 @@ M7-A で 2人目のジョブ **氷術師（frost_mage）** と汎用状態異常
 - テレメトリの**実収集値・FPS ヒストグラム・ResultScene の Balance詳細描画・F8 パネルの実挙動**は Phaser 依存のため
   ヘッドレスでは未計測。実ブラウザで確認する（`docs/test-guide.md` の M6-F 項目）。実行していない項目を「確認済み」と報告しない。
 - シミュレーション結果は**想定レベルアップ回数に依存**する（短周回では枠と進化数の関係が逆転する）。
+
+## Milestone 7-E: 氷術師 完成監査の走らせ方
+```
+node tests/frost-draft-balance.mjs            # 200 seed（CI 既定・数十秒）
+HEAVY=1 node tests/frost-draft-balance.mjs    # 500 seed（詳細計測）
+node tests/frost-evolution-distribution.mjs   # 個別進化の段階内訳（同じく HEAVY=1 対応）
+node tests/frost-status-balance.mjs           # 冷気/凍結/耐性/hitGroup/粉砕/ボス氷砕の計測
+```
+- 抽選は **production の `SkillDraftManager` + `SeededRandom` + `poolEligibility`** をそのまま使う（独自の簡易抽選器は作らない）。
+- seed 範囲は固定（1..N）。同じ opts/seeds なら `summarize()` の結果は完全一致する（`Math.random` 不使用）。
+- 戦略は `DraftBalanceAnalyzer.M7E_POLICIES`（evolution-first / balanced / random-valid / new-skill-priority / one-build-focus）。
+- 警告は `FrostBalanceWarnings.analyzeFrostWarnings()` が `FROST_*` コードで返す（自動調整はしない・**外部送信なし**）。
+  閾値の根拠は `./frost-balance-report.md`、実測値は `./frost-draft-analysis.md`。
+- **手動 F8**: `?debug=1` → F8 →「📊 ジョブ分析を表示」で、その周回のカタログ / 取得状況 / 進化到達 /
+  damage share / 状態異常カウンタ / ボス氷砕 / `bossGaugeMult` / 性能上限到達 / debugRun 状態を確認できる。
+
+## 既知の制約（M7-E）
+- 状態異常ハーネスは「10体が移動せず毎秒8命中を浴び続ける」**飽和負荷**のため凍結成功率が実プレイより高く出る。
+  実際の抑止は凍結耐性（immunity）が担っており、同ハーネスでも 9,910 回の抑止が発生している。
+- 抽選シミュレーションは **level-up 回数に依存**する（30 回では平均進化数 0.15、90 回では 4.88）。
+  枠数と進化数の関係も回数によって逆転するため、比較は必ず同じ `levelUps` で行う。

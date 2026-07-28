@@ -561,11 +561,39 @@ Lv1〜8 データ駆動で、冷気/凍結/粉砕/ボス氷砕は既存 `StatusE
 > **実ブラウザ未確認**: 本環境では Phaser 実プレイ確認を行っていない。データ検証・純ロジック・最小 Phaser モック（graphics 対応）によるランタイムスモークは通過済みだが、
 > 実際の描画・視認性・当たり判定・体感バランス・60FPS 維持はブラウザでの確認が必要（`docs/test-guide.md` の M7-D／spec §36 項目参照）。
 
-### 次のマイルストーン（氷術師カタログ完成監査）
-- [ ] **抽選率の監査**（active30 の rarity 分布・重み・synergy・リロール/追放を含む実測）
-- [ ] **進化到達率の監査**（18進化の素材 Lv8＋passive Lv4 到達可能性・被り抑制）
-- [ ] **バランス分析**（DPS/生存/冷気→凍結→粉砕→ボス氷砕の寄与・legendary の長CD/複製禁止の効き・coffin 伝播/aurora 視認性）
-- [ ] 上記を踏まえた数値微調整（指示なき大幅変更はしない）
+## Milestone 7-E: 氷術師 完成監査（抽選率／進化到達率／全体バランス分析）— 完了
+新しい active / passive / 進化 / ジョブ / 状態異常 / 敵 / ボス / 難易度は**追加していない**（監査と不具合修正のみ）。
+
+- [x] **カタログ整合性**: `SkillCatalog` で氷 active30 / passive4 / 進化18・合計52・issues 0。火の魔女 30/4/18 も非回帰。duplicate id/name 0・未登録/孤立クラス 0。
+- [x] **プール分離**: 氷 active は `jobs:["frost_mage"]`＋`isCommon:false`、氷 passive は `passiveSkillPool` 所属。`jobs` 未指定を暗黙共通にしない。`SkillCatalog` = `poolEligibility` = `SkillDraftManager` の3者一致。
+- [x] **進化到達可能性**: 18 進化すべて base/support がプール内・必要Lv が上限内・自己/循環参照 0・分岐 0・枠不増加・進化後は通常抽選へ出ない。条件成立後の未提示 0%。
+- [x] **抽選シミュレーション**（production の `SkillDraftManager`＋`SeededRandom`・200 seed / 60 level-up / slot 4・6・8 / 5戦略）: 他ジョブ混入・不正候補・重複候補・slot違反・不正進化・進化後の元active再提示は**すべて 0**。
+- [x] **戦略追加**: `DraftBalanceAnalyzer` へ balanced / random-valid / new-skill-priority / one-build-focus を追加し、取得率・Lv8率・passive Lv4率・reroll/banish/skip・pity・synergy・候補内訳・枠充足を集計。
+- [x] **死にコンテンツ監査**: 死にパラメータ **6件を修正**（`crystal_bloom.interval`→`cooldown` / `polar_star.impactDamage` / 氷封・氷棺の `frozenDamageBonus` / `crystal_sentinel_legion.pulseProc` 削除 / `heaven_piercing_glacier.freeze.baseChance`）→ 現在 **0件**。
+- [x] **状態異常経路の誤接続を修正**: `heaven_piercing_glacier` / `absolute_zero_ray` の `bossGauge.multiplier` が通常敵の冷気にも乗っていたのを、M7-C の共通経路（ボス氷砕ゲージのみ1回）へ付け替え。
+- [x] **echo/clone の `custom` 未実装を修正**: `absolute_zero_ray` / `world_end_avalanche` / `continental_glacier_rush` に限定的な `echoCast`/`cloneCast` を実装（全体再発動をやめた）。
+- [x] **quality cap 監査**: 未参照 cap を氷術師側 0 件へ（11件を実装へ接続・4件を削除・`maxIcePrisons`/`maxWorldEndAvalancheWaves` の値を主効果が削れないよう調整）。存在しない cap の参照 0・名前違い 1件修正。
+- [x] **SkillAudit 完全監査 / recordCast / echo・clone / Lv80**: 48 件で未解決 issue 0（残るのは「基底 update が主発動を記録」「防御スキルは意図的に recordCast 0」の 2 種の仕様のみ）。
+- [x] **保存・復元・決定論**: 48 件の runtime 往復・二重生成なし・冪等・進化前後の同時稼働なし・status RNG drift 0・`save_version` v6 維持。
+- [x] **状態異常バランス**: 通常敵/エリート/ボス別に chill・freeze・immunity・hitGroup・shatter・boss frostbreak・vulnerability を計測し、ボス通常凍結 0・粉砕再帰 0・氷砕間隔の単調性を確認。
+- [x] **cleanup / telemetry**: 全 48 件の `destroy()`・`Enemy.reset()`・状態索引・購読解除を検証。debugRun 分離・二重計上なし・外部送信なし。
+- [x] **F8 にジョブ別分析パネルを追加**（カタログ/取得/進化到達/damage share/状態カウンタ/氷砕/bossGaugeMult/性能上限）。**F10 に直近イベント履歴**（`maxStatusDebugHistory`）。
+- [x] **警告基盤**: `FrostBalanceWarnings`（FROST_* 30コード・閾値は data ではなく既定値＋引数・ローカルのみ）。
+- [x] **新規テスト12種**＋`validate-data` の M7-E ブロック＋`validate.yml` ステップ。**全63スイート通過・validate-data 0エラー0警告**。
+- [x] docs: `frost-completion-audit.md` / `frost-draft-analysis.md` / `frost-balance-report.md` を新規作成し、既存 docs を更新。
+
+### M7-E で残した警告（修正せず理由を記録）
+- [ ] evolution-first・slot8 の「進化1個以上」が 94.0%（基準 95%）— 枠が広いほど level-up が分散する希釈特性。`one-build-focus` なら 99.0%。
+- [ ] `zero_hour_world` の合算取得率 1.00% — legendary base ＋ active 補助の二重ハンデ。到達不能ではない。
+- [ ] 火の魔女由来の未参照 cap 5 件 — 参照を足すと火の挙動が変わるため M7-E の対象外。
+
+> **実ブラウザ未確認**: M7-E も Phaser 実プレイ確認は行っていない（Node 純ロジック＋最小モックのスモークのみ）。
+> F8 分析パネル・F10 履歴の描画、実際の体感バランスは `docs/test-guide.md` の M7-E 項目を実ブラウザで確認すること。
+
+### 次のマイルストーン候補
+- [ ] 火の魔女側の同種監査（未参照 cap 5 件・`custom` echo/clone の実装有無・死にフィールド）
+- [ ] 火と氷の属性反応、または 3 人目のジョブ
+- [ ] 周回長の拡張・追加の敵/ボス
 
 ---
 

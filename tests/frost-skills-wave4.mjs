@@ -77,7 +77,7 @@ section('3. 火の魔女に氷スキルが出ない / Lv80対象は glacial_spea
 
 section('4. 新 skillCaps（品質順・非負）');
 {
-  const CAPS = ['maxGlacialSpearTelegraphs', 'maxGlacialSpearImpactsPerFrame', 'maxGlacialSpearProjectiles', 'maxSnowflakeSentries', 'maxSentryProjectiles', 'maxSentryLinksPerFrame', 'maxIcebergRams', 'maxIcebergContactChecks', 'maxIcebergShards', 'maxIceSealMarks', 'maxIceSealExplosionsPerFrame', 'maxAuroraBands', 'maxAuroraQueriesPerTick', 'maxAuroraBurstsPerFrame'];
+  const CAPS = ['maxGlacialSpearTelegraphs', 'maxGlacialSpearImpactsPerFrame', 'maxGlacialSpearProjectiles', 'maxSnowflakeSentries', 'maxSentryProjectiles', 'maxIcebergRams', 'maxIcebergContactChecks', 'maxIcebergShards', 'maxIceSealMarks', 'maxIceSealExplosionsPerFrame', 'maxAuroraBands', 'maxAuroraQueriesPerTick', 'maxAuroraBurstsPerFrame'];
   for (const n of CAPS) {
     const c = balance.skillCaps[n];
     if (!c) { ok(false, `skillCaps.${n} がある`); continue; }

@@ -8,8 +8,8 @@ export class CrystalSentinelLegionSkill extends EvolvedSkillBase {
   constructor(scene, id, level) { super(scene, id, level); this.sentries = []; this._deployLeft = 0; this._nextId = 1; }
   canFire() { return false; }
 
-  _cap() { return Math.min(this.evoDef.maxSentries || 5, this.scene.combat.skillCap('maxSentinelLegionLinksPerFrame', 8) + 2, this.cap('maxSentries', 6)); }
-
+  // M7-E: 砲台数の上限に「1フレームあたりの氷線予算（maxSentinelLegionLinksPerFrame）」を混ぜていた未使用ヘルパ _cap() を削除。
+  // 砲台数は data の maxSentries と safetyCaps.maxSentries だけで決まる（update 内の cap が唯一の正）。
   update(dt, ctx) {
     const e = this.evoDef;
     this._deployLeft -= dt;
@@ -37,6 +37,8 @@ export class CrystalSentinelLegionSkill extends EvolvedSkillBase {
   _shoot(t, e) {
     const target = this._pick(t, e.seekRange || 240);
     if (!target) return;
+    // M7-E: 同時に飛んでいる砲台弾の総数を品質別上限 maxSentryProjectiles で抑える（通常の砲台数では恒等）。
+    if (this.scene.countProjBySkill(this.id) >= this.scene.combat.skillCap('maxSentryProjectiles', 72)) return;
     const ang = Math.atan2(target.y - t.y, target.x - t.x);
     this.scene.combat.spawnPlayerProjectile(t.x, t.y, ang, e.projectileSpeed || 380, {
       skillId: this.id, element: 'ice', damage: e.shotDamage || 16, pierce: 0, chillAmount: (e.chill || {}).shot || 10,

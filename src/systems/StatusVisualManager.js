@@ -229,6 +229,11 @@ export class StatusVisualManager {
 
   _nearFlash(e) {
     if (!e || e.x == null || !this.scene.add) return;
+    // M7-E: 同じ対象で確定閾値の事前通知が連続して光り続けないよう、品質別のクールダウンで間引く（状態ロジックは不変）。
+    const now = this.scene.time ? this.scene.time.now : 0;
+    const cd = this._cap('chillNearThresholdEffectCooldown', 1500);
+    if (now && e._nearFlashUntil && now < e._nearFlashUntil) { this._bump('nearThreshold'); return; }
+    if (now) e._nearFlashUntil = now + cd;
     const ring = this.scene.add.circle(e.x, e.y, 10, 0xe1f5fe, 0).setStrokeStyle(2, 0xe1f5fe, 0.7).setDepth(57);
     this.scene.tweens.add({ targets: ring, radius: 16, alpha: 0, duration: 260, onComplete: () => ring.destroy() });
   }

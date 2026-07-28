@@ -314,7 +314,7 @@ export class BattleScene extends Phaser.Scene {
     this.bossFrostDisplay.setConfig(DataManager.statusVisualsConfig);
     this.bossFrostDisplay.subscribe(this.statusFx);
     this._svEnemies = [];
-    if (window.RFS_DEBUG) { this.statusDebug = new StatusDebugPanel(this); this._setupStatusDebugInput(); }
+    if (window.RFS_DEBUG) { this.statusDebug = new StatusDebugPanel(this); this.statusDebug.subscribe(this.statusFx); this._setupStatusDebugInput(); }
     this.updateHudSkills();
 
     // 中断対応
@@ -683,8 +683,10 @@ export class BattleScene extends Phaser.Scene {
 
   // 天穿氷河槍: 粉砕地点から小型氷片を飛散させる（氷片は粉砕を再発生させない＝shatterOnFrozen:false・fragmentCount:0）。
   _spawnIceFragments(x, y, proj) {
+    // M7-E: 粉砕由来で飛ぶ弾の総数上限（maxShatterProjectiles）も併せて守る（既定値は fragmentCount より大きく通常は恒等）。
     const cap = this.combat.skillCap('maxHeavenGlacierFragments', 8);
-    const n = Math.min(proj.fragmentCount || 0, cap);
+    const shatterCap = Math.max(0, this.combat.skillCap('maxShatterProjectiles', 40) - this.countProjBySkill(proj.skillId));
+    const n = Math.min(proj.fragmentCount || 0, cap, shatterCap);
     const hg = this.nextHitGroupId();
     for (let i = 0; i < n; i++) {
       const a = (Math.PI * 2 * i) / n + 0.3;
@@ -1070,6 +1072,9 @@ export class BattleScene extends Phaser.Scene {
     if (element === 'ice') {
       if (this.passives) amount *= this.passives.getIceDamageMultiplier();
       if (target.isBoss && sfx) amount *= sfx.bossIceVulnMultiplier(target);
+      // M7-E: 凍結中の対象への追加ダメージ倍率（範囲/単体の共通経路。弾は proj.frozenBonus で先に適用済み）。
+      // 既定 0＝未指定のスキルは不変。ボスは凍結しないため実質的に通常敵/エリート専用。
+      if (opts.frozenBonus > 0 && frozenT) amount *= (1 + opts.frozenBonus);
     }
     if (window.RFS_DEBUG) this._lastDamageInfo = { skillId: skillId || '(none)', tags: _tags, echo: this._echoScale }; // F7 表示用
     // 残響の追加発動ぶんの威力（同期ダメージ用・弾は spawn 時に反映済み）。
@@ -1193,6 +1198,7 @@ export class BattleScene extends Phaser.Scene {
         procCoefficient: opts.procCoefficient, hitGroupId: opts.hitGroupId,
         canFreeze: opts.canFreeze, applyStatus: opts.applyStatus, isShatter: opts.isShatter,
         bossGaugeMult: opts.bossGaugeMult, // M7-C: ボス氷砕ゲージのみに掛かるスキル固有倍率（既定1）
+        frozenBonus: opts.frozenBonus,     // M7-E: 凍結中の対象への追加ダメージ倍率（既定 0）
       });
     }
   }
@@ -1457,6 +1463,7 @@ export class BattleScene extends Phaser.Scene {
             knockback: proj.knockback, from: { x: this.player.x, y: this.player.y }, element: proj.element,
             chillAmount: proj.chillAmount, baseFreezeChance: proj.baseFreezeChance,
             procCoefficient: proj.procCoefficient, hitGroupId: proj.hitGroupId,
+            bossGaugeMult: proj.bossGaugeMult, // M7-E: 弾からもボス氷砕ゲージ倍率を共通経路へ渡す（既定1）
           });
           if (proj.explosionRadius > 0) {
             this.effects.explosion(proj.x, proj.y, proj.explosionRadius);
@@ -2408,10 +2415,96 @@ export class BattleScene extends Phaser.Scene {
     const start = this.add.text(cx, GAME_HEIGHT - 30, '▶ 検証開始（周回をリセット）', { fontSize: '10px', color: '#0d1017', backgroundColor: '#80cbc4', padding: { x: 8, y: 3 } }).setScrollFactor(0).setOrigin(0.5).setInteractive({ useHandCursor: true });
     start.on('pointerdown', () => { this.startBalancePlaytest(this._bp); });
     ui.add(start);
+    // M7-E: 現在の周回をジョブ別に分析する（火の魔女 / 氷術師とも。氷は状態異常・氷砕・bossGaugeMult も出す）。
+    const analyze = this.add.text(cx, GAME_HEIGHT - 46, `📊 ${this.job.displayName || this.jobId} 分析を表示`, { fontSize: '9px', color: '#0d1017', backgroundColor: '#a5d6a7', padding: { x: 6, y: 2 } }).setScrollFactor(0).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    analyze.on('pointerdown', () => { this.toggleBalancePlaytest(); this.toggleJobAnalysis(); });
+    ui.add(analyze);
     const close = this.add.text(cx, GAME_HEIGHT - 10, '閉じる (F8)', { fontSize: '9px', color: '#bcaaa4' }).setScrollFactor(0).setOrigin(0.5, 1).setInteractive({ useHandCursor: true });
     close.on('pointerdown', () => this.toggleBalancePlaytest());
     ui.add(close);
     this._bpdbg = ui;
+  }
+
+  // M7-E: ジョブ別のバランス分析パネル（F8 から開く・表示のみ・profile を変更しない・外部送信なし）。
+  toggleJobAnalysis() {
+    if (this._jadbg) { this._jadbg.destroy(true); this._jadbg = null; return; }
+    const cx = GAME_WIDTH / 2;
+    const ui = this.add.container(0, 0).setScrollFactor(0).setDepth(4000);
+    ui.add(this.add.rectangle(cx, GAME_HEIGHT / 2, 560, 348, 0x0d1017, 0.97).setScrollFactor(0).setStrokeStyle(1, 0xa5d6a7));
+    ui.add(this.add.text(cx, 4, `Balance 分析（${this.job.displayName || this.jobId}・F8→分析）`, { fontSize: '11px', color: '#a5d6a7' }).setScrollFactor(0).setOrigin(0.5, 0));
+    const cols = this.jobAnalysisReport();
+    ui.add(this.add.text(cx - 272, 20, cols[0], { fontSize: '8px', color: '#e0f2f1', lineSpacing: 2, wordWrap: { width: 268 } }).setScrollFactor(0).setOrigin(0, 0));
+    ui.add(this.add.text(cx + 6, 20, cols[1], { fontSize: '8px', color: '#e0f2f1', lineSpacing: 2, wordWrap: { width: 268 } }).setScrollFactor(0).setOrigin(0, 0));
+    const back = this.add.text(cx, GAME_HEIGHT - 10, '閉じる', { fontSize: '9px', color: '#bcaaa4' }).setScrollFactor(0).setOrigin(0.5, 1).setInteractive({ useHandCursor: true });
+    back.on('pointerdown', () => this.toggleJobAnalysis());
+    ui.add(back);
+    this._jadbg = ui;
+  }
+
+  // 分析テキスト（2カラム）。カタログ / レアリティ / 取得状況 / 進化到達 / 状態異常 / 氷砕 / damage share / 警告。
+  jobAnalysisReport() {
+    const A = [], B = [];
+    const job = this.job || {};
+    const owned = this.skills ? this.skills.activeLevels() : {};
+    const ownedIds = Object.keys(owned);
+    const pool = job.activeSkillPool || [];
+    const evoPool = job.evolutionPool || [];
+    const evolved = evoPool.filter((id) => this.skills && this.skills.skills.has(id));
+    A.push('— カタログ —');
+    A.push(`active ${pool.length} / passive ${(job.passiveSkillPool || []).length} / 進化 ${evoPool.length}`);
+    const rar = { common: 0, uncommon: 0, rare: 0, legendary: 0 };
+    for (const id of pool) { const d = DataManager.getSkill(id); if (d) rar[d.rarity] = (rar[d.rarity] || 0) + 1; }
+    A.push(`rarity: C${rar.common} U${rar.uncommon} R${rar.rare} L${rar.legendary}`);
+    A.push('— 取得状況（この周回）—');
+    A.push(`active枠 ${ownedIds.length}/${this.activeSlotsMax}  passive ${this.passives ? this.passives.count() : 0}/${this.passiveSlotsMax || 4}`);
+    A.push(`Lv8到達: ${ownedIds.filter((id) => owned[id] >= 8).length} 種`);
+    A.push(`進化到達: ${evolved.length}/${evoPool.length} ${evolved.join(',') || '(なし)'}`);
+    A.push('— damage share —');
+    const stats = this.skills ? this.skills.statsList() : [];
+    const total = stats.reduce((n, s) => n + (s.damage || 0), 0) || 1;
+    const top = stats.slice().sort((a, b) => (b.damage || 0) - (a.damage || 0)).slice(0, 8);
+    for (const s of top) A.push(`${s.id}: ${((s.damage || 0) / total * 100).toFixed(1)}% (cast${s.casts || 0}/hit${s.hits || 0})`);
+    if (top.length && (top[0].damage || 0) / total > 0.6) A.push(`⚠ ${top[0].id} が総ダメージの過半を占有`);
+
+    const sfx = this.statusFx;
+    B.push('— 状態異常（実動作カウンタ）—');
+    if (sfx) {
+      const c = sfx.counters();
+      const rate = c.freezeAttempts > 0 ? (c.freezeSuccesses / c.freezeAttempts * 100).toFixed(1) : '-';
+      B.push(`冷気付与 ${c.chillApplications} (計${Math.round(c.chillAmountTotal)})`);
+      B.push(`凍結 判定${c.freezeAttempts} 成功${c.freezeSuccesses} (${rate}%)`);
+      B.push(`耐性で防止 ${c.immunitySkips} / hitGroup ${c.hitGroupSkips}`);
+      B.push(`現在: 冷気${sfx.countStatus('chill')} 凍結${sfx.countStatus('frozen')} 耐性${sfx.countStatus('freeze_immunity')}`);
+      B.push(`ボスゲージ付与 ${c.bossGaugeApplications}`);
+      if (c.freezeAttempts > 0 && c.freezeSuccesses === 0) B.push('⚠ 凍結判定はあるが成功0');
+      if (c.freezeSuccesses > 0 && c.immunitySkips === 0) B.push('⚠ 凍結耐性が一度も働いていない');
+    }
+    const tele = this.telemetry ? this.telemetry.status : null;
+    if (tele) {
+      B.push('— 周回テレメトリ —');
+      B.push(`粉砕 ${tele.shatters}（${Math.round(tele.shatterDamage)}）氷砕 ${tele.bossFrostbreaks}`);
+      B.push(`氷ダメージ ${Math.round(tele.iceDamage)} 炎上ダメージ ${Math.round(tele.burningDamage)}`);
+      B.push(`脆弱 ${tele.frostbreakVulnerabilitySeconds.toFixed(1)}s / 凍結延べ ${tele.frozenSecondsApplied.toFixed(1)}s`);
+    }
+    if (this.boss && this.boss.alive && sfx) {
+      B.push('— ボス氷砕 —');
+      B.push(`ゲージ ${Math.round(this.boss._frostGauge || 0)}/${Math.round(sfx.bossThreshold(this.boss))} break${this.boss._frostBreaks || 0}`);
+      B.push(`脆弱:${sfx.bossVulnActive(this.boss) ? '中' : '×'} 氷Dmg×${sfx.bossIceVulnMultiplier(this.boss).toFixed(2)}`);
+    }
+    B.push('— bossGaugeMult（宣言値）—');
+    const gm = [];
+    for (const id of ownedIds) {
+      const d = DataManager.getSkill(id), lv = (d && d.levels && d.levels[(owned[id] || 1) - 1]) || {};
+      if (lv.bossGaugeMult != null) gm.push(`${id}:${lv.bossGaugeMult}`);
+    }
+    for (const id of evolved) { const e = DataManager.getEvolution(id); if (e && e.bossGaugeMult != null) gm.push(`${id}:${e.bossGaugeMult}`); }
+    B.push(gm.length ? gm.join(' ') : '(所持スキルに宣言なし)');
+    B.push('— 性能 / 上限 —');
+    B.push(`抑制/f ${(this._mLast || this._m).suppressed}  索引上限 ${JSON.stringify(sfx ? sfx.capReached() : {})}`);
+    B.push(`表示上限到達 ${JSON.stringify(this.statusVisuals ? this.statusVisuals.capReached() : {})}`);
+    B.push(`この周回は debugRun: ${this._debugRun ? 'はい（通常統計へ記録しない）' : 'いいえ'}`);
+    B.push('※ 分析はローカル表示のみ。外部送信しません。');
+    return [A.join('\n'), B.join('\n')];
   }
 
   // 検証開始: 一時状態のみを初期化して新しい検証周回を始める（profile は不変・debugRun）。

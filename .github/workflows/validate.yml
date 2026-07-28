@@ -136,6 +136,33 @@ jobs:
       - name: Frost boss gauge wave4 tests
         run: node tests/frost-boss-gauge-wave4.mjs
 
+      # 氷術師 完成監査（M7-E・カタログ/到達性/抽選シミュ/死にコンテンツ/監査/保存/決定論/状態/上限/後始末/テレメトリ）。
+      # 新スキルは追加せず、production の SkillDraftManager + SeededRandom で 200 seed を回す（HEAVY=1 で 500 seed）。
+      - name: Frost completion catalog audit
+        run: node tests/frost-completion-catalog.mjs
+      - name: Frost evolution reachability audit
+        run: node tests/frost-evolution-reachability.mjs
+      - name: Frost draft balance simulation
+        run: node tests/frost-draft-balance.mjs
+      - name: Frost evolution distribution
+        run: node tests/frost-evolution-distribution.mjs
+      - name: Frost dead content audit
+        run: node tests/frost-dead-content-audit.mjs
+      - name: Frost complete skill audit
+        run: node tests/frost-complete-skill-audit.mjs
+      - name: Frost complete runtime save audit
+        run: node tests/frost-complete-runtime-save.mjs
+      - name: Frost complete determinism audit
+        run: node tests/frost-complete-determinism.mjs
+      - name: Frost status balance analysis
+        run: node tests/frost-status-balance.mjs
+      - name: Frost quality cap audit
+        run: node tests/frost-quality-cap-audit.mjs
+      - name: Frost cleanup audit
+        run: node tests/frost-cleanup-audit.mjs
+      - name: Frost telemetry audit
+        run: node tests/frost-telemetry-audit.mjs
+
       # 状態異常の視認性・実動作検証（M7-B.1・表示状態/デバッグ/ボス氷砕UI/非回帰・Node.js 標準機能のみ）。
       - name: Status visual state tests
         run: node tests/status-visual-state.mjs

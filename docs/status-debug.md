@@ -76,3 +76,12 @@ freeze 内訳（base×proc / 冷気寄与 / proc / 最終 freezeChance / RNG rol
 - **氷印/氷棺は skill-local マーカー**で正式 status ではないため、F10 の状態異常一覧（burning/chill/frozen/immunity/frostbreak）には現れない（`Enemy._iceSeal`/`_iceHitCount` はスキル側の値）。氷属性命中数による起爆は氷ヒットの chill/freeze カウンタとして間接的に反映される。
 新スキル固有のテレメトリ extra は `CombatTelemetry`（ResultScene「Balance詳細」）側で扱い、F10 とは役割を分ける（二重集計しない）。表示状態は保存しない・`save_version` は v6 のまま。
 実際の描画・F10 の実挙動は本環境では未検証（`docs/test-guide.md` の M7-D 項目）。
+
+## Milestone 7-E: 直近イベント履歴（F10）
+`StatusDebugPanel` が `StatusEffectManager` のイベントを購読し、**直近の状態イベント履歴**を表示する
+（`chillChanged` / `frozenStarted` / `frozenEnded` / `freezeImmunityStarted` / `bossFrostGaugeChanged` /
+`frostbreakTriggered` / `shatterTriggered` など）。上限は品質別 `skillCaps.maxStatusDebugHistory`（低品質ほど短い）。
+
+- 履歴は**表示専用**で `active_run` へ保存しない。判定・ダメージ・状態 RNG cursor には一切影響しない。
+- `destroy()` で購読を解除し履歴を破棄する（リスナー・参照の残留なし）。
+- 確定凍結の事前通知（`chillThresholdNear`）は `skillCaps.chillNearThresholdEffectCooldown` で間引かれる（表示のみ）。

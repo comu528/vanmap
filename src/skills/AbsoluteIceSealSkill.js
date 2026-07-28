@@ -52,6 +52,7 @@ export class AbsoluteIceSealSkill extends SkillBase {
     this.scene.combat.damageArea(x, y, s.detonationRadius || 60, s.detonationDamage, this.id, {
       element: 'ice', chillAmount: s.chillAmount, baseFreezeChance: 0, procCoefficient: this.def?.procCoefficient ?? 0.85,
       hitGroupId: hg, isExplosion: true, color: 0x9fe8ff, bossGaugeMult: s.bossGaugeMult || 1,
+      frozenBonus: s.frozenDamageBonus || 0, // M7-E: 凍結中の対象への Lv別追加ダメージ（宣言済みの成長項目を実適用）
     });
     this.scene.skills.recordExtra(this.id, natural ? 'naturalDetonations' : 'earlyDetonations', 1, 'add');
     this.scene.skills.recordExtra(this.id, 'shatters', 0, 'add');

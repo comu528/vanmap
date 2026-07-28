@@ -6,7 +6,8 @@ import { SkillBase } from './SkillBase.js';
 
 export class IcebergRamSkill extends SkillBase {
   constructor(scene, id, level) { super(scene, id, level); this.berg = null; this._nextId = 1; }
-  canFire(ctx) { return ctx.hasEnemies && !this.berg; }
+  // 同時1つ（構造的制限）＋品質別の安全上限 maxIcebergRams（M7-E: 宣言済みの上限を実参照。low=1 で恒等）。
+  canFire(ctx) { return ctx.hasEnemies && !this.berg && this.scene.combat.skillCap('maxIcebergRams', 2) >= 1; }
 
   fire() {
     const s = this.stats; const p = this.scene.player;

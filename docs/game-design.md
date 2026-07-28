@@ -522,3 +522,30 @@ hitGroup 上限・状態カウンタ・ボス氷砕状態を数値で確認で�
 | 極夜天光 `polar_night_aurora` | 極光氷幕 `aurora_veil` | 余寒残留 `lingering_cold`（passive） |
 
 冷気/凍結/粉砕/ボス氷砕は既存 `StatusEffectManager` 経路（独自タイマーなし）。index／黄金角ベース決定論で draft RNG cursor 不変。echo/clone は1世代・再帰なし（`absolute_ice_seal`/`aurora_veil`/`eternal_sealed_coffin`/`polar_night_aurora` は forbidden・`glacial_spear_rain`/`snowflake_sentry` は custom で攻撃部分のみ複製・`iceberg_ram` は echo=standard・clone=custom）。氷印/氷棺は skill-local マーカーで正式 status を増やさない。実ブラウザでの見た目・体感は本環境では未確認。詳細は `docs/skills.md`・`docs/jobs.md`・`docs/skill-catalog.md`。
+
+## Milestone 7-E: 氷術師 完成監査（抽選率／進化到達率／全体バランス）
+氷術師のカタログ完成（active30 / passive4 / 進化18）を受けた**監査 Milestone**。新しい active / passive / 進化 /
+ジョブ / 状態異常 / 属性反応 / 敵 / ボス / 難易度は**一切追加していない**。狙いは「厳密な対戦均衡」ではなく次の 8 点。
+
+1. どのスキルも抽選上ちゃんと存在する — **提示 0 / 取得 0 の active・passive はゼロ**
+2. 進化が実際に狙える — evolution-first・active枠6 で **平均 3.58 個 / 進化1個以上 100%**
+3. 特定スキルが候補を独占しない — rarity 帯内の提示率に**中央値の 3 倍超も 1/3 未満も無い**
+4. 死に候補がない — 全 18 進化がいずれかの戦略・枠数で実際に成立する（**到達不能 0**）
+5. 状態異常が機能する — 冷気→凍結→粉砕、ボスは氷砕ゲージ→FROST BREAK→脆弱が計測で確認できる
+6. 終盤は派手に壊れてよい — legendary 軸（`zero_hour_world` / `polar_night_aurora`）は終盤に届く設計のまま
+7. 序盤から無制限に壊れない — 凍結耐性・hitGroup 上限・氷砕閾値成長が実際に抑止として働いている
+8. 保存・決定論・性能上限を壊さない — `save_version` v6 維持・status RNG drift 0・未参照上限 0
+
+### プレイ感の設計判断（M7-E で確認して**変えなかった**もの）
+- **枠が広いほど進化しやすい、わけではない**。進化は base を置換するだけで枠を増やさないため、
+  進化数の天井は枠数ではなく「base を Lv8 まで上げられた本数」で決まる。8 枠は level-up が分散して
+  かえって進化数が減る（evolution-first で 3.58 → 2.17）。**軸を絞る戦略（one-build-focus）が 8 枠では最も強い**（2.36）。
+  これは「広く浅く」と「狭く深く」のトレードオフとして意図どおりであり、均一化はしない。
+- **base のレアリティが進化到達率をほぼ決める**（common 33〜49% / uncommon 12〜19% / rare 1〜2% / legendary 0〜1%）。
+  さらに **active 補助を要求する 3 進化**（`world_end_avalanche` / `zero_hour_world` / `eternal_sealed_coffin`）は
+  active 枠を 1 つ余分に使うぶん不利になる。これも「レア軸ほど狙って組む必要がある」設計として保持する。
+- **passive 4 種はどれも死んでいない**（それぞれ 3〜4 の進化から要求される）。`lingering_cold` の Lv4 到達率が
+  最も低い（46%）のは要求する進化が 3 種と最少なため。必須化もしていない。
+
+詳細な数値は `docs/frost-draft-analysis.md`、監査の全項目は `docs/frost-completion-audit.md`、
+修正内容と残した警告は `docs/frost-balance-report.md` を参照。実ブラウザでの体感は本環境では未確認。

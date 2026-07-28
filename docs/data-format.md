@@ -990,3 +990,37 @@ M6-E〜M7-C までの `skillCaps` へ、氷スキル/進化の品質別（`low �
 - 検証: 追加19キーが品質順で単調非減少・非負整数（`low≤medium≤high≤ultra`・正）。**上限到達でも凍結/粉砕/氷砕/氷印の判定は消さず、装飾を先に削る**（`maxAuroraQueriesPerTick` は帯の走査分割・毎frame 全敵走査を避ける負荷 cap）。
 
 `validate-data.mjs` に M7-D 検証ブロックを追加（氷 active30/進化18・skillCaps 19種・cast/監査/procCoefficient/config 二次proc・bossGaugeMult per-Lv 単調増加・propagation.generations・lv80 対象が6種）。詳細は `docs/skills.md`・`docs/skill-catalog.md`・`docs/jobs.md`。
+
+## Milestone 7-E: 上限の二層構造と「死にフィールド」の禁止
+
+### 上限は 2 層（どちらか一方だけでは不十分ではない・意味が違う）
+| 層 | 置き場所 | 読み手 | 品質別 | 用途 |
+|----|----------|--------|--------|------|
+| `safetyCaps` | `skill-evolutions.json` の各進化 | `EvolvedSkillBase.cap(key, fallback)` | いいえ | その進化に固有の**絶対上限**（暴走防止の最終ライン） |
+| `skillCaps` | `data/balance.json` | `combat.skillCap(name, fallback)` / `combat.frameBudget(tag, name)` | **はい**（low/medium/high/ultra） | 端末性能に応じた**実効上限** |
+
+同じ意味の上限を両方に持つ場合、実効値は `Math.min(data 値, safetyCaps, skillCaps)` になる。
+`skillCaps` の各エントリは **low ≤ medium ≤ high ≤ ultra・すべて正の有限数**であること。
+
+### 「死にフィールド」を作らない（M7-C の bossGaugeMult 不具合の再発防止）
+`validate-data.mjs` の M7-E ブロックが以下をエラーにする。
+
+- `levels[]` に宣言した**成長項目が実装クラス（および共通経路）から一度も参照されない**
+- `levels[]` の Lv N → Lv N+1 で**一切値が変化しない**（成長しない成長項目）
+- `skillCaps` に宣言した上限が実装から参照されない（**未使用 cap**）
+- 実装が参照する上限名が `balance.json` に存在しない（**名前違い**）
+- `bossGaugeMult` が `StatusEffectManager` のボス分岐で参照されていない／ゲージ量以外へ適用されている
+- `status-effects.json` に **skill-local マーカー**（氷印 `ice_seal` / 氷棺など）を正式状態として登録している
+- 氷術師の active / 進化 id が `docs/skill-catalog.md` に記載されていない
+
+宣言した値は**必ず実装で使う**か、**data から削除する**。「予約値」として Lv 成長項目に残さない。
+
+### M7-E で行った data 変更（氷術師のみ・火の魔女は不変）
+| ファイル | 変更 |
+|----------|------|
+| `skills.json` | `crystal_bloom.levels[].interval` → **`cooldown`**（未参照だった設置間隔を正式な CD キーへ改名） |
+| `skill-evolutions.json` | `crystal_sentinel_legion.pulseProc` を**削除**（この進化に pulse 機構は無い） |
+| `balance.json` | `maxSentryLinksPerFrame` / `maxSnowblindMistParticles` / `maxFreezeChecksPerFrame` / `maxStatusApplicationsPerFrame` を**削除**。`maxIcePrisons` を 1/2/3/4 → **3/4/5/6**、`maxWorldEndAvalancheWaves` を 2/3/4/6 → **3/3/4/6**（品質で主効果を削らないため） |
+
+`opts.frozenBonus`（凍結対象への追加ダメージ倍率・既定 0）と `Projectile.bossGaugeMult`（既定 1）は
+`dealDamage` / `damageArea` / 弾の共通オプションとして追加した。未指定のスキルの挙動は変わらない。
