@@ -10,7 +10,7 @@
 
 - ブランチ: **`claude/funny-heisenberg-frhgq9`**（`CLAUDE.md` の継続ブランチ。指定なき限りここへコミット・プッシュ）
 - 直近コミット:
-  - `(M8-C.1)` Milestone 8-C.1: 戦士4枠時の進化導線修正（ジョブ限定 guidance ＋ 進化導線 pity）
+  - `6f9b1de` Milestone 8-C.1: 戦士4枠時の進化導線修正（ジョブ限定 guidance ＋ 進化導線 pity）
   - `7e24e1a` Milestone 8-C ドキュメント更新: docs/project-state.md へ commit ID を記載
   - `bae3f34` Milestone 8-C: 戦士スキル拡張 Wave1（active15 / 進化8・処刑/反撃調停/戦吼/引き寄せ）
   - `4a621b6` Milestone 8-B.1 ドキュメント更新: docs/project-state.md へ commit ID を記載
@@ -483,7 +483,7 @@ M7-E の「火由来の未参照 cap 5 件」は解消済み。**戦士は M8-C 
 
 ## Latest test results
 
-- 実行日時点: Milestone 8-C.1 完了時（コミット `(M8-C.1)`）
+- 実行日時点: Milestone 8-C.1 完了時（コミット `6f9b1de`）
 - **テストスイート: 125 件（`tests/*.mjs` から共通土台 `frost-audit-common.mjs` / `flame-audit-common.mjs` /
   `warrior-common.mjs` / `status-passive-common.mjs` / `warrior-draft-sim.mjs` と `validate-data.mjs` を除く）
   → 全 125 通過・失敗 0**
