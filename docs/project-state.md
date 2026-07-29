@@ -10,7 +10,7 @@
 
 - ブランチ: **`claude/funny-heisenberg-frhgq9`**（`CLAUDE.md` の継続ブランチ。指定なき限りここへコミット・プッシュ）
 - 直近コミット:
-  - `<M8-E-COMMIT>` Milestone 8-E: 戦士スキル拡張 最終Wave（active30 / 進化18・貫穿突き/一騎討ち/修羅の構え/震天踏破/刃返し）
+  - `00e886f` Milestone 8-E: 戦士スキル拡張 最終Wave（active30 / 進化18・貫穿突き/一騎討ち/修羅の構え/震天踏破/刃返し）
   - `05587df` Milestone 8-D ドキュメント更新: docs/project-state.md へ commit ID を記載
   - `dec7eaa` Milestone 8-D: 戦士スキル拡張 Wave2（active25 / 進化13・打ち上げ/前面防御/掴み投げ/戦旗/低HP）
   - `02ab13e` Milestone 8-C.1 ドキュメント更新: docs/project-state.md へ commit ID を記載
@@ -131,7 +131,7 @@ M8-D では `heaven_crushing_descent` が枠6 で 7 件だったので**大き�
 | M8-C | 戦士スキル拡張 Wave1（active15 / 進化8・処刑 / 反撃調停 / 戦吼 / 引き寄せ）（`bae3f34` `7e24e1a`） |
 | M8-C.1 | 戦士 4 枠時の進化導線修正（ジョブ限定 guidance ＋ 進化導線 pity・新規コンテンツなし）（`6f9b1de` `02ab13e`） |
 | M8-D | 戦士スキル拡張 Wave2（active25 / 進化13・打ち上げ / 前面防御 / 掴み投げ / 戦旗の陣 / 低 HP スケーリング・guidance へ active 補助補正を 1 キー追加）（`dec7eaa` `05587df`） |
-| **M8-E** | **戦士スキル拡張 最終Wave**（active30 / 進化18 で**3 ジョブが同規模へ到達**・直線の対象選択 / 決闘 / 構え / 進軍 / 弾き返し・guidance へ高要求補助の補正を 2 キー追加）（`<M8-E-COMMIT>`） |
+| **M8-E** | **戦士スキル拡張 最終Wave**（active30 / 進化18 で**3 ジョブが同規模へ到達**・直線の対象選択 / 決闘 / 構え / 進軍 / 弾き返し・guidance へ高要求補助の補正を 2 キー追加）（`00e886f`） |
 
 ## Job catalog counts
 
@@ -280,10 +280,10 @@ M8-D では `heaven_crushing_descent` が枠6 で 7 件だったので**大き�
 | 12 | **M8-A** | `eternal_pyre.spreadInfection()` が `enemyPool.forEachActive()` で毎 tick 全敵を総当たりしていたのを炎上索引経由へ（性能改善・対象集合は同じ） | `bca7ec3` |
 | 13 | M8-A | `AshLegionSkill` / `SolarAnnihilationArraySkill` の `serializeState()` が `{}` を返すだけで `restoreState` も無く、`AshDoppelgangerSkill` は保存値 `spawned` を復元していなかった（再開直後に全ユニットが無料で一斉発動） | `bca7ec3` |
 | 15 | **M8-B.1** | **氷術師の passive「余寒残留」が周回中に効かなかった**。`BattleScene._refreshStatusPassives()` が通常のレベルアップ経路（`applyCandidate`）から呼ばれておらず、`StatusEffectManager` へ push 型で渡す `chillDecayMult` / `iceStatusDurationMult` だけが更新されないままだった（pull 型の `iceDamage` / `cooldown` / `area` は影響なし）。`passives.version` を単一トリガーにする `_refreshStatusPassivesIfNeeded()` を追加し、変化時だけ現在の所持状態から完全再構築するようにした | `601fe2a` |
-| 16 | **M8-E** | `restoreTimedBuffs()` が決闘の復元で `duelStarts` を**二重に**戻し、復元後のテレメトリが **-1** になっていた（`restoreDuelState()` はもともと数えていない）。減算を削除し、弾き返しの窓カウンタも 0 未満へ下がらないようクランプ | `<M8-E-COMMIT>` |
-| 17 | **M8-E** | `canDeflectProjectile()` が `deflectGeneration` を見ておらず、印（`alreadyDeflected`）が落ちた反射弾を**再び弾けてしまう**経路が残っていた。世代だけで止まるガードを追加 | `<M8-E-COMMIT>` |
-| 18 | **M8-E** | 弾き返しの枠を使い切ると `deflectionActive` が false になって調停へ入らず、**「上限に達した窓へ弾が来た」を 1 度も計測できなかった**（`deflectCapReached` が死んだカウンタになっていた）。窓の開閉だけを見る `deflectionWindowOpen` を追加し、調停までは通して正しく数えるようにした（弾は素通りするので挙動は不変） | `<M8-E-COMMIT>` |
-| 19 | **M8-E** | テスト側の `formedButNotOffered`（進化が成立したのに候補へ出なかった数）が、進化 18 種では「同時に成立した 4 件以上が 3 枠に収まらない」だけで誤検知していた。**進化候補が 1 つも出なかった draft** だけを数える形へ修正し、良性ケースを `formedPartiallyOffered` として分離 | `<M8-E-COMMIT>` |
+| 16 | **M8-E** | `restoreTimedBuffs()` が決闘の復元で `duelStarts` を**二重に**戻し、復元後のテレメトリが **-1** になっていた（`restoreDuelState()` はもともと数えていない）。減算を削除し、弾き返しの窓カウンタも 0 未満へ下がらないようクランプ | `00e886f` |
+| 17 | **M8-E** | `canDeflectProjectile()` が `deflectGeneration` を見ておらず、印（`alreadyDeflected`）が落ちた反射弾を**再び弾けてしまう**経路が残っていた。世代だけで止まるガードを追加 | `00e886f` |
+| 18 | **M8-E** | 弾き返しの枠を使い切ると `deflectionActive` が false になって調停へ入らず、**「上限に達した窓へ弾が来た」を 1 度も計測できなかった**（`deflectCapReached` が死んだカウンタになっていた）。窓の開閉だけを見る `deflectionWindowOpen` を追加し、調停までは通して正しく数えるようにした（弾は素通りするので挙動は不変） | `00e886f` |
+| 19 | **M8-E** | テスト側の `formedButNotOffered`（進化が成立したのに候補へ出なかった数）が、進化 18 種では「同時に成立した 4 件以上が 3 枠に収まらない」だけで誤検知していた。**進化候補が 1 つも出なかった draft** だけを数える形へ修正し、良性ケースを `formedPartiallyOffered` として分離 | `00e886f` |
 | 14 | M8-B | 実装中に作り込みかけた**死にフィールド 2 件を作らずに済ませた**: passive `heavy_armor` の `knockbackResist`（プレイヤーがノックバックされる仕組みが存在しない）と `charge_slash.levels[].visual`（`visualScale()` を使わない）。data・`modifierKeys`・`balance.warrior.mitigation` から削除し、「予約値として残さない」原則を維持 | `4c8bd10` |
 
 ## Non-regression requirements
@@ -495,7 +495,7 @@ M7-E の「火由来の未参照 cap 5 件」は解消済み。**戦士は M8-C 
 
 ## Latest test results
 
-- 実行日時点: Milestone 8-E 完了時（コミット `<M8-E-COMMIT>`）
+- 実行日時点: Milestone 8-E 完了時（コミット `00e886f`）
 - **テストスイート: 162 件（`tests/*.mjs` から共通土台 `frost-audit-common.mjs` / `flame-audit-common.mjs` /
   `warrior-common.mjs` / `status-passive-common.mjs` / `warrior-draft-sim.mjs` と `validate-data.mjs` を除く）
   → 全 162 通過・失敗 0**（`validate.yml` のステップ数は `validate-data` を含めて **163**）
