@@ -43,6 +43,13 @@ export class CombatTelemetry {
       shatters: 0, shatterDamage: 0, bossFrostbreaks: 0, frostbreakVulnerabilitySeconds: 0,
       iceDamage: 0, burningDamage: 0, statusApplicationCapsReached: 0,
     };
+    // M8-C.1: 進化導線（guidance）の集計。SkillDraftManager.guidanceTelemetry() を流し込む。
+    // ジョブに依らずキー構造は同じで、guidance が無効なジョブでは全て 0 のまま出力される。外部送信なし。
+    this.draftGuidance = {
+      enabled: false, stall: 0, step: 0, threshold: 0, maxMultiplier: 1,
+      pityTriggers: 0, pityResets: 0,
+      assistedBase: 0, assistedSupport: 0, assistedUpgrade: 0, assistedEvolution: 0,
+    };
     // M8-B: 戦士（周回全体）の集計。WarriorCombatSystem.summary() を finalizeTelemetry で流し込む。
     // 戦士以外の周回では全て 0 のまま出力される（キー構造を job で変えない）。
     this.warrior = {
@@ -104,6 +111,19 @@ export class CombatTelemetry {
     if (isNum(battleLevel)) s.acquiredAtLevel = battleLevel;
     if (isNum(order)) s.acquireOrder = order;
     if (isNum(battleLevel)) s.finalLevel = Math.max(s.finalLevel, 1);
+  }
+
+  // M8-C.1: SkillDraftManager.guidanceTelemetry() の結果を周回集計へ写す（数値のみ・外部送信なし）。
+  noteDraftGuidance(g, enabled) {
+    if (!g) return;
+    const n = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+    this.draftGuidance = {
+      enabled: !!enabled,
+      stall: n(g.stall), step: n(g.step), threshold: n(g.threshold), maxMultiplier: n(g.maxMultiplier) || 1,
+      pityTriggers: n(g.triggers), pityResets: n(g.resets),
+      assistedBase: n(g.assisted && g.assisted.base), assistedSupport: n(g.assisted && g.assisted.support),
+      assistedUpgrade: n(g.assisted && g.assisted.upgrade), assistedEvolution: n(g.assisted && g.assisted.evolution),
+    };
   }
 
   noteSkillEvolved(baseId, evolutionId) {
@@ -271,6 +291,7 @@ export class CombatTelemetry {
       caps: { ...this.caps },
       status: { ...this.status }, // M7-A: 状態異常（周回全体）
       warrior: { ...this.warrior, furyBySource: { ...this.warrior.furyBySource }, comboThresholdCounts: { ...this.warrior.comboThresholdCounts }, counterBySource: { ...this.warrior.counterBySource } }, // M8-B/M8-C: 戦士（周回全体）
+      draftGuidance: { ...this.draftGuidance }, // M8-C.1: 進化導線（ローカル表示のみ）
       avgFps: num(avgFps), minFps: num(minFps), frameP95Ms: num(this._frameP95Ms()),
       frameCount: this._frameCount,
     };

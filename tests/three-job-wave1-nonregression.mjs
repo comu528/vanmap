@@ -250,4 +250,34 @@ section('10. balance.json の火 / 氷向けブロックを 1 件も変えてい
   ok(!/warCry|counterWindow|execute|chainPull/.test(raw), '火 / 氷 / status のブロックへ戦士の値を混ぜていない');
 }
 
+// ===== 11. M8-C.1: 進化導線補助が火 / 氷へ漏れていない =====
+section('11. M8-C.1 の進化導線補助（guidance）が火 / 氷へ 1 件も漏れていない');
+{
+  const g = DATA.skillConfig.guidance;
+  ok(!!g, 'skill-config.json に guidance がある');
+  ok(Array.isArray(g.jobs) && !g.jobs.includes('flame_witch') && !g.jobs.includes('frost_mage'),
+    `guidance.jobs に火 / 氷が入っていない（${JSON.stringify(g.jobs)}）`);
+  const { SkillDraftManager } = await import('../src/systems/SkillDraftManager.js');
+  const catalog = draftCatalog();
+  for (const jid of ['flame_witch', 'frost_mage']) {
+    const d = new SkillDraftManager({ rarityWeights: DATA.skillConfig.rarityWeights, synergy: DATA.skillConfig.synergy, guidance: g });
+    const job = jobPools(jid);
+    const owned = { active: { [job.activeSkillPool[0]]: 4 }, passive: {} };
+    const ctx = {
+      catalog, job, owned,
+      slots: { active: { used: 1, max: 6 }, passive: { used: 0, max: 4 } },
+      evolvables: [], need: 3, unlock: { highestClearedDifficulty: 0 },
+      synergy: { partnerIds: new Set(), battleLevel: 20 },
+      jobId: jid,
+    };
+    const pool = d._eligible(ctx, d._index(catalog), new Set());
+    ok(pool.length > 0, `${jid}: 候補プールが空でない`);
+    ok(pool.every((c) => c.guidanceMult === undefined), `${jid}: guidanceMult が 1 件も付かない`);
+    for (let i = 0; i < 10; i++) { d.open(ctx); d.resolvePick(); }
+    ok(d.guidanceStall === 0, `${jid}: guidance の stall が 0 のまま`);
+    ok(d.guidancePityStep() === 0, `${jid}: pity 段も 0`);
+    ok(d.serialize().guidanceStall === 0, `${jid}: 保存値も 0（実質的に保存内容が変わらない）`);
+  }
+}
+
 T.finish();

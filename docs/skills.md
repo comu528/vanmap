@@ -241,3 +241,14 @@ applyEvolvedSemantics(AdamantCounterSkill);
 
 一覧と役割は `./skill-catalog.md` の Milestone 8-C 節と `./warrior-skill-matrix.md`、
 設計意図は `./warrior-wave1.md`。
+
+## Milestone 8-C.1: 抽選導線（スキル実装は変更なし）
+
+M8-C.1 は **`SkillDraftManager` の重み計算だけ**を直した回で、スキルの実装・数値・進化条件は 1 件も変えていない。
+
+- `src/skills/**` は **1 ファイルも変更していない**
+- `data/skills.json` / `data/skill-evolutions.json` / `data/balance.json` も変更なし
+- 変更したのは `src/systems/SkillDraftManager.js` / `src/scenes/BattleScene.js`（ctx を渡す部分と F8 表示）/
+  `src/systems/CombatTelemetry.js`（集計キーの追加）/ `data/skill-config.json`（`guidance` ブロックの追加）
+
+抽選側の詳細は `./warrior-evolution-guidance.md`。

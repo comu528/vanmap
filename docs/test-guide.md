@@ -1050,3 +1050,78 @@ node tests/warrior-sweeping.mjs             node tests/warrior-wave1-quality-cap
 ```
 
 `HEAVY=1` を付けると seed 数・実行回数を増やした詳細計測になる。
+
+---
+
+## Milestone 8-C.1: 戦士 4 枠時の進化導線（実ブラウザ確認）
+
+本環境では Phaser を起動できないため、以下は**未実施**。実ブラウザで確認すること。
+前提: 拠点で **戦士** を選び、active 枠 4（転生で枠を広げていない状態）で周回を始める。
+
+### A. 枠 4 での進化到達
+
+- [ ] 40 レベルアップ前後で **進化が 1 つ以上成立する**（10 回中 8 回以上が目安）
+- [ ] 最初の進化までのレベルを覚えておく（枠 4 では 25〜35 レベルあたりが目安）
+- [ ] 進化が成立したとき、候補の**先頭に★進化が出る**
+
+### B. 候補の出かた
+
+- [ ] 進化元（大薙ぎ / 盾撃 / 旋風斬り / 兜割り / 処刑斬 / 跳躍強襲 / 迎撃の構え / 戦吼）の
+      **強化候補が出やすい**と感じる（Lv6〜7 のとき特に）
+- [ ] 必要な passive（剛力 / 重装 / 戦闘本能 / 血気）も出る
+- [ ] **進化を持たない active（突進斬り / 双牙斬 / 薙ぎ進軍 / 鎖鉤 / 震脚 / 怒涛連撃）も普通に出る**
+      （進化軸だけに偏っていない）
+- [ ] 同じ候補が 1 回のレベルアップで重複して出ない
+
+### C. 条件成立後
+
+- [ ] 進化元 Lv8 ＋ 補助が揃った直後のレベルアップで、**必ず進化候補が出る**
+- [ ] 進化を取ると進化元がスキル欄から消え、進化後スキルへ置き換わる
+
+### D. reroll / banish / skip
+
+- [ ] リロールすると候補が変わる（残回数が 1 減る）
+- [ ] 追放したスキルがその周回で二度と出ない
+- [ ] スキップしても壊れない
+
+### E. save / reload
+
+- [ ] レベルアップ候補が出ている状態でタブを閉じ、「続きから」で再開 → **同じ候補が出る**
+- [ ] 何度リロードしても候補が変わらない（引き直せない）
+- [ ] リロードを繰り返しても進化が早く来るようにならない（pity を稼げない）
+
+### F. active 補助の進化（天墜崩撃）
+
+- [ ] 跳躍強襲と地砕きの**両方**を持つと、天墜崩撃の条件が見える
+- [ ] 天墜崩撃へ進化しても**地砕きはスキル欄に残る**
+- [ ] 枠 4 では 2 枠使うぶん成立しにくい（他の進化より珍しくてよい）
+
+### G. build の偏り
+
+- [ ] 3〜5 周回してみて、**毎回同じ build にならない**
+- [ ] 毎回同じ進化ばかりにならない
+
+### H. 枠 6 / 枠 8
+
+- [ ] 転生で枠を広げた状態でも進化が減らない（むしろ増える）
+- [ ] 枠が広いときに候補が「進化元だらけ」にならない
+
+### I. エラー
+
+- [ ] コンソールに JS エラーが出ない（レベルアップ時・進化時・保存/再開時）
+- [ ] **火の魔女 / 氷術師の周回で候補の出かたが従来どおり**（体感が変わっていない）
+- [ ] F8 の戦士分析に「戦士 進化導線（M8-C.1）」が出る
+- [ ] F9 / F10 が従来どおり開く
+
+### 自動テスト（本環境で実施済み）
+
+```
+node tests/validate-data.mjs
+node tests/warrior-evolution-guidance.mjs        node tests/warrior-build-diversity.mjs
+node tests/warrior-slot4-evolution-rate.mjs      node tests/warrior-draft-save-reload.mjs
+node tests/warrior-evolution-pity.mjs            node tests/warrior-draft-guidance-determinism.mjs
+node tests/warrior-evolution-synergy.mjs         node tests/warrior-draft-guidance-nonregression.mjs
+node tests/warrior-active-support-evolution.mjs  node tests/warrior-draft-determinism.mjs
+```
+
+`HEAVY=1` で seed 数・実行回数を増やせる。

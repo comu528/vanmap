@@ -66,5 +66,27 @@
     "noProgressDraftThreshold": 4,
     "noProgressWeightBonus": 0.1,
     "noProgressMaxMultiplier": 1.5
+  },
+  "guidance": {
+    "_comment": "Milestone 8-C.1: ジョブ限定の進化導線補助。jobs に載っているジョブの周回でだけ抽選重みへ乗算する（それ以外のジョブでは倍率1＝候補列もRNG消費も完全に不変）。対象は data の進化レシピからのみ導出し skill ID をハードコードしない。『どの進化元を取るか』はレアリティ階層に委ね、『取った進化元を最後まで伸ばす』側だけを助ける。",
+    "enabled": true,
+    "jobs": [
+      "warrior"
+    ],
+    "minBattleLevel": 3,
+    "maxMultiplier": 6,
+    "readyBaseAcquireWeightMultiplier": 1.3,
+    "ownedBaseUpgradeWeightMultiplier": 1.8,
+    "nearMaxRemainingLevels": 3,
+    "baseNearMaxBonusMultiplier": 1.7,
+    "supportReadyBaseMultiplier": 1.5,
+    "requiredSupportWeightMultiplier": 1.3,
+    "nearRequiredRemainingLevels": 1,
+    "supportNearRequiredMultiplier": 1.2,
+    "pity": {
+      "threshold": 3,
+      "bonusPerStep": 0.12,
+      "maxMultiplier": 1.8
+    }
   }
 }

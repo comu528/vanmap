@@ -102,52 +102,36 @@ for (const evoId of WARRIOR.evolutionPool) {
   ok(found, `${evoId}: 条件成立後 50 seed 以内に進化候補が提示される`);
 }
 
-// ===== 5. 進化到達率（実抽選シミュレーション）=====
-section('5. 実抽選シミュレーション: active枠4/6 での進化到達率');
+// ===== 5. 進化到達率（production 経路の実抽選シミュレーション）=====
+// M8-C.1: 素朴な方針（進化があれば取る・無ければ候補列の先頭）のまま、
+// 経路だけを production と同じ open() / synergy / guidance / reroll / banish / skip へ揃えた。
+// 抽選器・戦略は変えていないので、M8-B / M8-C の測定と同じ物差しで比べられる。
+section('5. 実抽選シミュレーション: active枠4/6/8 での進化到達率（production 経路）');
 {
-  const simulate = (seed, slotMax, levelUps) => {
-    const owned = emptyOwned();
-    const evolved = new Set();
-    for (let i = 0; i < levelUps; i++) {
-      const slots = slotsOf(slotMax, 4);
-      slots.active.used = Object.keys(owned.active).length;
-      slots.passive.used = Object.keys(owned.passive).length;
-      // 進化可能な組み合わせを都度算出する（production と同じ条件判定）。
-      const evolvables = [];
-      for (const evoId of WARRIOR.evolutionPool) {
-        const e = DATA.evolutions.find((x) => x.id === evoId);
-        const aux = e.requiredSkills[0];
-        if (evolved.has(evoId)) continue;
-        if ((owned.active[e.baseSkillId] || 0) >= 8 && (owned.passive[aux.skill] || 0) >= aux.level) {
-          evolvables.push({ baseId: e.baseSkillId, evolutionId: evoId });
-        }
-      }
-      const cands = gen(seed * 1000 + i, owned, slots, evolvables);
-      if (!cands.length) continue;
-      // 方針: 進化 > 未取得（枠が空いていれば） > 既存強化 の順で選ぶ。
-      const evo = cands.find((c) => c.kind === 'evolution');
-      const pick = evo || cands[0];
-      if (pick.kind === 'evolution') {
-        const e = DATA.evolutions.find((x) => x.baseSkillId === pick.baseId && WARRIOR.evolutionPool.includes(x.id));
-        if (e) { evolved.add(e.id); delete owned.active[e.baseSkillId]; owned.active[e.id] = 8; }
-      } else if (pick.category === 'passive') {
-        owned.passive[pick.id] = Math.min(4, (owned.passive[pick.id] || 0) + 1);
-      } else {
-        owned.active[pick.id] = Math.min(8, (owned.active[pick.id] || 0) + 1);
-      }
+  const { simulateRun } = await import('./warrior-draft-sim.mjs');
+  const runs = Number(process.env.HEAVY) ? 500 : 200;
+  // M8-C で一時的に下げた基準を M8-C.1 で復元する（[枠, レベルアップ回数, ≥1%, 平均, 0%]）。
+  for (const [slotMax, levelUps, minRate, minMean, maxZero] of [[4, 40, 80, 1.0, 20], [6, 60, 95, 1.7, 5], [8, 80, 95, 1.8, 5]]) {
+    const counts = [];
+    for (let s = 1; s <= runs; s++) {
+      counts.push(simulateRun({ seed: s, slotActive: slotMax, levelUps, strategy: 'first-candidate' }).evolutionCount);
     }
-    return evolved.size;
-  };
-  // M8-C: active が 5 → 15 種へ増えたため、同じレベルアップ回数での進化到達率は必然的に下がる
-  //（1 種あたりの提示確率が下がり、Lv8 まで伸ばすのに必要な選択回数が増えるため）。
-  // 枠が狭いほど影響が大きいので、枠ごとに基準を分ける。
-  for (const [slotMax, levelUps, minRate] of [[4, 40, 35], [6, 60, 80], [8, 80, 90]]) {
-    let atLeast1 = 0;
-    const runs = 200;
-    for (let s = 1; s <= runs; s++) if (simulate(s, slotMax, levelUps) >= 1) atLeast1++;
-    const rate = atLeast1 / runs * 100;
-    info(`active枠${slotMax} / ${levelUps}回レベルアップ: 進化1種以上 ${rate.toFixed(1)}%`);
+    const n = counts.length;
+    const rate = counts.filter((c) => c >= 1).length / n * 100;
+    const rate2 = counts.filter((c) => c >= 2).length / n * 100;
+    const zero = counts.filter((c) => c === 0).length / n * 100;
+    const mean = counts.reduce((a, b) => a + b, 0) / n;
+    info(`active枠${slotMax} / ${levelUps}回レベルアップ: 進化1種以上 ${rate.toFixed(1)}% / 2種以上 ${rate2.toFixed(1)}% / 平均 ${mean.toFixed(2)} / 0種 ${zero.toFixed(1)}%`);
     ok(rate >= minRate, `active枠${slotMax}: 進化1種以上の到達率 ${rate.toFixed(1)}% ≥ ${minRate}%`);
+    ok(mean >= minMean, `active枠${slotMax}: 平均進化数 ${mean.toFixed(2)} ≥ ${minMean}`);
+    ok(zero <= maxZero, `active枠${slotMax}: 進化0種の割合 ${zero.toFixed(1)}% ≤ ${maxZero}%`);
+  }
+  // 枠6 / 枠8 は「2種以上」の基準も持つ。
+  for (const [slotMax, levelUps, min2] of [[6, 60, 60], [8, 80, 65]]) {
+    const counts = [];
+    for (let s = 1; s <= runs; s++) counts.push(simulateRun({ seed: s, slotActive: slotMax, levelUps, strategy: 'first-candidate' }).evolutionCount);
+    const rate2 = counts.filter((c) => c >= 2).length / counts.length * 100;
+    ok(rate2 >= min2, `active枠${slotMax}: 進化2種以上の到達率 ${rate2.toFixed(1)}% ≥ ${min2}%`);
   }
 }
 

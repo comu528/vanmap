@@ -267,4 +267,28 @@ section('7. Wave1 進化は遠距離へ飛ばず、宣言した数値がすべ�
   }
 }
 
+// ===== 8. M8-C.1: 進化条件そのものは変えていない =====
+section('8. M8-C.1 の導線補助は進化条件を 1 件も変えていない（抽選重みだけ）');
+{
+  const { GUIDANCE_RECIPES, SKILL_CONFIG } = await import('./warrior-draft-sim.mjs');
+  ok(GUIDANCE_RECIPES.length === EXPECTED.evolutionCount, `レシピ ${GUIDANCE_RECIPES.length} 件 = 進化 ${EXPECTED.evolutionCount} 件`);
+  for (const r of GUIDANCE_RECIPES) {
+    const e = EVO(r.evolutionId);
+    ok(r.baseSkillId === e.baseSkillId, `${r.evolutionId}: 進化元が data どおり`);
+    ok(r.baseLevel === (SKILL(e.baseSkillId).maxLevel || 8), `${r.evolutionId}: 必要 base Lv が data どおり（${r.baseLevel}）`);
+    ok(r.requirements.length === (e.requiredSkills || []).length, `${r.evolutionId}: 補助の件数が data どおり`);
+    for (const q of e.requiredSkills || []) {
+      const m = r.requirements.find((x) => x.skill === q.skill);
+      ok(m && m.level === q.level, `${r.evolutionId}: 補助 ${q.skill} Lv${q.level} が data どおり`);
+    }
+  }
+  ok(SKILL_CONFIG.guidance.jobs.join(',') === 'warrior', '導線補助は戦士専用');
+  // 進化そのものの数値（damage / cooldown / safetyCaps）は M8-C から不変。
+  for (const id of EXPECTED.wave1Evolutions) {
+    const e = EVO(id);
+    ok(typeof e.cooldown === 'number' && e.cooldown > 0, `${id}: cooldown が不変（${e.cooldown}ms）`);
+    ok(Object.keys(e.safetyCaps || {}).length > 0, `${id}: safetyCaps が残っている`);
+  }
+}
+
 T.finish();

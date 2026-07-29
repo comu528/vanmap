@@ -704,6 +704,73 @@ if (jobProgData) {
   }
 }
 
+// --- M8-C.1: 進化導線補助（guidance）の検証 ---
+// 予約フィールド禁止: 宣言したキーは全て SkillDraftManager から参照されること。
+{
+  const sc = loadJson('skill-config.json');
+  const g = sc && sc.guidance;
+  if (g) {
+    const src = readFileSync(join(__dirname, '..', 'src', 'systems', 'SkillDraftManager.js'), 'utf8');
+    const jobs = loadJson('jobs.json');
+    const jobIds = new Set(((jobs && jobs.jobs) || []).map((j) => j.id));
+    if (typeof g.enabled !== 'boolean') err('skill-config.json: guidance.enabled が真偽値でない');
+    if (!Array.isArray(g.jobs) || g.jobs.length === 0) err('skill-config.json: guidance.jobs が空でない配列でない');
+    else for (const j of g.jobs) {
+      if (!jobIds.has(j)) err(`skill-config.json: guidance.jobs の ${j} は jobs.json に無い`);
+      // 火 / 氷へ誤って設定していないこと（M8-C.1 は戦士だけを対象にする）。
+      if (j === 'flame_witch' || j === 'frost_mage') err(`skill-config.json: guidance.jobs へ ${j} を入れてはいけない（火/氷は非回帰対象）`);
+    }
+    // 倍率は 1 以上の有限数（重みを下げる補助にしない＝到達不能を作らない）。
+    const MULT = ['maxMultiplier', 'readyBaseAcquireWeightMultiplier', 'ownedBaseUpgradeWeightMultiplier',
+      'baseNearMaxBonusMultiplier', 'supportReadyBaseMultiplier', 'requiredSupportWeightMultiplier',
+      'supportNearRequiredMultiplier'];
+    for (const k of MULT) {
+      const v = g[k];
+      if (typeof v !== 'number' || !Number.isFinite(v)) err(`skill-config.json: guidance.${k} が有限数でない (${v})`);
+      else if (v < 1) err(`skill-config.json: guidance.${k} は 1 以上であること (${v})`);
+    }
+    // 非負整数のしきい値。
+    for (const k of ['minBattleLevel', 'nearMaxRemainingLevels', 'nearRequiredRemainingLevels']) {
+      const v = g[k];
+      if (typeof v !== 'number' || !Number.isInteger(v) || v < 0) err(`skill-config.json: guidance.${k} が非負整数でない (${v})`);
+    }
+    // 合成上限は個別倍率の最大値以上（cap がどの補正よりも小さいと死にフィールドになる）。
+    const maxSingle = Math.max(...MULT.filter((k) => k !== 'maxMultiplier').map((k) => (typeof g[k] === 'number' ? g[k] : 0)));
+    if (typeof g.maxMultiplier === 'number' && g.maxMultiplier < maxSingle) {
+      err(`skill-config.json: guidance.maxMultiplier (${g.maxMultiplier}) が個別倍率の最大 (${maxSingle}) より小さい`);
+    }
+    if (typeof g.maxMultiplier === 'number' && g.maxMultiplier > 8) warn(`skill-config.json: guidance.maxMultiplier が大きすぎる (${g.maxMultiplier})`);
+    // pity。
+    const p = g.pity;
+    if (!p || typeof p !== 'object') err('skill-config.json: guidance.pity が無い');
+    else {
+      if (typeof p.threshold !== 'number' || !Number.isInteger(p.threshold) || p.threshold < 1) err(`skill-config.json: guidance.pity.threshold が正整数でない (${p.threshold})`);
+      if (typeof p.bonusPerStep !== 'number' || !Number.isFinite(p.bonusPerStep) || p.bonusPerStep < 0) err(`skill-config.json: guidance.pity.bonusPerStep が非負の有限数でない (${p.bonusPerStep})`);
+      if (typeof p.maxMultiplier !== 'number' || !Number.isFinite(p.maxMultiplier) || p.maxMultiplier < 1) err(`skill-config.json: guidance.pity.maxMultiplier が 1 以上の有限数でない (${p.maxMultiplier})`);
+      for (const k of Object.keys(p)) {
+        if (k.startsWith('_')) continue;
+        if (!src.includes(`p.${k}`) && !src.includes(`'${k}'`)) err(`skill-config.json: guidance.pity.${k} が SkillDraftManager から参照されていない（予約フィールド禁止）`);
+      }
+    }
+    // 予約フィールド禁止 / 重複禁止。
+    const seen = new Set();
+    for (const k of Object.keys(g)) {
+      if (seen.has(k)) err(`skill-config.json: guidance.${k} が重複している`);
+      seen.add(k);
+      if (k === '_comment' || k === 'pity' || k === 'jobs' || k === 'enabled') continue;
+      if (!src.includes(`cfg.${k}`)) err(`skill-config.json: guidance.${k} が SkillDraftManager から参照されていない（予約フィールド禁止）`);
+    }
+    // 逆方向: 実装が読むキーが data に無い（暗黙の既定値で黙って動く）ことを防ぐ。
+    for (const m of src.matchAll(/cfg\.([A-Za-z][A-Za-z0-9]*)/g)) {
+      const k = m[1];
+      if (['enabled', 'jobs', 'pity', 'synergyAssistEnabled', 'synergyAssistMinBattleLevel', 'synergyAssistMaxMultiplier',
+        'evolutionPartnerWeightMultiplier', 'ownedSkillUpgradeWeightMultiplier', 'nearlyMaxedSkillWeightMultiplier',
+        'unrelatedNewSkillWeightMultiplier', 'noProgressDraftThreshold', 'noProgressWeightBonus', 'noProgressMaxMultiplier'].includes(k)) continue;
+      if (!(k in g)) err(`skill-config.json: SkillDraftManager が読む guidance.${k} が data に無い`);
+    }
+  }
+}
+
 // --- M6-F: バランス警告しきい値・テレメトリ上限の検証 ---
 {
   const th = loadJson('balance-thresholds.json');

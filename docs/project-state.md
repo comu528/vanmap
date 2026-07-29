@@ -4,12 +4,14 @@
 > **各 Milestone 完了時に必ず更新する**（完了報告の要約・コミットID・テスト結果・次 Milestone）。
 > compact 後・新セッション開始時は `CLAUDE.md` → `README.md` → `TODO.md` → 本ファイル → `git log -5 --oneline` の順で確認する。
 >
-> 最終更新: Milestone 8-C 完了時点
+> 最終更新: Milestone 8-C.1 完了時点
 
 ## Current branch
 
 - ブランチ: **`claude/funny-heisenberg-frhgq9`**（`CLAUDE.md` の継続ブランチ。指定なき限りここへコミット・プッシュ）
 - 直近コミット:
+  - `(M8-C.1)` Milestone 8-C.1: 戦士4枠時の進化導線修正（ジョブ限定 guidance ＋ 進化導線 pity）
+  - `7e24e1a` Milestone 8-C ドキュメント更新: docs/project-state.md へ commit ID を記載
   - `bae3f34` Milestone 8-C: 戦士スキル拡張 Wave1（active15 / 進化8・処刑/反撃調停/戦吼/引き寄せ）
   - `4a621b6` Milestone 8-B.1 ドキュメント更新: docs/project-state.md へ commit ID を記載
   - `601fe2a` Milestone 8-B.1: passive 再計算バグ修正（status passive を passives.version で単一トリガー化）
@@ -22,18 +24,74 @@
 
 ## Current milestone
 
-- **Milestone 8-C（戦士スキル拡張 Wave1）完了・停止中。** 次の指示待ち。
+- **Milestone 8-C.1（戦士 4 枠時の進化導線修正）完了・停止中。** 次の指示待ち。
+- M8-C.1 は**抽選導線の修正のみ**。新しい skill / passive / evolution / job / 状態異常 / 属性反応 /
+  UI は追加しておらず、**スキル数値・闘気 / コンボ / 回復 / 体勢のバランスも 1 つも変えていない**。
+  `data/skills.json` / `skill-evolutions.json` / `passives.json` / `jobs.json` / `balance.json` の変更は **0 件**。
+- 直した問題: M8-C で戦士の active が 5 → 15 になった結果、production の `SkillDraftManager` を使った
+  200 seed シミュレーションで **active 枠 4 の「進化 1 個以上」到達率が 92.5% → 46.5%** へ低下していた。
+- **閾値を下げるのではなく production の導線を直した**（`docs/warrior-draft-analysis-wave1.md` に修正前分析）。
+
+### M8-C.1 の重要な設計判断
+
+1. **原因は「進化元（基礎 active）側へ効く補正が存在しなかった」こと。**
+   既存 synergy（M6-F）は「所持している基礎 → その補助スキル」の**一方向しか無い**。
+   火 / 氷は進化の補助が active 中心なので補助を伸ばす過程で基礎も育つが、
+   戦士は **8 進化中 7 件が passive 補助**で、passive は枠 4・maxLevel 4〜5 と軽く早期に最大化されるため、
+   **基礎 active の Lv8 だけが最後まで残る**構造だった。
+   実測でも進化 0 の周回は**所持基礎の最高 Lv が平均 7.03**（あと 1 段階）だった。
+2. **「どの進化元を取るか」はレアリティ階層に委ね、「取った進化元を最後まで伸ばす」側だけを助ける。**
+   進化元の**新規取得**を無条件に優遇するとレアリティ階層が歪んだ（実測で rare の進化元の取得率が
+   同 rarity 中央値の 4.8 倍）ため、新規取得の優遇は「補助がすでに揃っているとき」だけに限定した。
+3. **補正対象は data の進化レシピからのみ導出する**（`ctx.evolutionRecipes`）。
+   `SkillDraftManager` にも `BattleScene` にも**特定 skill ID を書いていない**。
+   data に進化を足せばそのまま補正対象になる。
+4. **ジョブ限定**（`skill-config.json` の `guidance.jobs`）。載っていないジョブでは倍率が常に 1 で、
+   候補オブジェクトにフィールドすら付かず、pity カウンタも進まない。
+   → 火 / 氷の候補列・RNG 消費・保存内容がまったく変わらない。
+5. **重複上限**: 同じスキルが複数レシピに関わっても倍率を掛け算にせず、
+   役割（base / support）ごとに**レシピをまたいだ最大値**だけを採り、`maxMultiplier` でクランプする。
+6. **進化導線 pity**（`guidanceStall`）は既存 pity と別カウンタ。
+   既存の `draftsSinceProgress` は進化成立でしかリセットされず、基礎 Lv8 の詰まりを救えないため。
+   進展（基礎の取得/強化・補助の取得/強化・進化取得）でリセットし、
+   **`active_run` へ加算的に保存する**ので save → reload で稼げない。
+7. **RNG 消費を 1 も増やさない**。`_guidanceMult()` は乱数へ触れず重みだけを変えるので、
+   guidance の ON / OFF で cursor が動かない。
+
+### M8-C.1 の結果（200 seed・素朴戦略＝M8-B / M8-C と同じ物差し）
+
+| 構成 | 前 | 後 | 目標 |
+|------|----|----|------|
+| 枠4 / 40 lv・進化 1 個以上 | 62.5%（`_generate` 直呼びでは 46.5%）| **89.5%** | 80% 以上 |
+| 枠4 / 40 lv・平均進化数 | 0.70 | **1.26** | 1.0 以上 |
+| 枠4 / 40 lv・進化 0 個 | 37.5% | **10.5%** | 20% 以下 |
+| 枠6 / 60 lv・≥1 / ≥2 / 平均 | 99.0% / 70.5% / 1.91 | **100.0% / 91.0% / 2.42** | 95% / 60% / 1.7 |
+| 枠8 / 80 lv・≥1 / ≥2 / 平均 | 100.0% / 100.0% / 3.50 | **100.0% / 100.0% / 3.92** | 95% / 65% / 1.8 |
+
+5 戦略合算（各 200 seed = 1000 run）: 枠4/40 で 1.29 → **1.51**（≥1 79.3% → **88.7%**）、
+枠6/60 で 2.71 → **2.96**（≥2 83.2% → **93.2%**）、枠8/80 で 4.40 → **4.44**。
+
+同 seed の変化（枠4 / 40 lv）: 改善 102 / 悪化 13 / 変化なし 85 / 進化 0→1 以上 61 / 1 以上→0 7 / 平均差 **+0.56**。
+
+**過剰誘導なし**: 最頻進化シェア 34.8% → **30.4%**、build 多様性 61.9% → **66.5%**、
+新規取得率が同 rarity 中央値の 3 倍超は **0 件**、進化を持たない active の取得は **+3.9%**、
+pity 発動率 **13.9%**（毎ドラフトではない）。
+
+### M8-C.1 で不採用にした案
+
+| 案 | 理由 |
+|----|------|
+| 進化元の新規取得を無条件に優遇 | レアリティ階層が歪んだ（rare の進化元が同 rarity 中央値の 4.8 倍） |
+| slot4 で無関係な新 active を抑制 | 到達率がほとんど変わらず build 多様性だけ下がった。**data のフィールドも残していない** |
+| 進化の強制付与 / 候補を進化 1 択へ固定 | 進化条件が意味を失い、build の自由が消える |
+| テスト閾値を下げる | 問題を隠すだけ |
+
+### （前 Milestone）Milestone 8-C（戦士スキル拡張 Wave1）
 - 戦士の **active を 10 種追加して計 15 種**、**進化を 5 種追加して計 8 種**にした
   （passive は 4 種のまま・Job Lv1〜100 の曲線と到達報酬 11 段も据え置き）。
-- 追加した active10: 兜割り `armor_breaker` / 双牙斬 `twin_fang_slash` / 処刑斬 `execution_strike` /
-  跳躍強襲 `leap_smash` / 薙ぎ進軍 `sweeping_advance` / 迎撃の構え `counter_stance` / 戦吼 `war_cry` /
-  鎖鉤 `chain_hook` / 震脚 `shockwave_stomp` / 怒涛連撃 `relentless_combo`
-- 追加した進化5: 断界兜割 `skull_splitter` / 血断処刑 `crimson_execution` / 軍神咆哮 `war_god_roar` /
-  金剛迎撃 `adamant_counter` / 天墜崩撃 `heaven_crushing_descent`
+- 追加した active10: 兜割り / 双牙斬 / 処刑斬 / 跳躍強襲 / 薙ぎ進軍 / 迎撃の構え / 戦吼 /
+  鎖鉤 / 震脚 / 怒涛連撃。追加した進化5: 断界兜割 / 血断処刑 / 軍神咆哮 / 金剛迎撃 / 天墜崩撃。
 - **すべて近接**。画面を横断する斬撃波・弾は 1 つも増やしていない。
-- **新しい passive / ジョブ / 属性反応 / formal status / 装備 / 敵 / ボス / 難易度は追加していない。**
-- **火の魔女・氷術師は数値・挙動・候補列・状態異常・保存とも 1 件も変更していない。**
-- **`save_version` は v6 のまま**（`warriorState.timedBuffs` の追加のみ・移行不要）。
 
 ### M8-C の重要な設計判断（4 機構）
 
@@ -82,7 +140,7 @@ data の読み先だけを進化定義へ差し替えるためのミックスイ
 `great_cleave` / `shield_bash` / `ground_slam` / `armor_breaker` / `twin_fang_slash` / `relentless_combo`。
 進化 8 種はすべて対象外で、**弾は 1 つも増えない**。
 
-### 非回帰条件（M8-C 以降も守る）
+### 非回帰条件（M8-C.1 以降も守る）
 
 - 火 / 氷のドラフト候補列（300 seed）SHA-256: 火 `15a8585c…` / 氷 `bd38bcf5…`
 - 火 / 氷 48 スキルの実行トレース SHA-256: 火 `1f0f2c18…` / 氷 `029a44bd…`
@@ -90,11 +148,26 @@ data の読み先だけを進化定義へ差し替えるためのミックスイ
 - `save_version` = 6
 - `skillCaps` は全 185 件が単調（low ≤ medium ≤ high ≤ ultra）・**未参照 cap 0 件**
 - 火 / 氷のスキルは戦士 API（`meleeStrike` / `pullTarget` / `executeTarget` など）を 1 つも呼ばない
+- **進化導線補助（guidance）は `skill-config.json` の `guidance.jobs` に載っているジョブでだけ効く**。
+  火 / 氷では倍率が常に 1・候補オブジェクトにフィールドが付かない・`guidanceStall` が進まない・
+  RNG 消費が変わらない（`tests/warrior-draft-guidance-nonregression.mjs`）
+- **進化導線の到達率**: 枠4/40lv ≥1 80%・平均 1.0・0 個 20% 以下／枠6/60lv ≥1 95%・≥2 60%・平均 1.7／
+  枠8/80lv ≥1 95%・≥2 65%・平均 1.8（`tests/warrior-slot4-evolution-rate.mjs`）
+- **過剰誘導の禁止**: 最頻進化のシェア 35% 以下・新規取得率が同 rarity 中央値の 3 倍以下・
+  build 多様性と進化非対象 active の取得が guidance で悪化しない（`tests/warrior-build-diversity.mjs`）
 
 ### 未解決の warning / 既知の問題
 
-- **実ブラウザ未確認**: M8-C も Phaser 実プレイ確認は行っていない（Node 純ロジック＋最小モックのみ）。
-  実描画・視認性・体感バランス・60FPS は未検証。`docs/test-guide.md` の Milestone 8-C 節（A〜J）を要確認。
+- **実ブラウザ未確認**: M8-C.1 も Phaser 実プレイ確認は行っていない（Node 純ロジック＋最小モックのみ）。
+  実描画・視認性・体感バランス・60FPS は未検証。
+  `docs/test-guide.md` の Milestone 8-C.1 節（A〜I）／ Milestone 8-C 節（A〜J）を要確認。
+- **M8-C.1 の残観測（警告ではない）**:
+  - 総ピック数（強化を含む）で見ると `great_cleave` が同 rarity 中央値の 3.35 倍、`war_cry` が 3.65 倍。
+    「深く伸ばした base はピック数が 8 回になる」という指標の性質で、**新規取得率で見れば 0 件**。
+  - 枠8 × **60** レベルアップだけ最頻進化シェアが 35% 前後になる（枠8 の標準は 80 レベルアップで 20.1%）。
+    `great_cleave` が common であることによる構造的な偏りで、guidance 導入前は 40.7% だった。
+  - 枠4 × 30 レベルアップでは進化 1 個以上が 38.5% にとどまる（周回が短すぎて基礎 Lv8 に届かない）。
+    設計どおりで、40 レベルアップ以上では目標を満たす。
 - 戦士のカタログは火 / 氷の半分（15 / 8）。Wave2 以降で 30 / 18 へ揃える必要がある。
 - 戦士の完成監査（M7-E / M8-A に相当する 12 観点）は未実施。カタログが揃ってから行う。
 
@@ -392,41 +465,72 @@ M7-E の「火由来の未参照 cap 5 件」は解消済み。**戦士は M8-C 
   - **F8 の戦士カタログ / Wave1 カウンタ**・**F9 の Wave1 セクションと追加操作**の描画
   - **F10 が M8-B から変わっていないこと**
   - 戦士での **60FPS 維持**（low/medium/high/ultra × 敵100体 × 2倍速 × active8枠 × Wave1 スキル）
-- 手順書: `docs/test-guide.md` の **Milestone 8-C** 節（A〜J）／**Milestone 8-B.1** 節（A〜G）／
-  **Milestone 8-B** 節（A〜K）／**Milestone 8-A** 節（A〜H）／**Milestone 7-E** 節。
+- **未確認**（要ブラウザ・M8-C.1 分）:
+  - 枠 4（転生前）で **40 レベルアップ前後に進化が 1 つ以上成立する**こと（体感）
+  - 進化元の強化候補が Lv6〜7 で**出やすく感じる**こと
+  - **進化を持たない active（突進斬り / 双牙斬 / 薙ぎ進軍 / 鎖鉤 / 震脚 / 怒涛連撃）も普通に出る**こと
+  - 条件成立直後のレベルアップで**必ず進化候補が出る**こと
+  - reroll / banish / skip が従来どおり効くこと
+  - **save → reload で候補が変わらない**こと（引き直せない・pity を稼げない）
+  - 天墜崩撃へ進化しても**地砕きがスキル欄に残る**こと
+  - 3〜5 周回して **build が毎回同じにならない**こと
+  - 枠 6 / 枠 8 でも悪化していないこと
+  - **火 / 氷の周回で候補の出かたが従来どおり**であること（体感）
+  - F8 の戦士分析に「戦士 進化導線（M8-C.1）」が出ること
+- 手順書: `docs/test-guide.md` の **Milestone 8-C.1** 節（A〜I）／**Milestone 8-C** 節（A〜J）／
+  **Milestone 8-B.1** 節（A〜G）／**Milestone 8-B** 節（A〜K）／**Milestone 8-A** 節（A〜H）／**Milestone 7-E** 節。
 - 例外: M7-B.1 の氷エフェクトと敵停止のみ、ユーザーが実ブラウザで確認済み。
 
 ## Latest test results
 
-- 実行日時点: Milestone 8-C 完了時（コミット `bae3f34`）
-- **テストスイート: 116 件（`tests/*.mjs` から共通土台 `frost-audit-common.mjs` / `flame-audit-common.mjs` /
-  `warrior-common.mjs` / `status-passive-common.mjs` と `validate-data.mjs` を除く）→ 全 116 通過・失敗 0**
+- 実行日時点: Milestone 8-C.1 完了時（コミット `(M8-C.1)`）
+- **テストスイート: 125 件（`tests/*.mjs` から共通土台 `frost-audit-common.mjs` / `flame-audit-common.mjs` /
+  `warrior-common.mjs` / `status-passive-common.mjs` / `warrior-draft-sim.mjs` と `validate-data.mjs` を除く）
+  → 全 125 通過・失敗 0**
 - `node tests/validate-data.mjs` → **0 エラー / 0 警告**
-- M8-C 新規 19 スイート（アサーション数）:
-  `warrior-wave1-catalog`（2425）/ `warrior-wave1-pool`（250）/ `warrior-wave1-draft`（92）/
-  `warrior-wave1-evolutions`（176）/ `warrior-armor-breaker`（46）/ `warrior-execution`（65）/
-  `warrior-leap`（95）/ `warrior-sweeping`（57）/ `warrior-counter-arbitration`（54）/
-  `warrior-war-cry`（79）/ `warrior-chain-hook`（85）/ `warrior-relentless-combo`（72）/
-  `warrior-wave1-job80`（129）/ `warrior-wave1-runtime-save`（183）/ `warrior-wave1-determinism`（289）/
-  `warrior-wave1-quality-cap`（430）/ `warrior-wave1-cleanup`（152）/ `warrior-wave1-telemetry`（256）/
-  `three-job-wave1-nonregression`（158）
-- すべて Node.js 標準機能のみ。`HEAVY=1` で seed 数・実行回数を増やせる。
-- テストは **production の実装をそのまま駆動する**（ロジックを複製しない）。
-  抽選は `SkillDraftManager._generate()`、適格性は `poolEligibility.memberAllowedForJob()`、
-  戦闘は `SkillManager` + `WarriorCombatSystem` の実体を使う。
-- **非回帰**（`three-job-wave1-nonregression` / `three-job-nonregression` / `status-passive-nonregression`）:
-  - ドラフト候補列（300 seed）SHA-256 — 火 `15a8585c…` / 氷 `bd38bcf5…` が **M8-A / M8-B / M8-B.1 と完全一致**
-  - 48 スキルの実行トレース SHA-256 — 火 `1f0f2c18…` / 氷 `029a44bd…` が **完全一致**
-  - 火 / 氷のカタログ規模・データ・状態異常 5 種・`save_version` = 6 が不変
-  - 火 / 氷の 96 スキルが戦士 API（`meleeStrike` / `pullTarget` / `executeTarget` ほか）を 1 つも呼ばない
-  - 火 / 氷の周回では Wave1 の 4 機構（処刑 / 反撃 / 戦吼 / 引き寄せ）がすべて無効
-- **決定論**: Wave1 の 15 スキルが `Math.random` を 1 度も呼ばず、同条件の再実行が完全一致。
-  15 スキル同時所持の総合 hash `0ff39eee12d1ce93…`。
-- **品質別上限**: `skillCaps` 全 185 件が単調・正の整数・**未参照 cap 0 件**。
-  演出 cap を 1 まで落としてもダメージ・命中が変わらない。
-- **抽選（100 seed / 枠6 / balanced）**: 新 active10 の提示率 58〜100%・取得率 12〜63%。
-  進化 8 種すべてが 9 通りの（枠 × 戦略）の合算で形成・取得され得る。
+- M8-C.1 新規 9 スイート（アサーション数）:
+  `warrior-evolution-guidance`（98）/ `warrior-slot4-evolution-rate`（74）/ `warrior-evolution-pity`（70）/
+  `warrior-evolution-synergy`（109）/ `warrior-active-support-evolution`（28）/ `warrior-build-diversity`（78）/
+  `warrior-draft-save-reload`（395）/ `warrior-draft-guidance-determinism`（37）/
+  `warrior-draft-guidance-nonregression`（157）
+- 更新した既存スイート: `warrior-draft-determinism`（閾値を復元し production 経路へ）/
+  `warrior-wave1-draft`（guidance ON/OFF 比較を追加）/ `warrior-wave1-evolutions`（進化条件の不変を追加）/
+  `three-job-wave1-nonregression`（guidance が火 / 氷へ漏れないことを追加）/ `validate-data`（guidance 検証）
+- 共通ハーネス `tests/warrior-draft-sim.mjs`: **独自抽選器を作らず** production の
+  `SkillDraftManager`（open / reroll / banish / skip / pity / synergy）・`SeededRandom`・
+  `poolEligibility.memberAllowedForJob`・`SkillCatalog`・実 rarity・実進化条件だけを使う。
+  5 戦略＋M8-B/M8-C 互換の素朴戦略。`Math.random` は 1 度も呼ばない。`HEAVY=1` で seed 数を増やせる。
+- **非回帰**: 火 / 氷の候補列（300 seed）SHA-256 `15a8585c…` / `bd38bcf5…`、
+  48 スキルのランタイムトレース `1f0f2c18…` / `029a44bd…` が **M8-A 時点と完全一致**。
+  production と同じ ctx（`jobId` / `evolutionRecipes` 付き）でも候補列と**重み**まで一致することを確認済み。
+- **決定論**: guidance の ON / OFF で cursor / levelUpSequence が 1 も変わらない（RNG 消費不変）。
+  枠3種 × 戦略6種 × 120 seed の総合 hash `8114ee60f27d1aff…`。
+- **保存 / 復元**: 枠 4/6/8 × 各 20 seed × 3 保存地点で候補列が完全一致。
+  pity 境界・reroll / banish / skip をまたいでも一致。
 - `src/**/*.js` すべて構文解析 OK（`node --check`）
+
+### M8-C.1 で追加・変更した主要ファイル
+
+- **新規（テスト 9 本 ＋ 共通ハーネス 1 本）**: `tests/warrior-draft-sim.mjs`（production 抽選器の共通ハーネス）、
+  `warrior-evolution-guidance` / `warrior-slot4-evolution-rate` / `warrior-evolution-pity` /
+  `warrior-evolution-synergy` / `warrior-active-support-evolution` / `warrior-build-diversity` /
+  `warrior-draft-save-reload` / `warrior-draft-guidance-determinism` / `warrior-draft-guidance-nonregression`
+- **新規（docs）**: `docs/warrior-evolution-guidance.md`（採用した補正の仕様）、
+  `docs/warrior-draft-analysis-wave1.md`（修正前の実測分析・原因分類・不採用案）
+- **変更（システム）**: `src/systems/SkillDraftManager.js`
+  （`_guidanceMult()` / `_guidanceActive()` / `markGuidanceProgress()` / `guidancePityStep()` /
+  `guidanceTelemetry()` / `setGuidanceConfig()` を追加、`serialize`/`restore` へ `guidanceStall` を加算的に追加）、
+  `src/scenes/BattleScene.js`（draft へ `guidance` を渡す・`buildDraftCtx()` へ `jobId` / `evolutionRecipes`・
+  `_guidanceRecipes()` を追加・`applyCandidate()` で guidance タグから pity をリセット・
+  F8 の戦士分析へ「戦士 進化導線」セクションと警告 3 種・`finalizeTelemetry()` で集計）、
+  `src/systems/CombatTelemetry.js`（`draftGuidance` ブロックと `noteDraftGuidance()` を追加）
+- **変更（データ）**: `data/skill-config.json`（`guidance` ブロックの追加のみ。
+  **skills / passives / evolutions / jobs / balance は 1 件も変更していない**）
+- **変更（CI / 検証）**: `tests/validate-data.mjs`（guidance の検証・予約フィールド禁止の双方向チェック）、
+  `.github/workflows/validate.yml`（9 ステップ追加）、既存 4 スイートの更新
+- **変更（docs）**: `README.md`、`TODO.md`、`docs/project-state.md`、`docs/architecture.md`、
+  `docs/data-format.md`、`docs/save-format.md`、`docs/test-guide.md`、`docs/jobs.md`、`docs/skills.md`、
+  `docs/balance-testing.md`、`docs/warrior-design.md`
 
 ### M8-C で追加・変更した主要ファイル
 
@@ -511,12 +615,15 @@ M7-E の「火由来の未参照 cap 5 件」は解消済み。**戦士は M8-C 
 **未定（次の指示待ち）。** 候補は以下。
 
 1. **戦士のカタログ拡張 Wave2 以降**（active15 → 20 → 30 / 進化 8 → 13 → 18）。
-   火・氷と同じ拡張手順・同じ検証基盤（`warrior-common.mjs` ＋ Wave1 の 19 スイート）がそのまま使える。
+   火・氷と同じ拡張手順・同じ検証基盤（`warrior-common.mjs` ＋ `warrior-draft-sim.mjs` ＋ Wave1 の 19 スイート
+   ＋ M8-C.1 の 9 スイート）がそのまま使える。**拡張のたびに枠 4 の到達率が下がるので、
+   `tests/warrior-slot4-evolution-rate.mjs` を必ず回すこと。**
 2. **戦士 完成監査**（カタログが揃ってから。M7-E / M8-A と同じ 12 観点）。
 3. **火と氷の属性反応** — 炎上⇄冷気/凍結の相互作用（付与時の source element を活用）。
 4. **転生レガシー / ジョブ間継承**（`futureInheritanceSettings` / `extraAllowedIds` が拡張口）。
 5. **周回長の拡張**（10分 / 15分 / 無限モード）・**追加の敵 / ボス / 難易度**。
-6. **実ブラウザでの M7-E / M8-A / M8-B / M8-B.1 / M8-C 手動確認**（`docs/test-guide.md` の該当節）—
-   コード変更を伴わない検証タスク。**M8-C の C（処刑）・D（反撃）・F（移動系）は特に確認価値が高い。**
+6. **実ブラウザでの M7-E / M8-A / M8-B / M8-B.1 / M8-C / M8-C.1 手動確認**（`docs/test-guide.md` の該当節）—
+   コード変更を伴わない検証タスク。**M8-C.1 の A（枠 4 での進化到達）・E（save/reload で候補が変わらない）は
+   特に確認価値が高い。**
 
 いずれも**指示された範囲のみ**実装し、未指定の先行実装はしない（`CLAUDE.md` の作業手順）。

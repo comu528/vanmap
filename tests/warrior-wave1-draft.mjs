@@ -190,4 +190,27 @@ section('5. 既存 5 active が完全なハズレになっていない');
   }
 }
 
+// ===== 6. M8-C.1: 進化導線補助を入れても Wave1 の抽選が壊れていない =====
+section('6. M8-C.1 の導線補助を入れても Wave1 の抽選性質が保たれる');
+{
+  const { aggregate, seedsOf, SKILL_CONFIG } = await import('./warrior-draft-sim.mjs');
+  const seeds = seedsOf(Math.min(SEEDS, 200));
+  const on = aggregate({ seeds, slotActive: 6, levelUps: 60 });
+  SKILL_CONFIG.guidance.enabled = false;
+  const off = aggregate({ seeds, slotActive: 6, levelUps: 60 });
+  SKILL_CONFIG.guidance.enabled = true;
+  // 到達率は上がり、健全性の指標は悪化しない。
+  ok(on.summary.atLeast1 >= off.summary.atLeast1, `進化1個以上 ${off.summary.atLeast1.toFixed(1)}% → ${on.summary.atLeast1.toFixed(1)}%（悪化しない）`);
+  ok(on.summary.mean >= off.summary.mean, `平均進化数 ${off.summary.mean.toFixed(2)} → ${on.summary.mean.toFixed(2)}（悪化しない）`);
+  ok(on.leakage === 0 && on.duplicates === 0 && on.slotViolations === 0, '他ジョブ混入 / 重複 / 枠違反が 0');
+  ok(on.candidateNone <= off.candidateNone, `候補ゼロが増えない（${off.candidateNone} → ${on.candidateNone}）`);
+  ok(on.formedButNotOffered === 0, '条件成立後の未提示 0');
+  for (const id of WARRIOR.activeSkillPool) {
+    ok((on.offered.get(id) || 0) > 0, `${id}: 導線補助後も提示される`);
+    ok((on.taken.get(id) || 0) > 0, `${id}: 導線補助後も取得される`);
+  }
+  for (const id of WARRIOR.evolutionPool) ok((on.evoTaken.get(id) || 0) > 0, `${id}: 導線補助後も取得される`);
+  info(`slot6/60lv 5戦略: 平均 ${off.summary.mean.toFixed(2)} → ${on.summary.mean.toFixed(2)} / ≥1 ${off.summary.atLeast1.toFixed(1)}% → ${on.summary.atLeast1.toFixed(1)}%`);
+}
+
 T.finish();

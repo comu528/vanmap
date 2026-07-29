@@ -330,3 +330,26 @@ passive は 4 種のまま、Job Lv1〜100 の曲線・到達報酬 11 段も据
   いずれも `WarriorCombatSystem` と `balance.json` の `warrior.*` に一元化されている。
 
 一覧は `../docs/warrior-skill-matrix.md`、設計意図は `./warrior-wave1.md`。
+
+## Milestone 8-C.1: 戦士の進化導線補助
+
+M8-C で戦士の active が 5 → 15 になった結果、**active 枠 4 の進化到達率が 92.5% → 46.5%** に落ちた。
+M8-C.1 では抽選導線そのものを直した（カタログ規模・スキル数値・進化条件は 1 件も変えていない）。
+
+| ジョブ | active | passive | 進化 | 進化導線補助 |
+|--------|--------|---------|------|--------------|
+| 火の魔女 `flame_witch` | 30 | 4 | 18 | **なし**（M6-F の synergy のみ） |
+| 氷術師 `frost_mage` | 30 | 4 | 18 | **なし**（同上） |
+| 戦士 `warrior` | 15 | 4 | 8 | **あり**（M8-C.1 の guidance） |
+
+戦士だけ補助が要る理由は、**補助スキルの構成が火 / 氷と違う**ため。
+
+- 火 / 氷: 進化の補助が **active 中心**（火は 18 進化中 14 件が active 補助）。
+  補助 active を伸ばす過程で基礎 active も自然に育つ。
+- 戦士: 進化 8 件中 **7 件が passive 補助**で、passive は枠 4・maxLevel 4〜5 と軽いため早期に埋まる。
+  結果として**基礎 active の Lv8**だけが最後まで残り、そこへ効く補正が production に無かった。
+
+補助が active なのは天墜崩撃（跳躍強襲 + 地砕き Lv6）の 1 件だけ。
+枠 4 では active を 2 つ使うぶん不利で、実測の取得率も他の進化より低い（設計どおり・到達不能ではない）。
+
+詳細は `./warrior-evolution-guidance.md`、修正前の実測分析は `./warrior-draft-analysis-wave1.md`。

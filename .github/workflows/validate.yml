@@ -284,6 +284,28 @@ jobs:
       - name: Three job Wave1 non-regression tests
         run: node tests/three-job-wave1-nonregression.mjs
 
+      # 戦士4枠時の進化導線修正（M8-C.1・production SkillDraftManager 上の warrior 限定 guidance）。
+      # 導線接続 / slot 別到達率 / pity / synergy / active 補助進化 / build 多様性 / 保存 / 決定論 / 非回帰。
+      # 新しい npm 依存は追加しない（Node.js 標準機能のみ）。HEAVY=1 で seed 数を増やせる。
+      - name: Warrior evolution guidance tests
+        run: node tests/warrior-evolution-guidance.mjs
+      - name: Warrior slot4 evolution rate tests
+        run: node tests/warrior-slot4-evolution-rate.mjs
+      - name: Warrior evolution pity tests
+        run: node tests/warrior-evolution-pity.mjs
+      - name: Warrior evolution synergy tests
+        run: node tests/warrior-evolution-synergy.mjs
+      - name: Warrior active support evolution tests
+        run: node tests/warrior-active-support-evolution.mjs
+      - name: Warrior build diversity tests
+        run: node tests/warrior-build-diversity.mjs
+      - name: Warrior draft save / reload tests
+        run: node tests/warrior-draft-save-reload.mjs
+      - name: Warrior draft guidance determinism tests
+        run: node tests/warrior-draft-guidance-determinism.mjs
+      - name: Warrior draft guidance non-regression tests
+        run: node tests/warrior-draft-guidance-nonregression.mjs
+
       # 状態異常の視認性・実動作検証（M7-B.1・表示状態/デバッグ/ボス氷砕UI/非回帰・Node.js 標準機能のみ）。
       - name: Status visual state tests
         run: node tests/status-visual-state.mjs

@@ -680,3 +680,58 @@ Player.takeDamage
 `ChainHookSkill` / `RelentlessComboSkill` は対象を **`_seq`（出現順の安定 runtime id）** で保持し、
 毎フレーム `combat.enemiesInRadius()` から引き直す。
 プール返却で別の敵を掴むことがなく、保存にもオブジェクト参照が入らない。
+
+---
+
+## Milestone 8-C.1: 進化導線補助（guidance）
+
+M8-C で戦士の active が 5 → 15 になり、枠 4 の進化到達率が落ちた。
+原因は **「進化元（基礎 active）側へ効く抽選補正が production に存在しなかった」**こと。
+既存の synergy（M6-F）は「基礎を所持している → その補助を煽る」の一方向しか持っていない。
+
+### 追加した層
+
+```
+実効重み = rarityWeight × rarityWeightMult × skill.weight   （M6-A / M6-C）
+          × synergyMult                                     （M6-F・全ジョブ共通）
+          × guidanceMult                                    （M8-C.1・ジョブ限定）
+```
+
+`SkillDraftManager._guidanceMult()` が `guidanceMult` を返す。効くのは
+`data/skill-config.json` の `guidance.jobs` に載っているジョブの周回だけで、
+それ以外では常に 1 を返し、候補オブジェクトにフィールドすら足さない。
+
+### 補正対象の導出（skill ID のハードコードなし）
+
+`BattleScene.buildDraftCtx()` が渡すのは次の 2 つだけ。
+
+| ctx キー | 中身 |
+|----------|------|
+| `jobId` | 周回のジョブ（`guidance.jobs` との照合に使う） |
+| `evolutionRecipes` | `{ evolutionId, baseSkillId, baseLevel, requirements[] }`（`SkillCatalog.evolutionRecipes()` 由来） |
+
+補正の対象は毎回このレシピから導出する。data に進化を足せばそのまま補正対象になる。
+
+### 重複上限
+
+同じスキルが複数のレシピに関わっても倍率を掛け合わせない。
+役割（base / support）ごとに **レシピをまたいだ最大値**だけを採り、最後に `maxMultiplier` でクランプする。
+
+### pity
+
+既存の `draftsSinceProgress`（進化成立でしかリセットされない）とは別に、
+`guidanceStall` を追加した。guidance が有効なジョブの `open()` でだけ +1 され、
+進化導線の進展（進化元の取得 / 強化・必要補助の取得 / 強化・進化取得）でリセットされる。
+
+進展の判定は **候補に付いた guidance タグ**（`SkillDraftManager` が data のレシピから導出したもの）で行う。
+`BattleScene.applyCandidate()` は特定 skill ID を一切判定しない。
+
+`guidanceStall` は `active_run` の draft 状態へ**加算的に**保存する（`save_version` は v6 のまま）。
+保存するので save → reload で pity をリセットして稼ぐことはできない。
+
+### RNG
+
+`_guidanceMult()` は乱数へ一切触れない。重みだけを変えるので `_weightedPick()` の
+`rng.next()` 呼び出し回数は変わらず、**guidance の ON / OFF で cursor が 1 も動かない**。
+
+詳細は `./warrior-evolution-guidance.md`、修正前の実測分析は `./warrior-draft-analysis-wave1.md`。

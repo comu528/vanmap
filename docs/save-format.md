@@ -751,3 +751,36 @@ M8-C は**追加のみ**で、`save_version` は **6 のまま**。移行処理�
 
 `tests/warrior-wave1-runtime-save.mjs` が、20 回の保存 → 復元を繰り返しても
 闘気 / コンボ / 反撃回数が 1 も増えないことを検証している。
+
+---
+
+## Milestone 8-C.1: draft 状態へ `guidanceStall` を 1 キー追加（v6 維持）
+
+M8-C.1 は**追加のみ**で、`save_version` は **6 のまま**。移行処理も不要。
+
+`active_run` の draft 状態（`SkillDraftManager.serialize()`）へ `guidanceStall` が加わった。
+
+```jsonc
+"draft": {
+  // …（既存: seed / cursor / levelUpSequence / currentDraftId / currentCandidates /
+  //          rerollsRemaining / banishesRemaining / skipsRemaining / banishedSkillIds / draftsSinceProgress）
+  "guidanceStall": 4     // 進化導線が進まないまま重ねたドラフト数（guidance pity）
+}
+```
+
+| 項目 | 内容 |
+|------|------|
+| なぜ保存するか | 保存しないと **save → reload で pity をリセットして稼げてしまう** |
+| 旧セーブ | `guidanceStall` が無ければ 0 から始まる（壊れない） |
+| 壊れた値 | 非数 / 負数 / Infinity は 0 へ、巨大値は 1e6 でクランプする |
+| 他ジョブ | guidance が無効なジョブでは常に 0（保存内容が実質的に変わらない） |
+| 追加キー数 | **1 件だけ**（`tests/warrior-draft-save-reload.mjs` が保存キー一覧を固定している） |
+
+### 保存 / 復元の一致
+
+`tests/warrior-draft-save-reload.mjs` が次を確認している。
+
+- 保存 → 復元 → 続行の候補列が、途中保存しない場合と**完全一致**する（枠 4 / 6 / 8 × 各 20 seed × 3 保存地点）
+- pity のしきい値をまたぐ地点で保存/復元しても一致する
+- reroll / banish / skip を挟んでも一致する（追放リスト・残回数も一致）
+- 5 回の再読込を挟んでも進化結果が変わらない

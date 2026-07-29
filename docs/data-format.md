@@ -1240,3 +1240,39 @@ M8-C では曲線も到達報酬 11 段も変更していない。Lv80 の `stri
 ### タグ
 
 `validate-data.mjs` の `KNOWN_TAGS` へ `execute` / `buff` / `pull` / `reactive` を追加した。
+
+---
+
+## Milestone 8-C.1: `skill-config.json` の `guidance` ブロック
+
+ジョブ限定の進化導線補助。`guidance.jobs` に載っているジョブの周回でだけ抽選重みへ乗算する。
+
+| キー | 型 | 意味 |
+|------|----|------|
+| `enabled` | boolean | false で M8-C までの挙動へ完全に戻る |
+| `jobs` | string[] | 対象ジョブ。`flame_witch` / `frost_mage` を入れると検証エラー |
+| `minBattleLevel` | 非負整数 | この battleLevel 未満では補正しない |
+| `maxMultiplier` | ≥1 | 合成上限。個別倍率の最大値以上でなければ検証エラー |
+| `readyBaseAcquireWeightMultiplier` | ≥1 | 補助がすでに揃っている進化元の**新規取得** |
+| `ownedBaseUpgradeWeightMultiplier` | ≥1 | 所持している進化元の**強化** |
+| `nearMaxRemainingLevels` | 非負整数 | 「最大 Lv に近い」とみなす残り段数 |
+| `baseNearMaxBonusMultiplier` | ≥1 | 最大 Lv に近い進化元への追加 |
+| `supportReadyBaseMultiplier` | ≥1 | 補助が揃っている進化元への追加 |
+| `requiredSupportWeightMultiplier` | ≥1 | 所持 base の未達補助 |
+| `nearRequiredRemainingLevels` | 非負整数 | 「必要 Lv 手前」とみなす残り段数 |
+| `supportNearRequiredMultiplier` | ≥1 | 必要 Lv 手前の補助への追加 |
+| `pity.threshold` | 正整数 | 進展なしでこのドラフト数を超えたら pity 開始 |
+| `pity.bonusPerStep` | 非負 | 1 段ごとの追加倍率 |
+| `pity.maxMultiplier` | ≥1 | pity 単体の上限 |
+
+`validate-data.mjs` が次を検証する（**予約フィールド禁止**）。
+
+- 宣言したキーがすべて `SkillDraftManager` から参照されていること
+- 逆に、実装が読むキーが data に必ずあること（暗黙の既定値で黙って動かない）
+- 倍率が 1 以上の有限数・しきい値が非負整数であること（NaN / Infinity / 負数を弾く）
+- `maxMultiplier` が個別倍率の最大値以上であること（cap が小さすぎて死にフィールドにならない）
+- `jobs` の値が `jobs.json` に存在し、火 / 氷を含まないこと
+- キーの重複がないこと
+
+M8-C.1 では `skills.json` / `skill-evolutions.json` / `passives.json` / `jobs.json` / `balance.json` を
+**1 件も変更していない**（スキル数値・進化条件・skillCaps は M8-C のまま）。

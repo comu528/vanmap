@@ -211,6 +211,8 @@ export class BattleScene extends Phaser.Scene {
       rarityWeights: DataManager.rarityWeights, baseRerolls: dcfg.baseRerolls, baseBanishes: dcfg.baseBanishes, baseSkips: dcfg.baseSkips,
       rarityWeightMult: { rare: this.jobMods.rarityWeightMult('rare'), legendary: this.jobMods.rarityWeightMult('legendary') },
       synergy: DataManager.skillConfig.synergy || null, // M6-F: 進化相手の軽い抽選補助（data で無効化可能）
+      // M8-C.1: ジョブ限定の進化導線補助（guidance.jobs に載っているジョブだけに効く・data で無効化可能）。
+      guidance: DataManager.skillConfig.guidance || null,
     });
     // 進化レシピ（進化相手の抽選補助・成立性判定に使用）。周回開始時に一度だけ構築する。
     this._catalog = buildCatalog({ skills: DataManager.skills, passives: DataManager.passives, evolutions: DataManager.evolutions, jobs: DataManager.jobs, jobId: this.jobId, registeredIds: registeredSkillIds(), runtimeStateIds: skillsWithRuntimeState() });
@@ -2078,7 +2080,24 @@ export class BattleScene extends Phaser.Scene {
       unlock: { highestClearedDifficulty: this.profile.highestClearedDifficulty || 0 },
       // M6-F: 進化相手の抽選補助（所持基礎の未達補助スキル）＋現在の battleLevel（決定論を壊さない付随情報）。
       synergy: { partnerIds: evolutionPartnerIds(this._evoRecipes || [], owned), battleLevel: this.player.level || 1 },
+      // M8-C.1: 進化導線補助。ジョブ id と進化レシピ（data 由来）だけを渡し、補正値は skill-config.json が持つ。
+      // guidance.jobs に載っていないジョブでは SkillDraftManager 側が常に倍率 1 を返す。
+      jobId: this.jobId,
+      evolutionRecipes: this._guidanceRecipes(),
     };
+  }
+
+  // M8-C.1: SkillDraftManager へ渡す進化レシピ（基礎 id・必要 Lv・補助条件だけの軽い形）。
+  // 周回中は不変なので一度だけ作る。active 補助 / passive 補助を区別せず「必要 Lv に達しているか」で扱う。
+  _guidanceRecipes() {
+    if (this._guidanceRecipeCache) return this._guidanceRecipeCache;
+    this._guidanceRecipeCache = (this._evoRecipes || []).map((r) => ({
+      evolutionId: r.evolutionId,
+      baseSkillId: r.baseSkillId,
+      baseLevel: r.baseMaxLevel,
+      requirements: [...r.auxActive, ...r.auxPassive].map((a) => ({ skill: a.skill, level: a.level })),
+    }));
+    return this._guidanceRecipeCache;
   }
 
   computeEvolvables() {
@@ -2144,6 +2163,13 @@ export class BattleScene extends Phaser.Scene {
         this.telemetry.noteSkillAcquired(c.id, this.player.level, ++this._acquireOrder);
       }
     }
+    // M8-C.1: 進化導線が 1 歩でも進んだら guidance pity をリセットする。
+    // 進展の判定は候補に付いている guidance タグ（SkillDraftManager が data のレシピから導出したもの）を使う。
+    // 特定 skill ID をここで判定しない。
+    if (c.kind !== 'evolution' && this.draft.markGuidanceProgress) {
+      const tag = (c.guidance || []).find((g) => g === 'base' || g === 'support' || g === 'upgrade');
+      if (tag) this.draft.markGuidanceProgress(tag);
+    }
   }
 
   // M6-F: この周回をデバッグ周回として扱う（F4〜F8 のデバッグ補正使用時）。通常バランス統計へ混ぜない。
@@ -2153,6 +2179,11 @@ export class BattleScene extends Phaser.Scene {
   finalizeTelemetry(result) {
     if (!this.telemetry) return null;
     const t = this.telemetry;
+    // M8-C.1: 進化導線（guidance）の周回集計。guidance が無効なジョブでは全て 0 のまま。
+    if (this.draft && this.draft.guidanceTelemetry) {
+      const gcfg = DataManager.skillConfig.guidance || {};
+      t.noteDraftGuidance(this.draft.guidanceTelemetry(), gcfg.enabled !== false && (gcfg.jobs || []).includes(this.jobId));
+    }
     // 防御系の extra キー → 防御統計へ写像（無い項目は 0 のまま）。
     const mapDefensive = (id, ex) => {
       const d = {};
@@ -3147,6 +3178,24 @@ export class BattleScene extends Phaser.Scene {
       if (w.counters === 0 && ownedIds.some((id) => id === 'counter_stance')) B.push('⚠ 構えはあるが反撃0');
       if (w.warCryApplications > 0 && w.warCryUptimeSeconds === 0) B.push('⚠ 戦吼は発動するが稼働0');
       if (w.chainPulls === 0 && w.bossApproaches === 0 && ownedIds.includes('chain_hook')) B.push('⚠ 鎖鉤はあるが引き寄せ/接近0');
+      // M8-C.1: 進化導線（guidance）の実測。ローカル表示のみ・外部送信しない。
+      const g = this.draft && this.draft.guidanceTelemetry ? this.draft.guidanceTelemetry() : null;
+      if (g) {
+        const gcfg = DataManager.skillConfig.guidance || {};
+        const on = gcfg.enabled !== false && (gcfg.jobs || []).includes(this.jobId);
+        B.push('— 戦士 進化導線（M8-C.1）—');
+        B.push(`guidance: ${on ? '有効' : '無効'} slot${this.activeSlotsMax} 進化 ${evolved.length}/${evoPool.length}`);
+        B.push(`補助回数 base${g.assisted.base} support${g.assisted.support} upgrade${g.assisted.upgrade} evolution${g.assisted.evolution}`);
+        B.push(`pity 現在${g.stall}/${g.threshold}（段${g.step}・上限×${g.maxMultiplier}）発動${g.triggers} リセット${g.resets}`);
+        const formed = this.computeEvolvables().length;
+        B.push(`条件成立中 ${formed} 件（成立後は必ず候補へ出る＝未提示 0 が正常）`);
+        // 過剰誘導の警告（build が毎回同じにならないか）。
+        const evoShare = evolved.length ? 1 / evolved.length : 0;
+        if (on && g.triggers > 0 && g.stall === 0 && g.assisted.upgrade === 0) B.push('⚠ guidance が upgrade を 1 度も助けていない');
+        if (on && evolved.length === 0 && g.assisted.upgrade > 20) B.push('⚠ 導線は動いているが進化に到達していない');
+        if (on && g.triggers > 0 && g.resets === 0) B.push('⚠ pity が発動したまま一度もリセットされていない');
+        void evoShare;
+      }
     }
     B.push('— 性能 / 上限 —');
     B.push(`抑制/f ${(this._mLast || this._m).suppressed}  索引上限 ${JSON.stringify(sfx ? sfx.capReached() : {})}`);
