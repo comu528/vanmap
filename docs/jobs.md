@@ -13,7 +13,7 @@ M6-A で導入したジョブ基盤（`data/jobs.json`・`data/job-progression.j
 |-------|--------|---------|-----------|--------|---------|------|--------|
 | `flame_witch` | 火の魔女 | fire | `fireball` | 30 | 4（共通） | 18 | 1〜100 |
 | `frost_mage` | 氷術師 | ice | `frost_shard` | 30 | 4（氷専用） | 18 | 1〜100 |
-| `warrior` | 戦士 | physical | `great_cleave` | 25 | 4（戦士専用） | 13 | 1〜100 |
+| `warrior` | 戦士 | physical | `great_cleave` | 30 | 4（戦士専用） | 18 | 1〜100 |
 
 - **火の魔女は M7-A〜M7-D で変更なし**（active30 / passive4 / evo18・同 seed 抽選結果不変）。
 - **氷術師は M7-A で active5/passive4/evo3、M7-B で active15/passive4/evo8、M7-C で active25/passive4/evo13、M7-D で active30/passive4/evo18 へ拡張**（下記「Milestone 7-B」〜「Milestone 7-D」）。**M7-D で火の魔女と同規模のカタログに到達（氷術師カタログ完成）**。
@@ -389,3 +389,44 @@ passive は 4 種のまま、Job Lv1〜100 の内容も据え置き、**Job Lv80
   `damageReduction()` / `_killHeal()` へ**加算的に**入る。血盟戦旗の回復強化も既存の毎秒 cap を共有する。
 
 詳細な設計意図は `./warrior-wave2.md`、一覧は `./skill-catalog.md` の Wave2 節。
+
+
+---
+
+## Milestone 8-E: 戦士スキル拡張 最終Wave（active30 / evolution18・save_version は v6 のまま）
+
+M8-D（Wave2）の 25 active / 13 進化へ **active 5 種・進化 5 種**を足して **30 / 18** にした。
+これで **3 ジョブがそろって同規模のカタログ**になった。
+passive は 4 種のまま、Job Lv1〜100 の内容も据え置き、**Job Lv80「打撃数 +1」の対象は 3 ジョブとも 6 種のまま**。
+
+| ジョブ | active | passive | evolution | 属性 |
+|--------|--------|---------|-----------|------|
+| 火の魔女 flame_witch | 30 | 4 | 18 | fire |
+| 氷術師 frost_mage | 30 | 4 | 18 | ice |
+| **戦士 warrior** | **30** | **4** | **18** | **physical** |
+
+3 ジョブの active プール・進化プールは**互いに素**（重複 0）で、共通プールへ出るスキルも増えていない。
+
+### 戦士専用の機構（最終Wave で追加した 5 つ）
+
+いずれも `src/systems/WarriorCombatSystem.js` が唯一の管理者で、上限は `balance.json` の
+`warrior` ブロックにある。**新しい共通状態異常（formal status）は 1 つも作っていない。**
+
+| 機構 | 内容 | data |
+|------|------|------|
+| 直線の対象選択 line | 前方の狭い直線に乗った敵だけを選ぶ。硬い相手がいると単体寄りへ寄る | `balance.warrior.line` |
+| 決闘 duel | 一体を指名して**戦士本人だけ**が強くなる。相手へは何も貼らない | `balance.warrior.duel` |
+| 構え trance | 攻撃寄りの timed stance。リスクは軽減の小幅低下だけ | `balance.warrior.trance` |
+| 進軍 march | 移動しながら複数地点を踏む。距離と時間の両方で必ず終わる | `balance.warrior.march` |
+| 弾き返し deflection | 通常の敵弾だけを限定数だけ弾く。完全無効化ではない | `balance.warrior.deflection` |
+
+- **決闘は正式な状態異常ではない。** 敵オブジェクトを保持せず安定 runtime id（`_seq`）だけを持ち、
+  同時 1 体・再発動は置換・死亡 / プール返却 / Scene 終了で必ず解除される。
+  補正は決闘対象へ命中したときだけ乗り、対象以外は必ず 0。
+- **構えも正式な状態異常ではない。** 攻撃補正は闘気解放との合成上限（`combinedOffenseCap`）で頭打ちになり、
+  軽減の低下は合計から引くだけで**重装 / 闘気解放 / 不屈のいずれも無効化しない**（下限つきで負にならない）。
+- **弾き返しは完全無効化ではない。** 弾ける種別は allowlist + denylist で `canDeflectProjectile()` に一元化され、
+  ボス予兆 / 光条 / 地形ハザード / DoT は弾けない。反射弾は世代 1 で止まり再反射しない。
+- 弾き返しと近接反撃は別経路で、**1 つのイベントに応じるのは最大 1 系統**（`arbitrateDeflectionAndCounter()`）。
+
+詳細な設計意図は `./warrior-final-wave.md`、一覧は `./skill-catalog.md` の 最終Wave 節。

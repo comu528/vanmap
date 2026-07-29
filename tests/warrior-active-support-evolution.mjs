@@ -58,9 +58,18 @@ for (const r of ACTIVE_SUPPORT) {
   for (const q of sup) {
     ok(evo.baseSkillId !== q.skill, `${r.evolutionId}: 補助 ${q.skill} は進化元ではない＝置換されない`);
     ok(WARRIOR.activeSkillPool.includes(q.skill), `${r.evolutionId}: 補助 ${q.skill} は戦士のプールに残る`);
-    // 補助 active 自身は別の進化を持たない（進化して消えることがない）。
+    // 補助 active 自身が進化を持つ場合（M8-E の counter_stance）は、
+    // 「その進化を取ると補助が置き換わる」ので**先に進化条件を満たしておく必要がある**。
+    // ここでは (a) 依存する進化がその補助を置換しないこと、(b) 実測で到達不能になっていないこと、を見る。
+    // 詳細と設計上のトレードオフは docs/warrior-final-wave.md に記載。
     const own = GUIDANCE_RECIPES.find((x) => x.baseSkillId === q.skill);
-    ok(!own, `${r.evolutionId}: 補助 ${q.skill} は自身の進化を持たない（進化して消えない）`);
+    if (own) {
+      ok(own.evolutionId !== r.evolutionId, `${r.evolutionId}: 補助 ${q.skill} 自身の進化とは別物`);
+      ok(evo.replacementSkillId !== q.skill, `${r.evolutionId}: 補助 ${q.skill} を置換しない（自身の進化とは独立）`);
+      info(`${r.evolutionId}: 補助 ${q.skill} は自身の進化 ${own.evolutionId} を持つ（先に取ると到達できなくなる）`);
+    } else {
+      ok(!own, `${r.evolutionId}: 補助 ${q.skill} は自身の進化を持たない（進化して消えない）`);
+    }
   }
 }
 
@@ -121,8 +130,12 @@ section('6. 同じ補助を複数の進化が要求しても倍率が積み上�
   const count = {};
   for (const r of GUIDANCE_RECIPES) for (const q of r.requirements) count[q.skill] = (count[q.skill] || 0) + 1;
   // 1 レシピぶんの上限。M8-D で「補助が active」のときだけ追加倍率が乗るので、種別で分ける。
+  // 1 レシピぶんの上限。M8-D で「補助が active」、M8-E で「必要 Lv が高い補助」に追加倍率が乗る。
+  const maxReqLevel = (sid) => Math.max(0, ...GUIDANCE_RECIPES
+    .flatMap((r) => r.requirements.filter((q) => q.skill === sid).map((q) => q.level || 1)));
   const singleFor = (sid) => G.requiredSupportWeightMultiplier * G.supportNearRequiredMultiplier
-    * (WARRIOR.activeSkillPool.includes(sid) ? (G.activeSupportWeightMultiplier || 1) : 1);
+    * (WARRIOR.activeSkillPool.includes(sid) ? (G.activeSupportWeightMultiplier || 1) : 1)
+    * (maxReqLevel(sid) >= (G.highRequirementSupportLevel ?? Infinity) ? (G.highRequirementSupportMultiplier || 1) : 1);
   for (const [sid, n] of Object.entries(count)) {
     const bases = GUIDANCE_RECIPES.filter((r) => r.requirements.some((q) => q.skill === sid)).map((r) => r.baseSkillId);
     const owned = { active: {}, passive: {} };

@@ -71,6 +71,12 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     this.isBossProjectile = false;
     this.isTelegraph = false;
     this.isBeam = false;
+    // M8-E: 弾き返し（戦士 weapon_deflection）用の任意フィールド。
+    // 既定値のままでは火 / 氷の弾の挙動へ一切影響しない（誰も読まない・弾かれない）。
+    this._deflectId = null;        // 弾ごとの安定 id（同じ弾を 2 度弾かないため。保存しない）
+    this.alreadyDeflected = false; // 一度弾かれた弾は二度と弾けない
+    this.deflectGeneration = 0;    // 反射弾の世代（反射弾から再反射しない）
+    this.suppressSpecialEffects = false; // 反射弾は元弾の特殊効果を引き継がない
     this.consumedByAbility = false; // 吸収/消費済み（多重吸収防止）
     this._lifeTimer = 0;
     this._hitSet.clear();
@@ -145,6 +151,11 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     this.isBossProjectile = opts.isBossProjectile !== undefined ? !!opts.isBossProjectile : this.hostile;
     this.isTelegraph = !!opts.isTelegraph;
     this.isBeam = !!opts.isBeam;
+    // M8-E: 弾き返し用（未指定なら既定値のまま＝従来と完全に同一）。
+    this._deflectId = opts.deflectId != null ? opts.deflectId : null;
+    this.alreadyDeflected = !!opts.alreadyDeflected;
+    this.deflectGeneration = opts.deflectGeneration || 0;
+    this.suppressSpecialEffects = !!opts.suppressSpecialEffects;
     this._lifeTimer = opts.lifeMs || 1600;
     this.alive = true;
     this.setActive(true).setVisible(true).setAlpha(1);

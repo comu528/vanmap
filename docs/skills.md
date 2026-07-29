@@ -280,3 +280,39 @@ Wave1 と同じ土台（`WarriorSkillBase` / `WarriorEvolvedBase` / `applyEvolve
 未指定なら従来と完全に同じ経路を通るので、火 / 氷のスキルは 1 バイトも影響を受けない。
 
 一覧と役割は `./skill-catalog.md` の Wave2 節、設計意図は `./warrior-wave2.md`。
+
+
+## Milestone 8-E: 戦士スキル拡張 最終Wave（active30 / evolution18）
+
+Wave1 / Wave2 と同じ土台（`WarriorSkillBase` / `WarriorEvolvedBase` / `applyEvolvedSemantics`）の上に
+5 active・5 進化を足した。**必ず `scene.combat` の共通経路を通す**という規則は変わらない。
+
+### 最終Wave で足した combat API
+
+| API | 何をするか | なぜ共通経路にするか |
+|-----|-----------|---------------------|
+| `lineStrike(o)` | 直線判定つきの近接（`meleeStrike` の `line` 版） | 射線判定と硬い相手への寄せ方を 1 か所で決める |
+| `beginDuel(source, x, y, o)` / `duelTarget()` / `refreshDuel(o)` / `pickDuelTarget(x, y, r, o)` | 決闘の開始・対象照会・維持 | **敵オブジェクトを保持しない**（`_seq` のみ）・優先度判断を 1 か所に置く |
+| `deflectableProjectiles(x, y, r)` / `tryDeflectProjectile(b, o)` / `setDeflectOptions(o)` | 弾き返し | 可否判定・上限・反射弾の生成・調停を 1 か所で守る |
+| `createReflectedPhysicalProjectile(x, y, ang, r, o)` | 反射弾の生成 | 世代・寿命・特殊効果の抑止を 1 か所で保証する |
+
+### `meleeStrike` へ足したオプション（いずれも明示したときだけ効く）
+
+| キー | 意味 |
+|------|------|
+| `line: { length, width, facing, maxTargets }` | 前方の狭い直線に乗った敵だけを対象にする。未指定なら従来の扇形判定 |
+
+未指定なら従来と完全に同じ経路を通るので、火 / 氷のスキルは 1 バイトも影響を受けない。
+
+### `Projectile` へ足したフィールド（既定値は無害）
+
+| フィールド | 既定 | 意味 |
+|------------|------|------|
+| `_deflectId` | `null` | 弾ごとの安定 id（同じ弾を 2 度弾かないため。**保存しない**） |
+| `alreadyDeflected` | `false` | 一度弾かれた弾は二度と弾けない |
+| `deflectGeneration` | `0` | 反射弾の世代（`maxReflectGeneration` で再反射を止める） |
+| `suppressSpecialEffects` | `false` | 反射弾は元弾の状態異常 / 爆発を引き継がない |
+
+いずれも `_clearState()` が既定へ戻すので、プール再利用で前の弾の状態が残らない。
+
+一覧と役割は `./skill-catalog.md` の 最終Wave 節、設計意図は `./warrior-final-wave.md`。

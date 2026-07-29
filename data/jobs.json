@@ -221,7 +221,12 @@
         "berserker_rush",
         "war_axe_throw",
         "breaker_knee",
-        "rallying_banner"
+        "rallying_banner",
+        "piercing_lunge",
+        "duel_challenge",
+        "battle_trance",
+        "earthshaker_march",
+        "weapon_deflection"
       ],
       "passiveSkillPool": [
         "brute_force",
@@ -242,7 +247,12 @@
         "fortress_rampage",
         "shadow_swallow_riposte",
         "mountain_hurl",
-        "blood_oath_standard"
+        "blood_oath_standard",
+        "godspeed_impaler",
+        "king_slayer_duel",
+        "blood_asura_trance",
+        "continental_quake_march",
+        "heaven_mirror_reversal"
       ],
       "baseActiveSlots": 4,
       "basePassiveSlots": 4,

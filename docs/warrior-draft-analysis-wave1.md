@@ -212,3 +212,25 @@ node tests/warrior-draft-guidance-nonregression.mjs
 ```
 
 `HEAVY=1` で seed 数を増やせる。
+
+
+---
+
+## 続きの実測（M8-D / M8-E）
+
+この文書は M8-C.1（active15 / 進化8）時点の分析。カタログが増えたあとの実測は次を参照。
+
+| Milestone | カタログ | 枠4 進化 1 個以上 | 枠6 | 枠8 | 最頻シェア（枠4） |
+|-----------|----------|------------------|-----|-----|------------------|
+| M8-C.1 | 15 / 4 / 8 | 89.5% | 99.0% | 100% | 30.4% |
+| M8-D | 25 / 4 / 13 | 85.0% | 99.0% | 100% | 19.3% |
+| **M8-E** | **30 / 4 / 18** | **89.5%** | **99.0%** | **100%** | **16.2%** |
+
+カタログが倍になっても到達率は落ちておらず、集中はむしろ下がり続けている。
+M8-E での追調整の内容は `./warrior-evolution-guidance.md` §10、
+最終Wave の設計は `./warrior-final-wave.md` を参照。
+
+```
+node tests/warrior-final-draft.mjs      # 30 active / 18 進化の網羅・集中度
+node tests/warrior-final-guidance.mjs   # M8-E の guidance 追調整
+```

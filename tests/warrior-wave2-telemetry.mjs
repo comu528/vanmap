@@ -65,7 +65,9 @@ section('1. Wave2 の指標が CombatTelemetry と summary() の両方にある'
     ok(Object.prototype.hasOwnProperty.call(sum, k), `summary() が ${k} を返す`);
   }
   // ライブ表示専用キー（数値ではなく現在状態）。
-  const live = new Set(['fury', 'combo', 'bossPoiseGauge', 'rallyActive', 'rallyInside', 'frontGuardActive']);
+  const live = new Set(['fury', 'combo', 'bossPoiseGauge', 'rallyActive', 'rallyInside', 'frontGuardActive',
+    // M8-E: 決闘 / 構え / 弾き返しの現在状態（数値ではなくライブ表示）。
+    'duelActive', 'duelKind', 'tranceActive', 'deflectionActive']);
   for (const k of Object.keys(t.warrior)) ok(Object.prototype.hasOwnProperty.call(sum, k), `summary() が ${k} を返す`);
   for (const k of Object.keys(sum)) {
     ok(Object.prototype.hasOwnProperty.call(t.warrior, k) || live.has(k) || /Seconds$/.test(k),

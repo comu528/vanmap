@@ -3095,6 +3095,405 @@
       "mainCastEvent": "banner",
       "echoDescription": "残響非対応（戦士は残響/分身の対象外）",
       "cloneDescription": "複製不可（戦士は残響/分身の対象外）"
+    },
+    {
+      "id": "godspeed_impaler",
+      "displayName": "神速貫陣",
+      "description": "踏み込みざま、間を置かず二度突き通す。二段目はわずかに広いが、それでも槍の届く範囲を出ない。倒した先に敵がいれば、そのまま突き抜ける。",
+      "baseSkillId": "piercing_lunge",
+      "requiredSkills": [
+        {
+          "skill": "combat_instinct",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "godspeed_impaler",
+      "visualTier": "evolved",
+      "icon": "icon_godspeed_impaler",
+      "element": "physical",
+      "tags": [
+        "active",
+        "physical",
+        "melee",
+        "thrust",
+        "line",
+        "pierce"
+      ],
+      "damageTags": [
+        "melee",
+        "thrust"
+      ],
+      "procCoefficient": 1,
+      "echoPolicy": "forbidden",
+      "clonePolicy": "forbidden",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "safetyCaps": {
+        "maxThrustsPerCast": 2,
+        "maxTargetsPerThrust": 10,
+        "maxChainTargets": 2
+      },
+      "displayOrder": 139,
+      "damage": {
+        "first": 88,
+        "second": 112
+      },
+      "area": {
+        "lineLength": 268,
+        "width": 56,
+        "secondWidth": 76,
+        "chainRange": 120
+      },
+      "movement": {
+        "stepInDistance": 64
+      },
+      "knockback": {
+        "first": 44,
+        "second": 62
+      },
+      "poiseDamage": {
+        "first": 70,
+        "second": 92
+      },
+      "comboGain": {
+        "perThrust": 1,
+        "maxPerCast": 2
+      },
+      "furyGain": {
+        "perThrust": 1,
+        "maxPerCast": 5
+      },
+      "eliteBonus": {
+        "value": 0.5
+      },
+      "bossBonus": {
+        "value": 0.42
+      },
+      "secondaryImpact": {
+        "delayMs": 170
+      },
+      "cooldown": 2200,
+      "meleeRange": 96,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "thrust",
+      "echoDescription": "残響非対応（戦士は残響/分身の対象外）",
+      "cloneDescription": "複製不可（戦士は残響/分身の対象外）"
+    },
+    {
+      "id": "king_slayer_duel",
+      "displayName": "覇王討ち",
+      "description": "格上だけを狙う決闘。相手の構えを崩すたび、決闘の時間がわずかに延びる。相手を倒したときだけ、近くの強敵へ一度だけ挑み直せる。",
+      "baseSkillId": "duel_challenge",
+      "requiredSkills": [
+        {
+          "skill": "brute_force",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "king_slayer_duel",
+      "visualTier": "evolved",
+      "icon": "icon_king_slayer_duel",
+      "element": "physical",
+      "tags": [
+        "active",
+        "physical",
+        "buff",
+        "duel",
+        "focus"
+      ],
+      "damageTags": [
+        "melee"
+      ],
+      "procCoefficient": 1,
+      "echoPolicy": "forbidden",
+      "clonePolicy": "forbidden",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "safetyCaps": {
+        "maxDuelTargets": 1,
+        "maxRetargetsPerCast": 1,
+        "maxExtensionsPerCast": 3
+      },
+      "displayOrder": 140,
+      "damage": {
+        "initialStrike": 62
+      },
+      "area": {
+        "range": 420,
+        "retargetRange": 220
+      },
+      "duel": {
+        "durationMs": 10000,
+        "meleeDamageBonus": 0.48,
+        "poiseDamageBonus": 0.6,
+        "furyGainBonus": 0.4,
+        "normalTargetHpPriority": 0.95
+      },
+      "extension": {
+        "perBreakMs": 1200,
+        "maxTotalMs": 3600
+      },
+      "knockback": {
+        "initialStrike": 40
+      },
+      "poiseDamage": {
+        "initialStrike": 56
+      },
+      "comboGain": {
+        "perStrike": 1,
+        "maxPerCast": 2
+      },
+      "furyGain": {
+        "perStrike": 1,
+        "maxPerCast": 4
+      },
+      "cooldown": 9000,
+      "meleeRange": 60,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "duel",
+      "echoDescription": "残響非対応（戦士は残響/分身の対象外）",
+      "cloneDescription": "複製不可（戦士は残響/分身の対象外）"
+    },
+    {
+      "id": "blood_asura_trance",
+      "displayName": "血染修羅",
+      "description": "血に濡れた構え。攻めの鋭さが増し、この構えの最中に討ち取った相手からだけ、血気の巡りがわずかに強まる。守りが薄くなるのは変わらない。",
+      "baseSkillId": "battle_trance",
+      "requiredSkills": [
+        {
+          "skill": "bloodlust",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "blood_asura_trance",
+      "visualTier": "evolved",
+      "icon": "icon_blood_asura_trance",
+      "element": "physical",
+      "tags": [
+        "active",
+        "physical",
+        "buff",
+        "stance",
+        "sustain"
+      ],
+      "damageTags": [
+        "melee"
+      ],
+      "procCoefficient": 1,
+      "echoPolicy": "forbidden",
+      "clonePolicy": "forbidden",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "safetyCaps": {
+        "maxStances": 1,
+        "maxKillHealBonus": 0.5,
+        "maxStanceMs": 10000
+      },
+      "displayOrder": 141,
+      "damage": {
+        "initialShock": 44
+      },
+      "stance": {
+        "durationMs": 8000,
+        "meleeDamageBonus": 0.42,
+        "attackSpeedBonus": 0.3,
+        "comboGraceBonus": 0.42,
+        "furyGainBonus": 0.46,
+        "mitigationPenalty": 0.14
+      },
+      "bloodOath": {
+        "killHealBonus": 0.32,
+        "perSecondCapBonus": 0.22
+      },
+      "knockback": {
+        "initialShock": 38
+      },
+      "poiseDamage": {
+        "initialShock": 36
+      },
+      "comboGain": {
+        "perShock": 1,
+        "maxPerCast": 2
+      },
+      "furyGain": {
+        "perShock": 1,
+        "maxPerCast": 4
+      },
+      "cooldown": 12000,
+      "meleeRange": 40,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "trance",
+      "echoDescription": "残響非対応（戦士は残響/分身の対象外）",
+      "cloneDescription": "複製不可（戦士は残響/分身の対象外）"
+    },
+    {
+      "id": "continental_quake_march",
+      "displayName": "大陸震砕踏破",
+      "description": "重い鎧ごと大地を割って進む。踏むたびに衝撃が広がり、最後の一歩は地を裂く。進んでいる間はわずかに打たれ強いが、無敵にはならない。",
+      "baseSkillId": "earthshaker_march",
+      "requiredSkills": [
+        {
+          "skill": "heavy_armor",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "continental_quake_march",
+      "visualTier": "evolved",
+      "icon": "icon_continental_quake_march",
+      "element": "physical",
+      "tags": [
+        "active",
+        "physical",
+        "melee",
+        "blunt",
+        "movement",
+        "area"
+      ],
+      "damageTags": [
+        "melee",
+        "blunt"
+      ],
+      "procCoefficient": 1,
+      "echoPolicy": "forbidden",
+      "clonePolicy": "forbidden",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "safetyCaps": {
+        "maxStompsPerCast": 7,
+        "maxTargetsPerStomp": 22,
+        "maxMitigation": 0.2
+      },
+      "displayOrder": 142,
+      "damage": {
+        "stomp": 66,
+        "finalStomp": 148
+      },
+      "area": {
+        "radius": 104,
+        "finalRadius": 158
+      },
+      "march": {
+        "stompCount": 6,
+        "intervalMs": 130,
+        "stepDistance": 84,
+        "mitigationValue": 0.14
+      },
+      "knockback": {
+        "stomp": 62,
+        "finalStomp": 104
+      },
+      "poiseDamage": {
+        "stomp": 66,
+        "finalStomp": 132
+      },
+      "comboGain": {
+        "perStomp": 1,
+        "maxPerCast": 3
+      },
+      "furyGain": {
+        "perStomp": 1,
+        "maxPerCast": 6
+      },
+      "cooldown": 4200,
+      "meleeRange": 74,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "march",
+      "echoDescription": "残響非対応（戦士は残響/分身の対象外）",
+      "cloneDescription": "複製不可（戦士は残響/分身の対象外）"
+    },
+    {
+      "id": "heaven_mirror_reversal",
+      "displayName": "天鏡返し",
+      "description": "鏡のように受け流す構え。飛来する弾は弾き返し、斬りかかってくる相手には既存の反撃が応じる。ひとつの被弾へ返すのは、いつでも一度きり。",
+      "baseSkillId": "weapon_deflection",
+      "requiredSkills": [
+        {
+          "skill": "counter_stance",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "heaven_mirror_reversal",
+      "visualTier": "evolved",
+      "icon": "icon_heaven_mirror_reversal",
+      "element": "physical",
+      "tags": [
+        "active",
+        "physical",
+        "defense",
+        "deflect",
+        "reactive"
+      ],
+      "damageTags": [
+        "melee"
+      ],
+      "procCoefficient": 1,
+      "echoPolicy": "forbidden",
+      "clonePolicy": "forbidden",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "safetyCaps": {
+        "maxDeflectionsPerWindow": 8,
+        "maxReflectDamage": 96,
+        "maxCounterPerEvent": 1
+      },
+      "displayOrder": 143,
+      "damage": {
+        "reflected": 84
+      },
+      "area": {
+        "deflectRadius": 140
+      },
+      "deflection": {
+        "windowMs": 2400,
+        "maxDeflections": 8,
+        "reflectedSpeed": 460,
+        "reflectLifeMs": 900
+      },
+      "knockback": {
+        "reflected": 30
+      },
+      "poiseDamage": {
+        "reflected": 40
+      },
+      "comboGain": {
+        "perDeflect": 1,
+        "maxPerCast": 2
+      },
+      "furyGain": {
+        "perDeflect": 1,
+        "maxPerCast": 5
+      },
+      "cooldown": 9500,
+      "meleeRange": 52,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "deflect",
+      "echoDescription": "残響非対応（戦士は残響/分身の対象外）",
+      "cloneDescription": "複製不可（戦士は残響/分身の対象外）"
     }
   ]
 }

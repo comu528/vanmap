@@ -36,7 +36,8 @@ export const FROST = DATA.jobs.find((j) => j.id === 'frost_mage');
 export const EXPECTED = {
   // M8-C（Wave1）で active5 → 15 / evolution3 → 8、M8-D（Wave2）で active15 → 25 / evolution8 → 13。
   // passive は 4 のまま。
-  activeCount: 25, passiveCount: 4, evolutionCount: 13,
+  // M8-E（最終Wave）で active25 → 30 / evolution13 → 18。火 / 氷と同規模へ到達。
+  activeCount: 30, passiveCount: 4, evolutionCount: 18,
   // M8-B の基礎 5 種（既存テストが参照する）。
   baseActives: ['great_cleave', 'shield_bash', 'whirlwind_slash', 'charge_slash', 'ground_slam'],
   baseEvolutions: ['thousand_blade_dance', 'bloodstorm_whirlwind', 'unyielding_fortress'],
@@ -49,16 +50,23 @@ export const EXPECTED = {
     'blade_guard', 'berserker_rush', 'war_axe_throw', 'breaker_knee', 'rallying_banner'],
   wave2Evolutions: ['heaven_rending_ascent', 'fortress_rampage', 'shadow_swallow_riposte',
     'mountain_hurl', 'blood_oath_standard'],
+  // M8-E で追加した 5 active / 5 evolution。
+  finalActives: ['piercing_lunge', 'duel_challenge', 'battle_trance', 'earthshaker_march', 'weapon_deflection'],
+  finalEvolutions: ['godspeed_impaler', 'king_slayer_duel', 'blood_asura_trance',
+    'continental_quake_march', 'heaven_mirror_reversal'],
   actives: ['great_cleave', 'shield_bash', 'whirlwind_slash', 'charge_slash', 'ground_slam',
     'armor_breaker', 'twin_fang_slash', 'execution_strike', 'leap_smash', 'sweeping_advance',
     'counter_stance', 'war_cry', 'chain_hook', 'shockwave_stomp', 'relentless_combo',
     'rising_slash', 'shield_charge', 'backstep_riposte', 'battlefield_throw', 'triple_crush',
-    'blade_guard', 'berserker_rush', 'war_axe_throw', 'breaker_knee', 'rallying_banner'],
+    'blade_guard', 'berserker_rush', 'war_axe_throw', 'breaker_knee', 'rallying_banner',
+    'piercing_lunge', 'duel_challenge', 'battle_trance', 'earthshaker_march', 'weapon_deflection'],
   passives: ['brute_force', 'heavy_armor', 'combat_instinct', 'bloodlust'],
   evolutions: ['thousand_blade_dance', 'bloodstorm_whirlwind', 'unyielding_fortress',
     'skull_splitter', 'crimson_execution', 'war_god_roar', 'adamant_counter', 'heaven_crushing_descent',
     'heaven_rending_ascent', 'fortress_rampage', 'shadow_swallow_riposte', 'mountain_hurl',
-    'blood_oath_standard'],
+    'blood_oath_standard',
+    'godspeed_impaler', 'king_slayer_duel', 'blood_asura_trance', 'continental_quake_march',
+    'heaven_mirror_reversal'],
   lv80Targets: ['great_cleave', 'shield_bash', 'ground_slam', 'armor_breaker', 'twin_fang_slash', 'relentless_combo'],
 };
 
@@ -150,6 +158,8 @@ export function makeEnemies(n = 12, o = {}) {
     _poise: 0, _poiseImmuneUntil: 0, _staggerUntil: 0, _staggerSlow: 0,
     // M8-D: 打ち上げ / 掴みの残留（Enemy.reset と同じ初期値）。
     _airborneUntil: 0, _launchImmuneUntil: 0, _launchHeight: 0, _grabbed: false,
+    // M8-E: 決闘の表示マーカー（Enemy.reset / onEnemyRemoved が落とす）。
+    _duelMark: false,
     knockbackResist: 0.2, _kb: 0,
     applyKnockback(x, y, f) { this._kb += f; },
     applySlow() {},
@@ -161,7 +171,7 @@ export function makeBoss(o = {}) {
   return {
     x: o.x != null ? o.x : 330, y: o.y != null ? o.y : 300, alive: true, isBoss: true, isElite: false,
     hp: o.hp || 20000, maxHp: o.hp || 20000, state: o.state || 'chase', _stateTimer: 0, _seq: 9999,
-    _airborneUntil: 0, _launchImmuneUntil: 0, _launchHeight: 0, _grabbed: false,
+    _airborneUntil: 0, _launchImmuneUntil: 0, _launchHeight: 0, _grabbed: false, _duelMark: false,
     _poiseStaggerUntil: 0, _staggerCalls: 0,
     applyPoiseStagger(ms) { this._poiseStaggerUntil = ms; this._staggerCalls += 1; if (this.state !== 'chase') { this.state = 'chase'; this._stateTimer = 0; } return true; },
     applyKnockback() { this._kb = (this._kb || 0) + 1; },
@@ -205,6 +215,11 @@ export function makeScene(opts = {}) {
     },
     boss: opts.boss || null,
     enemyPool: { forEachActive: (fn) => { for (const e of enemies) fn(e); } },
+    // M8-E: 敵弾（弾き返しの対象）と反射弾。既定は空＝従来のテストへ影響しない。
+    enemyBullets: opts.enemyBullets || [],
+    reflected: [],
+    _deflectSeq: 0,
+    _deflectOpts: null,
     passives: { getAreaMultiplier: () => 1, getDurationMultiplier: () => 1, getDamageMultiplier: () => 1, getProjectileCountBonus: () => 0, getMult: () => 1, _cooldownMin: 0.5, version: 0 },
     jobMods: {
       cooldownMult: () => 1, projectileCountBonus: () => 0, damageMultiplier: () => 1,
@@ -243,6 +258,9 @@ export function makeScene(opts = {}) {
         // M8-D（Wave2）。
         launches: 0, frontGuardMs: 0, grabs: 0, throws: 0, stages: 0, guardTicks: 0,
         axeHits: 0, stepIns: 0, rallyMs: 0,
+        // M8-E（最終Wave）。
+        thrusts: 0, penetrations: 0, duels: 0, duelMs: 0, tranceMs: 0,
+        stomps: 0, deflects: 0, reflected: 0,
       };
       scene._warriorSkillStats[key] = st;
     }
@@ -263,7 +281,25 @@ export function makeScene(opts = {}) {
       ? Math.min(o.maxExecutes != null ? o.maxExecutes : Infinity, capFor('maxExecutesPerCast', quality, 3))
       : 0;
     let hits = 0;
-    for (const e of targetsInRadius(o.x, o.y, radius)) {
+    // M8-E: 狭い直線（貫穿突き / 神速貫陣）。円 → arc ではなく「前方の帯」で絞り、手前から順に並べる。
+    let candidates = targetsInRadius(o.x, o.y, radius);
+    if (o.line && w) {
+      const L = Math.max(0, o.line.length || 0), HW = Math.max(0, o.line.width || 0) / 2;
+      const ca = Math.cos(o.line.facing || 0), sa = Math.sin(o.line.facing || 0);
+      const inLine = [];
+      for (const e of candidates) {
+        if (!e || !e.alive) continue;
+        const dx = e.x - o.x, dy = e.y - o.y;
+        const along = dx * ca + dy * sa;
+        if (along < 0 || along > L) continue;
+        if (Math.abs(-dx * sa + dy * ca) > HW) continue;
+        e._lineAlong = along;
+        inLine.push(e);
+      }
+      inLine.sort((a, b) => (a._lineAlong - b._lineAlong) || ((a._seq || 0) - (b._seq || 0)));
+      candidates = w.resolveLineMeleeTargets(inLine, { maxTargets: o.line.maxTargets || cap });
+    }
+    for (const e of candidates) {
       if (hits >= cap) { scene._m.suppressed++; break; }
       if (!e || !e.alive) continue;
       if (o.hitSet && o.hitSet.has(e)) continue;
@@ -438,8 +474,110 @@ export function makeScene(opts = {}) {
     return move;
   };
 
+  // ---- M8-E（最終Wave）の共通経路（production の BattleScene と同じ手順）----
+  scene.pickDuelTarget = (x, y, range, o = {}) => {
+    const w = scene.warrior;
+    if (!w || !w.enabled) return null;
+    const cand = targetsInRadius(x, y, Math.max(1, range || 0));
+    let best = null, bestScore = -Infinity;
+    const hpWeight = Math.max(0, o.normalTargetHpPriority || 0);
+    for (const e of cand) {
+      if (!e || !e.alive) continue;
+      const pri = w.duelPriority(e);
+      if (pri < 0) continue;
+      const hpRatio = e.maxHp > 0 ? (e.hp / e.maxHp) : 0;
+      const score = pri * 1e6 + hpRatio * hpWeight * 1e3 - Math.hypot(e.x - x, e.y - y) * 1e-3;
+      if (score > bestScore) { bestScore = score; best = e; }
+    }
+    return best;
+  };
+  scene.beginDuel = (source, x, y, o = {}) => {
+    const w = scene.warrior;
+    if (!w || !w.enabled) return null;
+    const target = scene.pickDuelTarget(x, y, o.range, o);
+    if (!target) return null;
+    const r = w.beginDuelChallenge(source, target, o);
+    if (!r) return null;
+    target._duelMark = true;
+    if (o.skillId) warriorSkillStat(o.skillId).duels += 1;
+    return { ...r, target };
+  };
+  scene.duelTarget = () => {
+    const w = scene.warrior;
+    if (!w || !w.duelActive) return null;
+    const seq = w.duelSeq;
+    if (scene.boss && scene.boss.alive && scene.boss._seq === seq) return scene.boss;
+    let found = null;
+    for (const e of enemies) if (!found && e.alive && e._seq === seq) found = e;
+    return found;
+  };
+  scene.refreshDuel = (o = {}) => {
+    const w = scene.warrior;
+    if (!w || !w.duelActive) return false;
+    const t = scene.duelTarget();
+    if (t && t.alive) return true;
+    if (!(o.retargetRange > 0)) { w.clearDuelTarget(null, 'targetLost'); return false; }
+    const next = scene.pickDuelTarget(scene.player.x, scene.player.y, o.retargetRange, o);
+    if (!next || w.duelPriority(next) < 2) { w.clearDuelTarget(null, 'noWorthyTarget'); return false; }
+    if (!w.retargetDuel(next)) return false;
+    next._duelMark = true;
+    return true;
+  };
+  scene.deflectableProjectiles = (x, y, r) => {
+    const r2 = Math.max(0, r) * Math.max(0, r);
+    const out = [];
+    for (const b of (scene.enemyBullets || [])) {
+      if (!b.alive || b.alreadyDeflected) continue;
+      if ((b.x - x) * (b.x - x) + (b.y - y) * (b.y - y) <= r2) out.push(b);
+    }
+    out.sort((a, c) => (a._deflectId || 0) - (c._deflectId || 0) || (a.x - c.x) || (a.y - c.y));
+    return out;
+  };
+  scene.createReflectedPhysicalProjectile = (x, y, ang, r, o = {}) => {
+    const w = scene.warrior;
+    if (!w) return null;
+    const cap = capFor('maxReflectedProjectiles', quality, 8);
+    if ((scene.reflected || []).length >= cap) return null;
+    if (1 > w.maxReflectGeneration()) return null;      // 反射弾から再反射しない
+    const p = {
+      x, y, angle: ang + Math.PI, alive: true, hostile: false, ownerType: 'player',
+      damage: Math.max(0, r.damage || 0), speed: Math.max(1, r.speed || 0), lifeMs: Math.max(60, r.lifeMs || 0),
+      tag: 'reflected', skillId: o.skillId || null,
+      alreadyDeflected: true, deflectGeneration: 1, suppressSpecialEffects: true,
+      chillAmount: 0, baseFreezeChance: 0, explosionRadius: 0,
+    };
+    (scene.reflected = scene.reflected || []).push(p);
+    calls.push(['reflected', p.skillId, p.damage]);
+    w.noteReflectedSpawn();
+    if (o.skillId) warriorSkillStat(o.skillId).reflected += 1;
+    return p;
+  };
+  scene.tryDeflectProjectile = (b, o = {}) => {
+    const w = scene.warrior;
+    if (!w || !w.enabled) return { deflected: false, reason: 'disabled' };
+    const pick = w.arbitrateDeflectionAndCounter('projectile');
+    if (!pick) return { deflected: false, reason: 'noReaction' };
+    if (b._deflectId == null) b._deflectId = ++scene._deflectSeq;
+    const r = w.tryDeflectProjectile(b);
+    if (!r.deflected) return r;
+    b.alreadyDeflected = true;
+    b.alive = false;
+    if (r.reflect) scene.createReflectedPhysicalProjectile(b.x, b.y, b.angle || 0, r, o);
+    if (o.skillId) warriorSkillStat(o.skillId).deflects += 1;
+    return r;
+  };
+
   scene.combat = {
     meleeStrike: (o) => scene.meleeStrike(o),
+    // M8-E: 最終Wave の共通経路。
+    lineStrike: (o) => scene.meleeStrike(o),
+    beginDuel: (source, x, y, o) => scene.beginDuel(source, x, y, o),
+    duelTarget: () => scene.duelTarget(),
+    refreshDuel: (o) => scene.refreshDuel(o),
+    pickDuelTarget: (x, y, range, o) => scene.pickDuelTarget(x, y, range, o),
+    deflectableProjectiles: (x, y, r) => scene.deflectableProjectiles(x, y, r),
+    tryDeflectProjectile: (b, o) => scene.tryDeflectProjectile(b, o),
+    setDeflectOptions: (o) => { scene._deflectOpts = o || null; },
     warrior: () => scene.warrior,
     // M8-D: Wave2 の共通経路。
     launchTarget: (e, opts) => scene.launchTarget(e, opts),

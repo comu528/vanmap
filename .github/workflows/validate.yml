@@ -350,6 +350,40 @@ jobs:
       - name: Three job wave2 non-regression tests
         run: node tests/three-job-wave2-nonregression.mjs
 
+      # 戦士 最終Wave（M8-E・active30/passive4/進化18・火/氷と同規模・Node.js 標準機能のみ）。
+      - name: Warrior final catalog tests
+        run: node tests/warrior-final-catalog.mjs
+      - name: Warrior final pool tests
+        run: node tests/warrior-final-pool.mjs
+      - name: Warrior final draft tests
+        run: node tests/warrior-final-draft.mjs
+      - name: Warrior final guidance tests
+        run: node tests/warrior-final-guidance.mjs
+      - name: Warrior final evolutions tests
+        run: node tests/warrior-final-evolutions.mjs
+      - name: Warrior piercing lunge tests
+        run: node tests/warrior-piercing-lunge.mjs
+      - name: Warrior duel challenge tests
+        run: node tests/warrior-duel-challenge.mjs
+      - name: Warrior battle trance tests
+        run: node tests/warrior-battle-trance.mjs
+      - name: Warrior earthshaker march tests
+        run: node tests/warrior-earthshaker-march.mjs
+      - name: Warrior weapon deflection tests
+        run: node tests/warrior-weapon-deflection.mjs
+      - name: Warrior final runtime save tests
+        run: node tests/warrior-final-runtime-save.mjs
+      - name: Warrior final determinism tests
+        run: node tests/warrior-final-determinism.mjs
+      - name: Warrior final quality cap tests
+        run: node tests/warrior-final-quality-cap.mjs
+      - name: Warrior final cleanup tests
+        run: node tests/warrior-final-cleanup.mjs
+      - name: Warrior final telemetry tests
+        run: node tests/warrior-final-telemetry.mjs
+      - name: Three job final catalog non-regression tests
+        run: node tests/three-job-final-catalog-nonregression.mjs
+
       # 状態異常の視認性・実動作検証（M7-B.1・表示状態/デバッグ/ボス氷砕UI/非回帰・Node.js 標準機能のみ）。
       - name: Status visual state tests
         run: node tests/status-visual-state.mjs

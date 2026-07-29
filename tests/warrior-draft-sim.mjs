@@ -201,7 +201,11 @@ export function simulateRun(opts) {
     evolvableFormedAt: new Map(),      // evoId -> level-up index（条件成立）
     evolutionOfferedAt: new Map(),     // evoId -> level-up index（候補として提示）
     evolutionTakenAt: new Map(),       // evoId -> level-up index（取得）
-    formedButNotOffered: 0,            // 条件成立しているのに提示されなかった draft 数
+    // 条件成立しているのに**進化候補が 1 つも出なかった** draft 数（＝プレイヤーが詰まる状態）。
+    // 候補は 3 枠しか無いので、同時に 4 件以上成立していれば一部が出ないのは正常。
+    // 「全部は出ない」ほうは formedPartiallyOffered として別に数える。
+    formedButNotOffered: 0,
+    formedPartiallyOffered: 0,
     activeSlotFullAt: -1, passiveSlotFullAt: -1,
     candidateNone: 0, duplicates: 0, slotViolations: 0, leakage: 0,
     rerolls: 0, banishes: 0, skips: 0,
@@ -262,10 +266,16 @@ export function simulateRun(opts) {
     }
     stats.pityMax = Math.max(stats.pityMax, draft.draftsSinceProgress);
     if (draft.guidancePityActive && draft.guidancePityActive()) stats.pityTriggered += 1;
+    let offeredAny = false, missedSome = false;
     for (const e of evolvables) {
       if (cands.some((c) => c.kind === 'evolution' && c.id === e.evolutionId)) {
+        offeredAny = true;
         if (!stats.evolutionOfferedAt.has(e.evolutionId)) stats.evolutionOfferedAt.set(e.evolutionId, i);
-      } else stats.formedButNotOffered += 1;
+      } else missedSome = true;
+    }
+    if (evolvables.length > 0) {
+      if (!offeredAny) stats.formedButNotOffered += 1;   // 1 つも出ない＝異常
+      else if (missedSome) stats.formedPartiallyOffered += 1; // 候補 3 枠に収まらなかっただけ＝正常
     }
 
     const pick = choose(strategy, cands, owned, rng, focus);
@@ -311,7 +321,7 @@ export function aggregate(opts) {
     runs: 0, evolutionCounts: [], offered: new Map(), taken: new Map(), acquired: new Map(),
     offeredRarity: {}, takenRarity: {},
     evoFormed: new Map(), evoOffered: new Map(), evoTaken: new Map(),
-    formedButNotOffered: 0, candidateNone: 0, duplicates: 0, slotViolations: 0, leakage: 0,
+    formedButNotOffered: 0, formedPartiallyOffered: 0, candidateNone: 0, duplicates: 0, slotViolations: 0, leakage: 0,
     rerolls: 0, banishes: 0, skips: 0, pityTriggered: 0, synergyAssisted: 0,
     guidanceAssisted: { base: 0, support: 0, upgrade: 0, evolution: 0 },
     firstActive: new Map(), byStrategy: {}, activeSlotFull: 0, passiveSlotFull: 0,
@@ -336,6 +346,7 @@ export function aggregate(opts) {
       for (const k of r.evolutionOfferedAt.keys()) bump(agg.evoOffered, k);
       for (const k of r.evolutionTakenAt.keys()) bump(agg.evoTaken, k);
       agg.formedButNotOffered += r.formedButNotOffered;
+      agg.formedPartiallyOffered += r.formedPartiallyOffered;
       agg.candidateNone += r.candidateNone;
       agg.duplicates += r.duplicates;
       agg.slotViolations += r.slotViolations;

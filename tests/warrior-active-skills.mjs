@@ -32,7 +32,9 @@ const run = (ctx, ms = 8000, step = 16) => {
 };
 
 // M8-C: 「構え」系は発動時に攻撃しない（被弾に反応して反撃する）。命中を要求しない。
-const STANCE_ONLY = new Set(['counter_stance']);
+// 発動そのものでは攻撃しないスキル（構え / 反応系）。Lv 比較・命中の対象から外す。
+// M8-E: 刃返しは「弾を弾き返す」スキルで、直接の近接ダメージを持たない。
+const STANCE_ONLY = new Set(['counter_stance', 'weapon_deflection']);
 
 // ===== 1. active すべてが発動・命中する =====
 section('1. active（構え系を除く）すべてが発動し、命中してダメージを与える');

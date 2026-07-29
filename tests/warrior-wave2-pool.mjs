@@ -97,6 +97,7 @@ for (const j of [FLAME, FROST]) {
   ok((j.passiveSkillPool || []).length === 4, `${j.id}: passive 4`);
   for (const id of NEW) ok(!j.activeSkillPool.includes(id) && !j.evolutionPool.includes(id), `${j.id}: ${id} を含まない`);
 }
-ok(WARRIOR.activeSkillPool.length === 25 && WARRIOR.evolutionPool.length === 13, '戦士は 25/13');
+ok(WARRIOR.activeSkillPool.length === EXPECTED.activeCount && WARRIOR.evolutionPool.length === EXPECTED.evolutionCount,
+  `戦士は ${EXPECTED.activeCount}/${EXPECTED.evolutionCount}`);
 
 T.finish();

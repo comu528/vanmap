@@ -789,3 +789,69 @@ if (this._grabbed || now < this._airborneUntil) spd = 0;   // 既定値では絶
 
 前面防御 / 掴み / 戦旗の陣はすべて `WarriorCombatSystem.update(dt)` の末尾で
 まとめて減算・終了処理される（`Phaser.Time` に依存しない＝テストから同じ経路を駆動できる）。
+
+
+---
+
+## Milestone 8-E: 戦士スキル拡張 最終Wave（構造上の変更点）
+
+### 方針は M8-B から変わらない
+
+> 戦士の状態は `WarriorCombatSystem` が唯一の管理者。BattleScene へスキルごとの状態を散らさない。
+
+最終Wave で足した 5 つの機構（直線の対象選択 / 決闘 / 構え / 進軍 / 弾き返し）も
+すべて `WarriorCombatSystem` の中にあり、上限は `balance.json` から読む。
+スキルクラスは**判断をせず**、`resolveLineMeleeTargets()` / `duelPriority()` /
+`canDeflectProjectile()` の結果に従うだけ（スキル側で `isBoss` / `projectileKind` を見ない）。
+
+### 敵オブジェクト・弾オブジェクトを保持しない
+
+決闘が持つのは安定 runtime id（`Enemy._seq`）だけで、実体は毎フレーム引き直す。
+
+```
+WarriorCombatSystem._duel = { source, seq, kind, leftMs, ... }   // ← 敵オブジェクトではない
+BattleScene.duelTarget()  → _seq から引き直す
+onEnemyRemoved(e)         → _duel.seq === e._seq なら解除し、e._duelMark も戻す
+```
+
+弾き返しも同じで、持つのは `_deflectId` の `Set` だけ（**保存しない**・窓を閉じれば空になる）。
+
+### 反応の調停を 1 か所に置いた
+
+近接反撃（M8-C）と弾き返し（M8-E）が同じ被弾で二重に発火しないよう、
+`arbitrateDeflectionAndCounter(kind)` が入口を 1 つにまとめている。
+
+```
+projectile イベント → 弾き返しの枠だけを見る（近接反撃の回数は減らない）
+melee      イベント → 既存の反撃調停だけを通す（弾き返しの枠は減らない）
+```
+
+窓の枠を使い切っていても**窓が開いている間は調停まで通す**（`deflectionWindowOpen`）ので、
+「上限に達した窓へ弾が来た」ことを正しく計測でき、その弾はそのまま素通りする。
+
+### 共通経路への追加は「明示したときだけ効く」形にした
+
+`BattleScene.meleeStrike` へ足した `line: { length, width, facing, maxTargets }` はオプションで、
+未指定なら従来の扇形判定を通る。敵弾 vs プレイヤーの弾き返しフックも
+`warrior.deflectionWindowOpen && this._deflectOpts` のときにしか動かない。
+
+**`Projectile` へは無害な既定値のフィールドを 4 つ足しただけ**
+（`_deflectId: null` / `alreadyDeflected: false` / `deflectGeneration: 0` / `suppressSpecialEffects: false`）。
+いずれも `_clearState()` が戻すので、火 / 氷の弾は 1 つも挙動が変わらない
+（`tests/three-job-final-catalog-nonregression.mjs` がランタイムハッシュで保証している）。
+
+M8-D では「`Projectile` を 1 行も変えない」方針だったが、弾き返しは**弾そのものに印を付けないと
+同じ弾を 2 度弾いてしまう**ため、ここだけは既定値が完全に無害なフィールド追加として許した。
+
+### `Enemy` への追加は既定値で恒等
+
+```js
+this._duelMark = false; this._lineAlong = 0;   // 既定値では移動にも AI にも影響しない
+```
+
+`reset()` も同じ 2 つを戻すので、プール再利用で状態が持ち越されない。
+
+### 時限状態の tick は 1 か所
+
+決闘 / 構え / 弾き返しの窓はすべて `WarriorCombatSystem.update(dt)` の末尾で
+まとめて減算・終了処理される（`Phaser.Time` に依存しない＝テストから同じ経路を駆動できる）。

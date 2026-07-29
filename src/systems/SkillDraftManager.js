@@ -339,6 +339,12 @@ export class SkillDraftManager {
         // 最大 Lv が低く早期に埋まる）。カタログが増えるほど不利になるので、その分だけ追加で補正する。
         // 判定は候補のカテゴリだけを見る（特定の skill ID を実装に書かない）。
         if (m.category === 'active') mult *= num(cfg.activeSupportWeightMultiplier, 1);
+        // M8-E: 必要 Lv が高い補助（Lv6 以上）は、そこへ到達するまでの手数が単純に多い。
+        // カタログが大きくなるほど不利になるので、**必要 Lv の高さだけ**を見て追加補正する。
+        // 判定はレシピの requirement.level だけ（特定の skill ID を実装に書かない）。
+        if ((q.level || 1) >= num(cfg.highRequirementSupportLevel, Infinity)) {
+          mult *= num(cfg.highRequirementSupportMultiplier, 1);
+        }
         supportMult = Math.max(supportMult, mult);
         tags.push('support');
       }

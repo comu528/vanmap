@@ -89,8 +89,13 @@ section('3. 同じ補助を複数レシピが要求しても倍率が積み上�
     for (const b of bases) owned.active[b] = 3;
     const c = find(poolOf(mk(), ctxOf('warrior', owned, 8)), sid);
     if (!c || c.guidanceMult === undefined) continue;
+    // M8-E: 高 Lv を要求する補助には highRequirementSupportMultiplier が乗る。
+    // 「単体上限」も同じ係数で評価する（役割ごとの max であって積み上げではないことを見る）。
+    const maxReq = Math.max(0, ...GUIDANCE_RECIPES
+      .flatMap((r) => r.requirements.filter((q) => q.skill === sid).map((q) => q.level || 1)));
     const single = G.requiredSupportWeightMultiplier * G.supportNearRequiredMultiplier
-      * (WARRIOR.activeSkillPool.includes(sid) ? G.activeSupportWeightMultiplier : 1);
+      * (WARRIOR.activeSkillPool.includes(sid) ? G.activeSupportWeightMultiplier : 1)
+      * (maxReq >= (G.highRequirementSupportLevel ?? Infinity) ? (G.highRequirementSupportMultiplier || 1) : 1);
     ok(c.guidanceMult <= single + 1e-9,
       `${sid}（${bases.length} レシピ共有）: ×${c.guidanceMult.toFixed(3)} ≤ 単体上限 ×${single.toFixed(3)}`);
   }

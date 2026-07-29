@@ -157,8 +157,12 @@ section('6. 同じ補助を複数の進化が要求しても倍率が掛け算�
     const c = find(pool, sid);
     ok(!!c, `${sid} が候補に出る`);
     // M8-D: 補助が active のときだけ activeSupportWeightMultiplier が 1 回だけ乗る。
+    // M8-E: 必要 Lv が高い補助（Lv6 以上）には、さらに 1 回だけ追加補正が乗る。
+    const maxReq = Math.max(0, ...GUIDANCE_RECIPES
+      .flatMap((r) => r.requirements.filter((q) => q.skill === sid).map((q) => q.level || 1)));
     const single = G.requiredSupportWeightMultiplier * G.supportNearRequiredMultiplier
-      * (WARRIOR.activeSkillPool.includes(sid) ? (G.activeSupportWeightMultiplier || 1) : 1);
+      * (WARRIOR.activeSkillPool.includes(sid) ? (G.activeSupportWeightMultiplier || 1) : 1)
+      * (maxReq >= (G.highRequirementSupportLevel ?? Infinity) ? (G.highRequirementSupportMultiplier || 1) : 1);
     ok(c.guidanceMult <= single + 1e-9, `${sid}: ${bases.length} レシピ分でも ×${c.guidanceMult.toFixed(3)} ≤ 単体上限 ×${single.toFixed(3)}`);
   }
 }

@@ -1350,3 +1350,85 @@ M8-C.1 の他のキーとしきい値は 1 つも変えていない（`validate-
 
 `activeSkillPool` へ 10 件、`evolutionPool` へ 5 件を末尾へ追加しただけ。並び順も含めて
 `validate-data` が期待値と突き合わせる。火 / 氷のプールは 1 件も変えていない。
+
+
+---
+
+## Milestone 8-E: 戦士スキル拡張 最終Wave（すべて加算的・`save_version` は v6 のまま）
+
+既存キーの意味・型・値は 1 つも変えていない。
+
+### `skills.json` — 戦士 active を 5 件追加（計 30 件・全体 90 件）
+
+追加した 5 件は Wave1 / Wave2 と同じ形（`element:"physical"` / `jobs:["warrior"]` / `isCommon:false` /
+`maxLevel:8` / `levels` 8 段 / `echoPolicy`・`clonePolicy` = `"forbidden"` /
+`canTriggerEcho`・`canBeCopiedByClone` = `false` / `castMode:"cooldown"` /
+`lv80ProjectileTarget:false` / `meleeRange` は正の数 / `evolutionBranches` に対応する進化 id）。
+
+最終Wave 固有の `levels` キー（すべて実装から参照される。未参照は `validate-data` がエラーにする）:
+
+| skill | 成長軸 |
+|-------|--------|
+| `piercing_lunge` | damage / cooldown / stepInDistance / lineLength / width / maxTargets / eliteBonus / bossBonus / poiseDamage / knockbackNormal |
+| `duel_challenge` | cooldown / duration / range / meleeDamageBonus / poiseDamageBonus / furyGainBonus / normalTargetHpPriority / initialStrike / poiseDamage |
+| `battle_trance` | cooldown / duration / meleeDamageBonus / attackSpeedBonus / comboGraceBonus / furyGainBonus / mitigationPenalty / initialShock / poiseDamage |
+| `earthshaker_march` | damage / cooldown / stompCount / interval / stepDistance / radius / knockback / poiseDamage / finalStompMultiplier |
+| `weapon_deflection` | cooldown / windowDuration / maxDeflections / deflectRadius / reflectedDamage / reflectedSpeed / poiseDamage / visualIntensity |
+
+### `skill-evolutions.json` — 戦士 evolution を 5 件追加（計 18 件・全体 54 件）
+
+Wave1 / Wave2 と同じ形（`baseSkillId` / `requiredSkills`（1 件）/ `replacementSkillId` は自身 /
+`safetyCaps`（非負・**全キーが実装から参照される**）/ `lv80ProjectileTarget:false`）。
+
+`heaven_mirror_reversal` の補助は **active**（`counter_stance` Lv4）だが、`replacementSkillId` は自身なので
+**構えは置換されず、クールダウンにも触らない**（`adamant_counter` への道も塞がない）。
+
+### `balance.json` — `warrior` ブロックへ 5 つ追加
+
+```jsonc
+"line":       { "maxLineLength": 300, "maxWidth": 90, "maxTargets": 12, "maxHitsPerTargetPerCast": 2,
+                "maxStepInDistance": 96, "toughSingleTargetRatio": 0.35 },
+"duel":       { "maxTargets": 1, "maxDurationMs": 12000, "maxMeleeDamageBonus": 0.5, "maxPoiseDamageBonus": 0.6,
+                "maxFuryGainBonus": 0.4, "maxRetargetsPerCast": 1, "maxExtensionMs": 3600,
+                "extensionPerBreakMs": 1200, "allowNormalTarget": true,
+                "bossPriority": 3, "elitePriority": 2, "normalPriority": 1 },
+"trance":     { "maxStances": 1, "maxDurationMs": 10000, "maxMeleeDamageBonus": 0.45, "maxAttackSpeedBonus": 0.32,
+                "maxComboGraceBonus": 0.45, "maxFuryGainBonus": 0.5, "maxMitigationPenalty": 0.15,
+                "minMitigationAfterPenalty": 0.0, "combinedOffenseCap": 0.85, "maxKillHealBonus": 0.5 },
+"deflection": { "maxWindowMs": 3000, "maxDeflectionsPerWindow": 8, "maxDeflectRadius": 150,
+                "maxReflectedDamage": 96, "maxReflectedSpeed": 480, "maxReflectLifeMs": 1000,
+                "maxReflectGeneration": 1, "allowedKinds": ["bossBullet", "bullet"],
+                "deniedKinds": ["beam", "telegraph", "hazard", "dot", "ground"], "counterPriority": 4 },
+"march":      { "maxStomps": 8, "maxMarchMs": 2600, "maxStepDistance": 96, "maxRadius": 170,
+                "maxMitigation": 0.2, "worldMargin": 24 }
+```
+
+同じ既定値が `WARRIOR_DEFAULTS`（`src/systems/WarriorCombatSystem.js`）にもあるので、
+balance を渡さなくても例外にならず、data 側の値が常に優先される。
+
+`allowedKinds` と `deniedKinds` は重ならないこと・denylist が `beam` / `telegraph` / `hazard` /
+`dot` / `ground` をすべて含むことを `validate-data` が検証する。
+
+### `balance.json` — `skillCaps` を 12 件追加（計 217 件）
+
+| 種別 | 追加した cap |
+|------|-------------|
+| event（実挙動の同時処理数） | `maxLineTargets` `maxLineThrusts` `maxDuelTargets` `maxTranceStances` `maxMarchStomps` `maxDeflectionsPerWindow` `maxReflectedProjectiles` |
+| visual（演出の同時表示数） | `maxThrustTrails` `maxDuelMarkers` `maxTranceAuras` `maxMarchDustVisuals` `maxDeflectSparkVisuals` |
+
+すべて `low ≤ medium ≤ high ≤ ultra`・**正の数**（0 にすると効果そのものが消えるため）で、
+**未参照の cap は `validate-data` がエラーにする**。
+
+### `skill-config.json` — `guidance` へ 2 キー追加
+
+```jsonc
+"highRequirementSupportLevel": 6,        // 「高い Lv を要求される補助」とみなす境界
+"highRequirementSupportMultiplier": 1.5  // その補助へ追加で乗る倍率（役割ごとの max・積み上げない）
+```
+
+M8-C.1 / M8-D の他のキーとしきい値は 1 つも変えていない（`validate-data` が固定値で検証する）。
+
+### `jobs.json` — 戦士のプールを 30 / 4 / 18 へ
+
+`activeSkillPool` へ 5 件、`evolutionPool` へ 5 件を末尾へ追加しただけ。並び順も含めて
+`validate-data` が期待値と突き合わせる。火 / 氷のプールは 1 件も変えていない。

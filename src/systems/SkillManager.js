@@ -144,6 +144,17 @@ import { FortressRampageSkill } from '../skills/FortressRampageSkill.js';
 import { ShadowSwallowRiposteSkill } from '../skills/ShadowSwallowRiposteSkill.js';
 import { MountainHurlSkill } from '../skills/MountainHurlSkill.js';
 import { BloodOathStandardSkill } from '../skills/BloodOathStandardSkill.js';
+// M8-E: 戦士 active5種 / 進化5種（最終Wave）
+import { PiercingLungeSkill } from '../skills/PiercingLungeSkill.js';
+import { DuelChallengeSkill } from '../skills/DuelChallengeSkill.js';
+import { BattleTranceSkill } from '../skills/BattleTranceSkill.js';
+import { EarthshakerMarchSkill } from '../skills/EarthshakerMarchSkill.js';
+import { WeaponDeflectionSkill } from '../skills/WeaponDeflectionSkill.js';
+import { GodspeedImpalerSkill } from '../skills/GodspeedImpalerSkill.js';
+import { KingSlayerDuelSkill } from '../skills/KingSlayerDuelSkill.js';
+import { BloodAsuraTranceSkill } from '../skills/BloodAsuraTranceSkill.js';
+import { ContinentalQuakeMarchSkill } from '../skills/ContinentalQuakeMarchSkill.js';
+import { HeavenMirrorReversalSkill } from '../skills/HeavenMirrorReversalSkill.js';
 import { GreatCleaveSkill } from '../skills/GreatCleaveSkill.js';
 import { ShieldBashSkill } from '../skills/ShieldBashSkill.js';
 import { WhirlwindSlashSkill } from '../skills/WhirlwindSlashSkill.js';
@@ -300,6 +311,18 @@ const REGISTRY = {
   shadow_swallow_riposte: ShadowSwallowRiposteSkill,
   mountain_hurl: MountainHurlSkill,
   blood_oath_standard: BloodOathStandardSkill,
+  // M8-E: 戦士 active5種（最終Wave）
+  piercing_lunge: PiercingLungeSkill,
+  duel_challenge: DuelChallengeSkill,
+  battle_trance: BattleTranceSkill,
+  earthshaker_march: EarthshakerMarchSkill,
+  weapon_deflection: WeaponDeflectionSkill,
+  // M8-E: 戦士 進化5種（最終Wave）
+  godspeed_impaler: GodspeedImpalerSkill,
+  king_slayer_duel: KingSlayerDuelSkill,
+  blood_asura_trance: BloodAsuraTranceSkill,
+  continental_quake_march: ContinentalQuakeMarchSkill,
+  heaven_mirror_reversal: HeavenMirrorReversalSkill,
   // M8-B: 戦士 active5種
   great_cleave: GreatCleaveSkill,
   shield_bash: ShieldBashSkill,

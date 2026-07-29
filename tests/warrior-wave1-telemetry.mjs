@@ -62,7 +62,9 @@ section('1. Wave1 の指標が CombatTelemetry と summary() の両方にある'
   }
   // 1:1 が崩れていない（M8-B のテストと同じ規則）。
   // M8-D でライブ表示専用キーが 3 つ増えた（戦旗の在否 / 内外・前面防御の在否）。
-  const live = new Set(['fury', 'combo', 'bossPoiseGauge', 'rallyActive', 'rallyInside', 'frontGuardActive']);
+  const live = new Set(['fury', 'combo', 'bossPoiseGauge', 'rallyActive', 'rallyInside', 'frontGuardActive',
+    // M8-E: 決闘 / 構え / 弾き返しの現在状態（数値ではなくライブ表示）。
+    'duelActive', 'duelKind', 'tranceActive', 'deflectionActive']);
   for (const k of Object.keys(t.warrior)) ok(Object.prototype.hasOwnProperty.call(sum, k), `summary() が ${k} を返す（全体の 1:1）`);
   for (const k of Object.keys(sum)) {
     ok(Object.prototype.hasOwnProperty.call(t.warrior, k) || live.has(k), `${k}: telemetry 側にも存在する`);

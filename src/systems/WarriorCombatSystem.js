@@ -87,6 +87,32 @@ export const WARRIOR_DEFAULTS = {
   },
   // M8-D: 低 HP スケーリング（自傷なし・処刑なし・必ず頭打ち）。
   lowHp: { maxMissingHpMultiplier: 1.6 },
+  // M8-E: 直線判定（貫穿突き）。画面端まで届かせない。
+  line: {
+    maxLineLength: 300, maxWidth: 90, maxTargets: 12,
+    maxHitsPerTargetPerCast: 2, maxStepInDistance: 96, toughSingleTargetRatio: 0.35,
+  },
+  // M8-E: 決闘（同時 1 体・formal status を作らない）。
+  duel: {
+    maxTargets: 1, maxDurationMs: 12000, maxMeleeDamageBonus: 0.5, maxPoiseDamageBonus: 0.6,
+    maxFuryGainBonus: 0.4, maxRetargetsPerCast: 1, maxExtensionMs: 3600, extensionPerBreakMs: 1200,
+    allowNormalTarget: true, bossPriority: 3, elitePriority: 2, normalPriority: 1,
+  },
+  // M8-E: 修羅の構え（攻め寄りの timed stance・重ねがけしない）。
+  trance: {
+    maxStances: 1, maxDurationMs: 10000, maxMeleeDamageBonus: 0.45, maxAttackSpeedBonus: 0.32,
+    maxComboGraceBonus: 0.45, maxFuryGainBonus: 0.5, maxMitigationPenalty: 0.15,
+    minMitigationAfterPenalty: 0, combinedOffenseCap: 0.85, maxKillHealBonus: 0.5,
+  },
+  // M8-E: 弾き返し（通常の敵弾だけ・完全無効化しない）。
+  deflection: {
+    maxWindowMs: 3000, maxDeflectionsPerWindow: 8, maxDeflectRadius: 150,
+    maxReflectedDamage: 96, maxReflectedSpeed: 480, maxReflectLifeMs: 1000, maxReflectGeneration: 1,
+    allowedKinds: ['bossBullet', 'bullet'], deniedKinds: ['beam', 'telegraph', 'hazard', 'dot', 'ground'],
+    counterPriority: 4,
+  },
+  // M8-E: 震天踏破（進みながら複数地点を踏む）。
+  march: { maxStomps: 8, maxMarchMs: 2600, maxStepDistance: 96, maxRadius: 170, maxMitigation: 0.2, worldMargin: 24 },
 };
 
 // 闘気の獲得源（telemetry のキーと 1:1）。
@@ -155,6 +181,12 @@ export class WarriorCombatSystem {
     this.rallyField = null;          // { x, y, leftMs, radius, comboGrace, furyGain, mitigation, meleeArea, killHealBonus, perSecondCapBonus, source }
     this._rallyInside = false;
     this._grab = null;               // { seq, phase, leftMs, source }（敵オブジェクトは持たない）
+    // M8-E: 最終 Wave の共通状態。いずれも敵 / 弾のオブジェクトは持たず、安定 runtime id だけを持つ。
+    this._duel = null;               // { seq, kind, leftMs, extendedMs, retargets, bonuses, source }
+    this._trance = null;             // { leftMs, meleeDamageBonus, attackSpeedBonus, comboGraceBonus, furyGainBonus, mitigationPenalty, killHealBonus, perSecondCapBonus, source }
+    this._deflect = null;            // { leftMs, used, max, radius, reflect, source }
+    this._deflectedIds = new Set();  // 1 つの弾を 2 度弾かないための runtime id 集合
+    this._eventReaction = null;      // 1 被弾 / 1 弾イベントにつき 1 系統だけ反応させるための調停マーク
     this._runStartMs = this._now();
     this.telemetry = this._emptyTelemetry();
   }
@@ -188,6 +220,16 @@ export class WarriorCombatSystem {
       lowHpBonusSum: 0, lowHpBonusSamples: 0,
       axeOutboundHits: 0, axeReturnHits: 0, stepIns: 0, stepInDistance: 0,
       rallyPlacements: 0, rallyUptimeMs: 0, rallyInsideMs: 0, rallyAssists: 0, rallyKillHealBonus: 0,
+      // M8-E: 最終 Wave（直線突き / 決闘 / 修羅の構え / 踏破 / 刃返し）。
+      lineThrusts: 0, linePenetrations: 0, lineToughHits: 0, lineStepIns: 0,
+      duelStarts: 0, duelBoss: 0, duelElite: 0, duelNormal: 0,
+      duelUptimeMs: 0, duelDamageBonusSum: 0, duelHits: 0, duelRetargets: 0, duelExtensions: 0, duelClears: 0,
+      tranceStarts: 0, tranceUptimeMs: 0, tranceDamageBonusSum: 0, trancePenaltySum: 0,
+      tranceSamples: 0, tranceOffenseCapped: 0, tranceKillHealBonus: 0,
+      marchStomps: 0, marchCompleted: 0, marchDistance: 0, marchFinalStomps: 0,
+      deflectWindows: 0, deflectUptimeMs: 0, deflectSeen: 0, deflected: 0, deflectRejected: 0,
+      deflectCapReached: 0, reflectedSpawned: 0, reflectedHits: 0, reflectedDamage: 0,
+      mirrorCounters: 0, reactionArbitrated: 0,
     };
   }
 
@@ -222,6 +264,11 @@ export class WarriorCombatSystem {
     let m = (1 + c.meleeDamageMult) * this.mods.meleeDamageMult;
     if (this.warCry.leftMs > 0) m *= (1 + this.warCry.meleeDamageBonus); // M8-C: 戦吼
     if (this.releaseActive) m *= num(this.cfg.furyRelease.meleeDamageMult, 1);
+    // M8-E: 修羅の構え（闘気解放との合成上限つき）と、決闘対象へだけ乗る上乗せ。
+    const tr = this.getBattleTranceModifiers();
+    if (tr.meleeDamage > 0) m *= (1 + tr.meleeDamage);
+    const du = this.getDuelModifiers(target);
+    if (du.meleeDamage > 0) m *= (1 + du.meleeDamage);
     if (target && target.isBoss && this.exposedActive) {
       m *= (1 + num(this.cfg.poise.boss.exposedMeleeDamageMult, 0) + this.mods.exposedDamageBonus);
     }
@@ -235,6 +282,7 @@ export class WarriorCombatSystem {
     const c = this.comboBonuses();
     let s = (1 + c.attackSpeedMult) * this.mods.attackSpeedMult;
     if (this.releaseActive) s *= num(this.cfg.furyRelease.attackSpeedMult, 1);
+    s *= (1 + this.getBattleTranceModifiers().attackSpeed); // M8-E: 修羅の構え
     return Math.max(0.1, s);
   }
   cooldownMultiplier() { return 1 / this.attackSpeedMultiplier(); }
@@ -271,7 +319,8 @@ export class WarriorCombatSystem {
     // コンボ閾値 / Job Lv / passive の獲得倍率。
     amt *= this.mods.furyGainMult * (1 + this.comboBonuses().furyGainMult);
     if (this.warCry.leftMs > 0) amt *= (1 + this.warCry.furyGainBonus); // M8-C: 戦吼
-    amt *= (1 + this.rallyBonus('furyGain'));                            // M8-D: 戦旗の陣（内側のみ）
+    amt *= (1 + this.rallyBonus('furyGain'));               // M8-D: 戦旗の陣（内側のみ）
+    amt *= (1 + this.getBattleTranceModifiers().furyGain);  // M8-E: 修羅の構え
     // ボス体勢崩し中（exposed）は獲得増加。
     if (this.exposedActive) amt *= (1 + num(this.cfg.poise.boss.exposedFuryGainMult, 0));
     if (amt <= 0) return 0;
@@ -380,7 +429,8 @@ export class WarriorCombatSystem {
     this.combo = clamp(this.combo + n * num(cfg.gainPerHit, 1), 0, num(cfg.maxValue, 999));
     this.comboGraceLeftMs = num(cfg.graceMs, 2500) * Math.max(0.1, this.mods.comboGraceMult)
       * (this.warCry.leftMs > 0 ? (1 + this.warCry.comboGraceBonus) : 1) // M8-C: 戦吼
-      * (1 + this.rallyBonus('comboGrace'));                             // M8-D: 戦旗の陣（内側のみ）
+      * (1 + this.rallyBonus('comboGrace'))                              // M8-D: 戦旗の陣（内側のみ）
+      * (1 + this.getBattleTranceModifiers().comboGrace);                 // M8-E: 修羅の構え
     const gained = this.combo - before;
     if (this.combo > this.telemetry.comboPeak) this.telemetry.comboPeak = this.combo;
     // 閾値の到達（またぐたびに 1 回）。
@@ -406,7 +456,8 @@ export class WarriorCombatSystem {
     const cfg = this.cfg.combo;
     const full = num(cfg.graceMs, 2500) * Math.max(0.1, this.mods.comboGraceMult)
       * (this.warCry.leftMs > 0 ? (1 + this.warCry.comboGraceBonus) : 1)
-      * (1 + this.rallyBonus('comboGrace'));
+      * (1 + this.rallyBonus('comboGrace'))
+      * (1 + this.getBattleTranceModifiers().comboGrace);
     const next = Math.max(this.comboGraceLeftMs, full * r);
     const added = next - this.comboGraceLeftMs;
     this.comboGraceLeftMs = next;
@@ -468,6 +519,9 @@ export class WarriorCombatSystem {
     // M8-D: 血盟戦旗（陣の内側で倒したときだけ回復量が小幅に伸びる。毎秒上限は共有したまま）。
     const oath = this.rallyBonus('killHealBonus');
     if (oath > 0) { amount *= (1 + oath); this.telemetry.rallyKillHealBonus += oath; this.telemetry.rallyAssists += 1; }
+    // M8-E: 血染修羅（構えの最中に倒したときだけ回復量が小幅に伸びる。毎秒上限は下で共有したまま）。
+    const asura = this.tranceActive ? Math.max(0, num(this._trance.killHealBonus, 0)) : 0;
+    if (asura > 0) { amount *= (1 + asura); this.telemetry.tranceKillHealBonus += asura; }
     if (enemy && enemy.isBoss) amount *= num(cfg.bossMult, 1);
     else if (enemy && enemy.isElite) amount *= num(cfg.eliteMult, 1);
     if (this.releaseActive) amount *= num(cfg.releaseMult, 1) * this.mods.killHealReleaseMult;
@@ -477,7 +531,8 @@ export class WarriorCombatSystem {
     const w = this._killHealWindow;
     if (now - w.startMs >= 1000) { w.startMs = now; w.healed = 0; }
     const capPerSec = maxHp * num(cfg.perSecondCapPercent, 0) * Math.max(0, this.mods.killHealCapMult)
-      * (1 + this.rallyBonus('perSecondCapBonus')); // M8-D: 血盟戦旗（陣の内側でだけ毎秒上限が小幅に伸びる）
+      * (1 + this.rallyBonus('perSecondCapBonus'))  // M8-D: 血盟戦旗（陣の内側でだけ毎秒上限が小幅に伸びる）
+      * (1 + (this.tranceActive ? Math.max(0, num(this._trance.perSecondCapBonus, 0)) : 0)); // M8-E: 血染修羅
     const room = Math.max(0, capPerSec - w.healed);
     if (room <= 0) { this.telemetry.killHealCapped += 1; return 0; }
     if (amount > room) { amount = room; this.telemetry.killHealCapped += 1; }
@@ -503,6 +558,15 @@ export class WarriorCombatSystem {
     if (this.releaseActive) r += num(this.cfg.furyRelease.damageReduction, 0);
     if (this.unyieldingActive) r += num(this.cfg.unyielding.damageReduction, 0) * Math.max(0, this.mods.unyieldingPowerMult);
     r += this.mods.damageReductionBonus;                 // Job Lv20 / 重装
+    // M8-E: 修羅の構えのリスク。**合計から差し引くだけ**なので、重装 / 闘気解放 / 不屈は無効化されない。
+    // 下限は data（minMitigationAfterPenalty・既定 0）で、必ず 0 未満にならない。
+    const pen = this.getBattleTranceModifiers().mitigationPenalty;
+    if (pen > 0) {
+      const floor = Math.max(0, num(this.cfg.trance.minMitigationAfterPenalty, 0));
+      r = Math.max(floor, r - pen);
+      this.telemetry.trancePenaltySum += pen;
+      this.telemetry.tranceSamples += 1;
+    }
     return clamp(r, 0, num(cfg.maxTotalReduction, 0.7)); // 0 ダメージの永久無敵は作らない
   }
 
@@ -872,6 +936,411 @@ export class WarriorCombatSystem {
     return num(this.rallyField[key], 0);
   }
 
+  // ================= M8-E: 直線突き（貫穿突き / 神速貫陣）=================
+  // 「前方の狭い直線」を判定形状として扱うための共通経路。判定そのものは BattleScene が行い、
+  // ここでは data の上限（長さ / 幅 / 対象数 / 同一敵への多重命中）だけを決める。
+  beginPiercingLunge(o = {}) {
+    if (!this.enabled) return null;
+    const cfg = this.cfg.line;
+    const out = {
+      length: clamp(num(o.lineLength, 0), 0, num(cfg.maxLineLength, 300)),
+      width: clamp(num(o.width, 0), 0, num(cfg.maxWidth, 90)),
+      maxTargets: Math.max(1, Math.min(Math.round(num(o.maxTargets, 1)), Math.round(num(cfg.maxTargets, 12)))),
+      maxHitsPerTarget: Math.max(1, Math.min(Math.round(num(o.maxHitsPerTarget, 1)), Math.round(num(cfg.maxHitsPerTargetPerCast, 2)))),
+      stepIn: clamp(num(o.stepIn, 0), 0, num(cfg.maxStepInDistance, 96)),
+    };
+    if (out.length <= 0 || out.width <= 0) return null;
+    this.telemetry.lineThrusts += 1;
+    return out;
+  }
+  // 直線判定の対象を「絞るかどうか」だけを決める。硬い相手（エリート / ボス）が混ざるときは
+  // 単体寄りへ寄せる＝通常敵の群れを薙ぐ用途と、格上を突く用途を data で分ける。
+  resolveLineMeleeTargets(candidates, o = {}) {
+    if (!this.enabled || !Array.isArray(candidates)) return [];
+    const cfg = this.cfg.line;
+    const maxN = Math.max(1, Math.min(Math.round(num(o.maxTargets, 1)), Math.round(num(cfg.maxTargets, 12))));
+    const tough = candidates.filter((c) => c && (c.isElite || c.isBoss));
+    if (tough.length > 0) {
+      // 硬い相手が射線上にいるときは、そちらへ威力を集める（通常敵の巻き込みを絞る）。
+      const ratio = clamp(num(cfg.toughSingleTargetRatio, 0.35), 0, 1);
+      const room = Math.max(1, Math.round(maxN * ratio));
+      const rest = candidates.filter((c) => c && !c.isElite && !c.isBoss).slice(0, room);
+      this.telemetry.lineToughHits += tough.length;
+      return [...tough, ...rest].slice(0, maxN);
+    }
+    const picked = candidates.slice(0, maxN);
+    if (picked.length > 1) this.telemetry.linePenetrations += picked.length - 1;
+    return picked;
+  }
+  noteLineStepIn(distance) {
+    if (!this.enabled) return;
+    this.telemetry.lineStepIns += 1;
+    this.telemetry.stepInDistance += Math.max(0, num(distance, 0));
+  }
+
+  // ================= M8-E: 決闘（一騎討ち / 覇王討ち）=================
+  // 対象は同時に 1 体だけ。**敵オブジェクトは持たず安定 runtime id（_seq）だけ**を保持する。
+  // formal status は作らない（相手側に debuff を貼らない＝戦士本人の補正としてだけ効く）。
+  duelPriority(target) {
+    if (!target || !target.alive) return -1;
+    const cfg = this.cfg.duel;
+    if (target.isBoss) return Math.max(0, num(cfg.bossPriority, 3));
+    if (target.isElite) return Math.max(0, num(cfg.elitePriority, 2));
+    return cfg.allowNormalTarget === false ? -1 : Math.max(0, num(cfg.normalPriority, 1));
+  }
+  beginDuelChallenge(source, target, o = {}) {
+    if (!this.enabled || !source) return null;
+    if (this.duelPriority(target) < 0) return null;
+    const cfg = this.cfg.duel;
+    const dur = clamp(num(o.durationMs, 0), 0, num(cfg.maxDurationMs, 12000));
+    if (dur <= 0) return null;
+    const kind = target.isBoss ? 'boss' : (target.isElite ? 'elite' : 'normal');
+    // 重ねがけしない（refresh / 再選択）。既に決闘中なら置き換わるだけで積み上がらない。
+    this._duel = {
+      source, seq: target._seq, kind, leftMs: dur, totalMs: dur,
+      extendedMs: 0, retargets: 0,
+      meleeDamageBonus: clamp(num(o.meleeDamageBonus, 0), 0, num(cfg.maxMeleeDamageBonus, 0.5)),
+      poiseDamageBonus: clamp(num(o.poiseDamageBonus, 0), 0, num(cfg.maxPoiseDamageBonus, 0.6)),
+      furyGainBonus: clamp(num(o.furyGainBonus, 0), 0, num(cfg.maxFuryGainBonus, 0.4)),
+      maxRetargets: Math.max(0, Math.min(Math.round(num(o.maxRetargets, 0)), Math.round(num(cfg.maxRetargetsPerCast, 1)))),
+      retargetRange: Math.max(0, num(o.retargetRange, 0)),
+      // 未指定なら balance の既定を使う（進化だけが自前の値を持つ）。
+      extendPerBreakMs: Math.max(0, num(o.extendPerBreakMs, num(cfg.extensionPerBreakMs, 0))),
+      maxExtensionMs: clamp(num(o.maxExtensionMs, 0), 0, num(cfg.maxExtensionMs, 3600)),
+    };
+    this.telemetry.duelStarts += 1;
+    if (kind === 'boss') this.telemetry.duelBoss += 1;
+    else if (kind === 'elite') this.telemetry.duelElite += 1;
+    else this.telemetry.duelNormal += 1;
+    this._emit('duelStart', { seq: this._duel.seq, kind, durationMs: dur });
+    return { ...this._duel };
+  }
+  clearDuelTarget(source, reason) {
+    if (!this._duel) return false;
+    if (source && this._duel.source !== source) return false;
+    this._duel = null;
+    this.telemetry.duelClears += 1;
+    this._emit('duelEnd', { reason: reason || 'clear' });
+    return true;
+  }
+  get duelActive() { return !!this._duel && this._duel.leftMs > 0; }
+  get duelSeq() { return this._duel ? this._duel.seq : null; }
+  get duelKind() { return this._duel ? this._duel.kind : null; }
+  duelState(source) { return this._duel && (!source || this._duel.source === source) ? { ...this._duel } : null; }
+  get duelLeftMs() { return this._duel ? Math.max(0, this._duel.leftMs) : 0; }
+  // 表示専用（telemetry を動かさない）。F9 / HUD はこちらを使う。
+  duelTargetInfo() { return this._duel ? { seq: this._duel.seq, kind: this._duel.kind } : null; }
+  duelBonus(key) {
+    if (!this.duelActive) return 0;
+    const d = this._duel;
+    if (key === 'meleeDamage') return d.meleeDamageBonus;
+    if (key === 'poiseDamage') return d.poiseDamageBonus;
+    if (key === 'furyGain') return d.furyGainBonus;
+    return 0;
+  }
+  // 決闘対象かどうか（安定 runtime id の一致だけで判定する）。
+  isDuelTarget(target) {
+    return !!(this.duelActive && target && target._seq != null && target._seq === this._duel.seq);
+  }
+  // 対象へだけ乗る補正。対象以外・他ジョブでは常に 0（＝他 job の damage を強化しない）。
+  getDuelModifiers(target) {
+    const none = { meleeDamage: 0, poiseDamage: 0, furyGain: 0 };
+    if (!this.isDuelTarget(target)) return none;
+    const d = this._duel;
+    this.telemetry.duelHits += 1;
+    this.telemetry.duelDamageBonusSum += d.meleeDamageBonus;
+    return { meleeDamage: d.meleeDamageBonus, poiseDamage: d.poiseDamageBonus, furyGain: d.furyGainBonus };
+  }
+  // 対象の体勢を崩したときの小幅延長（合計上限つき・進化のみ）。
+  noteDuelStanceBreak(target) {
+    if (!this.duelActive || !this.isDuelTarget(target)) return 0;
+    const d = this._duel;
+    const room = Math.max(0, d.maxExtensionMs - d.extendedMs);
+    const add = Math.min(d.extendPerBreakMs, room);
+    if (add <= 0) return 0;
+    d.leftMs += add; d.extendedMs += add;
+    this.telemetry.duelExtensions += 1;
+    return add;
+  }
+  // 対象撃破時の再選択（1 発動につき maxRetargets 回まで・近距離の格上のみ）。
+  retargetDuel(next) {
+    if (!this._duel) return false;
+    const d = this._duel;
+    if (d.retargets >= d.maxRetargets) { this.clearDuelTarget(null, 'targetLost'); return false; }
+    if (this.duelPriority(next) < 2) { this.clearDuelTarget(null, 'noWorthyTarget'); return false; }
+    d.seq = next._seq;
+    d.kind = next.isBoss ? 'boss' : 'elite';
+    d.retargets += 1;
+    this.telemetry.duelRetargets += 1;
+    this._emit('duelRetarget', { seq: d.seq, kind: d.kind });
+    return true;
+  }
+  serializeDuelState() {
+    if (!this._duel) return null;
+    const d = this._duel;
+    // 敵オブジェクトは保存しない。安定 runtime id と残り時間・使用済み回数だけ。
+    return {
+      source: d.source, seq: d.seq, kind: d.kind, leftMs: d.leftMs, totalMs: d.totalMs,
+      extendedMs: d.extendedMs, retargets: d.retargets,
+      meleeDamageBonus: d.meleeDamageBonus, poiseDamageBonus: d.poiseDamageBonus,
+      furyGainBonus: d.furyGainBonus, maxRetargets: d.maxRetargets,
+      retargetRange: d.retargetRange, extendPerBreakMs: d.extendPerBreakMs, maxExtensionMs: d.maxExtensionMs,
+    };
+  }
+  restoreDuelState(s) {
+    this._duel = null;
+    if (!s || !this.enabled) return null;
+    const cfg = this.cfg.duel;
+    const left = clamp(num(s.leftMs, 0), 0, num(cfg.maxDurationMs, 12000));
+    if (left <= 0 || s.seq == null) return null;
+    this._duel = {
+      source: s.source || null, seq: s.seq, kind: s.kind || 'normal',
+      leftMs: left, totalMs: clamp(num(s.totalMs, left), 0, num(cfg.maxDurationMs, 12000)),
+      extendedMs: clamp(num(s.extendedMs, 0), 0, num(cfg.maxExtensionMs, 3600)),
+      retargets: Math.max(0, Math.round(num(s.retargets, 0))),
+      meleeDamageBonus: clamp(num(s.meleeDamageBonus, 0), 0, num(cfg.maxMeleeDamageBonus, 0.5)),
+      poiseDamageBonus: clamp(num(s.poiseDamageBonus, 0), 0, num(cfg.maxPoiseDamageBonus, 0.6)),
+      furyGainBonus: clamp(num(s.furyGainBonus, 0), 0, num(cfg.maxFuryGainBonus, 0.4)),
+      maxRetargets: Math.max(0, Math.min(Math.round(num(s.maxRetargets, 0)), Math.round(num(cfg.maxRetargetsPerCast, 1)))),
+      retargetRange: Math.max(0, num(s.retargetRange, 0)),
+      extendPerBreakMs: Math.max(0, num(s.extendPerBreakMs, 0)),
+      maxExtensionMs: clamp(num(s.maxExtensionMs, 0), 0, num(cfg.maxExtensionMs, 3600)),
+    };
+    return { ...this._duel };
+  }
+
+  // ================= M8-E: 修羅の構え（battle_trance / blood_asura_trance）=================
+  // 攻撃寄りの timed stance。formal status ではなく本クラス上の状態として持ち、**重ねがけしない**。
+  beginBattleTrance(source, o = {}) {
+    if (!this.enabled || !source) return null;
+    const cfg = this.cfg.trance;
+    // 構えは data の本数上限まで（既定 1）。0 なら構えない。
+    if (Math.max(0, num(cfg.maxStances, 1)) < 1) return null;
+    const dur = clamp(num(o.durationMs, 0), 0, num(cfg.maxDurationMs, 10000));
+    if (dur <= 0) return null;
+    const t = {
+      source, leftMs: dur, totalMs: dur,
+      meleeDamageBonus: clamp(num(o.meleeDamageBonus, 0), 0, num(cfg.maxMeleeDamageBonus, 0.45)),
+      attackSpeedBonus: clamp(num(o.attackSpeedBonus, 0), 0, num(cfg.maxAttackSpeedBonus, 0.32)),
+      comboGraceBonus: clamp(num(o.comboGraceBonus, 0), 0, num(cfg.maxComboGraceBonus, 0.45)),
+      furyGainBonus: clamp(num(o.furyGainBonus, 0), 0, num(cfg.maxFuryGainBonus, 0.5)),
+      mitigationPenalty: clamp(num(o.mitigationPenalty, 0), 0, num(cfg.maxMitigationPenalty, 0.15)),
+      killHealBonus: clamp(num(o.killHealBonus, 0), 0, num(cfg.maxKillHealBonus, 0.5)),
+      perSecondCapBonus: clamp(num(o.perSecondCapBonus, 0), 0, num(cfg.maxKillHealBonus, 0.5)),
+    };
+    this._trance = t; // 上書き（stack しない）
+    this.telemetry.tranceStarts += 1;
+    this._emit('battleTrance', { ...t });
+    return { ...t };
+  }
+  endBattleTrance(source) {
+    if (!this._trance) return false;
+    if (source && this._trance.source !== source) return false;
+    this._trance = null;
+    return true;
+  }
+  get tranceActive() { return !!this._trance && this._trance.leftMs > 0; }
+  get tranceLeftMs() { return this._trance ? Math.max(0, this._trance.leftMs) : 0; }
+  // 構えの攻撃補正。闘気解放と合わせた合成上限（combinedOffenseCap）で必ず頭打ちになる。
+  getBattleTranceModifiers() {
+    const none = { meleeDamage: 0, attackSpeed: 0, comboGrace: 0, furyGain: 0, mitigationPenalty: 0 };
+    if (!this.tranceActive) return none;
+    const t = this._trance;
+    const cfg = this.cfg.trance;
+    const cap = Math.max(0, num(cfg.combinedOffenseCap, 0.85));
+    // 闘気解放中は既にダメージ倍率が乗っているので、その分を差し引いた余地までしか乗せない。
+    const releaseBonus = this.releaseActive ? Math.max(0, num(this.cfg.furyRelease.meleeDamageMult, 1) - 1) : 0;
+    const room = Math.max(0, cap - releaseBonus);
+    const melee = Math.min(t.meleeDamageBonus, room);
+    if (melee < t.meleeDamageBonus - 1e-9) this.telemetry.tranceOffenseCapped += 1;
+    return {
+      meleeDamage: melee, attackSpeed: t.attackSpeedBonus, comboGrace: t.comboGraceBonus,
+      furyGain: t.furyGainBonus, mitigationPenalty: t.mitigationPenalty,
+    };
+  }
+  serializeTimedStance() {
+    if (!this._trance) return null;
+    return { ...this._trance };
+  }
+  restoreTimedStance(s) {
+    this._trance = null;
+    if (!s || !this.enabled) return null;
+    return this.beginBattleTrance(s.source || 'restored', {
+      durationMs: s.leftMs, meleeDamageBonus: s.meleeDamageBonus, attackSpeedBonus: s.attackSpeedBonus,
+      comboGraceBonus: s.comboGraceBonus, furyGainBonus: s.furyGainBonus,
+      mitigationPenalty: s.mitigationPenalty, killHealBonus: s.killHealBonus,
+      perSecondCapBonus: s.perSecondCapBonus,
+    });
+  }
+
+  // ================= M8-E: 震天踏破（earthshaker_march / continental_quake_march）=================
+  beginEarthshakerMarch(o = {}) {
+    if (!this.enabled) return null;
+    const cfg = this.cfg.march;
+    const stomps = Math.max(1, Math.min(Math.round(num(o.stompCount, 1)), Math.round(num(cfg.maxStomps, 8))));
+    return {
+      stomps,
+      intervalMs: Math.max(40, num(o.intervalMs, 160)),
+      stepDistance: clamp(num(o.stepDistance, 0), 0, num(cfg.maxStepDistance, 96)),
+      radius: clamp(num(o.radius, 0), 0, num(cfg.maxRadius, 170)),
+      maxMs: clamp(num(o.maxMs, num(cfg.maxMarchMs, 2600)), 0, num(cfg.maxMarchMs, 2600)),
+      mitigation: clamp(num(o.mitigation, 0), 0, num(cfg.maxMitigation, 0.2)),
+      worldMargin: Math.max(0, num(cfg.worldMargin, 24)),
+    };
+  }
+  // 1 踏みぶんの記録（最終踏みだけ別に数える）。damage 自体は共通経路 meleeStrike が扱う。
+  resolveMarchStomp(index, total, distance) {
+    if (!this.enabled) return { final: false };
+    const final = (index + 1) >= total;
+    this.telemetry.marchStomps += 1;
+    this.telemetry.marchDistance += Math.max(0, num(distance, 0));
+    if (final) { this.telemetry.marchFinalStomps += 1; this.telemetry.marchCompleted += 1; }
+    return { final };
+  }
+
+  // ================= M8-E: 弾き返し（weapon_deflection / heaven_mirror_reversal）=================
+  // 通常の敵弾だけを限定数だけ弾く。予兆 / 光条 / 地形ハザード / DoT は弾かない（allowlist + denylist）。
+  beginDeflectionWindow(source, o = {}) {
+    if (!this.enabled || !source) return null;
+    const cfg = this.cfg.deflection;
+    const dur = clamp(num(o.windowMs, 0), 0, num(cfg.maxWindowMs, 3000));
+    if (dur <= 0) return null;
+    this._deflect = {
+      source, leftMs: dur, totalMs: dur, used: 0,
+      max: Math.max(1, Math.min(Math.round(num(o.maxDeflections, 1)), Math.round(num(cfg.maxDeflectionsPerWindow, 8)))),
+      radius: clamp(num(o.radius, 0), 0, num(cfg.maxDeflectRadius, 150)),
+      reflect: o.reflect !== false,
+      reflectedDamage: clamp(num(o.reflectedDamage, 0), 0, num(cfg.maxReflectedDamage, 96)),
+      reflectedSpeed: clamp(num(o.reflectedSpeed, 0), 0, num(cfg.maxReflectedSpeed, 480)),
+      reflectLifeMs: clamp(num(o.reflectLifeMs, 0), 0, num(cfg.maxReflectLifeMs, 1000)),
+      poiseDamage: Math.max(0, num(o.poiseDamage, 0)),
+      counters: 0,
+    };
+    this._deflectedIds.clear();
+    this.telemetry.deflectWindows += 1;
+    this._emit('deflectionWindow', { durationMs: dur, max: this._deflect.max });
+    return { ...this._deflect };
+  }
+  endDeflectionWindow(source) {
+    if (!this._deflect) return false;
+    if (source && this._deflect.source !== source) return false;
+    this._deflect = null;
+    this._deflectedIds.clear();
+    return true;
+  }
+  get deflectionActive() { return !!this._deflect && this._deflect.leftMs > 0 && this._deflect.used < this._deflect.max; }
+  // 「窓が開いているか」だけを見る（残り枠は見ない）。枠を使い切った窓へ飛んできた弾も
+  // 調停までは通し、canDeflectProjectile が capReached として正しく数えられるようにする。
+  get deflectionWindowOpen() { return !!this._deflect && this._deflect.leftMs > 0; }
+  deflectionState(source) { return this._deflect && (!source || this._deflect.source === source) ? { ...this._deflect } : null; }
+  get deflectLeftMs() { return this._deflect ? Math.max(0, this._deflect.leftMs) : 0; }
+  get deflectUsed() { return this._deflect ? this._deflect.used : 0; }
+  get deflectMax() { return this._deflect ? this._deflect.max : 0; }
+  // 弾ける弾かどうかを 1 か所で判定する。スキル側は projectileKind を直接見ない。
+  canDeflectProjectile(proj) {
+    if (!this.enabled || !this._deflect || this._deflect.leftMs <= 0) return { ok: false, reason: 'noWindow' };
+    if (this._deflect.used >= this._deflect.max) return { ok: false, reason: 'capReached' };
+    if (!proj || proj.alive === false) return { ok: false, reason: 'invalid' };
+    if (!proj.hostile) return { ok: false, reason: 'notHostile' };          // 味方弾は弾かない
+    if (proj.alreadyDeflected) return { ok: false, reason: 'alreadyDeflected' };
+    const cfg = this.cfg.deflection;
+    // 反射弾から再反射しない（印が落ちていても世代だけで必ず止まる）。
+    if (num(proj.deflectGeneration, 0) >= num(cfg.maxReflectGeneration, 1)) {
+      return { ok: false, reason: 'generation' };
+    }
+    if (proj.isTelegraph) return { ok: false, reason: 'telegraph' };
+    if (proj.isBeam) return { ok: false, reason: 'beam' };
+    const kind = proj.projectileKind || 'bossBullet';
+    const denied = cfg.deniedKinds || [];
+    if (denied.includes(kind)) return { ok: false, reason: 'deniedKind' };
+    const allowed = cfg.allowedKinds || [];
+    if (allowed.length > 0 && !allowed.includes(kind)) return { ok: false, reason: 'notAllowedKind' };
+    const id = proj._deflectId != null ? proj._deflectId : null;
+    if (id != null && this._deflectedIds.has(id)) return { ok: false, reason: 'sameProjectile' };
+    return { ok: true, reason: 'deflect' };
+  }
+  // 実際に 1 発弾く（成立したら true）。弾の消去 / 反射弾の生成は BattleScene 側が行う。
+  tryDeflectProjectile(proj) {
+    this.telemetry.deflectSeen += 1;
+    const pol = this.canDeflectProjectile(proj);
+    if (!pol.ok) {
+      this.telemetry.deflectRejected += 1;
+      if (pol.reason === 'capReached') this.telemetry.deflectCapReached += 1;
+      return { deflected: false, reason: pol.reason };
+    }
+    this._deflect.used += 1;
+    if (proj._deflectId != null) this._deflectedIds.add(proj._deflectId);
+    this.telemetry.deflected += 1;
+    const d = this._deflect;
+    return {
+      deflected: true, reason: 'deflect',
+      reflect: d.reflect && d.reflectedDamage > 0,
+      damage: d.reflectedDamage, speed: d.reflectedSpeed, lifeMs: d.reflectLifeMs,
+      poiseDamage: d.poiseDamage,
+      remaining: Math.max(0, d.max - d.used),
+    };
+  }
+  noteReflectedSpawn() { if (this.enabled) this.telemetry.reflectedSpawned += 1; }
+  noteReflectedHit(damage) {
+    if (!this.enabled) return;
+    this.telemetry.reflectedHits += 1;
+    this.telemetry.reflectedDamage += Math.max(0, num(damage, 0));
+  }
+  // 反射弾の上限（世代・同時数）。反射弾から再反射しないための唯一の判断場所。
+  maxReflectGeneration() { return Math.max(0, Math.round(num(this.cfg.deflection.maxReflectGeneration, 1))); }
+
+  // 1 つの被弾 / 弾イベントに対して反応するのは最大 1 系統（弾き返し or 反撃）。
+  // 弾き返しのほうが優先度が高い（data の counterPriority）。同フレームでも各上限は別々に守られる。
+  arbitrateDeflectionAndCounter(kind) {
+    if (!this.enabled) return null;
+    const cfg = this.cfg.deflection;
+    if (kind === 'projectile') {
+      // 弾イベントは弾き返しだけが応じる（melee counter は消費しない）。
+      // 枠を使い切っていても窓が開いていれば調停は通す（上限到達を計測できるようにするため。
+      // 実際に弾けるかどうかは canDeflectProjectile が決め、失敗しても何も消費しない）。
+      if (!this.deflectionWindowOpen) return null;
+      this.telemetry.reactionArbitrated += 1;
+      return { kind: 'deflect', priority: Math.max(0, num(cfg.counterPriority, 4)) };
+    }
+    // 近接被弾は既存の反撃調停へそのまま渡す（弾き返しは消費しない）。
+    const pick = this.consumeCounterEvent();
+    if (pick) this.telemetry.reactionArbitrated += 1;
+    return pick ? { kind: 'counter', source: pick.source, priority: pick.priority } : null;
+  }
+  noteMirrorCounter() {
+    if (!this.enabled || !this._deflect) return;
+    this._deflect.counters += 1;
+    this.telemetry.mirrorCounters += 1;
+  }
+  serializeDeflectionState() {
+    if (!this._deflect) return null;
+    const d = this._deflect;
+    // 弾のオブジェクトも id 集合も保存しない（reload 後に過去の弾を復活させない）。
+    return {
+      source: d.source, leftMs: d.leftMs, totalMs: d.totalMs, used: d.used, max: d.max,
+      radius: d.radius, reflect: d.reflect, reflectedDamage: d.reflectedDamage,
+      reflectedSpeed: d.reflectedSpeed, reflectLifeMs: d.reflectLifeMs,
+      poiseDamage: d.poiseDamage, counters: d.counters,
+    };
+  }
+  restoreDeflectionState(s) {
+    this._deflect = null;
+    this._deflectedIds.clear();
+    if (!s || !this.enabled) return null;
+    const r = this.beginDeflectionWindow(s.source || 'restored', {
+      windowMs: s.leftMs, maxDeflections: s.max, radius: s.radius, reflect: s.reflect,
+      reflectedDamage: s.reflectedDamage, reflectedSpeed: s.reflectedSpeed,
+      reflectLifeMs: s.reflectLifeMs, poiseDamage: s.poiseDamage,
+    });
+    if (!r) return null;
+    // 使用済み回数と反撃使用状況を引き継ぐ（reload で上限をリセットして稼げない）。
+    this._deflect.used = Math.max(0, Math.min(Math.round(num(s.used, 0)), this._deflect.max));
+    this._deflect.counters = Math.max(0, Math.round(num(s.counters, 0)));
+    // 復元は新規 window として数えない（0 未満へは下げない）。
+    this.telemetry.deflectWindows = Math.max(0, this.telemetry.deflectWindows - 1);
+    return { ...this._deflect };
+  }
+
   // ---- 不屈（瀕死時の基礎能力）----
   // 毎フレーム setHp のあとに呼ぶ。発動したら true。
   checkUnyielding() {
@@ -899,14 +1368,21 @@ export class WarriorCombatSystem {
   // ---- 体勢崩し（poise）----
   // 通常敵は持続ゲージを持たない（skill 側の knockback で処理する）。
   // エリート: しきい値で stagger。ボス: しきい値で stance break → exposed。
+  // M8-E: 決闘対象へだけ乗る体勢削りの上乗せ（対象以外は 1 倍＝恒等）。
+  duelPoiseMultiplier(target) { return 1 + this.getDuelModifiers(target).poiseDamage; }
+
   applyPoiseDamage(target, amount) {
     if (!this.enabled || !target || !target.alive) return null;
-    const amt = Math.max(0, num(amount, 0)) * this.poiseDamageMultiplier();
+    const amt = Math.max(0, num(amount, 0)) * this.poiseDamageMultiplier() * this.duelPoiseMultiplier(target);
     if (amt <= 0) return null;
     this.telemetry.poiseDamage += amt;
-    if (target.isBoss) return this._bossPoise(target, amt);
-    if (target.isElite) return this._elitePoise(target, amt);
-    return null; // 通常敵はゲージを持たない
+    let r = null;
+    if (target.isBoss) r = this._bossPoise(target, amt);
+    else if (target.isElite) r = this._elitePoise(target, amt);
+    else return null; // 通常敵はゲージを持たない
+    // M8-E: 決闘対象の構えを崩したときだけ、決闘時間を小幅延長する（合計上限つき・進化のみ）。
+    if (r && (r.type === 'eliteStagger' || r.type === 'bossStanceBreak')) this.noteDuelStanceBreak(target);
+    return r;
   }
 
   _elitePoise(e, amt) {
@@ -1055,6 +1531,25 @@ export class WarriorCombatSystem {
       if (this._rallyInside) this.telemetry.rallyInsideMs += d;
       if (this.rallyField.leftMs === 0) { this.rallyField = null; this._rallyInside = false; this._emit('rallyFieldEnd', {}); }
     }
+    // M8-E: 決闘（時間切れで必ず解除される）。
+    if (this._duel) {
+      this._duel.leftMs = Math.max(0, this._duel.leftMs - d);
+      this.telemetry.duelUptimeMs += d;
+      if (this._duel.leftMs === 0) this.clearDuelTarget(null, 'expired');
+    }
+    // M8-E: 修羅の構え（時間切れで必ず消える＝永続化しない）。
+    if (this._trance) {
+      this._trance.leftMs = Math.max(0, this._trance.leftMs - d);
+      this.telemetry.tranceUptimeMs += d;
+      this.telemetry.tranceDamageBonusSum += this._trance.meleeDamageBonus;
+      if (this._trance.leftMs === 0) { this._trance = null; this._emit('battleTranceEnd', {}); }
+    }
+    // M8-E: 弾き返しの window（時間切れ・使い切りで必ず閉じる）。
+    if (this._deflect) {
+      this._deflect.leftMs = Math.max(0, this._deflect.leftMs - d);
+      this.telemetry.deflectUptimeMs += d;
+      if (this._deflect.leftMs === 0) { this._deflect = null; this._deflectedIds.clear(); this._emit('deflectionWindowEnd', {}); }
+    }
     // 不屈の判定（HP は setHp で毎フレーム更新済み）。
     this.checkUnyielding();
   }
@@ -1091,6 +1586,11 @@ export class WarriorCombatSystem {
       frontGuard: this.frontGuard.leftMs > 0 ? { ...this.frontGuard } : null,
       rallyField: this.rallyField ? { ...this.rallyField } : null,
       counterGlobalCdLeftMs: this._counterGlobalCdLeftMs,
+      // M8-E: 最終 Wave。決闘は安定 runtime id だけ、弾き返しは残り時間と使用済み回数だけを保存する。
+      // 敵 / 弾のオブジェクトも、弾いた弾の id 集合も保存しない。
+      duel: this.serializeDuelState(),
+      trance: this.serializeTimedStance(),
+      deflection: this.serializeDeflectionState(),
     };
   }
   restoreTimedBuffs(s) {
@@ -1101,6 +1601,11 @@ export class WarriorCombatSystem {
     this.rallyField = null;
     this._rallyInside = false;
     this._grab = null;
+    // M8-E: 決闘 / 構え / 弾き返しも一度すべて落としてから復元する。
+    this._duel = null;
+    this._trance = null;
+    this._deflect = null;
+    this._deflectedIds.clear();
     this._counterGlobalCdLeftMs = 0;
     if (!s || typeof s !== 'object') return;
     const cfg = this.cfg.warCry;
@@ -1152,6 +1657,13 @@ export class WarriorCombatSystem {
       // 復元は「置き直し」ではないので設置回数を戻す（テレメトリの水増しを防ぐ）。
       this.telemetry.rallyPlacements = Math.max(0, this.telemetry.rallyPlacements - 1);
     }
+    // M8-E: 決闘 / 修羅の構え / 弾き返し（いずれも上限クランプを通す）。
+    this.restoreDuelState(s.duel);
+    this.restoreTimedStance(s.trance);
+    this.restoreDeflectionState(s.deflection);
+    // 復元は新規発動として数えない。構えだけは beginBattleTrance 経由なので 1 戻す
+    // （決闘 / 弾き返しはそれぞれの restore が最初から数えていない）。
+    if (this._trance) this.telemetry.tranceStarts = Math.max(0, this.telemetry.tranceStarts - 1);
   }
 
   _serializeTelemetry() {
@@ -1186,6 +1698,19 @@ export class WarriorCombatSystem {
       lowHpBonusSum: t.lowHpBonusSum, lowHpBonusSamples: t.lowHpBonusSamples,
       axeOutboundHits: t.axeOutboundHits, axeReturnHits: t.axeReturnHits,
       stepIns: t.stepIns, stepInDistance: t.stepInDistance,
+      // M8-E: 最終 Wave。
+      lineThrusts: t.lineThrusts, linePenetrations: t.linePenetrations, lineToughHits: t.lineToughHits, lineStepIns: t.lineStepIns,
+      duelStarts: t.duelStarts, duelBoss: t.duelBoss, duelElite: t.duelElite, duelNormal: t.duelNormal,
+      duelUptimeMs: t.duelUptimeMs, duelDamageBonusSum: t.duelDamageBonusSum, duelHits: t.duelHits,
+      duelRetargets: t.duelRetargets, duelExtensions: t.duelExtensions, duelClears: t.duelClears,
+      tranceStarts: t.tranceStarts, tranceUptimeMs: t.tranceUptimeMs, tranceDamageBonusSum: t.tranceDamageBonusSum,
+      trancePenaltySum: t.trancePenaltySum, tranceSamples: t.tranceSamples,
+      tranceOffenseCapped: t.tranceOffenseCapped, tranceKillHealBonus: t.tranceKillHealBonus,
+      marchStomps: t.marchStomps, marchCompleted: t.marchCompleted, marchDistance: t.marchDistance, marchFinalStomps: t.marchFinalStomps,
+      deflectWindows: t.deflectWindows, deflectUptimeMs: t.deflectUptimeMs, deflectSeen: t.deflectSeen,
+      deflected: t.deflected, deflectRejected: t.deflectRejected, deflectCapReached: t.deflectCapReached,
+      reflectedSpawned: t.reflectedSpawned, reflectedHits: t.reflectedHits, reflectedDamage: t.reflectedDamage,
+      mirrorCounters: t.mirrorCounters, reactionArbitrated: t.reactionArbitrated,
       rallyPlacements: t.rallyPlacements, rallyUptimeMs: t.rallyUptimeMs, rallyInsideMs: t.rallyInsideMs,
       rallyAssists: t.rallyAssists, rallyKillHealBonus: t.rallyKillHealBonus,
     };
@@ -1264,6 +1789,11 @@ export class WarriorCombatSystem {
     this.rallyField = null;
     this._rallyInside = false;
     this._grab = null;
+    // M8-E: 決闘 / 構え / 弾き返しも残さない（Scene 終了・job 切替で持ち越さない）。
+    this._duel = null;
+    this._trance = null;
+    this._deflect = null;
+    this._deflectedIds.clear();
     this._counterGlobalCdLeftMs = 0;
     this._emit = () => {};
     this._heal = () => 0;
@@ -1282,12 +1812,17 @@ export class WarriorCombatSystem {
     e._launchHeight = 0;
     if (this._grab && this._grab.seq === e._seq) this.endGrab(null, true);
     e._grabbed = false;
+    // M8-E: 決闘対象が消えたら決闘も終わる（対象の残留マーカーも落とす）。
+    if (this._duel && this._duel.seq === e._seq) this.clearDuelTarget(null, 'targetRemoved');
+    e._duelMark = false;
     this._targetHitAt.delete(e);
   }
 
   // ボス死亡でボス体勢の状態を落とす（次のボスへ持ち越さない）。
   onBossRemoved() {
     this.bossPoise = { gauge: 0, thresholdMult: 1, breaks: 0, cooldownLeftMs: 0, exposedLeftMs: 0, reactionLeftMs: 0 };
+    // M8-E: ボスと決闘していたなら、ボス消滅で決闘も終わる。
+    if (this._duel && this._duel.kind === 'boss') this.clearDuelTarget(null, 'bossRemoved');
   }
 
   // ---- テレメトリの要約（F8 / CombatTelemetry.noteWarriorSummary へ渡す）----
@@ -1332,6 +1867,25 @@ export class WarriorCombatSystem {
       axeOutboundHits: t.axeOutboundHits, axeReturnHits: t.axeReturnHits,
       stepIns: t.stepIns, stepInDistance: t.stepInDistance,
       rallyPlacements: t.rallyPlacements, rallyUptimeSeconds: t.rallyUptimeMs / 1000,
+      // M8-E: 最終 Wave（外向きは秒 / 平均へ換算）。
+      lineThrusts: t.lineThrusts, linePenetrations: t.linePenetrations, lineToughHits: t.lineToughHits, lineStepIns: t.lineStepIns,
+      duelStarts: t.duelStarts, duelBoss: t.duelBoss, duelElite: t.duelElite, duelNormal: t.duelNormal,
+      duelUptimeSeconds: t.duelUptimeMs / 1000, duelHits: t.duelHits,
+      duelAvgDamageBonus: t.duelHits > 0 ? t.duelDamageBonusSum / t.duelHits : 0,
+      duelRetargets: t.duelRetargets, duelExtensions: t.duelExtensions, duelClears: t.duelClears,
+      duelActive: this.duelActive, duelKind: this.duelKind,
+      tranceStarts: t.tranceStarts, tranceUptimeSeconds: t.tranceUptimeMs / 1000,
+      tranceAvgDamageBonus: t.tranceSamples > 0 ? t.tranceDamageBonusSum / Math.max(1, t.tranceSamples) : 0,
+      tranceAvgPenalty: t.tranceSamples > 0 ? t.trancePenaltySum / t.tranceSamples : 0,
+      tranceOffenseCapped: t.tranceOffenseCapped, tranceKillHealBonus: t.tranceKillHealBonus,
+      tranceActive: this.tranceActive,
+      marchStomps: t.marchStomps, marchCompleted: t.marchCompleted, marchDistance: t.marchDistance, marchFinalStomps: t.marchFinalStomps,
+      deflectWindows: t.deflectWindows, deflectUptimeSeconds: t.deflectUptimeMs / 1000,
+      deflectSeen: t.deflectSeen, deflected: t.deflected, deflectRejected: t.deflectRejected,
+      deflectCapReached: t.deflectCapReached, reflectedSpawned: t.reflectedSpawned,
+      reflectedHits: t.reflectedHits, reflectedDamage: t.reflectedDamage,
+      mirrorCounters: t.mirrorCounters, reactionArbitrated: t.reactionArbitrated,
+      deflectionActive: this.deflectionActive,
       rallyInsideSeconds: t.rallyInsideMs / 1000, rallyAssists: t.rallyAssists,
       // 現在値（F8/F9 のライブ表示用。CombatTelemetry へは取り込まれない）。
       fury: this.fury, combo: this.combo, bossPoiseGauge: this.bossPoise.gauge,

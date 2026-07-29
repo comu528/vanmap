@@ -524,3 +524,70 @@ HEAVY=1 node tests/warrior-wave2-draft.mjs   # seed 数を 500 まで増やす
 **しきい値は M8-C.1 から 1 つも下げていない。**
 active25 への拡張で薄まったぶんは、guidance へ `activeSupportWeightMultiplier` を
 1 キー足すことで吸収した（詳細は `./warrior-evolution-guidance.md` §9）。
+
+
+---
+
+## Milestone 8-E: 戦士 最終Wave のバランス検証
+
+### F8（バランス分析）へ追加した戦士 最終Wave の項目
+
+```
+— 戦士 最終Wave（M8-E 実動作カウンタ・カタログ active30/passive4/進化18）—
+貫穿突き N回 貫通N 硬い相手N 踏み込みN
+一騎討ち N回（ボスN/エリートN/通常N） 稼働Ns 命中N 平均Dmg+N% 再指定N 延長N
+修羅の構え N回 稼働Ns 平均Dmg+N% 平均軽減−N% 合成上限到達N
+震天踏破 踏みN回 完走N 最終踏みN 移動Npx
+刃返し 窓N回 稼働Ns 検知N 弾きN 拒否N 上限到達N
+反射弾 生成N 命中N NDmg 天鏡N 反応調停N
+```
+
+警告（自動で出る異常サイン）:
+
+| 警告 | 意味 |
+|------|------|
+| ⚠ 直線攻撃が 1 度も複数体を貫いていない | 直線判定の幅 / 長さか、対象選択の問題 |
+| ⚠ 一騎討ちは成立するが対象へ 1 度も当たっていない | 対象選択と実際の攻撃範囲が噛み合っていない |
+| ⚠ 構えは発動しているが稼働時間 0 | tick が回っていない |
+| ⚠ 震天踏破が 1 度も移動していない | 地点が 1 つしかない（＝大地砕きと同じ） |
+| ⚠ 刃返しの窓は開くが弾を 1 度も検知していない | 半径か被弾フックの問題 |
+| ⚠ 天鏡返しだが反射弾が 0 | 反射の生成経路が動いていない |
+
+### 抽選シミュレーション
+
+```
+node tests/warrior-final-draft.mjs      # 30 active / 18 進化の網羅・集中度
+node tests/warrior-final-guidance.mjs   # guidance の追調整（過剰誘導なし）
+HEAVY=1 node tests/warrior-final-draft.mjs   # seed 数を増やす
+```
+
+**独自の抽選器は作らない。** `tests/warrior-draft-sim.mjs` が production の
+`SkillDraftManager` / `SeededRandom` / `poolEligibility` / `SkillCatalog` をそのまま駆動する。
+`Math.random` は 1 度も呼ばない。
+
+### M8-E 時点の実測（200 seed）
+
+| 指標 | 実測 | 目標（M8-C.1 から据え置き） |
+|------|------|---------------------------|
+| 素朴戦略 枠4/40lv・進化 1 個以上 / 平均 / 0 個 | **89.5% / 1.28 / 10.5%** | 80% 以上 / 1.0 以上 / 20% 以下 |
+| 素朴戦略 枠6/60lv・1 個以上 / 2 個以上 / 平均 | **99.0% / 94.5% / 2.65** | 95% / 60% / 1.7 |
+| 素朴戦略 枠8/80lv・1 個以上 / 2 個以上 / 平均 | **100.0% / 99.5% / 3.92** | 95% / 65% / 1.8 |
+| 最頻進化のシェア（枠4 / 6 / 8） | **16.2% / 13.8% / 11.7%** | 35% 以下 |
+| build の種類（枠4 / 6 / 8・1000 run） | **89.8% / 97.2% / 99.3%** | M8-D から悪化しない |
+| 取得 0 の active / evolution | 0 件 / 0 件 | 0 件 |
+| 候補ゼロ / 混入 / 重複 / 枠違反 | 0 件 | 0 件 |
+
+**しきい値は M8-C.1 から 1 つも下げていない。**
+active30 への拡張で薄まったぶんは、guidance へ `highRequirementSupportLevel` /
+`highRequirementSupportMultiplier` を 2 キー足すことで吸収した
+（詳細は `./warrior-evolution-guidance.md` §10）。
+
+### active 補助の進化の到達（1000 run・個別に測る）
+
+| 進化 | 補助 | 枠4 | 枠6 | 枠8 |
+|------|------|-----|-----|-----|
+| `heaven_crushing_descent` | `ground_slam` Lv6 | 6 | 47 | 90 |
+| `mountain_hurl` | `ground_slam` Lv6 | 2 | 11 | 40 |
+| `heaven_mirror_reversal` | `counter_stance` Lv4 | 36 | 68 | 100 |
+
+active を 2 枠使う設計上、他の進化より低いのは想定どおり（**到達不能ではない**）。

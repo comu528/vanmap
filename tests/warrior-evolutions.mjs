@@ -30,7 +30,8 @@ const run = (ctx, ms = 8000, step = 16) => {
 };
 
 // M8-C: 「構え」系の進化は発動時に攻撃しない（被弾に反応して反撃する）。命中を要求しない。
-const STANCE_ONLY = new Set(['adamant_counter']);
+// M8-E: 天鏡返しも「弾を弾き返す」構え系で、発動そのものに近接ダメージを持たない。
+const STANCE_ONLY = new Set(['adamant_counter', 'heaven_mirror_reversal']);
 
 // ===== 1. 進化すべてが発動・命中 =====
 section('1. evolution（構え系を除く）すべてが発動し、命中してダメージを与える');
@@ -207,7 +208,10 @@ for (const id of EXPECTED.evolutions) {
   const base = DATA.skills.find((s) => s.id === e.baseSkillId);
   const lv8 = base.levels[7];
   const baseDims = Object.keys(lv8).length;
-  const evoDims = ['damage', 'area', 'knockback', 'poiseDamage', 'projectileCount', 'mitigation', 'counterWindow', 'killExtend']
+  // 数値ブロックは Milestone ごとに増える（M8-D: launch / charge / field ほか、M8-E: duel / stance / march / deflection）。
+  const evoDims = ['damage', 'area', 'knockback', 'poiseDamage', 'projectileCount', 'mitigation',
+    'counterWindow', 'killExtend', 'launch', 'charge', 'field', 'throw', 'movement', 'bloodOath',
+    'duel', 'stance', 'march', 'deflection', 'extension', 'graceRefill', 'secondaryImpact']
     .filter((k) => e[k]).reduce((n, k) => n + Object.keys(e[k]).length, 0);
   ok(evoDims >= 4, `${id}: 進化が持つ数値次元 ${evoDims} ≥ 4`);
   ok(e.cooldown > 0, `${id}: cooldown ${e.cooldown}ms が明示されている`);

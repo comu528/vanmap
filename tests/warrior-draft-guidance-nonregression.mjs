@@ -176,8 +176,9 @@ section('8. M8-C.1 で data のスキル / 進化 / バランスを 1 件も変�
   ok(DATA.skills.length === 60 + EXPECTED.activeCount, `skills.json ${60 + EXPECTED.activeCount} 件（${DATA.skills.length}）`);
   ok(DATA.evolutions.length === 36 + EXPECTED.evolutionCount, `skill-evolutions.json ${36 + EXPECTED.evolutionCount} 件（${DATA.evolutions.length}）`);
   ok(DATA.passives.length >= 12, `passives.json 件数が不変（${DATA.passives.length}）`);
-  // skillCaps は M8-C.1 時点で 185 件。M8-D の Wave2 で 20 件（新 active10 の damage/event + visual）増えた。
-  ok(Object.keys(DATA.balance.skillCaps).length === 205, `skillCaps 205 件（${Object.keys(DATA.balance.skillCaps).length}）`);
+  // skillCaps は M8-C.1 時点で 185 件。M8-D で +20、M8-E（最終Wave）で +12 ＝ 217 件。
+  // guidance そのものは cap を 1 件も増やしていない（増えるのはスキル追加ぶんだけ）。
+  ok(Object.keys(DATA.balance.skillCaps).length === 217, `skillCaps 217 件（${Object.keys(DATA.balance.skillCaps).length}）`);
   // 追加したのは skill-config.json の guidance ブロックだけ。
   ok(!!SKILL_CONFIG.guidance, 'skill-config.json に guidance がある');
   ok(SKILL_CONFIG.guidance.jobs.length === 1 && SKILL_CONFIG.guidance.jobs[0] === 'warrior', 'guidance は戦士専用');

@@ -94,6 +94,9 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this._launchImmuneUntil = 0;
     this._launchHeight = 0;
     this._grabbed = false;
+    // M8-E: 一騎討ちの skill-local マーカー（正式状態ではない・プール再利用で別の敵へ持ち越さない）。
+    this._duelMark = false;
+    this._lineAlong = 0;
     this._chargeState = 'idle';
     this._chargeCd = 1200;
     this._chargeTimer = 0;

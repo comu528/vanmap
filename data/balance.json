@@ -1268,6 +1268,78 @@
       "medium": 3,
       "high": 4,
       "ultra": 6
+    },
+    "maxLineTargets": {
+      "low": 6,
+      "medium": 8,
+      "high": 10,
+      "ultra": 12
+    },
+    "maxLineThrusts": {
+      "low": 1,
+      "medium": 2,
+      "high": 2,
+      "ultra": 2
+    },
+    "maxDuelTargets": {
+      "low": 1,
+      "medium": 1,
+      "high": 1,
+      "ultra": 1
+    },
+    "maxTranceStances": {
+      "low": 1,
+      "medium": 1,
+      "high": 1,
+      "ultra": 1
+    },
+    "maxMarchStomps": {
+      "low": 4,
+      "medium": 5,
+      "high": 6,
+      "ultra": 7
+    },
+    "maxDeflectionsPerWindow": {
+      "low": 4,
+      "medium": 5,
+      "high": 6,
+      "ultra": 8
+    },
+    "maxReflectedProjectiles": {
+      "low": 4,
+      "medium": 5,
+      "high": 6,
+      "ultra": 8
+    },
+    "maxThrustTrails": {
+      "low": 1,
+      "medium": 2,
+      "high": 3,
+      "ultra": 4
+    },
+    "maxDuelMarkers": {
+      "low": 1,
+      "medium": 1,
+      "high": 2,
+      "ultra": 2
+    },
+    "maxTranceAuras": {
+      "low": 1,
+      "medium": 2,
+      "high": 2,
+      "ultra": 3
+    },
+    "maxMarchDustVisuals": {
+      "low": 2,
+      "medium": 3,
+      "high": 5,
+      "ultra": 7
+    },
+    "maxDeflectSparkVisuals": {
+      "low": 2,
+      "medium": 4,
+      "high": 6,
+      "ultra": 8
     }
   },
   "speedModes": [
@@ -1630,6 +1702,69 @@
     },
     "lowHp": {
       "maxMissingHpMultiplier": 1.6
+    },
+    "line": {
+      "maxLineLength": 300,
+      "maxWidth": 90,
+      "maxTargets": 12,
+      "maxHitsPerTargetPerCast": 2,
+      "maxStepInDistance": 96,
+      "toughSingleTargetRatio": 0.35
+    },
+    "duel": {
+      "maxTargets": 1,
+      "maxDurationMs": 12000,
+      "maxMeleeDamageBonus": 0.5,
+      "maxPoiseDamageBonus": 0.6,
+      "maxFuryGainBonus": 0.4,
+      "maxRetargetsPerCast": 1,
+      "maxExtensionMs": 3600,
+      "extensionPerBreakMs": 1200,
+      "allowNormalTarget": true,
+      "bossPriority": 3,
+      "elitePriority": 2,
+      "normalPriority": 1
+    },
+    "trance": {
+      "maxStances": 1,
+      "maxDurationMs": 10000,
+      "maxMeleeDamageBonus": 0.45,
+      "maxAttackSpeedBonus": 0.32,
+      "maxComboGraceBonus": 0.45,
+      "maxFuryGainBonus": 0.5,
+      "maxMitigationPenalty": 0.15,
+      "minMitigationAfterPenalty": 0.0,
+      "combinedOffenseCap": 0.85,
+      "maxKillHealBonus": 0.5
+    },
+    "deflection": {
+      "maxWindowMs": 3000,
+      "maxDeflectionsPerWindow": 8,
+      "maxDeflectRadius": 150,
+      "maxReflectedDamage": 96,
+      "maxReflectedSpeed": 480,
+      "maxReflectLifeMs": 1000,
+      "maxReflectGeneration": 1,
+      "allowedKinds": [
+        "bossBullet",
+        "bullet"
+      ],
+      "deniedKinds": [
+        "beam",
+        "telegraph",
+        "hazard",
+        "dot",
+        "ground"
+      ],
+      "counterPriority": 4
+    },
+    "march": {
+      "maxStomps": 8,
+      "maxMarchMs": 2600,
+      "maxStepDistance": 96,
+      "maxRadius": 170,
+      "maxMitigation": 0.2,
+      "worldMargin": 24
     }
   }
 }

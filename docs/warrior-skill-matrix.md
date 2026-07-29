@@ -149,3 +149,41 @@
 
 `ground_slam` は `heaven_crushing_descent`（Wave1）と `mountain_hurl`（Wave2）の
 **2 つの進化の補助を兼ねる**。guidance の重複上限があるので、共有していても倍率は積み上がらない。
+
+
+---
+
+## Milestone 8-E: 最終Wave の 5 active（役割の重なりを見る）
+
+| id | 射程 | 対象数 | 担当（他と被らない点）| 既存との違い |
+|----|------|--------|----------------------|-------------|
+| `piercing_lunge` | 中（直線 300px）| 直線上の複数 | **列を貫く**唯一の形 | 大薙ぎ / 旋風斬は扇形・円形。直線はこれだけ |
+| `duel_challenge` | 近（指名）| **1 体だけ** | **単体特化**（自分のバフ）| 兜割り / 破城膝撃は「今殴る相手」が強いだけ。指名は継続する |
+| `battle_trance` | 自己 | – | **攻めへ全振りする構え**（守りを削る）| 戦吼は純粋なバフ。対価があるのはこれだけ |
+| `earthshaker_march` | 近（移動しながら）| 通り道の複数 | **移動制圧**（複数地点）| 大地砕き / 震脚はその場 1 地点。進軍はこれだけ |
+| `weapon_deflection` | 自己（半径）| 弾のみ | **敵弾への対処** | 刃防陣 / 反撃の構えは近接被弾向け。弾を消せるのはこれだけ |
+
+### 進化の補助（誰と組むか）
+
+| 進化 | 補助 | 種別 |
+|------|------|------|
+| `godspeed_impaler` | `combat_instinct` Lv4 | passive |
+| `king_slayer_duel` | `brute_force` Lv4 | passive |
+| `blood_asura_trance` | `bloodlust` Lv4 | passive |
+| `continental_quake_march` | `heavy_armor` Lv4 | passive |
+| `heaven_mirror_reversal` | `counter_stance` Lv4 | **active**（置換されず CD も変わらない）|
+
+`counter_stance` は `adamant_counter`（Wave1・自身の進化）と `heaven_mirror_reversal`（最終Wave）の
+**両方に関わる**が、天鏡返しは構えを置換しないので**両方を目指せる**。
+
+### 4 passive の担当（最終Wave 後も 4 種のまま）
+
+| passive | 進化での担当 |
+|---------|-------------|
+| `brute_force` | 天衝断空・覇王討ち |
+| `heavy_armor` | 城塞蹂躙・大陸震砕踏破 |
+| `combat_instinct` | 無影燕返・神速貫陣 |
+| `bloodlust` | 血盟戦旗・血染修羅 |
+
+18 進化のうち **15 件が passive 補助・3 件が active 補助**。4 passive はいずれも 4〜5 件を担当していて、
+どれか 1 つだけが必須にならない配分になっている。

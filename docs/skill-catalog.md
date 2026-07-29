@@ -435,3 +435,44 @@ M8-D で戦士へさらに **active10 種・進化5 種**を追加した（合�
   `war_axe_throw` `breaker_knee`）。`ground_slam` は天墜崩撃と山岳投擲の **active 補助**を兼ねる。
 - Wave2 の active / 進化もすべて **残響・分身の対象外**（`echoPolicy` / `clonePolicy` = `forbidden`）。
 - 役割・設計意図の詳細は `./warrior-wave2.md`。
+
+---
+
+## 戦士スキル拡張 最終Wave（Milestone 8-E）
+
+M8-E で戦士へ **active5 種・進化5 種**を追加し、**火の魔女・氷術師と同規模のカタログ（30 / 4 / 18）へ到達**した。
+既存 25 active・13 進化の数値と挙動は変更していない。火の魔女・氷術師のカタログも不変（各 30/4/18）。
+
+| ジョブ | active | 進化 | passive | 属性 |
+|--------|--------|------|---------|------|
+| 火の魔女 flame_witch | 30 | 18 | 4 | fire |
+| 氷術師 frost_mage | 30 | 18 | 4 | ice |
+| **戦士 warrior** | **30** | **18** | **4** | **physical** |
+
+### 追加した active5（既存 25 種と役割が重ならないように配っている）
+
+| id | 名称 | rarity | 役割 | Lv80 打撃数+1 | 進化 |
+|----|------|--------|------|----------------|------|
+| `piercing_lunge` | 貫穿突き | common | 前方の狭い直線を貫く突き（通常敵は貫通・格上は単体寄り） | × | `godspeed_impaler` |
+| `duel_challenge` | 一騎討ち | rare | 格上 1 体を選んで挑む（決闘対象へだけ強くなる） | × | `king_slayer_duel` |
+| `battle_trance` | 修羅の構え | uncommon | 攻め寄りの時限構え（守りが薄くなる） | × | `blood_asura_trance` |
+| `earthshaker_march` | 震天踏破 | uncommon | 進みながら複数地点を踏み砕く | × | `continental_quake_march` |
+| `weapon_deflection` | 刃返し | rare | 短い間だけ敵弾を限定数だけ弾き返す | × | `heaven_mirror_reversal` |
+
+### 追加した evolution5
+
+| 進化 id | 名称 | 基礎 | 補助 | 特徴 |
+|---------|------|------|------|------|
+| `godspeed_impaler` | 神速貫陣 | `piercing_lunge` | `combat_instinct` Lv4 | 二度突く。二段目は少し広いが長さは同じ |
+| `king_slayer_duel` | 覇王討ち | `duel_challenge` | `brute_force` Lv4 | 補正が強く、構えを崩すたび決闘が小幅延長。撃破時 1 回だけ挑み直せる |
+| `blood_asura_trance` | 血染修羅 | `battle_trance` | `bloodlust` Lv4 | 構え中の撃破だけ血気の回復が小幅強化（秒間 cap は共有） |
+| `continental_quake_march` | 大陸震砕踏破 | `earthshaker_march` | `heavy_armor` Lv4 | 踏みが増え最終衝撃が広い。前進中だけ小幅に打たれ強い |
+| `heaven_mirror_reversal` | 天鏡返し | `weapon_deflection` | **active** `counter_stance` Lv6 | 弾は弾き返し、近接は既存の反撃調停へ。迎撃の構えは置換されず CD も変わらない |
+
+- **Job Lv80「打撃数 +1」対象は 3 ジョブとも 6 種のまま**（`great_cleave` `shield_bash` `ground_slam`
+  `armor_breaker` `twin_fang_slash` `relentless_combo`）。最終Wave の 10 種はすべて対象外。
+- 進化を持たない active は 11 種のまま（Wave2 と同じ。最終Wave の 5 種はすべて進化を持つ）。
+- `ground_slam` は天墜崩撃・山岳投擲の、`counter_stance` は天鏡返しの **active 補助**を兼ねる
+  （いずれも置換されず CD にも触らない）。
+- 最終Wave の active / 進化もすべて **残響・分身の対象外**（`echoPolicy` / `clonePolicy` = `forbidden`）。
+- 役割・設計意図の詳細は `./warrior-final-wave.md`。

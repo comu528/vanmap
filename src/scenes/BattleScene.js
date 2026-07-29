@@ -787,12 +787,27 @@ export class BattleScene extends Phaser.Scene {
       grabbedTarget: () => this.grabbedTarget(),
       thrownStrike: (o) => this.meleeStrike({ ...o, isThrown: true }),
       warriorWave2Config: (key) => ((DataManager.balance.warrior && DataManager.balance.warrior[key]) || {}),
+      // M8-E: 最終 Wave の共通経路（スキルは Scene / 敵 / 弾の内部状態を直接いじらない）。
+      lineStrike: (o) => this.meleeStrike(o),
+      beginDuel: (source, x, y, o) => this.beginDuel(source, x, y, o),
+      duelTarget: () => this.duelTarget(),
+      refreshDuel: (o) => this.refreshDuel(o),
+      pickDuelTarget: (x, y, range, o) => this.pickDuelTarget(x, y, range, o),
+      deflectableProjectiles: (x, y, r) => this.deflectableProjectiles(x, y, r),
+      tryDeflectProjectile: (b, o) => this.tryDeflectProjectile(b, o),
+      // 弾き返しの発動元（skillId / 反射弾の設定）。window が閉じたら必ず null へ戻す。
+      setDeflectOptions: (o) => { this._deflectOpts = o || null; },
       // 同一発動を識別する ID（凍結判定回数の上限に使う。多段攻撃で同じ敵を毎tick凍結しない）。
       nextHitGroupId: () => this.nextHitGroupId(),
     };
   }
 
   nextHitGroupId() { this._hitGroupSeq = (this._hitGroupSeq || 0) + 1; return this._hitGroupSeq; }
+  // M8-E: 敵弾ごとの安定 id（同じ弾を 2 度弾かないため。保存はしない）。
+  get _deflectOpts() { return this.__deflectOpts || null; }
+  set _deflectOpts(v) { this.__deflectOpts = v || null; }
+  get _deflectSeq() { return this.__deflectSeq || 0; }
+  set _deflectSeq(v) { this.__deflectSeq = v; }
 
   // 天穿氷河槍: 粉砕地点から小型氷片を飛散させる（氷片は粉砕を再発生させない＝shatterOnFrozen:false・fragmentCount:0）。
   _spawnIceFragments(x, y, proj) {
@@ -1432,7 +1447,25 @@ export class BattleScene extends Phaser.Scene {
       ? Math.min(o.maxExecutes != null ? o.maxExecutes : Infinity,
         DataManager.skillCap('maxExecutesPerCast', this.settings?.effectQuality || 'high', 3))
       : 0;
-    const candidates = this.targetsInRadius(o.x, o.y, radius);
+    let candidates = this.targetsInRadius(o.x, o.y, radius);
+    // M8-E: 狭い直線（貫穿突き / 神速貫陣）。円→arc ではなく「前方の帯」で絞り、
+    // 手前から順に並べる。長さ / 幅 / 対象数の上限は WarriorCombatSystem（data）が決める。
+    if (o.line && w) {
+      const L = Math.max(0, o.line.length || 0), HW = Math.max(0, o.line.width || 0) / 2;
+      const ca = Math.cos(o.line.facing || 0), sa = Math.sin(o.line.facing || 0);
+      const inLine = [];
+      for (const e of candidates) {
+        if (!e || !e.alive) continue;
+        const dx = e.x - o.x, dy = e.y - o.y;
+        const along = dx * ca + dy * sa;            // 前方向の距離（後方は当たらない）
+        if (along < 0 || along > L) continue;
+        if (Math.abs(-dx * sa + dy * ca) > HW) continue; // 軸からの距離＝帯の幅
+        e._lineAlong = along;
+        inLine.push(e);
+      }
+      inLine.sort((a, b) => (a._lineAlong - b._lineAlong) || SEQ_CMP(a, b));
+      candidates = w.resolveLineMeleeTargets(inLine, { maxTargets: o.line.maxTargets || cap });
+    }
     for (const e of candidates) {
       if (hits >= cap) { this._m.suppressed++; break; }
       if (!e || !e.alive) continue;
@@ -1605,6 +1638,121 @@ export class BattleScene extends Phaser.Scene {
     if (e._knockback) { e._knockback.set(0, 0); e._knockbackTimer = 0; }
     if (opts.skillId) this._warriorSkillStat(opts.skillId).launches += 1;
     return { launched: true, poiseBonus: 0, durationMs: ms };
+  }
+
+  // ================= M8-E: 決闘（一騎討ち / 覇王討ち）=================
+  // 対象の選び方を 1 か所へ集約する（ボス > エリート > 高 HP 通常）。
+  // 敵オブジェクトは WarriorCombatSystem へ渡さない（向こうは _seq だけを保持する）。
+  pickDuelTarget(x, y, range, o = {}) {
+    const w = this.warrior;
+    if (!w || !w.enabled) return null;
+    const cand = this.targetsInRadius(x, y, Math.max(1, range || 0));
+    let best = null, bestScore = -Infinity;
+    const hpWeight = Math.max(0, o.normalTargetHpPriority || 0);
+    for (const e of cand) {
+      if (!e || !e.alive) continue;
+      const pri = w.duelPriority(e);
+      if (pri < 0) continue;
+      const hpRatio = e.maxHp > 0 ? (e.hp / e.maxHp) : 0;
+      // 種別を最優先し、同種別なら「手強さ（残 HP 割合）」で選ぶ。距離は最後の同点解消。
+      const score = pri * 1e6 + hpRatio * hpWeight * 1e3 - Math.hypot(e.x - x, e.y - y) * 1e-3;
+      if (score > bestScore) { bestScore = score; best = e; }
+    }
+    return best;
+  }
+  beginDuel(source, x, y, o = {}) {
+    const w = this.warrior;
+    if (!w || !w.enabled) return null;
+    const target = this.pickDuelTarget(x, y, o.range, o);
+    if (!target) return null;
+    const r = w.beginDuelChallenge(source, target, o);
+    if (!r) return null;
+    target._duelMark = true;                       // 表示用のマーカー（Enemy.reset / onEnemyRemoved が落とす）
+    if (o.skillId) this._warriorSkillStat(o.skillId).duels += 1;
+    return { ...r, target };
+  }
+  // 決闘対象を _seq から引き直す（オブジェクトを保持しないための共通ヘルパ）。
+  duelTarget() {
+    const w = this.warrior;
+    if (!w || !w.duelActive) return null;
+    const seq = w.duelSeq;
+    if (this.boss && this.boss.alive && this.boss._seq === seq) return this.boss;
+    let found = null;
+    this.enemyPool.forEachActive((e) => { if (!found && e.alive && e._seq === seq) found = e; });
+    return found;
+  }
+  // 対象が消えていれば解除（進化のみ 1 回だけ近距離の格上へ挑み直せる）。
+  refreshDuel(o = {}) {
+    const w = this.warrior;
+    if (!w || !w.duelActive) return false;
+    const t = this.duelTarget();
+    if (t && t.alive) return true;
+    if (!(o.retargetRange > 0)) { w.clearDuelTarget(null, 'targetLost'); return false; }
+    const next = this.pickDuelTarget(this.player.x, this.player.y, o.retargetRange, o);
+    // 再選択できるのはエリート / ボスだけ（通常敵の間を無限に渡り歩かせない）。
+    if (!next || w.duelPriority(next) < 2) { w.clearDuelTarget(null, 'noWorthyTarget'); return false; }
+    if (!w.retargetDuel(next)) return false;
+    next._duelMark = true;
+    return true;
+  }
+
+  // 近傍の敵弾（弾き返しの候補）。弾は SpatialGrid に載っていないので pool を辿るが、
+  // 半径で即座に切り、window が開いている間だけ呼ばれる（毎フレーム全敵走査はしない）。
+  deflectableProjectiles(x, y, r) {
+    const out = [];
+    const r2 = Math.max(0, r) * Math.max(0, r);
+    this.bossBulletPool.forEachActive((b) => {
+      if (!b.alive || b.alreadyDeflected) return;
+      if (dist2(x, y, b.x, b.y) <= r2) out.push(b);
+    });
+    out.sort((a, c) => (a._deflectId || 0) - (c._deflectId || 0) || (a.x - c.x) || (a.y - c.y));
+    return out;
+  }
+
+  // ================= M8-E: 弾き返し（刃返し / 天鏡返し）=================
+  // 敵弾 1 発ぶんの処理。可否判定は WarriorCombatSystem（allowlist / denylist）に一元化してある。
+  // 弾いた弾は必ず消え、必要なら短命の物理反射弾へ変換される（再反射しない）。
+  tryDeflectProjectile(b, o = {}) {
+    const w = this.warrior;
+    if (!w || !w.enabled) return { deflected: false, reason: 'disabled' };
+    // 1 つの弾イベントに対して反応するのは最大 1 系統（近接反撃は消費しない）。
+    const pick = w.arbitrateDeflectionAndCounter('projectile');
+    if (!pick) return { deflected: false, reason: 'noReaction' };
+    if (b._deflectId == null) b._deflectId = ++this._deflectSeq;
+    const r = w.tryDeflectProjectile(b);
+    if (!r.deflected) return r;
+    const angle = Math.atan2(b.body ? b.body.velocity.y : 0, b.body ? b.body.velocity.x : 1);
+    b.alreadyDeflected = true;
+    b.alive = false;                                  // 弾いた弾は必ず消える
+    // 演出（品質で数だけが変わる。弾き返しの成否・ダメージには影響しない）。
+    if (this.effects && this.effects.hitSpark) {
+      const vc = DataManager.skillCap(o.visualCap || 'maxDeflectSparkVisuals', this.settings?.effectQuality || 'high', 8);
+      if ((this._deflectVisuals || 0) < vc) { this._deflectVisuals = (this._deflectVisuals || 0) + 1; this.effects.hitSpark(b.x, b.y, 0xcfd8dc); }
+    }
+    if (r.reflect) this.createReflectedPhysicalProjectile(b.x, b.y, angle, r, o);
+    if (o.skillId) this._warriorSkillStat(o.skillId).deflects += 1;
+    return r;
+  }
+  // 反射弾。戦士の物理弾として作り直す（元弾の特殊効果は 1 つも引き継がない）。
+  createReflectedPhysicalProjectile(x, y, incomingAngle, r, o = {}) {
+    const w = this.warrior;
+    if (!w) return null;
+    const cap = DataManager.skillCap('maxReflectedProjectiles', this.settings?.effectQuality || 'high', 8);
+    if (this.countProjBySkill(o.skillId) >= cap) return null;
+    const gen = 1;
+    if (gen > w.maxReflectGeneration()) return null;  // 反射弾から再反射しない
+    const p = this.projPool.spawn(x, y, incomingAngle + Math.PI, Math.max(1, r.speed || 0), {
+      skillId: o.skillId, element: 'physical', damage: Math.max(0, r.damage || 0),
+      pierce: 0, procCoefficient: 0, knockback: o.knockback || 0,
+      lifeMs: Math.max(60, r.lifeMs || 0), scale: 0.9, tint: 0xcfd8dc,
+      tag: 'reflected', ownerType: 'player', owner: 'warrior',
+      // 元弾の特殊効果を持ち込まない・二度と弾かれない。
+      suppressSpecialEffects: true, alreadyDeflected: true, deflectGeneration: gen,
+      chillAmount: 0, baseFreezeChance: 0, explosionRadius: 0,
+    });
+    w.noteReflectedSpawn();
+    if (o.skillId) this._warriorSkillStat(o.skillId).reflected += 1;
+    return p;
   }
 
   // 掴み（豪腕投げ / 山岳投擲）。通常敵だけを掴む。
@@ -2062,6 +2210,8 @@ export class BattleScene extends Phaser.Scene {
             procCoefficient: proj.procCoefficient, hitGroupId: proj.hitGroupId,
             bossGaugeMult: proj.bossGaugeMult, // M7-E: 弾からもボス氷砕ゲージ倍率を共通経路へ渡す（既定1）
           });
+          // M8-E: 反射弾（戦士の刃返し）の命中を記録する。tag が 'reflected' のときだけ通る。
+          if (proj.tag === 'reflected' && this.warrior) this.warrior.noteReflectedHit(projDmg);
           if (proj.explosionRadius > 0) {
             this.effects.explosion(proj.x, proj.y, proj.explosionRadius);
             this.aoe(proj.x, proj.y, proj.explosionRadius, proj.damage * 0.5, proj.skillId, { exclude: e, quiet: true, isExplosion: true, element: proj.element });
@@ -2084,6 +2234,12 @@ export class BattleScene extends Phaser.Scene {
       this.bossBulletPool.forEachActive((b) => {
         if (!b.alive) return;
         if (distance(b.x, b.y, p.x, p.y) <= pr + 6 * b.scaleX) {
+          // M8-E: 戦士の刃返し。弾ける弾なら被弾せずに弾き返す（弾けない弾はそのまま通る）。
+          const w = this.warrior;
+          if (w && w.deflectionWindowOpen && this._deflectOpts) {
+            const r = this.tryDeflectProjectile(b, this._deflectOpts);
+            if (r.deflected) return;
+          }
           if (p.takeDamage(b.damage, { x: b.x, y: b.y })) { this.effects.screenShake(120, 0.006); if (!p.alive) this.onPlayerDeath(); }
           b.alive = false;
         }
@@ -3048,6 +3204,23 @@ export class BattleScene extends Phaser.Scene {
     L.push('— 戦旗の陣（rally・内側にいるときだけ効く）—');
     L.push(`${w.rallyActive ? `残${(w.rallyField.leftMs / 1000).toFixed(1)}s 半径${Math.round(w.rallyField.radius)} ${w.rallyInside ? '内側' : '外側'}` : '×'} 設置${w.telemetry.rallyPlacements}本 内側${(w.telemetry.rallyInsideMs / 1000).toFixed(1)}s 血の誓い${w.telemetry.rallyAssists}回`);
     L.push(`陣の効果: 猶予+${(w.rallyBonus('comboGrace') * 100).toFixed(0)}% 闘気+${(w.rallyBonus('furyGain') * 100).toFixed(0)}% 軽減+${(w.rallyBonus('mitigation') * 100).toFixed(0)}% 範囲+${(w.rallyBonus('meleeArea') * 100).toFixed(0)}%`);
+    // ---- M8-E（最終Wave）----
+    L.push('— 貫穿突き（line・前方直線の近接判定）—');
+    L.push(`突き${w.telemetry.lineThrusts} 貫通${w.telemetry.linePenetrations} 硬い相手${w.telemetry.lineToughHits} 踏み込み${w.telemetry.lineStepIns}（上限 長${w.cfg.line.maxLineLength}px 幅${w.cfg.line.maxWidth}px ${w.cfg.line.maxTargets}体）`);
+    L.push('— 一騎討ち（duel・正式状態ではない skill-local 指定）—');
+    const du = w.duelTargetInfo ? w.duelTargetInfo() : null;
+    L.push(`${w.duelActive ? `対象 ${w.duelKind}(seq${du ? du.seq : '?'}) 残${(w.duelLeftMs / 1000).toFixed(1)}s Dmg+${(w.duelBonus('meleeDamage') * 100).toFixed(0)}% 体勢+${(w.duelBonus('poiseDamage') * 100).toFixed(0)}% 闘気+${(w.duelBonus('furyGain') * 100).toFixed(0)}%` : '×'} 同時${w.cfg.duel.maxTargets}体まで`);
+    L.push(`開始${w.telemetry.duelStarts}（ボス${w.telemetry.duelBoss}/エリート${w.telemetry.duelElite}/通常${w.telemetry.duelNormal}） 命中${w.telemetry.duelHits} 再指定${w.telemetry.duelRetargets} 延長${w.telemetry.duelExtensions} 解除${w.telemetry.duelClears}`);
+    L.push('— 修羅の構え（trance・攻撃的な時限強化＋軽減低下）—');
+    const tr = w.getBattleTranceModifiers ? w.getBattleTranceModifiers() : { meleeDamage: 0, attackSpeed: 0, comboGrace: 0, furyGain: 0, mitigationPenalty: 0 };
+    L.push(`${w.tranceActive ? `残${(w.tranceLeftMs / 1000).toFixed(1)}s Dmg+${(tr.meleeDamage * 100).toFixed(0)}% 攻速+${(tr.attackSpeed * 100).toFixed(0)}% 猶予+${(tr.comboGrace * 100).toFixed(0)}% 闘気+${(tr.furyGain * 100).toFixed(0)}% 軽減−${(tr.mitigationPenalty * 100).toFixed(0)}%` : '×'} 発動${w.telemetry.tranceStarts}回`);
+    L.push(`合成上限×${w.cfg.trance.combinedOffenseCap}（闘気解放と合算・超過${w.telemetry.tranceOffenseCapped}回） 軽減下限${(w.cfg.trance.minMitigationAfterPenalty * 100).toFixed(0)}%（重装/不屈を無効化しない）`);
+    L.push('— 震天踏破（march・複数地点を歩いて踏む）—');
+    L.push(`踏み${w.telemetry.marchStomps}回 完走${w.telemetry.marchCompleted} 最終踏み${w.telemetry.marchFinalStomps} 移動${Math.round(w.telemetry.marchDistance)}px（上限 ${w.cfg.march.maxStomps}回/${w.cfg.march.maxMarchMs}ms）`);
+    L.push('— 刃返し（deflect・通常敵の弾のみ・完全無効化ではない）—');
+    L.push(`${w.deflectionActive ? `窓 残${(w.deflectLeftMs / 1000).toFixed(1)}s ${w.deflectUsed}/${w.deflectMax}` : '×'} 窓${w.telemetry.deflectWindows}回 検知${w.telemetry.deflectSeen} 弾き${w.telemetry.deflected} 拒否${w.telemetry.deflectRejected} 上限到達${w.telemetry.deflectCapReached}`);
+    L.push(`反射弾 生成${w.telemetry.reflectedSpawned} 命中${w.telemetry.reflectedHits} ${Math.round(w.telemetry.reflectedDamage)}Dmg 天鏡${w.telemetry.mirrorCounters} 調停${w.telemetry.reactionArbitrated}`);
+    L.push(`弾ける種別: ${(w.cfg.deflection.allowedKinds || []).join(',')} / 弾けない: ${(w.cfg.deflection.deniedKinds || []).join(',')}（ボス予告・ビーム・地形は対象外）`);
     L.push('— 所持 —');
     L.push(`active: ${Array.from(this.skills.skills.keys()).join(',') || '(なし)'}`);
     L.push(`passive: ${this.passives.ownedList().map((p) => `${p.id}Lv${p.level}`).join(',') || '(なし)'}`);
@@ -3345,6 +3518,20 @@ export class BattleScene extends Phaser.Scene {
       if (w.rallyPlacements > 0 && w.rallyInsideSeconds === 0) B.push('⚠ 戦旗は立つが内側に居た時間0（効果が乗っていない）');
       if (w.axeOutboundHits > 0 && w.axeReturnHits === 0) B.push('⚠ 戦斧の帰りが 1 度も当たっていない');
       if (evolved.length > 0 && new Set(evolved).size === 1 && evoPool.length > 8) B.push('⚠ build が 1 進化へ偏っている');
+      // M8-E: 最終Wave の実動作カウンタ。ローカル表示のみ・外部送信しない。
+      B.push(`— 戦士 最終Wave（M8-E 実動作カウンタ・カタログ active${(wjob.activeSkillPool || []).length}/passive${(wjob.passiveSkillPool || []).length}/進化${evoPool.length}）—`);
+      B.push(`貫穿突き ${w.lineThrusts}回 貫通${w.linePenetrations} 硬い相手${w.lineToughHits} 踏み込み${w.lineStepIns}`);
+      B.push(`一騎討ち ${w.duelStarts}回（ボス${w.duelBoss}/エリート${w.duelElite}/通常${w.duelNormal}） 稼働${w.duelUptimeSeconds.toFixed(1)}s 命中${w.duelHits} 平均Dmg+${(w.duelAvgDamageBonus * 100).toFixed(0)}% 再指定${w.duelRetargets} 延長${w.duelExtensions}`);
+      B.push(`修羅の構え ${w.tranceStarts}回 稼働${w.tranceUptimeSeconds.toFixed(1)}s 平均Dmg+${(w.tranceAvgDamageBonus * 100).toFixed(0)}% 平均軽減−${(w.tranceAvgPenalty * 100).toFixed(0)}% 合成上限到達${w.tranceOffenseCapped}`);
+      B.push(`震天踏破 踏み${w.marchStomps}回 完走${w.marchCompleted} 最終踏み${w.marchFinalStomps} 移動${Math.round(w.marchDistance)}px`);
+      B.push(`刃返し 窓${w.deflectWindows}回 稼働${w.deflectUptimeSeconds.toFixed(1)}s 検知${w.deflectSeen} 弾き${w.deflected} 拒否${w.deflectRejected} 上限到達${w.deflectCapReached}`);
+      B.push(`反射弾 生成${w.reflectedSpawned} 命中${w.reflectedHits} ${Math.round(w.reflectedDamage)}Dmg 天鏡${w.mirrorCounters} 反応調停${w.reactionArbitrated}`);
+      if (w.lineThrusts > 0 && w.linePenetrations === 0) B.push('⚠ 直線攻撃が 1 度も複数体を貫いていない');
+      if (w.duelStarts > 0 && w.duelHits === 0) B.push('⚠ 一騎討ちは成立するが対象へ 1 度も当たっていない');
+      if (w.tranceStarts > 0 && w.tranceUptimeSeconds === 0) B.push('⚠ 構えは発動しているが稼働時間 0');
+      if (w.marchStomps > 0 && w.marchDistance === 0) B.push('⚠ 震天踏破が 1 度も移動していない（地点が 1 つしかない）');
+      if (w.deflectWindows > 0 && w.deflectSeen === 0) B.push('⚠ 刃返しの窓は開くが弾を 1 度も検知していない');
+      if (w.deflected > 0 && w.reflectedSpawned === 0 && ownedIds.includes('heaven_mirror_reversal')) B.push('⚠ 天鏡返しだが反射弾が 0');
     }
     B.push('— 性能 / 上限 —');
     B.push(`抑制/f ${(this._mLast || this._m).suppressed}  索引上限 ${JSON.stringify(sfx ? sfx.capReached() : {})}`);

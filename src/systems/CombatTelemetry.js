@@ -75,6 +75,17 @@ export class CombatTelemetry {
       comboStages: 0, guardTicks: 0, guardUptimeSeconds: 0, lowHpAvgMultiplier: 0,
       axeOutboundHits: 0, axeReturnHits: 0, stepIns: 0, stepInDistance: 0,
       rallyPlacements: 0, rallyUptimeSeconds: 0, rallyInsideSeconds: 0, rallyAssists: 0,
+      // M8-E: 最終 Wave（直線突き / 決闘 / 修羅の構え / 踏破 / 刃返し）。
+      lineThrusts: 0, linePenetrations: 0, lineToughHits: 0, lineStepIns: 0,
+      duelStarts: 0, duelBoss: 0, duelElite: 0, duelNormal: 0,
+      duelUptimeSeconds: 0, duelHits: 0, duelAvgDamageBonus: 0,
+      duelRetargets: 0, duelExtensions: 0, duelClears: 0,
+      tranceStarts: 0, tranceUptimeSeconds: 0, tranceAvgDamageBonus: 0, tranceAvgPenalty: 0,
+      tranceOffenseCapped: 0, tranceKillHealBonus: 0,
+      marchStomps: 0, marchCompleted: 0, marchDistance: 0, marchFinalStomps: 0,
+      deflectWindows: 0, deflectUptimeSeconds: 0, deflectSeen: 0, deflected: 0,
+      deflectRejected: 0, deflectCapReached: 0, reflectedSpawned: 0, reflectedHits: 0, reflectedDamage: 0,
+      mirrorCounters: 0, reactionArbitrated: 0,
     };
     // フレーム集計
     this._frameCount = 0;
@@ -110,6 +121,9 @@ export class CombatTelemetry {
         // M8-D: 戦士 Wave2（スキル別）。打ち上げ / 前面防御 / 掴み・投げ / 段 / 防陣 tick / 斧 / 踏み込み / 戦旗。
         launches: 0, frontGuardMs: 0, grabs: 0, throws: 0, stages: 0,
         guardTicks: 0, axeHits: 0, stepIns: 0, rallyMs: 0,
+        // M8-E: 戦士 最終 Wave（スキル別）。直線貫通 / 決闘 / 構え / 踏み / 弾き / 反射。
+        thrusts: 0, penetrations: 0, duels: 0, duelMs: 0, tranceMs: 0,
+        stomps: 0, deflects: 0, reflected: 0,
       };
       this.skills.set(key, s);
     }
@@ -159,7 +173,8 @@ export class CombatTelemetry {
       // M8-C: 戦士 Wave1（スキル別）
       'executions', 'counters', 'pullDistance', 'retargets', 'movementDistance',
       // M8-D: 戦士 Wave2（スキル別）
-      'launches', 'frontGuardMs', 'grabs', 'throws', 'stages', 'guardTicks', 'axeHits', 'stepIns', 'rallyMs']) {
+      'launches', 'frontGuardMs', 'grabs', 'throws', 'stages', 'guardTicks', 'axeHits', 'stepIns', 'rallyMs',
+      'thrusts', 'penetrations', 'duels', 'duelMs', 'tranceMs', 'stomps', 'deflects', 'reflected']) {
       if (isNum(delta[k])) s[k] += delta[k];
     }
     // max 系
@@ -297,6 +312,10 @@ export class CombatTelemetry {
         launches: num(s.launches), frontGuardMs: num(s.frontGuardMs), grabs: num(s.grabs), throws: num(s.throws),
         stages: num(s.stages), guardTicks: num(s.guardTicks), axeHits: num(s.axeHits),
         stepIns: num(s.stepIns), rallyMs: num(s.rallyMs),
+        // M8-E: 戦士 最終 Wave（スキル別）
+        thrusts: num(s.thrusts), penetrations: num(s.penetrations), duels: num(s.duels),
+        duelMs: num(s.duelMs), tranceMs: num(s.tranceMs), stomps: num(s.stomps),
+        deflects: num(s.deflects), reflected: num(s.reflected),
       };
     }
     const avgFps = this._frameCount > 0 ? 1000 / (this._frameSumMs / this._frameCount) : 0;

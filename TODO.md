@@ -966,13 +966,102 @@ passive は 4 種のまま・Job Lv1〜100 も据え置き・**Job Lv80「打撃
 
 ---
 
+## Milestone 8-E: 戦士スキル拡張 最終Wave — 完了
+
+M8-D（Wave2）の 25 active / 13 進化の上へ、**active 25 → 30・進化 13 → 18** を積んで
+**3 ジョブがそろって 30 / 4 / 18 の同規模**へ到達させた回。
+passive は 4 種のまま・Job Lv1〜100 も据え置き・**Job Lv80「打撃数 +1」の対象は 3 ジョブとも 6 種のまま**。
+
+- [x] **新 active 5 種**（すべて物理・Lv1〜8 データ駆動・`jobs:["warrior"]` / `isCommon:false`）:
+      貫穿突き `piercing_lunge` / 一騎討ち `duel_challenge` / 修羅の構え `battle_trance` /
+      震天踏破 `earthshaker_march` / 刃返し `weapon_deflection`
+- [x] **新 evolution 5 種**: 神速貫陣 `godspeed_impaler`（+戦闘本能 Lv4）/
+      覇王討ち `king_slayer_duel`（+剛力 Lv4）/ 血染修羅 `blood_asura_trance`（+血気 Lv4）/
+      大陸震砕踏破 `continental_quake_march`（+重装 Lv4）/
+      天鏡返し `heaven_mirror_reversal`（+**active** 反撃の構え Lv4・**置換せず CD も触らない**）
+- [x] **共通機構 5 つを `WarriorCombatSystem` へ集約**（BattleScene へ状態を散らさない）:
+      直線の対象選択（`beginPiercingLunge` / `resolveLineMeleeTargets` / `noteLineStepIn`）・
+      決闘（`beginDuelChallenge` / `getDuelModifiers` / `duelPoiseMultiplier` / `retargetDuel` / `clearDuelTarget`）・
+      構え（`beginBattleTrance` / `getBattleTranceModifiers` / `endBattleTrance`）・
+      進軍（`beginEarthshakerMarch` / `resolveMarchStomp`）・
+      弾き返し（`beginDeflectionWindow` / `canDeflectProjectile` / `tryDeflectProjectile` /
+      `arbitrateDeflectionAndCounter`）。**すべて `balance.json` の上限で頭打ち**。
+- [x] **貫穿突きは弾ではない**（踏み込み＋近接の直線判定）。射程は `line.maxLineLength` 300px で頭打ちで
+      **画面端まで届かない**。射線上にエリート / ボスがいると通常敵の枠が
+      `toughSingleTargetRatio` 由来の少数に絞られ、**硬い相手ほど威力が 1 点へ集まる**。
+      ボス予兆中は踏み込まない。
+- [x] **一騎討ちは正式な状態異常を作らない**（相手へ debuff を貼らない）。同時 1 体・再発動は置換・
+      優先度は data 由来で ボス > エリート > 高 HP 通常敵・**敵オブジェクトを保持せず `_seq` だけ**・
+      死亡 / プール返却 / Scene 終了 / 時間切れで必ず解除。覇王討ちの延長は合計上限つきで
+      **ボスを永久ロックできない**。
+- [x] **修羅の構えも formal status ではない**（同時 1 つ・重ねがけせず上書き）。攻撃補正は
+      **闘気解放との合成上限** `combinedOffenseCap`(0.85) で頭打ち。リスクは**軽減の実効値の小幅低下だけ**で、
+      **重装 / 闘気解放 / 不屈のいずれも無効化せず**、`minMitigationAfterPenalty` を下回らない（**負にならない**）。
+      **自傷もライフスティールもしない**。血染修羅の撃破回復も既存の毎秒 cap を共有する。
+- [x] **震天踏破は移動しながら複数地点**を踏む（大地砕き / 震脚との差）。1 発動 = 1 recordCast・
+      距離と時間の**両方**で必ず終わり・`worldMargin` で壁の内側にクランプ・座標が NaN にならない。
+- [x] **刃返しは完全無効化ではない**。allowlist（`bossBullet` / `bullet`）+ denylist
+      （`beam` / `telegraph` / `hazard` / `dot` / `ground`）を `canDeflectProjectile()` に一元化。
+      窓ごとの上限を超えた弾はそのまま通る。反射弾は**世代 1 で止まり再反射しない**・元弾の特殊効果を
+      引き継がない・短命。同じ弾を 2 度弾かない。`recordCast` は窓開始時の 1 回だけ。
+- [x] **1 イベント = 最大 1 系統**（`arbitrateDeflectionAndCounter()`）。弾イベントは弾き返しの枠だけ、
+      近接イベントは反撃の回数だけを消費する。
+- [x] **残留の掃除**: `_duelMark` / `_lineAlong` を `Enemy.reset()` と `onEnemyRemoved()` の**両方**が戻す。
+      `Projectile._clearState()` が `_deflectId` / `alreadyDeflected` / `deflectGeneration` /
+      `suppressSpecialEffects` を戻す。既定値では従来と完全に同じ経路を通る。
+- [x] **品質別 skillCaps 12 種追加**（event 系 7・visual 系 5・**未参照 cap 0**・
+      low ≤ medium ≤ high ≤ ultra・すべて正の数）。演出上限がダメージや成否を減らすことはない。
+- [x] **guidance の追調整**: `highRequirementSupportLevel`(6) / `highRequirementSupportMultiplier`(1.5) を
+      2 キーだけ追加。**役割ごとの max であって積み上がらない**・**skill ID のハードコードなし**・
+      **M8-C.1 のしきい値は 1 つも下げていない**。あわせて `heaven_mirror_reversal` の補助要求を
+      `counter_stance` Lv4 に、`weapon_deflection` の rarity を uncommon にした（data 側の設計判断）。
+- [x] **到達率（素朴戦略・200 seed）**: 枠4/40lv 進化1個以上 **89.5%**（平均 1.28・0 個 10.5%）/
+      枠6/60lv 99.0%（2 個以上 94.5%・平均 2.65）/ 枠8/80lv 100%（2 個以上 99.5%・平均 3.92）。
+      **18 進化すべて・30 active すべて・passive 4 すべてが取得 0 件なし**・
+      最頻進化シェア 16.2 / 13.8 / 11.7%（M8-D の 19.3% から改善）・
+      build の種類 89.8 / 97.2 / 99.3%・候補ゼロ / 他ジョブ混入 / 重複 / 枠違反 0 件。
+- [x] **F8 / F9 へ 最終Wave の項目を追加**（貫穿突き / 一騎討ち / 修羅の構え / 震天踏破 / 刃返し /
+      反射弾・カタログ 30/4/18・active 補助進化の到達率・6 種の警告）。**F10 は不変**。
+- [x] **自動テスト 16 スイート追加**＋`validate-data` の M8-E ブロック＋`validate.yml` へ 16 ステップ
+      （**全 163 スイート通過**・`validate-data` 0 エラー 0 警告）。
+- [x] **火の魔女・氷術師は完全に非回帰**（候補列 300 seed / 48 スキルのランタイムとも SHA-256 一致・
+      状態異常 5 種のまま・`Projectile` の追加は既定値が無害な 4 フィールドのみ）・**save_version v6 維持**。
+
+### M8-E で**実装しない**もの（対象外）
+- [ ] active 31 種以上・進化 19 種以上・新しい passive・新ジョブ
+- [ ] 属性反応・新しい formal status・装備・武器選択
+- [ ] 新しい敵 / ボス / 難易度・転生レガシー・UI 全面改修・正式グラフィック素材
+- [ ] Job Lv80「打撃数 +1」の対象追加
+- [ ] 戦士の完成監査（**M8-F**）・全体の抽選設計変更
+
+### M8-E で見つけて直した既存の不備
+- [ ] `WARRIOR_DEFAULTS` に最終Wave のブロックが無く、balance を渡さないと
+      `beginPiercingLunge` が例外を投げた → 既定値（line / duel / trance / deflection / march）を追加。
+- [ ] `restoreTimedBuffs()` が決闘の復元で `duelStarts` を**二重に**戻していた
+      （`restoreDuelState()` はもともと数えていない）→ テレメトリが負値になっていたので削除。
+      弾き返しの窓カウンタも 0 未満へ下がらないようにクランプした。
+- [ ] `canDeflectProjectile()` が `deflectGeneration` を見ておらず、
+      印（`alreadyDeflected`）が落ちた反射弾を再び弾けてしまった → 世代だけで止まるガードを追加。
+- [ ] 弾き返しの枠を使い切ると `deflectionActive` が false になり、
+      **「上限に達した窓へ弾が来た」を 1 度も計測できなかった** → 窓の開閉だけを見る
+      `deflectionWindowOpen` を足し、調停までは通して `capReached` を正しく数えるようにした
+      （弾自体はそのまま素通りする＝挙動は変わらない）。
+- [ ] `warrior-build-diversity` の `formedButNotOffered` が、進化 18 種では
+      「同時に成立したレシピが 3 枠に収まらない」だけで誤検知していた
+      → **進化候補が 1 つも出なかった draft** だけを数えるよう修正し、
+      良性のケースは `formedPartiallyOffered` として分離した。
+
+> **実ブラウザ未確認**: M8-E も Phaser 実プレイ確認は行っていない（Node 純ロジック＋最小モックのみ）。
+> `docs/test-guide.md` の **Milestone 8-E** 項目（A〜G）を実ブラウザで確認すること。
+
+---
+
 ### 次のマイルストーン候補
-- [ ] **戦士のカタログ拡張 Wave3 以降**（active25 → 30 / evolution 13 → 18）— 火・氷と同じ拡張手順が使える
 - [ ] **火と氷の属性反応**（炎上⇄冷気/凍結の相互作用・付与時の source element を活用）
-- [ ] **戦士 完成監査**（カタログが揃ってから。M7-E / M8-A と同じ 12 観点）
+- [ ] **戦士 完成監査（M8-F）**（カタログは M8-E で 30/4/18 に揃った。M7-E / M8-A と同じ 12 観点）
 - [ ] **転生レガシー / ジョブ間継承**（`futureInheritanceSettings` / `extraAllowedIds` が拡張口）
 - [ ] **周回長の拡張**（10分 / 15分 / 無限モード）・**追加の敵 / ボス / 難易度**
-- [ ] **実ブラウザでの M7-E / M8-A / M8-B / M8-C / M8-C.1 / M8-D 手動確認**（コード変更を伴わない検証タスク）
+- [ ] **実ブラウザでの M7-E / M8-A / M8-B / M8-C / M8-C.1 / M8-D / M8-E 手動確認**（コード変更を伴わない検証タスク）
 
 ---
 

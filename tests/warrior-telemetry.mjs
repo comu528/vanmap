@@ -38,7 +38,9 @@ section('1. CombatTelemetry.warrior と summary() のキーが 1:1');
   const ctx = build();
   const sum = ctx.w.summary();
   // summary はライブ表示用のキーを追加で持つ（M8-D で戦旗 / 前面防御の 3 つが増えた）。
-  const live = new Set(['fury', 'combo', 'bossPoiseGauge', 'rallyActive', 'rallyInside', 'frontGuardActive']);
+  const live = new Set(['fury', 'combo', 'bossPoiseGauge', 'rallyActive', 'rallyInside', 'frontGuardActive',
+    // M8-E: 決闘 / 構え / 弾き返しの現在状態（数値ではなくライブ表示）。
+    'duelActive', 'duelKind', 'tranceActive', 'deflectionActive']);
   for (const k of Object.keys(t.warrior)) {
     ok(Object.prototype.hasOwnProperty.call(sum, k), `summary() が ${k} を返す`);
   }

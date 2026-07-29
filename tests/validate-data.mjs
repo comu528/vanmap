@@ -576,7 +576,9 @@ if (jobProgData) {
     // M8-C: 戦士 Wave1 のタグ
     'execute', 'buff', 'pull', 'reactive',
     // M8-D: 戦士 Wave2 のタグ
-    'launch', 'grab', 'throw', 'thrown', 'field']);
+    'launch', 'grab', 'throw', 'thrown', 'field',
+    // M8-E: 戦士 最終Wave のタグ
+    'thrust', 'line', 'duel', 'focus', 'stance', 'deflect']);
   const skillsArr = (skillsData && skillsData.skills) || [];
   const evosArr = (evoData && evoData.evolutions) || [];
   const actives = skillsArr.filter((s) => (s.category || 'active') === 'active');
@@ -1568,22 +1570,26 @@ if (jobProgData) {
   const frostJob = (jobsData?.jobs || []).find((j) => j.id === 'frost_mage');
   if (!warriorJob) err('M8-B: jobs.json に warrior が無い');
   else {
-    // M8-C（Wave1）で active5 → 15 / evolution3 → 8、M8-D（Wave2）で active15 → 25 / evolution8 → 13。
-    // passive は 4 のまま。Job Lv80 の対象は 6 種のまま（Wave1 / Wave2 の新規は対象にしない）。
+    // M8-C（Wave1）で active5 → 15 / evolution3 → 8、M8-D（Wave2）で 25 / 13、
+    // M8-E（最終Wave）で 30 / 18。passive は 4 のまま。
+    // Job Lv80 の対象は 3 ジョブとも 6 種のまま（Wave1 / Wave2 / 最終Wave の新規は対象にしない）。
     const EXPECT = {
       actives: ['great_cleave', 'shield_bash', 'whirlwind_slash', 'charge_slash', 'ground_slam',
         'armor_breaker', 'twin_fang_slash', 'execution_strike', 'leap_smash', 'sweeping_advance',
         'counter_stance', 'war_cry', 'chain_hook', 'shockwave_stomp', 'relentless_combo',
         'rising_slash', 'shield_charge', 'backstep_riposte', 'battlefield_throw', 'triple_crush',
-        'blade_guard', 'berserker_rush', 'war_axe_throw', 'breaker_knee', 'rallying_banner'],
+        'blade_guard', 'berserker_rush', 'war_axe_throw', 'breaker_knee', 'rallying_banner',
+        'piercing_lunge', 'duel_challenge', 'battle_trance', 'earthshaker_march', 'weapon_deflection'],
       passives: ['brute_force', 'heavy_armor', 'combat_instinct', 'bloodlust'],
       evolutions: ['thousand_blade_dance', 'bloodstorm_whirlwind', 'unyielding_fortress',
         'skull_splitter', 'crimson_execution', 'war_god_roar', 'adamant_counter', 'heaven_crushing_descent',
         'heaven_rending_ascent', 'fortress_rampage', 'shadow_swallow_riposte', 'mountain_hurl',
-        'blood_oath_standard'],
+        'blood_oath_standard',
+        'godspeed_impaler', 'king_slayer_duel', 'blood_asura_trance', 'continental_quake_march',
+        'heaven_mirror_reversal'],
       lv80: ['great_cleave', 'shield_bash', 'ground_slam', 'armor_breaker', 'twin_fang_slash', 'relentless_combo'],
     };
-    // 1. カタログ規模（M8-D は active25 / passive4 / evolution13）。
+    // 1. カタログ規模（M8-E は active30 / passive4 / evolution18）。
     if ((warriorJob.activeSkillPool || []).join(',') !== EXPECT.actives.join(',')) err(`M8-B: 戦士 activeSkillPool が期待と違う（${(warriorJob.activeSkillPool || []).join(',')}）`);
     if ((warriorJob.passiveSkillPool || []).join(',') !== EXPECT.passives.join(',')) err(`M8-B: 戦士 passiveSkillPool が期待と違う`);
     if ((warriorJob.evolutionPool || []).join(',') !== EXPECT.evolutions.join(',')) err(`M8-B: 戦士 evolutionPool が期待と違う`);
@@ -1843,9 +1849,9 @@ if (jobProgData) {
       'mountain_hurl', 'blood_oath_standard'];
 
     // 1. カタログ規模（active25 / passive4 / evolution13）。
-    if ((warriorJob.activeSkillPool || []).length !== 25) err(`M8-D: 戦士 active が 25 でない（${(warriorJob.activeSkillPool || []).length}）`);
+    if ((warriorJob.activeSkillPool || []).length !== 30) err(`M8-D: 戦士 active が 30 でない（${(warriorJob.activeSkillPool || []).length}）`);
     if ((warriorJob.passiveSkillPool || []).length !== 4) err(`M8-D: 戦士 passive が 4 でない（${(warriorJob.passiveSkillPool || []).length}）`);
-    if ((warriorJob.evolutionPool || []).length !== 13) err(`M8-D: 戦士 evolution が 13 でない（${(warriorJob.evolutionPool || []).length}）`);
+    if ((warriorJob.evolutionPool || []).length !== 18) err(`M8-D: 戦士 evolution が 18 でない（${(warriorJob.evolutionPool || []).length}）`);
     for (const id of WAVE2_ACT) if (!(warriorJob.activeSkillPool || []).includes(id)) err(`M8-D: 戦士 activeSkillPool に ${id} が無い`);
     for (const id of WAVE2_EVO) if (!(warriorJob.evolutionPool || []).includes(id)) err(`M8-D: 戦士 evolutionPool に ${id} が無い`);
 
@@ -1999,6 +2005,226 @@ if (jobProgData) {
         if (!docsCatalog.includes(id)) err(`M8-D: docs/skill-catalog.md に ${id} の記載が無い`);
       }
     } catch (e) { warn(`M8-D: docs の確認に失敗 (${e.message})`); }
+  }
+}
+
+// ---------- Milestone 8-E: 戦士スキル拡張 最終Wave（データ整合の追加検証） ----------
+{
+  const warriorJob = (jobsData?.jobs || []).find((j) => j.id === 'warrior');
+  if (warriorJob) {
+    const E_ACT = ['piercing_lunge', 'duel_challenge', 'battle_trance', 'earthshaker_march', 'weapon_deflection'];
+    const E_EVO = ['godspeed_impaler', 'king_slayer_duel', 'blood_asura_trance', 'continental_quake_march', 'heaven_mirror_reversal'];
+    const SK = (id) => (skillsData?.skills || []).find((x) => x.id === id);
+    const EV = (id) => (evoData?.evolutions || []).find((x) => x.id === id);
+
+    // 1. 最終カタログ（active30 / passive4 / evolution18 / 合計 52）。
+    const nA = (warriorJob.activeSkillPool || []).length;
+    const nP = (warriorJob.passiveSkillPool || []).length;
+    const nE = (warriorJob.evolutionPool || []).length;
+    if (nA !== 30) err(`M8-E: 戦士 active が 30 でない（${nA}）`);
+    if (nP !== 4) err(`M8-E: 戦士 passive が 4 でない（${nP}）`);
+    if (nE !== 18) err(`M8-E: 戦士 evolution が 18 でない（${nE}）`);
+    if (nA + nP + nE !== 52) err(`M8-E: 戦士カタログ合計が 52 でない（${nA + nP + nE}）`);
+    for (const id of E_ACT) if (!(warriorJob.activeSkillPool || []).includes(id)) err(`M8-E: activeSkillPool に ${id} が無い`);
+    for (const id of E_EVO) if (!(warriorJob.evolutionPool || []).includes(id)) err(`M8-E: evolutionPool に ${id} が無い`);
+    // 火 / 氷と同規模へ到達している。
+    for (const jid of ['flame_witch', 'frost_mage']) {
+      const j = (jobsData?.jobs || []).find((x) => x.id === jid);
+      if (!j) continue;
+      if ((j.activeSkillPool || []).length !== 30 || (j.evolutionPool || []).length !== 18) {
+        err(`M8-E: ${jid} のカタログ規模が変わっている`);
+      }
+      for (const id of [...E_ACT, ...E_EVO]) {
+        if ((j.activeSkillPool || []).includes(id) || (j.evolutionPool || []).includes(id)) err(`M8-E: ${jid} へ ${id} が混入している`);
+      }
+    }
+
+    // 2. 新 active の data 完全性。
+    for (const id of E_ACT) {
+      const s2 = SK(id);
+      if (!s2) { err(`M8-E: skills.json に ${id} が無い`); continue; }
+      if (s2.element !== 'physical') err(`M8-E: ${id} の element が physical でない`);
+      if ((s2.jobs || []).join(',') !== 'warrior') err(`M8-E: ${id} の jobs が ["warrior"] でない`);
+      if (s2.isCommon !== false) err(`M8-E: ${id} の isCommon が false でない`);
+      if (s2.maxLevel !== 8 || (s2.levels || []).length !== 8) err(`M8-E: ${id} が Lv1–8 でない`);
+      if (s2.echoPolicy !== 'forbidden' || s2.clonePolicy !== 'forbidden') err(`M8-E: ${id} の echo/clonePolicy が forbidden でない`);
+      if (s2.canTriggerEcho !== false || s2.canBeCopiedByClone !== false) err(`M8-E: ${id} の canTriggerEcho/canBeCopiedByClone が false でない`);
+      if (s2.castMode !== 'cooldown') err(`M8-E: ${id} の castMode が cooldown でない`);
+      if (s2.lv80ProjectileTarget !== false) err(`M8-E: ${id} を Lv80 対象にしてはいけない`);
+      if (!(typeof s2.meleeRange === 'number' && s2.meleeRange > 0)) err(`M8-E: ${id} の meleeRange が正の数でない`);
+      if (!(s2.damageTags || []).includes('melee')) err(`M8-E: ${id} の damageTags に melee が無い（物理近接）`);
+      if (!(s2.tags || []).includes('physical')) err(`M8-E: ${id} の tags に physical が無い`);
+      let cdOk = true;
+      for (let i = 1; i < (s2.levels || []).length; i++) if (s2.levels[i].cooldown > s2.levels[i - 1].cooldown) cdOk = false;
+      if (!cdOk) err(`M8-E: ${id} の cooldown が Lv で増えている`);
+      const a = s2.levels[0], b = s2.levels[7];
+      for (const k of Object.keys(a)) {
+        const v = b[k];
+        if (typeof v === 'number' && (!Number.isFinite(v) || v < 0)) err(`M8-E: ${id}.levels[8].${k} が不正 (${v})`);
+      }
+      const grew = Object.keys(a).filter((k) => k !== 'level' && k !== 'cooldown' && typeof a[k] === 'number' && b[k] > a[k]);
+      if (grew.length < 2) err(`M8-E: ${id} の Lv1 → Lv8 で伸びる数値が 2 つ未満`);
+      if (!Array.isArray(s2.evolutionBranches) || s2.evolutionBranches.length !== 1) err(`M8-E: ${id} の evolutionBranches が 1 件でない`);
+    }
+    // 直線（貫穿突き）の射程が balance の上限内＝画面端まで届かない。
+    {
+      const L = SK('piercing_lunge');
+      const cfgLine = (balance?.warrior || {}).line || {};
+      if (L && L.levels[7].lineLength > (cfgLine.maxLineLength || Infinity)) err('M8-E: piercing_lunge Lv8 の lineLength が balance の上限を超えている');
+      if (L && L.levels[7].width > (cfgLine.maxWidth || Infinity)) err('M8-E: piercing_lunge Lv8 の width が balance の上限を超えている');
+      if (L && L.levels[7].lineLength >= 600) err('M8-E: piercing_lunge の射程が長すぎる（遠距離化している）');
+    }
+
+    // 3. 新 evolution の data 完全性。
+    for (const id of E_EVO) {
+      const e = EV(id);
+      if (!e) { err(`M8-E: skill-evolutions.json に ${id} が無い`); continue; }
+      if (!E_ACT.includes(e.baseSkillId)) err(`M8-E: ${id} の基礎 ${e.baseSkillId} が最終Wave の active でない`);
+      if ((e.requiredSkills || []).length !== 1) err(`M8-E: ${id} の補助が 1 件でない`);
+      if (e.replacementSkillId !== id) err(`M8-E: ${id} の replacementSkillId が自身でない`);
+      if (e.element !== 'physical') err(`M8-E: ${id} の element が physical でない`);
+      if (e.echoPolicy !== 'forbidden' || e.clonePolicy !== 'forbidden') err(`M8-E: ${id} の echo/clonePolicy が forbidden でない`);
+      if (e.lv80ProjectileTarget !== false) err(`M8-E: ${id} を Lv80 対象にしてはいけない`);
+      if (!e.safetyCaps || Object.keys(e.safetyCaps).length === 0) err(`M8-E: ${id} に safetyCaps が無い`);
+      for (const [k, v] of Object.entries(e.safetyCaps || {})) {
+        if (typeof v !== 'number' || !Number.isFinite(v) || v < 0) err(`M8-E: ${id}.safetyCaps.${k} が不正 (${v})`);
+      }
+      // active 補助は置換しない（別スキルとして併存し、CD も触らない）。
+      const req = (e.requiredSkills || [])[0];
+      if (req && (warriorJob.activeSkillPool || []).includes(req.skill)) {
+        if (e.replacementSkillId === req.skill) err(`M8-E: ${id} が補助 active ${req.skill} を置換している`);
+        if (!(req.level > 0)) err(`M8-E: ${id} の active 補助に必要 Lv が明示されていない`);
+      }
+    }
+
+    // 4. Job Lv80 対象はちょうど 6 種のまま（3 ジョブとも）。
+    for (const jid of ['warrior', 'flame_witch', 'frost_mage']) {
+      const j = (jobsData?.jobs || []).find((x) => x.id === jid);
+      const n = (j?.activeSkillPool || []).filter((id) => (SK(id) || {}).lv80ProjectileTarget === true).length;
+      if (n !== 6) err(`M8-E: ${jid} の Job Lv80 対象が 6 種でない（${n}）`);
+    }
+
+    // 5. balance.warrior の最終Wave ブロック。
+    const W = balance?.warrior || {};
+    for (const k of ['line', 'duel', 'trance', 'deflection', 'march']) {
+      if (!W[k] || typeof W[k] !== 'object') err(`M8-E: balance.warrior.${k} が無い`);
+    }
+    const pos = (v) => typeof v === 'number' && Number.isFinite(v) && v > 0;
+    if (W.line) {
+      for (const k of ['maxLineLength', 'maxWidth', 'maxTargets', 'maxHitsPerTargetPerCast', 'maxStepInDistance']) {
+        if (!pos(W.line[k])) err(`M8-E: line.${k} が正の有限数でない`);
+      }
+      if (!(W.line.toughSingleTargetRatio >= 0 && W.line.toughSingleTargetRatio <= 1)) err('M8-E: line.toughSingleTargetRatio が 0..1 でない');
+      if (W.line.maxLineLength > 400) err('M8-E: line.maxLineLength が長すぎる（遠距離化の恐れ）');
+    }
+    if (W.duel) {
+      if (W.duel.maxTargets !== 1) err(`M8-E: duel.maxTargets は 1（決闘対象は同時 1 体・実際 ${W.duel.maxTargets}）`);
+      for (const k of ['maxDurationMs', 'maxMeleeDamageBonus', 'maxPoiseDamageBonus', 'maxFuryGainBonus', 'maxExtensionMs', 'extensionPerBreakMs']) {
+        if (!pos(W.duel[k])) err(`M8-E: duel.${k} が正の有限数でない`);
+      }
+      if (!(W.duel.maxRetargetsPerCast >= 0 && W.duel.maxRetargetsPerCast <= 2)) err('M8-E: duel.maxRetargetsPerCast は 0..2');
+      for (const k of ['bossPriority', 'elitePriority', 'normalPriority']) {
+        if (!(typeof W.duel[k] === 'number' && W.duel[k] >= 0)) err(`M8-E: duel.${k} が非負数でない`);
+      }
+      if (!(W.duel.bossPriority > W.duel.elitePriority && W.duel.elitePriority > W.duel.normalPriority)) {
+        err('M8-E: duel の優先度が ボス > エリート > 通常 になっていない');
+      }
+    }
+    if (W.trance) {
+      if (W.trance.maxStances !== 1) err(`M8-E: trance.maxStances は 1（構えは同時 1 つ・実際 ${W.trance.maxStances}）`);
+      for (const k of ['maxDurationMs', 'maxMeleeDamageBonus', 'maxAttackSpeedBonus', 'maxComboGraceBonus', 'maxFuryGainBonus', 'maxMitigationPenalty', 'combinedOffenseCap', 'maxKillHealBonus']) {
+        if (!pos(W.trance[k])) err(`M8-E: trance.${k} が正の有限数でない`);
+      }
+      if (!(W.trance.minMitigationAfterPenalty >= 0)) err('M8-E: trance.minMitigationAfterPenalty が非負でない');
+      if (W.trance.maxMitigationPenalty >= 0.5) err('M8-E: trance.maxMitigationPenalty が大きすぎる（即死職化の恐れ）');
+    }
+    if (W.deflection) {
+      for (const k of ['maxWindowMs', 'maxDeflectionsPerWindow', 'maxDeflectRadius', 'maxReflectedDamage', 'maxReflectedSpeed', 'maxReflectLifeMs', 'counterPriority']) {
+        if (!pos(W.deflection[k])) err(`M8-E: deflection.${k} が正の有限数でない`);
+      }
+      if (!(W.deflection.maxReflectGeneration >= 1)) err('M8-E: deflection.maxReflectGeneration が 1 以上でない');
+      if (W.deflection.maxReflectGeneration > 1) err('M8-E: deflection.maxReflectGeneration は 1（反射弾から再反射しない）');
+      const allow = W.deflection.allowedKinds || [], deny = W.deflection.deniedKinds || [];
+      if (!Array.isArray(allow) || allow.length === 0) err('M8-E: deflection.allowedKinds が空（弾ける弾を明示する）');
+      if (!Array.isArray(deny) || deny.length === 0) err('M8-E: deflection.deniedKinds が空（弾けない弾を明示する）');
+      for (const k of ['beam', 'telegraph']) if (!deny.includes(k)) err(`M8-E: deflection.deniedKinds に ${k} が無い`);
+      for (const k of allow) if (deny.includes(k)) err(`M8-E: deflection の allow / deny が矛盾している（${k}）`);
+    }
+    if (W.march) {
+      for (const k of ['maxStomps', 'maxMarchMs', 'maxStepDistance', 'maxRadius']) {
+        if (!pos(W.march[k])) err(`M8-E: march.${k} が正の有限数でない`);
+      }
+      if (!(W.march.maxMitigation >= 0 && W.march.maxMitigation < 1)) err('M8-E: march.maxMitigation が 0 以上 1 未満でない');
+    }
+
+    // 6. data の宣言値が balance の上限を超えていない。
+    const lv8 = (id) => ((SK(id) || {}).levels || [])[7] || {};
+    if (W.trance) {
+      const t = lv8('battle_trance');
+      if (t.duration > W.trance.maxDurationMs) err('M8-E: battle_trance Lv8 の duration が上限を超えている');
+      if (t.meleeDamageBonus > W.trance.maxMeleeDamageBonus) err('M8-E: battle_trance Lv8 の meleeDamageBonus が上限を超えている');
+      if (t.mitigationPenalty > W.trance.maxMitigationPenalty) err('M8-E: battle_trance Lv8 の mitigationPenalty が上限を超えている');
+    }
+    if (W.duel) {
+      const dd = lv8('duel_challenge');
+      if (dd.duration > W.duel.maxDurationMs) err('M8-E: duel_challenge Lv8 の duration が上限を超えている');
+      if (dd.meleeDamageBonus > W.duel.maxMeleeDamageBonus) err('M8-E: duel_challenge Lv8 の meleeDamageBonus が上限を超えている');
+    }
+    if (W.deflection) {
+      const wd = lv8('weapon_deflection');
+      if (wd.windowDuration > W.deflection.maxWindowMs) err('M8-E: weapon_deflection Lv8 の windowDuration が上限を超えている');
+      if (wd.maxDeflections > W.deflection.maxDeflectionsPerWindow) err('M8-E: weapon_deflection Lv8 の maxDeflections が上限を超えている');
+      if (wd.reflectedDamage > W.deflection.maxReflectedDamage) err('M8-E: weapon_deflection Lv8 の reflectedDamage が上限を超えている');
+    }
+    if (W.march) {
+      const mm = lv8('earthshaker_march');
+      if (mm.stompCount > W.march.maxStomps) err('M8-E: earthshaker_march Lv8 の stompCount が上限を超えている');
+      if (mm.radius > W.march.maxRadius) err('M8-E: earthshaker_march Lv8 の radius が上限を超えている');
+    }
+
+    // 7. 最終Wave で足した skillCaps。
+    const E_CAPS = ['maxLineTargets', 'maxLineThrusts', 'maxDuelTargets', 'maxTranceStances', 'maxMarchStomps',
+      'maxDeflectionsPerWindow', 'maxReflectedProjectiles',
+      'maxThrustTrails', 'maxDuelMarkers', 'maxTranceAuras', 'maxMarchDustVisuals', 'maxDeflectSparkVisuals'];
+    for (const name of E_CAPS) {
+      const c = (balance?.skillCaps || {})[name];
+      if (!c) { err(`M8-E: balance.skillCaps に ${name} が無い`); continue; }
+      for (const q of ['low', 'medium', 'high', 'ultra']) {
+        if (!(typeof c[q] === 'number' && Number.isFinite(c[q]) && c[q] > 0)) err(`M8-E: skillCaps.${name}.${q} が正の有限数でない`);
+      }
+      if (!(c.low <= c.medium && c.medium <= c.high && c.high <= c.ultra)) err(`M8-E: skillCaps.${name} が単調非減少でない`);
+    }
+    // low 品質でも「弾ける数」「決闘」「構え」を 0 にしない（戦闘ロジックが消えない）。
+    for (const name of ['maxDeflectionsPerWindow', 'maxDuelTargets', 'maxTranceStances', 'maxLineTargets', 'maxMarchStomps']) {
+      const c = (balance?.skillCaps || {})[name];
+      if (c && !(c.low >= 1)) err(`M8-E: skillCaps.${name}.low が 1 未満（低品質で効果が消える）`);
+    }
+
+    // 8. guidance のしきい値は M8-C.1 / M8-D から下げていない。
+    const g = (skillCfg || {}).guidance || {};
+    const KEEP = {
+      minBattleLevel: 3, readyBaseAcquireWeightMultiplier: 1.3, ownedBaseUpgradeWeightMultiplier: 1.8,
+      requiredSupportWeightMultiplier: 1.3, activeSupportWeightMultiplier: 1.6,
+    };
+    for (const [k, v] of Object.entries(KEEP)) {
+      if (g[k] !== v) err(`M8-E: guidance.${k} が ${v} から変わっている（${g[k]}）— しきい値を下げてはいけない`);
+    }
+    if ((g.pity || {}).threshold !== 3) err('M8-E: guidance.pity.threshold が 3 から変わっている');
+    if (!(g.jobs || []).includes('warrior') || (g.jobs || []).length !== 1) err('M8-E: guidance.jobs は ["warrior"] のまま');
+
+    // 9. save_version は加算的（v6 のまま）。
+    if (balance?.saveVersion !== 6) err(`M8-E: saveVersion が 6 でない（${balance?.saveVersion}）`);
+
+    // 10. docs の記載。
+    try {
+      const docsCatalog = readFileSync(join(__dirname, '..', 'docs', 'skill-catalog.md'), 'utf8');
+      for (const id of [...E_ACT, ...E_EVO]) {
+        if (!docsCatalog.includes(id)) err(`M8-E: docs/skill-catalog.md に ${id} の記載が無い`);
+      }
+      if (!/\*\*30\*\*/.test(docsCatalog) || !/\*\*18\*\*/.test(docsCatalog)) {
+        err('M8-E: docs/skill-catalog.md に最終カタログ規模（30 / 18）の記載が無い');
+      }
+    } catch (e) { warn(`M8-E: docs の確認に失敗 (${e.message})`); }
   }
 }
 

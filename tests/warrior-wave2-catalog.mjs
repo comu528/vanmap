@@ -25,10 +25,12 @@ const SKILL = (id) => DATA.skills.find((x) => x.id === id);
 const EVO = (id) => DATA.evolutions.find((x) => x.id === id);
 
 // ===== 1. 総数 =====
-section('1. active25 / passive4 / evolution13（合計 42）');
-ok(war.summary.activeCount === 25, `active ${war.summary.activeCount} = 25`);
-ok(war.summary.passiveCount === 4, `passive ${war.summary.passiveCount} = 4`);
-ok(war.summary.evolutionCount === 13, `evolution ${war.summary.evolutionCount} = 13`);
+// 総数の正は EXPECTED（M8-E で active30 / evolution18 へ拡張済み）。
+// この suite が保証するのは「Wave2 の 15 種が全部残っていること」であって、総数の固定ではない。
+section(`1. active${EXPECTED.activeCount} / passive${EXPECTED.passiveCount} / evolution${EXPECTED.evolutionCount}`);
+ok(war.summary.activeCount === EXPECTED.activeCount, `active ${war.summary.activeCount} = ${EXPECTED.activeCount}`);
+ok(war.summary.passiveCount === EXPECTED.passiveCount, `passive ${war.summary.passiveCount} = ${EXPECTED.passiveCount}`);
+ok(war.summary.evolutionCount === EXPECTED.evolutionCount, `evolution ${war.summary.evolutionCount} = ${EXPECTED.evolutionCount}`);
 ok(war.issues.length === 0, `SkillCatalog の issues 0（実際 ${war.issues.length}: ${war.issues.map((i) => i.type + ':' + i.id).join(',')}）`);
 ok(NEW_ACT.length === 10 && NEW_EVO.length === 5, 'Wave2 の追加は active10 / evolution5');
 ok(WARRIOR.activeSkillPool.join(',') === EXPECTED.actives.join(','), 'activeSkillPool の並びが期待どおり');

@@ -813,3 +813,34 @@ M8-C.1 は**追加のみ**で、`save_version` は **6 のまま**。移行処�
 
 `restoreTimedBuffs()` は保存値をそのまま信じない。持続・軽減・陣の効果値はいずれも
 `balance.json` の上限でクランプされるので、保存ファイルを書き換えても上限を超えられない。
+
+
+---
+
+## Milestone 8-E: 戦士スキル拡張 最終Wave（`save_version` は v6 のまま・加算のみ）
+
+新しい保存キーは `active_run` の戦士 timed buff（`WarriorCombatSystem.serializeTimedBuffs()`）へ
+**3 つ加算しただけ**で、既存キーの意味・型は変わらない。
+
+| キー | 内容 | 復元時の扱い |
+|------|------|-------------|
+| `duel` | `{ source, seq, kind, leftMs, totalMs, extendedMs, retargets, meleeDamageBonus, poiseDamageBonus, furyGainBonus, maxRetargets, retargetRange, extendPerBreakMs, maxExtensionMs }` | `balance.warrior.duel` の各上限でクランプして復元。**敵オブジェクトは入らない**（`seq` は安定 runtime id のみ）。**開始回数（telemetry）は水増ししない** |
+| `trance` | `{ source, leftMs, totalMs, meleeDamageBonus, attackSpeedBonus, comboGraceBonus, furyGainBonus, mitigationPenalty, killHealBonus, perSecondCapBonus }` | `balance.warrior.trance` の各上限でクランプして復元。**発動回数（telemetry）は水増ししない** |
+| `deflection` | `{ source, leftMs, totalMs, used, max, radius, reflect, reflectedDamage, reflectedSpeed, reflectLifeMs, poiseDamage, counters }` | `balance.warrior.deflection` の各上限でクランプして復元。**使用済み回数を引き継ぐ**（reload で上限をリセットして稼げない）。**窓の回数（telemetry）は水増ししない** |
+
+### 保存しないもの（意図的）
+
+| 状態 | 理由 |
+|------|------|
+| 弾いた弾の id 集合（`_deflectedIds`） | 弾は周回をまたいで存在しない。reload 後に過去の弾を復活させない |
+| 反射弾そのもの | 短命の実体。保存すると reload で無料の弾が湧く |
+| 決闘対象の敵オブジェクト | **保存するのは `seq` だけ**。対象が見つからなければ安全に解除される（幽霊対象を残さない） |
+| 進行中の踏み込み / 進軍 / 突き | 復元時に「無料でもう一度出る」「座標が飛ぶ」を防ぐ。CD だけを保存する |
+| 敵側の決闘マーカー（`_duelMark`） | 敵の一時状態。`Enemy.reset()` と `onEnemyRemoved()` が必ず戻すので保存不要 |
+
+### 改ざん耐性
+
+`restoreTimedBuffs()` は保存値をそのまま信じない。決闘の持続 / 補正、構えの持続 / 補正 / 軽減低下、
+弾き返しの窓 / 枠 / 半径 / 反射弾の性能はいずれも `balance.json` の上限でクランプされるので、
+保存ファイルを書き換えても上限を超えられない。構えの軽減低下を巨大にしても、
+合計軽減は `minMitigationAfterPenalty` を下回らない（**負にならない**）。

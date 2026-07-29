@@ -51,6 +51,8 @@ M6-F の synergy は「基礎を持っている → その補助を煽る」の�
   "nearRequiredRemainingLevels": 1,          // 「必要 Lv 手前」とみなす残り段数
   "supportNearRequiredMultiplier": 1.2,      // 必要 Lv 手前の補助への追加
   "activeSupportWeightMultiplier": 1.6,      // 補助が active のレシピへの追加（M8-D）
+  "highRequirementSupportLevel": 6,          // 「高い Lv を要求される補助」の境界（M8-E）
+  "highRequirementSupportMultiplier": 1.5,   // その補助への追加（M8-E）
 
   "pity": { "threshold": 3, "bonusPerStep": 0.12, "maxMultiplier": 1.8 }
 }
@@ -215,3 +217,63 @@ active が 15 → 25、進化が 8 → 13 になると、1 回のドラフトで
 
 13 進化すべてが取得 > 0、25 active すべてが提示・取得 > 0、
 候補ゼロ / 混入 / 重複 / 枠違反はいずれも 0 件。
+
+
+---
+
+## 10. M8-E（最終Wave・active30 / evolution18）での追調整
+
+active が 25 → 30、進化が 13 → 18 に増えると 1 枠あたりの当たりがさらに薄まる。
+**M8-C.1 のしきい値は 1 つも下げず**、次の 3 つで吸収した。
+
+### (a) guidance へ data キーを 2 つ追加
+
+```jsonc
+"highRequirementSupportLevel": 6,          // 「高い Lv を要求される補助」の境界
+"highRequirementSupportMultiplier": 1.5    // その補助への追加倍率
+```
+
+`requiredSkills[].level >= highRequirementSupportLevel` の補助にだけ乗る。
+**skill ID のハードコードはしていない**（data のレシピからのみ導出する）。
+同じ補助が複数レシピに関わっても**役割ごとの max**を採るだけで積み上がらない。
+
+### (b) `heaven_mirror_reversal` の補助要求を Lv4 にした
+
+天鏡返しの補助は **active** の `counter_stance` で、枠を 2 つ使う。
+当初 Lv6 で作ったところ、1000 run で取得 **0〜3 件**しか成立しなかった。
+(a) を入れても改善しなかったため、必要 Lv を **4** に下げた（data 側の設計判断）。
+
+### (c) `weapon_deflection` の rarity を rare → uncommon にした
+
+同じ理由。基礎 active 自体が出にくいと、そもそも Lv8 まで伸ばせない。
+
+### 効果（1000 run・active 補助の進化を個別集計）
+
+| 進化 | 補助 | 枠4 | 枠6 | 枠8 |
+|------|------|-----|-----|-----|
+| `heaven_crushing_descent` | `ground_slam` Lv6 | 6 | 47 | 90 |
+| `mountain_hurl` | `ground_slam` Lv6 | 2 | 11 | 40 |
+| `heaven_mirror_reversal` | `counter_stance` Lv4 | **36** | **68** | **100** |
+
+`heaven_crushing_descent` は M8-D の 7 → **47**（枠6）へ改善している。
+`mountain_hurl` は依然として最も低いが、**到達不能ではない**（設計どおり枠を 2 つ使う代償）。
+
+### M8-E 時点の到達率（しきい値はすべて M8-C.1 のまま）
+
+| 構成 | 実測 | 目標 |
+|------|------|------|
+| 枠4 / 40 lv・進化 1 個以上 / 平均 / 0 個 | **89.5% / 1.28 / 10.5%** | 80% 以上 / 1.0 以上 / 20% 以下 |
+| 枠6 / 60 lv・1 個以上 / 2 個以上 / 平均 | **99.0% / 94.5% / 2.65** | 95% / 60% / 1.7 |
+| 枠8 / 80 lv・1 個以上 / 2 個以上 / 平均 | **100.0% / 99.5% / 3.92** | 95% / 65% / 1.8 |
+
+18 進化すべてが取得 > 0、30 active すべてが提示・取得 > 0、passive 4 すべてが取得 > 0、
+候補ゼロ / 混入 / 重複 / 枠違反はいずれも 0 件。
+最頻進化シェアは **16.2% / 13.8% / 11.7%**（枠4 / 6 / 8）で M8-D の 19.3% から改善、
+build の種類も **89.8% / 97.2% / 99.3%** と悪化していない。
+
+### 不変条件のトレードオフ（記録）
+
+M8-C.1 で置いた「補助として使う active は自身の進化を持たない」は、
+`counter_stance`（自身の進化 `adamant_counter` を持つ）を天鏡返しの補助にしたことで**崩れている**。
+天鏡返しは `counter_stance` を**置換しないし CD にも触らない**ので `adamant_counter` への道は塞がれず、
+`tests/warrior-active-support-evolution.mjs` がこの点を明示的に検査している。

@@ -44,7 +44,9 @@ section('1. 火 / 氷のカタログ規模が M8-D で変わっていない');
       ok(!j.activeSkillPool.includes(id) && !j.evolutionPool.includes(id), `${name}: ${id} が混ざっていない`);
     }
   }
-  ok(WARRIOR.activeSkillPool.length === 25 && WARRIOR.evolutionPool.length === 13, '戦士だけが 25/13 へ増えている');
+  // 戦士の規模は Milestone ごとに増える（M8-D 25/13 → M8-E 30/18）。正は EXPECTED。
+  ok(WARRIOR.activeSkillPool.length === EXPECTED.activeCount && WARRIOR.evolutionPool.length === EXPECTED.evolutionCount,
+    `戦士だけが ${EXPECTED.activeCount}/${EXPECTED.evolutionCount} へ増えている`);
   // 戦士以外の data 件数は不変。
   const nonWarrior = DATA.skills.filter((s) => !(s.jobs || []).includes('warrior')).length;
   ok(nonWarrior === 60, `戦士以外の skills は 60 件のまま（${nonWarrior}）`);
