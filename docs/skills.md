@@ -252,3 +252,31 @@ M8-C.1 は **`SkillDraftManager` の重み計算だけ**を直した回で、ス
   `src/systems/CombatTelemetry.js`（集計キーの追加）/ `data/skill-config.json`（`guidance` ブロックの追加）
 
 抽選側の詳細は `./warrior-evolution-guidance.md`。
+
+
+## Milestone 8-D: 戦士スキル拡張 Wave2（active25 / evolution13）
+
+Wave1 と同じ土台（`WarriorSkillBase` / `WarriorEvolvedBase` / `applyEvolvedSemantics`）の上に
+10 active・5 進化を足した。**必ず `scene.combat` の共通経路を通す**という規則は変わらない。
+
+### Wave2 で足した combat API
+
+| API | 何をするか | なぜ共通経路にするか |
+|-----|-----------|---------------------|
+| `launchTarget(e, o)` | 通常敵を打ち上げる | 可否・滞空・免疫を 1 か所で判断し、残留の掃除も揃える |
+| `grabTarget(e, o)` / `grabbedTarget()` / `releaseGrab()` / `throwGrabbed(o)` | 掴み・投げ | **敵オブジェクトを保持しない**（`_seq` のみ）・壁内クランプ・SpatialGrid 更新 |
+| `thrownStrike(o)` | 投擲判定（`meleeStrike` の `isThrown` 版） | 近接ダメージ倍率を掛けないことを 1 か所で保証する |
+| `warriorWave2Config(key)` | `balance.warrior.<key>` の取得 | data と実装を 1 か所で結ぶ |
+
+### `meleeStrike` へ足したオプション（いずれも明示したときだけ効く）
+
+| キー | 意味 |
+|------|------|
+| `isThrown` | 投擲。近接倍率を掛けず、`damageTags` を `['thrown']` にする |
+| `launch: { durationMs, height, counts, maxPerTarget, immuneMs }` | 打ち上げ。`counts` は `_seq` → 回数の Map |
+| `seqHitCounts` / `seqHitCap` | 同一敵への命中回数の上限（戦斧の往復） |
+| `toughPoiseBonus` | エリート / ボスにだけ乗る体勢削りの追加倍率（破城膝撃） |
+
+未指定なら従来と完全に同じ経路を通るので、火 / 氷のスキルは 1 バイトも影響を受けない。
+
+一覧と役割は `./skill-catalog.md` の Wave2 節、設計意図は `./warrior-wave2.md`。

@@ -24,9 +24,28 @@ const RECIPES = WARRIOR.evolutionPool.map((id) => {
   return { id, base: e.baseSkillId, aux: req.skill, auxLevel: req.level, auxIsActive: WARRIOR.activeSkillPool.includes(req.skill) };
 });
 
+// production（BattleScene.buildDraftCtx）と同じ入力で候補を作る。
+// M8-C.1 で「テストだけ素の _generate を叩いていたせいで実測と 16pt ずれる」問題を直したので、
+// ここも rarityWeights / synergy / guidance と jobId / evolutionRecipes をすべて渡す。
+const GUIDANCE_RECIPES = WARRIOR.evolutionPool.map((id) => {
+  const e = DATA.evolutions.find((x) => x.id === id);
+  return {
+    evolutionId: id, baseSkillId: e.baseSkillId,
+    baseLevel: DATA.skills.find((x) => x.id === e.baseSkillId)?.maxLevel || 8,
+    requirements: (e.requiredSkills || []).map((q) => ({ skill: q.skill, level: q.level })),
+  };
+});
 const gen = (seed, owned, slots, evolvables, need = 3) => {
-  const d = new SkillDraftManager({});
-  return d._generate({ catalog, job, owned, slots, evolvables, need }, seed);
+  const d = new SkillDraftManager({
+    rarityWeights: DATA.skillConfig.rarityWeights,
+    synergy: DATA.skillConfig.synergy,
+    guidance: DATA.skillConfig.guidance,
+  });
+  return d._generate({
+    catalog, job, owned, slots, evolvables, need,
+    jobId: 'warrior', evolutionRecipes: GUIDANCE_RECIPES,
+    synergy: { partnerIds: new Set(), battleLevel: 20 },
+  }, seed);
 };
 
 // 戦略: どの候補を選ぶかの方針だけを変え、抽選そのものは production に任せる。
@@ -171,7 +190,11 @@ section('4. evolution8 すべてが条件形成・提示・取得される');
     for (const id of a.evoFormed.keys()) union.formed.add(id);
     for (const id of a.evoTaken.keys()) union.taken.add(id);
   }
-  for (const id of WARRIOR.evolutionPool) {
+  // この suite が担保するのは Wave1 時点の 8 進化（既存 3 ＋ Wave1 5）。
+  // 3 方針だけの狭いシミュレーションなので、Wave2 の 5 進化は §6（production の 5 方針ハーネス）と
+  // tests/warrior-wave2-draft.mjs 側で「取得 0 が無いこと」を確認する。
+  const WAVE1_EVOS = [...EXPECTED.baseEvolutions, ...EXPECTED.wave1Evolutions];
+  for (const id of WAVE1_EVOS) {
     ok(union.formed.has(id), `${id}: 進化条件が形成される`);
     ok(union.taken.has(id), `${id}: 取得される（到達不能な進化が無い）`);
   }

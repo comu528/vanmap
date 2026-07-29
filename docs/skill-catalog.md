@@ -360,7 +360,7 @@ M8-C で戦士へ **active10 種・進化5 種**を追加した（passive は 4 
 |--------|--------|------|---------|------|
 | 火の魔女 flame_witch | 30 | 18 | 4 | fire |
 | 氷術師 frost_mage | 30 | 18 | 4 | ice |
-| **戦士 warrior** | **15** | **8** | **4** | **physical** |
+| **戦士 warrior** | **25** | **13** | **4** | **physical** |
 
 ### 追加した active10（役割を分散させている）
 
@@ -395,3 +395,43 @@ M8-C で戦士へ **active10 種・進化5 種**を追加した（passive は 4 
 - 検証: `node tests/warrior-wave1-catalog.mjs` / `node tests/warrior-wave1-pool.mjs` /
   `node tests/three-job-wave1-nonregression.mjs`。
 - 役割・設計意図の詳細は `./warrior-wave1.md`、スキル横断の一覧は `./warrior-skill-matrix.md`。
+
+---
+
+## 戦士スキル拡張 Wave 2（Milestone 8-D）
+
+M8-D で戦士へさらに **active10 種・進化5 種**を追加した（合計 active25 / 進化13 / passive4）。
+既存 15 active・8 進化の数値と挙動は変更していない。火の魔女・氷術師のカタログも不変（各 30/4/18）。
+
+### 追加した active10（Wave1 と役割が重ならないように配っている）
+
+| id | 名称 | rarity | 役割 | Lv80 打撃数+1 | 進化 |
+|----|------|--------|------|----------------|------|
+| `rising_slash` | 昇竜斬 | common | 前方の狭い斬り上げ（通常敵を短く打ち上げ） | × | `heaven_rending_ascent` |
+| `shield_charge` | 鉄壁突進 | uncommon | 前面防御つき突進（終点で衝撃） | × | `fortress_rampage` |
+| `backstep_riposte` | 燕返し | uncommon | 後退→踏み込みの斬り返し（反撃系ではない） | × | `shadow_swallow_riposte` |
+| `battlefield_throw` | 豪腕投げ | rare | 通常敵を掴んで投げる制圧 | × | `mountain_hurl` |
+| `triple_crush` | 三段砕き | common | 三段の打撃コンボ（最終段が本命） | × | （なし） |
+| `blade_guard` | 刃防陣 | uncommon | 能動防御＋ごく近距離の周期斬り | × | （なし） |
+| `berserker_rush` | 狂戦猛進 | rare | 低 HP ほど重い連続踏み込み | × | （なし） |
+| `war_axe_throw` | 戦斧投擲 | uncommon | 往復する短距離の投擲（近接倍率は乗らない） | × | （なし） |
+| `breaker_knee` | 破城膝撃 | common | 超近距離の単体・体勢特化 | × | （なし） |
+| `rallying_banner` | 戦旗招集 | rare | その場へ短時間の陣（内側でのみ効く） | × | `blood_oath_standard` |
+
+### 追加した evolution5
+
+| 進化 id | 名称 | 基礎 active | 補助 | 特徴 |
+|---------|------|-------------|------|------|
+| `heaven_rending_ascent` | 天衝断空 | `rising_slash` | `brute_force` Lv4 | 二段の斬り上げ。打ち上げは一段目だけ、二段目で叩き落とす |
+| `fortress_rampage` | 城塞蹂躙 | `shield_charge` | `heavy_armor` Lv4 | 突進が長く、終点の衝撃が広い。前面軽減も強い |
+| `shadow_swallow_riposte` | 無影燕返 | `backstep_riposte` | `combat_instinct` Lv4 | 二度差し返す。二段目だけ近距離 retarget 可 |
+| `mountain_hurl` | 山岳投擲 | `battlefield_throw` | **active** `ground_slam` Lv6 | 着地点に巨大衝撃。エリートは叩きつけ＋追撃。地砕きは置換されず CD も変わらない |
+| `blood_oath_standard` | 血盟戦旗 | `rallying_banner` | `bloodlust` Lv4 | 陣の内側で倒したときだけ血気の回復を小幅強化 |
+
+- **Job Lv80「打撃数 +1」対象は 6 種のまま**（`great_cleave` `shield_bash` `ground_slam`
+  `armor_breaker` `twin_fang_slash` `relentless_combo`）。Wave2 の 15 種はすべて対象外で、
+  火 / 氷の Lv80 対象も変えていない。
+- 進化を持たない active は 11 種（Wave1 の 6 種 ＋ `triple_crush` `blade_guard` `berserker_rush`
+  `war_axe_throw` `breaker_knee`）。`ground_slam` は天墜崩撃と山岳投擲の **active 補助**を兼ねる。
+- Wave2 の active / 進化もすべて **残響・分身の対象外**（`echoPolicy` / `clonePolicy` = `forbidden`）。
+- 役割・設計意図の詳細は `./warrior-wave2.md`。

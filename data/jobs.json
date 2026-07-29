@@ -211,7 +211,17 @@
         "war_cry",
         "chain_hook",
         "shockwave_stomp",
-        "relentless_combo"
+        "relentless_combo",
+        "rising_slash",
+        "shield_charge",
+        "backstep_riposte",
+        "battlefield_throw",
+        "triple_crush",
+        "blade_guard",
+        "berserker_rush",
+        "war_axe_throw",
+        "breaker_knee",
+        "rallying_banner"
       ],
       "passiveSkillPool": [
         "brute_force",
@@ -227,7 +237,12 @@
         "crimson_execution",
         "war_god_roar",
         "adamant_counter",
-        "heaven_crushing_descent"
+        "heaven_crushing_descent",
+        "heaven_rending_ascent",
+        "fortress_rampage",
+        "shadow_swallow_riposte",
+        "mountain_hurl",
+        "blood_oath_standard"
       ],
       "baseActiveSlots": 4,
       "basePassiveSlots": 4,

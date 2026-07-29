@@ -34,8 +34,9 @@ export const FROST = DATA.jobs.find((j) => j.id === 'frost_mage');
 
 // M8-B の期待規模（active5 / passive4 / evolution3）。M8-B 以降で増える場合はここを更新する。
 export const EXPECTED = {
-  // M8-C（Wave1）で active5 → 15 / evolution3 → 8 へ拡張。passive は 4 のまま。
-  activeCount: 15, passiveCount: 4, evolutionCount: 8,
+  // M8-C（Wave1）で active5 → 15 / evolution3 → 8、M8-D（Wave2）で active15 → 25 / evolution8 → 13。
+  // passive は 4 のまま。
+  activeCount: 25, passiveCount: 4, evolutionCount: 13,
   // M8-B の基礎 5 種（既存テストが参照する）。
   baseActives: ['great_cleave', 'shield_bash', 'whirlwind_slash', 'charge_slash', 'ground_slam'],
   baseEvolutions: ['thousand_blade_dance', 'bloodstorm_whirlwind', 'unyielding_fortress'],
@@ -43,12 +44,21 @@ export const EXPECTED = {
   wave1Actives: ['armor_breaker', 'twin_fang_slash', 'execution_strike', 'leap_smash', 'sweeping_advance',
     'counter_stance', 'war_cry', 'chain_hook', 'shockwave_stomp', 'relentless_combo'],
   wave1Evolutions: ['skull_splitter', 'crimson_execution', 'war_god_roar', 'adamant_counter', 'heaven_crushing_descent'],
+  // M8-D で追加した 10 active / 5 evolution。
+  wave2Actives: ['rising_slash', 'shield_charge', 'backstep_riposte', 'battlefield_throw', 'triple_crush',
+    'blade_guard', 'berserker_rush', 'war_axe_throw', 'breaker_knee', 'rallying_banner'],
+  wave2Evolutions: ['heaven_rending_ascent', 'fortress_rampage', 'shadow_swallow_riposte',
+    'mountain_hurl', 'blood_oath_standard'],
   actives: ['great_cleave', 'shield_bash', 'whirlwind_slash', 'charge_slash', 'ground_slam',
     'armor_breaker', 'twin_fang_slash', 'execution_strike', 'leap_smash', 'sweeping_advance',
-    'counter_stance', 'war_cry', 'chain_hook', 'shockwave_stomp', 'relentless_combo'],
+    'counter_stance', 'war_cry', 'chain_hook', 'shockwave_stomp', 'relentless_combo',
+    'rising_slash', 'shield_charge', 'backstep_riposte', 'battlefield_throw', 'triple_crush',
+    'blade_guard', 'berserker_rush', 'war_axe_throw', 'breaker_knee', 'rallying_banner'],
   passives: ['brute_force', 'heavy_armor', 'combat_instinct', 'bloodlust'],
   evolutions: ['thousand_blade_dance', 'bloodstorm_whirlwind', 'unyielding_fortress',
-    'skull_splitter', 'crimson_execution', 'war_god_roar', 'adamant_counter', 'heaven_crushing_descent'],
+    'skull_splitter', 'crimson_execution', 'war_god_roar', 'adamant_counter', 'heaven_crushing_descent',
+    'heaven_rending_ascent', 'fortress_rampage', 'shadow_swallow_riposte', 'mountain_hurl',
+    'blood_oath_standard'],
   lv80Targets: ['great_cleave', 'shield_bash', 'ground_slam', 'armor_breaker', 'twin_fang_slash', 'relentless_combo'],
 };
 
@@ -138,6 +148,8 @@ export function makeEnemies(n = 12, o = {}) {
     y: (o.y != null ? o.y : 290) + i * (o.dy != null ? o.dy : 6),
     alive: true, isBoss: false, isElite: !!o.elite, hp: o.hp || 600, maxHp: o.hp || 600, _seq: i,
     _poise: 0, _poiseImmuneUntil: 0, _staggerUntil: 0, _staggerSlow: 0,
+    // M8-D: 打ち上げ / 掴みの残留（Enemy.reset と同じ初期値）。
+    _airborneUntil: 0, _launchImmuneUntil: 0, _launchHeight: 0, _grabbed: false,
     knockbackResist: 0.2, _kb: 0,
     applyKnockback(x, y, f) { this._kb += f; },
     applySlow() {},
@@ -148,7 +160,8 @@ export function makeEnemies(n = 12, o = {}) {
 export function makeBoss(o = {}) {
   return {
     x: o.x != null ? o.x : 330, y: o.y != null ? o.y : 300, alive: true, isBoss: true, isElite: false,
-    hp: o.hp || 20000, maxHp: o.hp || 20000, state: o.state || 'chase', _stateTimer: 0,
+    hp: o.hp || 20000, maxHp: o.hp || 20000, state: o.state || 'chase', _stateTimer: 0, _seq: 9999,
+    _airborneUntil: 0, _launchImmuneUntil: 0, _launchHeight: 0, _grabbed: false,
     _poiseStaggerUntil: 0, _staggerCalls: 0,
     applyPoiseStagger(ms) { this._poiseStaggerUntil = ms; this._staggerCalls += 1; if (this.state !== 'chase') { this.state = 'chase'; this._stateTimer = 0; } return true; },
     applyKnockback() { this._kb = (this._kb || 0) + 1; },
@@ -227,6 +240,9 @@ export function makeScene(opts = {}) {
         meleeHits: 0, physicalDamage: 0, knockbacks: 0, poiseDamage: 0, eliteStaggers: 0, bossStanceBreaks: 0,
         comboGain: 0, furyGain: 0,
         executions: 0, counters: 0, pullDistance: 0, retargets: 0, movementDistance: 0,
+        // M8-D（Wave2）。
+        launches: 0, frontGuardMs: 0, grabs: 0, throws: 0, stages: 0, guardTicks: 0,
+        axeHits: 0, stepIns: 0, rallyMs: 0,
       };
       scene._warriorSkillStats[key] = st;
     }
@@ -257,9 +273,13 @@ export function makeScene(opts = {}) {
         while (d < -Math.PI) d += Math.PI * 2;
         if (Math.abs(d) > half) continue;
       }
+      // M8-D: 同一敵への命中回数の上限（戦斧の往復）。安定 runtime id で数える。
+      if (o.seqHitCounts && (o.seqHitCounts.get(e._seq) || 0) >= (o.seqHitCap || 1)) continue;
+      if (o.seqHitCounts) o.seqHitCounts.set(e._seq, (o.seqHitCounts.get(e._seq) || 0) + 1);
       if (o.hitSet) o.hitSet.add(e);
       hits += 1;
-      let dmg = (o.damage || 0) * (w ? w.meleeDamageMultiplier(e) : 1);
+      // M8-D: 投擲は近接ではないので近接ダメージ倍率を掛けない。
+      let dmg = (o.damage || 0) * ((w && !o.isThrown) ? w.meleeDamageMultiplier(e) : 1);
       // M8-C: 硬い相手への追加倍率。
       if (o.toughBonus && (e.isElite || e.isBoss)) dmg *= (1 + o.toughBonus);
       // M8-C: 処刑（通常敵のみ即死しうる。エリート/ボスは追加ダメージ倍率だけ）。
@@ -282,9 +302,26 @@ export function makeScene(opts = {}) {
         ws.meleeHits += 1; ws.physicalDamage += dmg;
         const kb = w.resolveKnockback(e, o.knockback);
         if (kb.knockback > 0 && e.applyKnockback) { e.applyKnockback(o.x, o.y, kb.knockback); ws.knockbacks += 1; }
+        // M8-D: 打ち上げ（通常敵のみ。エリート / ボスは体勢削りへ変換される）。
+        let launchPoise = 0;
+        if (o.launch) {
+          const counts = o.launch.counts;
+          const perTarget = Math.max(0, o.launch.maxPerTarget || 1);
+          const done = counts ? (counts.get(e._seq) || 0) : 0;
+          if (!counts || done < perTarget) {
+            if (counts) counts.set(e._seq, done + 1);
+            const lr = scene.launchTarget(e, {
+              durationMs: o.launch.durationMs, height: o.launch.height,
+              immuneMs: o.launch.immuneMs, poiseDamage: o.poiseDamage, skillId: o.skillId,
+            });
+            launchPoise = lr.poiseBonus || 0;
+          }
+        }
         if (!o.poiseOnceSet || !o.poiseOnceSet.has(e)) {
           if (o.poiseOnceSet) o.poiseOnceSet.add(e);
-          const poise = (o.poiseDamage || 0) + kb.poiseBonus;
+          // M8-D: 硬い相手への体勢特化ボーナス（破城膝撃）。
+          const toughPoise = (o.toughPoiseBonus && (e.isElite || e.isBoss)) ? o.toughPoiseBonus : 0;
+          const poise = ((o.poiseDamage || 0) * (1 + toughPoise)) + kb.poiseBonus + launchPoise;
           if (poise > 0) {
             ws.poiseDamage += poise;
             const pr = w.applyPoiseDamage(e, poise);
@@ -339,9 +376,79 @@ export function makeScene(opts = {}) {
     return done;
   };
 
+  // ---- M8-D（Wave2）の共通経路（production の BattleScene と同じ手順）----
+  scene.launchTarget = (e, opts = {}) => {
+    const w = scene.warrior;
+    if (!w || !e || !e.alive) return { launched: false, poiseBonus: 0 };
+    const pol = w.launchPolicy(e, { poiseDamage: opts.poiseDamage });
+    if (!pol.launched) return { launched: false, poiseBonus: pol.poiseBonus, reason: pol.reason };
+    const ms = w.launchDurationMs(opts.durationMs);
+    if (ms <= 0) return { launched: false, poiseBonus: 0, reason: 'zero' };
+    const now = scene.time.now;
+    e._airborneUntil = Math.max(e._airborneUntil || 0, now + ms);
+    e._launchImmuneUntil = now + w.launchImmuneMs(opts.immuneMs);
+    e._launchHeight = Math.max(0, opts.height || 0);
+    e._kb = 0;
+    if (opts.skillId) warriorSkillStat(opts.skillId).launches += 1;
+    return { launched: true, poiseBonus: 0, durationMs: ms };
+  };
+  scene.grabTarget = (e, opts = {}) => {
+    const w = scene.warrior;
+    if (!w || !e || !e.alive) return { mode: 'none' };
+    const pol = w.grabPolicy(e);
+    if (!pol.canGrab) return { mode: pol.mode, reason: pol.reason, poiseMultiplier: pol.poiseMultiplier };
+    if (!w.beginGrab(opts.source || opts.skillId, e._seq)) return { mode: 'none', reason: 'busy' };
+    e._grabbed = true;
+    e._kb = 0;
+    if (opts.skillId) warriorSkillStat(opts.skillId).grabs += 1;
+    return { mode: 'throw', seq: e._seq };
+  };
+  scene.grabbedTarget = () => {
+    const w = scene.warrior;
+    if (!w || !w.grabbing) return null;
+    const want = w._grab ? w._grab.seq : null;
+    let found = null;
+    for (const e of enemies) if (!found && e.alive && e._seq === want) found = e;
+    if (!found && scene.boss && scene.boss.alive && scene.boss._seq === want) found = scene.boss;
+    return found;
+  };
+  scene.releaseGrab = (cancelled) => {
+    const w = scene.warrior;
+    if (!w) return false;
+    const t = scene.grabbedTarget();
+    if (t) t._grabbed = false;
+    return w.endGrab(null, !!cancelled);
+  };
+  scene.throwGrabbed = (opts = {}) => {
+    const w = scene.warrior;
+    if (!w || !w.grabbing) return 0;
+    const e = scene.grabbedTarget();
+    if (!e || !e.alive) { scene.releaseGrab(true); return 0; }
+    const margin = (DATA.balance.warrior && DATA.balance.warrior.grab && DATA.balance.warrior.grab.worldMargin) ?? 24;
+    const step = Math.max(0, opts.distance || 0);
+    const dx = (opts.x != null ? opts.x : e.x) - e.x;
+    const dy = (opts.y != null ? opts.y : e.y) - e.y;
+    const d = Math.hypot(dx, dy);
+    if (!(d > 1e-3) || step <= 0) return 0;
+    const move = Math.min(step, d);
+    const nx = e.x + (dx / d) * move, ny = e.y + (dy / d) * move;
+    if (!Number.isFinite(nx) || !Number.isFinite(ny)) return 0;
+    e.x = Math.max(margin, Math.min(scene.worldW - margin, nx));
+    e.y = Math.max(margin, Math.min(scene.worldH - margin, ny));
+    return move;
+  };
+
   scene.combat = {
     meleeStrike: (o) => scene.meleeStrike(o),
     warrior: () => scene.warrior,
+    // M8-D: Wave2 の共通経路。
+    launchTarget: (e, opts) => scene.launchTarget(e, opts),
+    grabTarget: (e, opts) => scene.grabTarget(e, opts),
+    throwGrabbed: (opts) => scene.throwGrabbed(opts),
+    releaseGrab: (cancelled) => scene.releaseGrab(cancelled),
+    grabbedTarget: () => scene.grabbedTarget(),
+    thrownStrike: (o) => scene.meleeStrike({ ...o, isThrown: true }),
+    warriorWave2Config: (key) => ((DATA.balance.warrior && DATA.balance.warrior[key]) || {}),
     // M8-C: Wave1 の共通経路。
     preferredMeleeTarget: (x, y, range, mode) => {
       const cand = targetsInRadius(x, y, Math.max(1, range || 0));
@@ -404,10 +511,19 @@ export function makeScene(opts = {}) {
     },
     enemiesInRadius: (x, y, r) => targetsInRadius(x, y, r),
     forEachEnemyInRadius: (x, y, r, fn) => { for (const e of targetsInRadius(x, y, r)) fn(e); },
-    densestPoint: () => {
+    // production の SpatialGrid 版と同じ意味（半径内に最も敵が集まっている位置）。
+    densestPoint: (radius, minCount) => {
       const alive = enemies.filter((e) => e.alive);
       if (!alive.length) return null;
-      return { x: alive[0].x, y: alive[0].y };
+      const r = Math.max(1, radius || 120);
+      let best = null, bestN = -1;
+      for (const e of alive) {
+        let n = 0;
+        for (const o of alive) if ((o.x - e.x) * (o.x - e.x) + (o.y - e.y) * (o.y - e.y) <= r * r) n++;
+        if (n > bestN) { bestN = n; best = e; }
+      }
+      if (bestN < (minCount || 0)) return null;
+      return best ? { x: best.x, y: best.y } : null;
     },
     dealDamage: (t, amt, id) => { if (t) return t.takeDamage(amt); return false; },
     damageArea: () => {},

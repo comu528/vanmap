@@ -784,3 +784,32 @@ M8-C.1 は**追加のみ**で、`save_version` は **6 のまま**。移行処�
 - pity のしきい値をまたぐ地点で保存/復元しても一致する
 - reroll / banish / skip を挟んでも一致する（追放リスト・残回数も一致）
 - 5 回の再読込を挟んでも進化結果が変わらない
+
+
+---
+
+## Milestone 8-D: 戦士スキル拡張 Wave2（`save_version` は v6 のまま・加算のみ）
+
+新しい保存キーは `active_run` の戦士 timed buff（`WarriorCombatSystem.serializeTimedBuffs()`）へ
+**2 つ加算しただけ**で、既存キーの意味・型は変わらない。
+
+| キー | 内容 | 復元時の扱い |
+|------|------|-------------|
+| `frontGuard` | `{ leftMs, mitigation, arc, facing, source }` | `maxFrontalMitigation` でクランプして復元 |
+| `rallyField` | `{ x, y, leftMs, radius, comboGrace, furyGain, mitigation, meleeArea, killHealBonus, perSecondCapBonus, source }` | `balance.warrior.rally` の各上限でクランプして復元。**設置回数（telemetry）は水増ししない** |
+
+### 保存しないもの（意図的）
+
+| 状態 | 理由 |
+|------|------|
+| 掴み（`_grab`） | 敵の runtime id を保存すると、別の敵へ再結合しうる。reload 後は必ず解除された状態から始まる |
+| 突進 / 踏み込み / 投げ / 段 / 斧の飛行 | 復元時に「無料でもう一度出る」「座標が飛ぶ」を防ぐ。CD だけを保存する |
+| 打ち上げの残留 | 敵側の一時状態。`Enemy.reset()` が必ず 0 に戻すので保存不要 |
+
+例外は**刃防陣だけ**で、`guardLeftMs` / `guardTicks` を保存して**残り時間から再開**する
+（最初からやり直しにも二重化にもならない）。
+
+### 改ざん耐性
+
+`restoreTimedBuffs()` は保存値をそのまま信じない。持続・軽減・陣の効果値はいずれも
+`balance.json` の上限でクランプされるので、保存ファイルを書き換えても上限を超えられない。

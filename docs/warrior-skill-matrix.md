@@ -118,3 +118,34 @@
 - 敵オブジェクト参照を保存しない（安定 runtime id `_seq` のみ）
 
 詳細な設計意図は `./warrior-wave1.md`、カタログ全体は `./skill-catalog.md` を参照。
+
+
+---
+
+## Milestone 8-D: Wave2 の 10 active（役割の重なりを見る）
+
+| id | 間合い | 対象 | 役割の軸 | 既存と重ならない理由 |
+|----|--------|------|----------|---------------------|
+| `rising_slash` | 極近・前方の狭い縦 | 少数 | **行動阻害**（打ち上げ）| 戦士で唯一「通常敵を止める」手段 |
+| `shield_charge` | 中（突進）| 通過中の複数 | **防御しながら詰める** | 突進斬りは詰めるだけ。前面防御は Wave2 だけ |
+| `backstep_riposte` | 近（後退→踏み込み）| 少数 | **仕切り直し** | 反撃系（構え）とは別で、自分から仕掛ける |
+| `battlefield_throw` | 近（掴み）| 1 体＋着地点 | **制圧 / 敵の再配置** | 引き寄せ（鎖鉤）の逆方向。密集を作れる |
+| `triple_crush` | 近・三段 | 前方 → 横 → 全周 | **確定手数** | 双牙斬より遅く重い。段ごとに範囲が変わる |
+| `blade_guard` | 極近・全周 | 少数 | **能動防御 + 削り** | 旋風斬より狭く低火力。反撃ではない |
+| `berserker_rush` | 近（連続踏み込み）| 順番に複数 | **逆転火力** | 怒涛連撃は撃破で伸びる。こちらは HP で伸びる |
+| `war_axe_throw` | 中（往復）| 直線上の複数 | **唯一の飛び道具** | 近接倍率が乗らないので近接構成の素通し強化にならない |
+| `breaker_knee` | 極近・単体 | 1 体 | **体勢特化（速い）** | 兜割りより CD と射程が短く体勢が高い |
+| `rallying_banner` | 自陣 | 自分 | **居座りの報酬** | 戦吼は時間バフ。こちらは場所バフ |
+
+### 進化の補助（誰と組むか）
+
+| 進化 | 補助 | 種別 |
+|------|------|------|
+| `heaven_rending_ascent` | `brute_force` Lv4 | passive |
+| `fortress_rampage` | `heavy_armor` Lv4 | passive |
+| `shadow_swallow_riposte` | `combat_instinct` Lv4 | passive |
+| `mountain_hurl` | `ground_slam` Lv6 | **active**（置換されず CD も変わらない）|
+| `blood_oath_standard` | `bloodlust` Lv4 | passive |
+
+`ground_slam` は `heaven_crushing_descent`（Wave1）と `mountain_hurl`（Wave2）の
+**2 つの進化の補助を兼ねる**。guidance の重複上限があるので、共有していても倍率は積み上がらない。

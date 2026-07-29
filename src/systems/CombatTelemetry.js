@@ -68,6 +68,13 @@ export class CombatTelemetry {
       warCryApplications: 0, warCryUptimeSeconds: 0,
       chainPulls: 0, chainPullDistance: 0, bossApproaches: 0,
       leapLandings: 0, sweepDistance: 0, relentlessChains: 0, relentlessRetargets: 0,
+      // M8-D: Wave2（打ち上げ / 前面防御 / 掴み・投げ / 段組み / 刃防陣 / 低HP / 斧 / 踏み込み / 戦旗）。
+      launches: 0, launchBlocked: 0, launchPoiseConverted: 0,
+      frontGuardUptimeSeconds: 0, frontGuardBlocked: 0, frontGuardSideHits: 0, frontGuardBackHits: 0,
+      grabs: 0, grabRefused: 0, grabCancels: 0, throwImpacts: 0, throwDistance: 0,
+      comboStages: 0, guardTicks: 0, guardUptimeSeconds: 0, lowHpAvgMultiplier: 0,
+      axeOutboundHits: 0, axeReturnHits: 0, stepIns: 0, stepInDistance: 0,
+      rallyPlacements: 0, rallyUptimeSeconds: 0, rallyInsideSeconds: 0, rallyAssists: 0,
     };
     // フレーム集計
     this._frameCount = 0;
@@ -100,6 +107,9 @@ export class CombatTelemetry {
         eliteStaggers: 0, bossStanceBreaks: 0, comboGain: 0, furyGain: 0,
         // M8-C: 処刑 / 反撃 / 引き寄せ / 再ターゲット / 移動距離。
         executions: 0, counters: 0, pullDistance: 0, retargets: 0, movementDistance: 0,
+        // M8-D: 戦士 Wave2（スキル別）。打ち上げ / 前面防御 / 掴み・投げ / 段 / 防陣 tick / 斧 / 踏み込み / 戦旗。
+        launches: 0, frontGuardMs: 0, grabs: 0, throws: 0, stages: 0,
+        guardTicks: 0, axeHits: 0, stepIns: 0, rallyMs: 0,
       };
       this.skills.set(key, s);
     }
@@ -147,7 +157,9 @@ export class CombatTelemetry {
       'meleeHits', 'physicalDamage', 'knockbacks', 'poiseDamage',
       'eliteStaggers', 'bossStanceBreaks', 'comboGain', 'furyGain',
       // M8-C: 戦士 Wave1（スキル別）
-      'executions', 'counters', 'pullDistance', 'retargets', 'movementDistance']) {
+      'executions', 'counters', 'pullDistance', 'retargets', 'movementDistance',
+      // M8-D: 戦士 Wave2（スキル別）
+      'launches', 'frontGuardMs', 'grabs', 'throws', 'stages', 'guardTicks', 'axeHits', 'stepIns', 'rallyMs']) {
       if (isNum(delta[k])) s[k] += delta[k];
     }
     // max 系
@@ -281,6 +293,10 @@ export class CombatTelemetry {
         // M8-C: 戦士 Wave1（スキル別）
         executions: num(s.executions), counters: num(s.counters),
         pullDistance: num(s.pullDistance), retargets: num(s.retargets), movementDistance: num(s.movementDistance),
+        // M8-D: 戦士 Wave2（スキル別）
+        launches: num(s.launches), frontGuardMs: num(s.frontGuardMs), grabs: num(s.grabs), throws: num(s.throws),
+        stages: num(s.stages), guardTicks: num(s.guardTicks), axeHits: num(s.axeHits),
+        stepIns: num(s.stepIns), rallyMs: num(s.rallyMs),
       };
     }
     const avgFps = this._frameCount > 0 ? 1000 / (this._frameSumMs / this._frameCount) : 0;

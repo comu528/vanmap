@@ -1121,7 +1121,90 @@ node tests/warrior-evolution-guidance.mjs        node tests/warrior-build-divers
 node tests/warrior-slot4-evolution-rate.mjs      node tests/warrior-draft-save-reload.mjs
 node tests/warrior-evolution-pity.mjs            node tests/warrior-draft-guidance-determinism.mjs
 node tests/warrior-evolution-synergy.mjs         node tests/warrior-draft-guidance-nonregression.mjs
+node tests/warrior-wave2-catalog.mjs              node tests/warrior-wave2-pool.mjs
+node tests/warrior-wave2-draft.mjs                node tests/warrior-wave2-guidance.mjs
+node tests/warrior-wave2-evolutions.mjs           node tests/warrior-rising-slash.mjs
+node tests/warrior-shield-charge.mjs              node tests/warrior-backstep-riposte.mjs
+node tests/warrior-battlefield-throw.mjs          node tests/warrior-triple-crush.mjs
+node tests/warrior-blade-guard.mjs                node tests/warrior-berserker-rush.mjs
+node tests/warrior-war-axe-throw.mjs              node tests/warrior-breaker-knee.mjs
+node tests/warrior-rallying-banner.mjs            node tests/warrior-wave2-runtime-save.mjs
+node tests/warrior-wave2-determinism.mjs          node tests/warrior-wave2-quality-cap.mjs
+node tests/warrior-wave2-cleanup.mjs              node tests/warrior-wave2-telemetry.mjs
+node tests/three-job-wave2-nonregression.mjs
 node tests/warrior-active-support-evolution.mjs  node tests/warrior-draft-determinism.mjs
 ```
 
 `HEAVY=1` で seed 数・実行回数を増やせる。
+
+---
+
+## Milestone 8-D: 戦士スキル拡張 Wave2（実ブラウザ確認）
+
+本環境では Phaser を起動できないため、以下は**未実施**。実ブラウザで確認すること。
+前提: 拠点で **戦士** を選択し、`?debug=1` を付けて開く（F9 の戦士検証パネルが使える）。
+
+### A. カタログ規模
+
+- [ ] F9 の戦士パネルで active プールが **25 種**、進化が **13 種**、passive が **4 種**。
+- [ ] Job Lv80「打撃数 +1」の対象が **6 種のまま**（`great_cleave` `shield_bash` `ground_slam`
+      `armor_breaker` `twin_fang_slash` `relentless_combo`）。Wave2 の 15 種はどれも入っていない。
+- [ ] レベルアップ候補に Wave2 の 10 種がすべて出る（周回を重ねれば全部見える）。
+
+### B. 新 active 10 種（Lv1 と Lv8 の両方で見る）
+
+- [ ] **昇竜斬**: 前方の狭い範囲を斬り上げ、**通常敵だけ**が短く浮く。浮いている間は動かない。
+- [ ] **鉄壁突進**: 前方へ突進し、終点で 1 回だけ衝撃。突進中に**前から**攻撃を受けると大きく減り、
+      **横から**は少しだけ減り、**後ろから**はほぼ減らない。
+- [ ] **燕返し**: 後ろへ跳んでから踏み込んで斬る。相手を追い越さない。後退中の被弾は減るが**0 にはならない**。
+- [ ] **豪腕投げ**: 通常敵を掴んで密集地点へ投げる。着地点に衝撃。
+- [ ] **三段砕き**: 前方打ち → 横薙ぎ → 小範囲の叩きつけ、の 3 段が続けて出る。
+- [ ] **刃防陣**: 短時間だけ守りが固くなり、ごく近くの敵を刻み続ける。**被弾に反応する反撃ではない**。
+- [ ] **狂戦猛進**: 近くの敵の間を短く踏み込みながら連続で斬る。**HP が減っていても自分は減らない**。
+- [ ] **戦斧投擲**: 斧が飛んで**必ず戻ってくる**。画面端まで飛ばない。同じ敵には最大 2 回。
+- [ ] **破城膝撃**: 密着して膝を入れる。少しだけ届かないときは自動で 1 歩踏み込む。
+- [ ] **戦旗招集**: その場に旗が立ち、**旗の内側にいる間だけ**強くなる。外へ出ると効果が切れる。
+
+### C. エリート / ボスでの挙動
+
+- [ ] 昇竜斬をエリート / ボスへ当てても**浮かない**（代わりに体勢ゲージが多めに減る）。
+- [ ] 豪腕投げでエリートは**その場で叩きつけ**られ、ボスは**掴まれず**重い一撃が入る。ボスの位置は動かない。
+- [ ] 鉄壁突進でエリート / ボスは押し出されない（体勢だけ減る）。
+- [ ] 破城膝撃はエリート / ボスへの体勢削りが目に見えて大きい。
+
+### D. 新 evolution 5 種
+
+- [ ] **天衝断空**: 二段の斬り上げ。浮かせるのは一段目だけで、二段目で叩き落とす。
+- [ ] **城塞蹂躙**: 突進が長く、終点の衝撃が広い。前面の受け流しも強い。
+- [ ] **無影燕返**: 二度斬り返す。二段目は近くの別の敵へ向き直ることがある。**瞬間移動しない**。
+- [ ] **山岳投擲**: 着地点の衝撃が大きい。エリートは叩きつけ＋追撃。
+      **大地砕き（補助）はスキル欄に残ったままで、クールダウンも変わらない**。
+- [ ] **血盟戦旗**: 旗の内側で敵を倒したときだけ回復が少し増える。旗は 1 本のまま。
+
+### E. 保存 / 復元
+
+- [ ] 突進中・踏み込み中・掴み中・斧の飛行中にブラウザを閉じて開き直す。
+      → **同じ攻撃が無料でもう一度出ない**。座標が飛ばない。敵が掴まれたまま固まらない。
+- [ ] 戦旗を立てた直後に閉じて開き直す → 旗は残り時間ぶんだけ残り、**2 本にならない**。
+- [ ] 刃防陣の構え中に閉じて開き直す → 残り時間ぶんだけ再開する（最初からやり直しにならない）。
+- [ ] データ管理画面の `saveVersion` が **6** のまま。
+
+### F. F8 / F9 / F10
+
+- [ ] **F8** に「戦士 Wave2（M8-D 実動作カウンタ）」が出て、打ち上げ / 前面防御 / 掴み / 投げ /
+      三段 / 刃防陣 / 低 HP / 戦斧 / 踏み込み / 戦旗の数値が入る。
+- [ ] F8 に「active補助の進化」の到達数が出る。
+- [ ] **F9** に打ち上げ / 前面防御 / 掴み・投げ / 戦旗の現在状態が出て、「外部送信しません」の表示がある。
+- [ ] **F10（品質切替）の表示と挙動が M8-C までと変わっていない**。
+      品質を落としても**ダメージ・闘気・コンボ・体勢は変わらず**、演出の数だけが減る。
+
+### G. 火の魔女 / 氷術師の非回帰
+
+- [ ] 火の魔女で 1 周回し、候補・スキルの見た目・被弾ダメージが M8-C までと変わらない。
+- [ ] 氷術師でも同様。ボス氷砕・凍結・粉砕の挙動が変わらない。
+- [ ] 火 / 氷の周回で戦士 HUD（闘気 / コンボ / 体勢 / 戦旗）が一切出ない。
+
+### H. 長時間プレイ
+
+- [ ] Wave2 の 10 種を同時に持って 10 分以上プレイしても、fps が落ち続けない・
+      敵が浮いたまま固まらない・掴まれたまま残らない・旗が増え続けない。

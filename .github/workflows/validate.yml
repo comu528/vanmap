@@ -306,6 +306,50 @@ jobs:
       - name: Warrior draft guidance non-regression tests
         run: node tests/warrior-draft-guidance-nonregression.mjs
 
+      # 戦士スキル拡張 Wave2（M8-D・active25 / passive4 / evolution13・Node.js 標準機能のみ）。
+      - name: Warrior wave2 catalog tests
+        run: node tests/warrior-wave2-catalog.mjs
+      - name: Warrior wave2 pool tests
+        run: node tests/warrior-wave2-pool.mjs
+      - name: Warrior wave2 draft tests
+        run: node tests/warrior-wave2-draft.mjs
+      - name: Warrior wave2 guidance tests
+        run: node tests/warrior-wave2-guidance.mjs
+      - name: Warrior wave2 evolution tests
+        run: node tests/warrior-wave2-evolutions.mjs
+      - name: Warrior rising slash tests
+        run: node tests/warrior-rising-slash.mjs
+      - name: Warrior shield charge tests
+        run: node tests/warrior-shield-charge.mjs
+      - name: Warrior backstep riposte tests
+        run: node tests/warrior-backstep-riposte.mjs
+      - name: Warrior battlefield throw tests
+        run: node tests/warrior-battlefield-throw.mjs
+      - name: Warrior triple crush tests
+        run: node tests/warrior-triple-crush.mjs
+      - name: Warrior blade guard tests
+        run: node tests/warrior-blade-guard.mjs
+      - name: Warrior berserker rush tests
+        run: node tests/warrior-berserker-rush.mjs
+      - name: Warrior war axe throw tests
+        run: node tests/warrior-war-axe-throw.mjs
+      - name: Warrior breaker knee tests
+        run: node tests/warrior-breaker-knee.mjs
+      - name: Warrior rallying banner tests
+        run: node tests/warrior-rallying-banner.mjs
+      - name: Warrior wave2 runtime save tests
+        run: node tests/warrior-wave2-runtime-save.mjs
+      - name: Warrior wave2 determinism tests
+        run: node tests/warrior-wave2-determinism.mjs
+      - name: Warrior wave2 quality cap tests
+        run: node tests/warrior-wave2-quality-cap.mjs
+      - name: Warrior wave2 cleanup tests
+        run: node tests/warrior-wave2-cleanup.mjs
+      - name: Warrior wave2 telemetry tests
+        run: node tests/warrior-wave2-telemetry.mjs
+      - name: Three job wave2 non-regression tests
+        run: node tests/three-job-wave2-nonregression.mjs
+
       # 状態異常の視認性・実動作検証（M7-B.1・表示状態/デバッグ/ボス氷砕UI/非回帰・Node.js 標準機能のみ）。
       - name: Status visual state tests
         run: node tests/status-visual-state.mjs

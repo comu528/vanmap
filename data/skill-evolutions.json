@@ -2673,6 +2673,428 @@
       "mainCastEvent": "leapStart",
       "echoDescription": "残響非対応（戦士は残響/分身の対象外）",
       "cloneDescription": "複製不可（戦士は残響/分身の対象外）"
+    },
+    {
+      "id": "heaven_rending_ascent",
+      "displayName": "天衝断空",
+      "description": "二段の斬り上げ。一段目で通常敵を集めて打ち上げ、二段目の短い衝撃で叩き落とす。エリートとボスへは打ち上げの代わりに大きな体勢削りが入る。",
+      "baseSkillId": "rising_slash",
+      "requiredSkills": [
+        {
+          "skill": "brute_force",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "heaven_rending_ascent",
+      "visualTier": "evolved",
+      "icon": "icon_heaven_rending_ascent",
+      "element": "physical",
+      "tags": [
+        "active",
+        "physical",
+        "melee",
+        "slash",
+        "launch"
+      ],
+      "damageTags": [
+        "melee",
+        "slash"
+      ],
+      "procCoefficient": 1,
+      "echoPolicy": "forbidden",
+      "clonePolicy": "forbidden",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "safetyCaps": {
+        "maxStagesPerCast": 2,
+        "maxTargetsPerStage": 10,
+        "maxLaunchPerTargetPerCast": 1
+      },
+      "displayOrder": 134,
+      "damage": {
+        "first": 64,
+        "second": 96
+      },
+      "area": {
+        "range": 96,
+        "width": 1.1,
+        "secondRadius": 78
+      },
+      "launch": {
+        "durationMs": 560,
+        "height": 34
+      },
+      "knockback": {
+        "first": 26,
+        "second": 64
+      },
+      "poiseDamage": {
+        "first": 72,
+        "second": 108
+      },
+      "comboGain": {
+        "perFirst": 1,
+        "perSecond": 1,
+        "maxPerCast": 2
+      },
+      "furyGain": {
+        "perFirst": 1,
+        "perSecond": 1,
+        "maxPerCast": 5
+      },
+      "secondaryImpact": {
+        "delayMs": 240
+      },
+      "cooldown": 1000,
+      "meleeRange": 96,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "rising",
+      "echoDescription": "残響非対応（戦士は残響/分身の対象外）",
+      "cloneDescription": "複製不可（戦士は残響/分身の対象外）"
+    },
+    {
+      "id": "fortress_rampage",
+      "displayName": "城塞蹂躙",
+      "description": "盾を掲げたまま戦場を踏み荒らす。突進が長く続き、前面の受け流しが厚くなり、終点の衝撃も大きくなる。それでも無敵にはならない。",
+      "baseSkillId": "shield_charge",
+      "requiredSkills": [
+        {
+          "skill": "heavy_armor",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "fortress_rampage",
+      "visualTier": "evolved",
+      "icon": "icon_fortress_rampage",
+      "element": "physical",
+      "tags": [
+        "active",
+        "physical",
+        "melee",
+        "blunt",
+        "movement",
+        "defense"
+      ],
+      "damageTags": [
+        "melee",
+        "blunt"
+      ],
+      "procCoefficient": 1,
+      "echoPolicy": "forbidden",
+      "clonePolicy": "forbidden",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "safetyCaps": {
+        "maxChargeMs": 1200,
+        "maxImpactsPerCast": 1,
+        "maxTargetsPerImpact": 20
+      },
+      "displayOrder": 135,
+      "damage": {
+        "contact": 58,
+        "impact": 124
+      },
+      "area": {
+        "width": 84,
+        "impactRadius": 128
+      },
+      "charge": {
+        "durationMs": 760,
+        "speed": 470,
+        "frontArc": 2.1
+      },
+      "mitigation": {
+        "frontalValue": 0.55
+      },
+      "knockback": {
+        "contact": 68,
+        "impact": 118
+      },
+      "poiseDamage": {
+        "contact": 44,
+        "impact": 96
+      },
+      "comboGain": {
+        "perContact": 1,
+        "perImpact": 1,
+        "maxPerCast": 2
+      },
+      "furyGain": {
+        "perContact": 1,
+        "perImpact": 1,
+        "maxPerCast": 6
+      },
+      "cooldown": 2800,
+      "meleeRange": 92,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "charge",
+      "echoDescription": "残響非対応（戦士は残響/分身の対象外）",
+      "cloneDescription": "複製不可（戦士は残響/分身の対象外）"
+    },
+    {
+      "id": "shadow_swallow_riposte",
+      "displayName": "無影燕返",
+      "description": "影のように退いて二度斬り返す。二段目は近くの別の敵へ向き直ることもある。踏み込みで距離は詰めるが、瞬間移動はしない。",
+      "baseSkillId": "backstep_riposte",
+      "requiredSkills": [
+        {
+          "skill": "combat_instinct",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "shadow_swallow_riposte",
+      "visualTier": "evolved",
+      "icon": "icon_shadow_swallow_riposte",
+      "element": "physical",
+      "tags": [
+        "active",
+        "physical",
+        "melee",
+        "slash",
+        "movement",
+        "combo"
+      ],
+      "damageTags": [
+        "melee",
+        "slash"
+      ],
+      "procCoefficient": 1,
+      "echoPolicy": "forbidden",
+      "clonePolicy": "forbidden",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "safetyCaps": {
+        "maxRipostesPerCast": 2,
+        "maxTargetsPerRiposte": 8,
+        "maxRetargetsPerCast": 1
+      },
+      "displayOrder": 136,
+      "damage": {
+        "first": 92,
+        "second": 118
+      },
+      "area": {
+        "arc": 1.5,
+        "radius": 104,
+        "retargetRange": 150
+      },
+      "movement": {
+        "backstep": 112,
+        "lunge": 186,
+        "lungeSpeed": 620
+      },
+      "mitigation": {
+        "value": 0.44,
+        "durationMs": 320
+      },
+      "knockback": {
+        "first": 44,
+        "second": 72
+      },
+      "poiseDamage": {
+        "first": 50,
+        "second": 68
+      },
+      "comboGain": {
+        "perRiposte": 1,
+        "maxPerCast": 2
+      },
+      "furyGain": {
+        "perRiposte": 1,
+        "maxPerCast": 5
+      },
+      "graceRefill": {
+        "ratio": 0.5
+      },
+      "cooldown": 2000,
+      "meleeRange": 104,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "riposte",
+      "echoDescription": "残響非対応（戦士は残響/分身の対象外）",
+      "cloneDescription": "複製不可（戦士は残響/分身の対象外）"
+    },
+    {
+      "id": "mountain_hurl",
+      "displayName": "山岳投擲",
+      "description": "掴んだ敵を山ごと放るように投げつける。着地点に巨大な衝撃が走り、エリートはその場で二度叩きつけられる。ボスは掴めないが、代わりに凄まじい一撃が入る。",
+      "baseSkillId": "battlefield_throw",
+      "requiredSkills": [
+        {
+          "skill": "ground_slam",
+          "level": 6
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "mountain_hurl",
+      "visualTier": "evolved",
+      "icon": "icon_mountain_hurl",
+      "element": "physical",
+      "tags": [
+        "active",
+        "physical",
+        "melee",
+        "grab",
+        "throw",
+        "control",
+        "area"
+      ],
+      "damageTags": [
+        "melee",
+        "blunt"
+      ],
+      "procCoefficient": 1,
+      "echoPolicy": "forbidden",
+      "clonePolicy": "forbidden",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "safetyCaps": {
+        "maxImpactsPerCast": 2,
+        "maxTargetsPerImpact": 24,
+        "maxGrabPerCast": 1
+      },
+      "displayOrder": 137,
+      "damage": {
+        "thrown": 96,
+        "impact": 148,
+        "eliteSlam": 132,
+        "eliteSecondary": 84,
+        "bossStrike": 168
+      },
+      "area": {
+        "grabRange": 112,
+        "impactRadius": 132,
+        "secondaryRadius": 96
+      },
+      "throw": {
+        "distance": 300,
+        "speed": 700,
+        "maxThrowMs": 640
+      },
+      "knockback": {
+        "impact": 128,
+        "secondary": 92
+      },
+      "poiseDamage": {
+        "impact": 96,
+        "eliteSlam": 120,
+        "bossStrike": 210
+      },
+      "comboGain": {
+        "perImpact": 1,
+        "maxPerCast": 2
+      },
+      "furyGain": {
+        "perImpact": 1,
+        "maxPerCast": 6
+      },
+      "secondaryImpact": {
+        "delayMs": 260
+      },
+      "cooldown": 4400,
+      "meleeRange": 112,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "throw",
+      "echoDescription": "残響非対応（戦士は残響/分身の対象外）",
+      "cloneDescription": "複製不可（戦士は残響/分身の対象外）"
+    },
+    {
+      "id": "blood_oath_standard",
+      "displayName": "血盟戦旗",
+      "description": "血の誓いを刻んだ戦旗。陣の内側で敵を倒したときだけ、血気による回復がわずかに強まる。旗は 1 本だけで、重ねて立てても置き換わる。",
+      "baseSkillId": "rallying_banner",
+      "requiredSkills": [
+        {
+          "skill": "bloodlust",
+          "level": 4
+        }
+      ],
+      "requiredMasteryLevel": 0,
+      "replacementSkillId": "blood_oath_standard",
+      "visualTier": "evolved",
+      "icon": "icon_blood_oath_standard",
+      "element": "physical",
+      "tags": [
+        "active",
+        "physical",
+        "buff",
+        "field",
+        "blunt"
+      ],
+      "damageTags": [
+        "melee",
+        "blunt"
+      ],
+      "procCoefficient": 1,
+      "echoPolicy": "forbidden",
+      "clonePolicy": "forbidden",
+      "isDefensive": false,
+      "isReactive": false,
+      "usesResourceCost": false,
+      "canTriggerEcho": false,
+      "canBeCopiedByClone": false,
+      "safetyCaps": {
+        "maxFields": 1,
+        "maxKillHealBonus": 0.5,
+        "maxFieldMs": 12000
+      },
+      "displayOrder": 138,
+      "damage": {
+        "initialShock": 56
+      },
+      "area": {
+        "radius": 196
+      },
+      "field": {
+        "durationMs": 8000,
+        "comboGrace": 0.55,
+        "furyGain": 0.42,
+        "mitigationValue": 0.2,
+        "meleeArea": 0.24
+      },
+      "knockback": {
+        "initialShock": 54
+      },
+      "poiseDamage": {
+        "initialShock": 44
+      },
+      "comboGain": {
+        "perShock": 1,
+        "maxPerCast": 2
+      },
+      "furyGain": {
+        "perShock": 1,
+        "maxPerCast": 4
+      },
+      "bloodOath": {
+        "killHealBonus": 0.35,
+        "perSecondCapBonus": 0.25
+      },
+      "cooldown": 9000,
+      "meleeRange": 0,
+      "lv80ProjectileTarget": false,
+      "castMode": "cooldown",
+      "mainCastEvent": "banner",
+      "echoDescription": "残響非対応（戦士は残響/分身の対象外）",
+      "cloneDescription": "複製不可（戦士は残響/分身の対象外）"
     }
   ]
 }

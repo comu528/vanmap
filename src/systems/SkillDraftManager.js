@@ -335,6 +335,10 @@ export class SkillDraftManager {
         if (baseLv < 1) continue;                             // 基礎未取得なら補助を煽らない（M6-F と同じ考え方）
         let mult = num(cfg.requiredSupportWeightMultiplier, 1);
         if ((q.level || 1) - from <= num(cfg.nearRequiredRemainingLevels, 0)) mult *= num(cfg.supportNearRequiredMultiplier, 1);
+        // M8-D: 補助が **active** のレシピは、補助自身が枠を 1 つ占め、必要 Lv も高い（passive 補助は
+        // 最大 Lv が低く早期に埋まる）。カタログが増えるほど不利になるので、その分だけ追加で補正する。
+        // 判定は候補のカテゴリだけを見る（特定の skill ID を実装に書かない）。
+        if (m.category === 'active') mult *= num(cfg.activeSupportWeightMultiplier, 1);
         supportMult = Math.max(supportMult, mult);
         tags.push('support');
       }

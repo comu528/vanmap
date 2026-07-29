@@ -51,7 +51,8 @@ section('3. SkillCatalog の一覧 = poolEligibility の適格集合');
   });
   const catalogIds = new Set(cat.actives.map((a) => a.id));
   const eligible = new Set(DATA.skills.filter((s) => memberAllowedForJob({ ...s, category: 'active' }, JOBS.warrior)).map((s) => s.id));
-  ok(catalogIds.size === 15 && eligible.size === 15, `active: カタログ ${catalogIds.size} = 適格 ${eligible.size} = 15`);
+  ok(catalogIds.size === EXPECTED.activeCount && eligible.size === EXPECTED.activeCount,
+    `active: カタログ ${catalogIds.size} = 適格 ${eligible.size} = ${EXPECTED.activeCount}`);
   ok([...catalogIds].every((id) => eligible.has(id)), 'カタログの全 active が適格集合にある');
   ok(WARRIOR.activeSkillPool.every((id) => catalogIds.has(id)), 'プール宣言の全 active がカタログにある');
   const catPassives = new Set(cat.passives.map((p) => p.id));

@@ -128,6 +128,22 @@ import { CrimsonExecutionSkill } from '../skills/CrimsonExecutionSkill.js';
 import { WarGodRoarSkill } from '../skills/WarGodRoarSkill.js';
 import { AdamantCounterSkill } from '../skills/AdamantCounterSkill.js';
 import { HeavenCrushingDescentSkill } from '../skills/HeavenCrushingDescentSkill.js';
+// M8-D: 戦士 active10種 / 進化5種（Wave2）
+import { RisingSlashSkill } from '../skills/RisingSlashSkill.js';
+import { ShieldChargeSkill } from '../skills/ShieldChargeSkill.js';
+import { BackstepRiposteSkill } from '../skills/BackstepRiposteSkill.js';
+import { BattlefieldThrowSkill } from '../skills/BattlefieldThrowSkill.js';
+import { TripleCrushSkill } from '../skills/TripleCrushSkill.js';
+import { BladeGuardSkill } from '../skills/BladeGuardSkill.js';
+import { BerserkerRushSkill } from '../skills/BerserkerRushSkill.js';
+import { WarAxeThrowSkill } from '../skills/WarAxeThrowSkill.js';
+import { BreakerKneeSkill } from '../skills/BreakerKneeSkill.js';
+import { RallyingBannerSkill } from '../skills/RallyingBannerSkill.js';
+import { HeavenRendingAscentSkill } from '../skills/HeavenRendingAscentSkill.js';
+import { FortressRampageSkill } from '../skills/FortressRampageSkill.js';
+import { ShadowSwallowRiposteSkill } from '../skills/ShadowSwallowRiposteSkill.js';
+import { MountainHurlSkill } from '../skills/MountainHurlSkill.js';
+import { BloodOathStandardSkill } from '../skills/BloodOathStandardSkill.js';
 import { GreatCleaveSkill } from '../skills/GreatCleaveSkill.js';
 import { ShieldBashSkill } from '../skills/ShieldBashSkill.js';
 import { WhirlwindSlashSkill } from '../skills/WhirlwindSlashSkill.js';
@@ -267,6 +283,23 @@ const REGISTRY = {
   war_god_roar: WarGodRoarSkill,
   adamant_counter: AdamantCounterSkill,
   heaven_crushing_descent: HeavenCrushingDescentSkill,
+  // M8-D: 戦士 active10種（Wave2）
+  rising_slash: RisingSlashSkill,
+  shield_charge: ShieldChargeSkill,
+  backstep_riposte: BackstepRiposteSkill,
+  battlefield_throw: BattlefieldThrowSkill,
+  triple_crush: TripleCrushSkill,
+  blade_guard: BladeGuardSkill,
+  berserker_rush: BerserkerRushSkill,
+  war_axe_throw: WarAxeThrowSkill,
+  breaker_knee: BreakerKneeSkill,
+  rallying_banner: RallyingBannerSkill,
+  // M8-D: 戦士 進化5種（Wave2）
+  heaven_rending_ascent: HeavenRendingAscentSkill,
+  fortress_rampage: FortressRampageSkill,
+  shadow_swallow_riposte: ShadowSwallowRiposteSkill,
+  mountain_hurl: MountainHurlSkill,
+  blood_oath_standard: BloodOathStandardSkill,
   // M8-B: 戦士 active5種
   great_cleave: GreatCleaveSkill,
   shield_bash: ShieldBashSkill,

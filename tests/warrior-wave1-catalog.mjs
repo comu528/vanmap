@@ -1,4 +1,4 @@
-// M8-C 1/19: カタログ整合性（active15 / passive4 / evolution8 = 27）。Node.js 標準機能のみ。
+// M8-C 1/19: カタログ整合性（総数は EXPECTED を正とする。M8-D 時点で active25 / passive4 / evolution13）。
 // SkillCatalog（production）を唯一の正として、Wave1 で追加した 10 active / 5 evolution が
 // 重複なく・実装クラスと双方向に一致し・データが完全であることを検証する。
 // 実行: node tests/warrior-wave1-catalog.mjs
@@ -18,11 +18,14 @@ const NEW_ACT = EXPECTED.wave1Actives;
 const NEW_EVO = EXPECTED.wave1Evolutions;
 
 // ===== 1. 総数 =====
-section('1. active15 / passive4 / evolution8（合計 27）');
-ok(war.summary.activeCount === 15, `active ${war.summary.activeCount} = 15`);
-ok(war.summary.passiveCount === 4, `passive ${war.summary.passiveCount} = 4`);
-ok(war.summary.evolutionCount === 8, `evolution ${war.summary.evolutionCount} = 8`);
-ok(war.summary.activeCount + war.summary.passiveCount + war.summary.evolutionCount === 27, '合計 27');
+// 総数の「正」は EXPECTED（M8-D で active25 / evolution13 へ拡張済み）。
+// この suite が保証するのは「Wave1 の 15 種が全部残っていること」であって、総数の固定ではない。
+const TOTAL = EXPECTED.activeCount + EXPECTED.passiveCount + EXPECTED.evolutionCount;
+section(`1. active${EXPECTED.activeCount} / passive${EXPECTED.passiveCount} / evolution${EXPECTED.evolutionCount}（合計 ${TOTAL}）`);
+ok(war.summary.activeCount === EXPECTED.activeCount, `active ${war.summary.activeCount} = ${EXPECTED.activeCount}`);
+ok(war.summary.passiveCount === EXPECTED.passiveCount, `passive ${war.summary.passiveCount} = ${EXPECTED.passiveCount}`);
+ok(war.summary.evolutionCount === EXPECTED.evolutionCount, `evolution ${war.summary.evolutionCount} = ${EXPECTED.evolutionCount}`);
+ok(war.summary.activeCount + war.summary.passiveCount + war.summary.evolutionCount === TOTAL, `合計 ${TOTAL}`);
 ok(war.issues.length === 0, `SkillCatalog の issues 0（実際 ${war.issues.length}: ${war.issues.map((i) => i.type + ':' + i.id).join(',')}）`);
 ok(NEW_ACT.length === 10 && NEW_EVO.length === 5, 'Wave1 の追加は active10 / evolution5');
 info(`新 active: ${NEW_ACT.join(', ')}`);

@@ -21,8 +21,10 @@ section('1. active5 / passive4 / evolution3');
 ok(war.summary.activeCount === EXPECTED.activeCount, `active ${war.summary.activeCount} = 5`);
 ok(war.summary.passiveCount === EXPECTED.passiveCount, `passive ${war.summary.passiveCount} = 4`);
 ok(war.summary.evolutionCount === EXPECTED.evolutionCount, `evolution ${war.summary.evolutionCount} = 3`);
-ok(WARRIOR.activeSkillPool.length === 15 && WARRIOR.passiveSkillPool.length === 4 && WARRIOR.evolutionPool.length === 8,
-  'jobs.json のプール数も 15/4/8');
+ok(WARRIOR.activeSkillPool.length === EXPECTED.activeCount
+  && WARRIOR.passiveSkillPool.length === EXPECTED.passiveCount
+  && WARRIOR.evolutionPool.length === EXPECTED.evolutionCount,
+  `jobs.json のプール数も ${EXPECTED.activeCount}/${EXPECTED.passiveCount}/${EXPECTED.evolutionCount}`);
 ok(WARRIOR.activeSkillPool.join(',') === EXPECTED.actives.join(','), `activeSkillPool = ${EXPECTED.actives.join(',')}`);
 ok(WARRIOR.passiveSkillPool.join(',') === EXPECTED.passives.join(','), `passiveSkillPool = ${EXPECTED.passives.join(',')}`);
 ok(WARRIOR.evolutionPool.join(',') === EXPECTED.evolutions.join(','), `evolutionPool = ${EXPECTED.evolutions.join(',')}`);
@@ -75,7 +77,9 @@ for (const id of WARRIOR.activeSkillPool) {
   ok(s.canTriggerEcho === false && s.canBeCopiedByClone === false, `${id}: canTriggerEcho / canBeCopiedByClone = false`);
   ok(typeof s.meleeRange === 'number' && s.meleeRange > 0, `${id}: meleeRange が正`);
   ok(typeof s.mainCastEvent === 'string' && s.mainCastEvent.length > 0, `${id}: mainCastEvent がある`);
-  ok(Array.isArray(s.damageTags) && s.damageTags.includes('melee'), `${id}: damageTags に melee`);
+  // 近接が既定。M8-D の投擲（戦斧投擲）だけは thrown を名乗り、近接倍率も乗らない。
+  ok(Array.isArray(s.damageTags) && (s.damageTags.includes('melee') || s.damageTags.includes('thrown')),
+    `${id}: damageTags に melee / thrown`);
   // レベル成長: damage / cooldown が単調（damage は非減少、cooldown は非増加）。
   let dmgOk = true, cdOk = true;
   for (let i = 1; i < s.levels.length; i++) {

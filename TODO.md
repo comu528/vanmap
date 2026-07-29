@@ -898,13 +898,81 @@ M8-C で戦士の active が 5 → 15 になった結果、production の `Skill
 
 ---
 
+## Milestone 8-D: 戦士スキル拡張 Wave2 — 完了
+
+M8-C（Wave1）の 15 active / 8 進化の上へ、**active 15 → 25・進化 8 → 13** を積んだ回。
+passive は 4 種のまま・Job Lv1〜100 も据え置き・**Job Lv80「打撃数 +1」の対象は 3 ジョブとも 6 種のまま**。
+
+- [x] **新 active 10 種**（すべて物理近接・Lv1〜8 データ駆動・`jobs:["warrior"]` / `isCommon:false`）:
+      昇竜斬 `rising_slash` / 鉄壁突進 `shield_charge` / 燕返し `backstep_riposte` / 豪腕投げ `battlefield_throw` /
+      三段砕き `triple_crush` / 刃防陣 `blade_guard` / 狂戦猛進 `berserker_rush` / 戦斧投擲 `war_axe_throw` /
+      破城膝撃 `breaker_knee` / 戦旗招集 `rallying_banner`
+- [x] **新 evolution 5 種**: 天衝断空 `heaven_rending_ascent`（+剛力）/ 城塞蹂躙 `fortress_rampage`（+重装）/
+      無影燕返 `shadow_swallow_riposte`（+戦闘本能）/ 山岳投擲 `mountain_hurl`（+**active** 地砕き Lv6・**置換せず CD も触らない**）/
+      血盟戦旗 `blood_oath_standard`（+血気）
+- [x] **共通機構 5 つを `WarriorCombatSystem` へ集約**（BattleScene へ状態を散らさない）:
+      打ち上げ（`launchPolicy` / `launchDurationMs` / `launchImmuneMs`）・
+      前面防御（`beginFrontGuard` / `frontGuardMitigation` / `endFrontGuard`）・
+      掴み / 投げ（`grabPolicy` / `beginGrab` / `endGrab` / `noteThrowImpact`）・
+      戦旗の陣（`placeRallyField` / `updateRallyPosition` / `rallyBonus`）・
+      低 HP スケーリング（`lowHpDamageMultiplier`）。**すべて `balance.json` の上限で頭打ち**。
+- [x] **打ち上げ / 掴みは通常敵だけ**。エリートは体勢削り / その場叩きつけ、ボスは掴めず重い体勢打撃へ置換。
+      可否判断はスキル側に書かず共通経路へ一元化（スキルは `isBoss` を見ない）。
+- [x] **前面防御は方向の分かる被弾だけ**（`requireDirection: true`）。側面 ×0.35・背面 ×0・上限 55%・
+      合計軽減は従来どおり 70% クランプで**無敵にならない**。`Player.takeDamage(amount, from)` の第 2 引数は任意。
+- [x] **掴みは敵オブジェクトを保持しない**（`_seq` のみ）・同時 1 体・時間切れで必ず解除・**保存しない**・
+      **投げから投げが連鎖しない**・死亡イベントは共通 `dealDamage` が 1 回だけ出す。
+- [x] **戦旗の陣は常に 1 つ**（重ねがけは置換）。効果は**内側にいるときだけ**。
+      血盟戦旗の回復強化は**既存の毎秒 cap を共有**したまま（永久機関にならない）。
+- [x] **低 HP スケーリングは自傷せず処刑もせず**必ず頭打ち（×1.6）。
+- [x] **戦斧投擲は `Projectile` を使わない**（`combat.thrownStrike` = `meleeStrike` の `isThrown` 版）。
+      近接倍率が乗らず、同一敵へは行き / 帰りで最大 2 回、射程と壁で必ず折り返す。
+- [x] **残留の掃除**: `_airborneUntil` / `_launchImmuneUntil` / `_launchHeight` / `_grabbed` を
+      `Enemy.reset()` と `onEnemyRemoved()` の**両方**が戻す。既定値では移動抑止が一切かからない。
+- [x] **品質別 skillCaps 20 種追加**（damage / event 系 10・visual 系 10・**未参照 cap 0**・
+      low ≤ medium ≤ high ≤ ultra・すべて正の数）。品質を落としてもゲーム数値は変わらない。
+- [x] **guidance の追調整**: `activeSupportWeightMultiplier`（1.6）を 1 キーだけ追加。
+      **補助が active のレシピ**（枠を 1 つ食い必要 Lv も高い）の補助側だけを補正する。
+      判定は候補のカテゴリのみで **skill ID のハードコードなし**。**M8-C.1 のしきい値は 1 つも下げていない**。
+- [x] **到達率（素朴戦略・200 seed）**: 枠4/40lv 進化1個以上 **85.0%**（平均 1.17・0 個 15.0%）/
+      枠6/60lv 99.0%（2 個以上 88.0%・平均 2.38）/ 枠8/80lv 100%（2 個以上 98.5%・平均 3.46）。
+      **13 進化すべて・25 active すべてが取得 0 件なし**・最頻進化シェア 19.3%（悪化なし）・
+      候補ゼロ / 他ジョブ混入 / 重複 / 枠違反 0 件。
+- [x] **F8 / F9 へ Wave2 の項目を追加**（打ち上げ / 前面防御 / 掴み・投げ / 三段 / 刃防陣 / 低 HP /
+      戦斧 / 踏み込み / 戦旗・active 補助進化の到達率・build 偏りの警告）。**F10 は不変**。
+- [x] **自動テスト 21 スイート追加**＋`validate-data` の M8-D ブロック＋`validate.yml` へ 21 ステップ
+      （**全 147 スイート通過**・`validate-data` 0 エラー 0 警告）。
+- [x] **火の魔女・氷術師は完全に非回帰**（候補列 300 seed / 48 スキルのランタイムとも SHA-256 一致・
+      状態異常 5 種のまま・`Projectile` 無変更）・**save_version v6 維持**。
+
+### M8-D で**実装しない**もの（対象外）
+- [ ] active 26 種以上・進化 14 種以上・新しい passive・新ジョブ
+- [ ] 属性反応・新しい formal status・装備・武器選択
+- [ ] 新しい敵 / ボス / 難易度・転生レガシー・UI 全面改修・正式グラフィック素材
+- [ ] 戦士の完成監査（カタログが 30/18 まで揃ってから）
+
+### M8-D で見つけて直した既存の不備
+- [ ] `WarriorCombatSystem.update()` が Wave2 の時限状態（前面防御 / 掴み / 戦旗の陣）を
+      減らしていなかった → 稼働時間が記録されず、陣も時間で消えなかった。tick を追加。
+- [ ] `WARRIOR_DEFAULTS` に Wave2 のブロックが無く、balance を渡さないと
+      `beginFrontGuard` が例外を投げた → 既定値を追加。
+- [ ] 燕返しが宣言どおりの距離を踏み込んで**相手を追い越し**、命中 0 になっていた
+      → 間合いのぶんだけ進む `_lungeWant()` を追加。
+- [ ] 戦斧の「行き / 帰りで最大 2 回」が**行きで 2 回**消費されていた
+      → 行きと帰りで別々の回数マップに分離。
+
+> **実ブラウザ未確認**: M8-D も Phaser 実プレイ確認は行っていない（Node 純ロジック＋最小モックのみ）。
+> `docs/test-guide.md` の **Milestone 8-D** 項目を実ブラウザで確認すること。
+
+---
+
 ### 次のマイルストーン候補
-- [ ] **戦士のカタログ拡張 Wave2 以降**（active15 → 20 → 30 / evolution 8 → 13 → 18）— 火・氷と同じ拡張手順が使える
+- [ ] **戦士のカタログ拡張 Wave3 以降**（active25 → 30 / evolution 13 → 18）— 火・氷と同じ拡張手順が使える
 - [ ] **火と氷の属性反応**（炎上⇄冷気/凍結の相互作用・付与時の source element を活用）
 - [ ] **戦士 完成監査**（カタログが揃ってから。M7-E / M8-A と同じ 12 観点）
 - [ ] **転生レガシー / ジョブ間継承**（`futureInheritanceSettings` / `extraAllowedIds` が拡張口）
 - [ ] **周回長の拡張**（10分 / 15分 / 無限モード）・**追加の敵 / ボス / 難易度**
-- [ ] **実ブラウザでの M7-E / M8-A / M8-B / M8-C / M8-C.1 手動確認**（コード変更を伴わない検証タスク）
+- [ ] **実ブラウザでの M7-E / M8-A / M8-B / M8-C / M8-C.1 / M8-D 手動確認**（コード変更を伴わない検証タスク）
 
 ---
 

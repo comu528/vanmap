@@ -1276,3 +1276,77 @@ M8-C では曲線も到達報酬 11 段も変更していない。Lv80 の `stri
 
 M8-C.1 では `skills.json` / `skill-evolutions.json` / `passives.json` / `jobs.json` / `balance.json` を
 **1 件も変更していない**（スキル数値・進化条件・skillCaps は M8-C のまま）。
+
+
+---
+
+## Milestone 8-D: 戦士スキル拡張 Wave2（すべて加算的・`save_version` は v6 のまま）
+
+既存キーの意味・型・値は 1 つも変えていない。
+
+### `skills.json` — 戦士 active を 10 件追加（計 25 件）
+
+追加した 10 件は Wave1 と同じ形（`element:"physical"` / `jobs:["warrior"]` / `isCommon:false` /
+`maxLevel:8` / `levels` 8 段 / `echoPolicy`・`clonePolicy` = `"forbidden"` /
+`canTriggerEcho`・`canBeCopiedByClone` = `false` / `castMode:"cooldown"` /
+`lv80ProjectileTarget:false` / `meleeRange` は正の数）。
+
+Wave2 固有の `levels` キー（すべて実装から参照される。未参照は `validate-data` がエラーにする）:
+
+| skill | 成長軸 |
+|-------|--------|
+| `rising_slash` | damage / cooldown / range / width / launchDuration / poiseDamage / knockback / maxTargets |
+| `shield_charge` | damage / cooldown / duration / speed / frontArc / frontalMitigation / impactDamage / width / poiseDamage / knockback |
+| `backstep_riposte` | damage / cooldown / backstep / lunge / mitigationValue / arc / poiseDamage / knockback |
+| `battlefield_throw` | damage / cooldown / grabRange / throwDistance / impactRadius / impactDamage / eliteSlam / bossPoise / knockback |
+| `triple_crush` | damage / cooldown / interval / stage2 / stage3 / finalRadius / knockback / poiseDamage / comboBonus |
+| `blade_guard` | damage / cooldown / duration / tickInterval / radius / mitigationValue / poiseDamage / maxTargets |
+| `berserker_rush` | damage / cooldown / rushCount / interval / stepDistance / retargetRange / missingHpBonus / poiseDamage |
+| `war_axe_throw` | damage / cooldown / range / speed / width / returnMultiplier / maxTargets / poiseDamage |
+| `breaker_knee` | damage / cooldown / range / stepIn / poiseDamage / eliteBonus / bossBonus / knockback |
+| `rallying_banner` | cooldown / duration / radius / comboGrace / furyGain / mitigationValue / meleeArea / initialShock / initialPoise |
+
+### `skill-evolutions.json` — 戦士 evolution を 5 件追加（計 13 件）
+
+Wave1 と同じ形（`baseSkillId` / `requiredSkills`（1 件）/ `replacementSkillId` は自身 /
+`safetyCaps`（非負・**全キーが実装から参照される**）/ `lv80ProjectileTarget:false`）。
+
+`mountain_hurl` の補助は **active**（`ground_slam` Lv6）だが、`replacementSkillId` は自身なので
+**地砕きは置換されず、クールダウンにも触らない**。
+
+### `balance.json` — `warrior` ブロックへ 5 つ追加
+
+```jsonc
+"launch":       { "maxAirborneMs": 900, "immuneMs": 1200, "allowElite": false, "allowBoss": false, "poiseConversion": 1.35 },
+"frontalGuard": { "requireDirection": true, "maxFrontalMitigation": 0.55, "sideMultiplier": 0.35, "backMultiplier": 0.0 },
+"grab":         { "allowElite": false, "allowBoss": false, "maxGrabPerCast": 1, "maxThrowMs": 700, "worldMargin": 24, "bossPoiseMultiplier": 1.0 },
+"rally":        { "maxFields": 1, "maxDurationMs": 12000, "maxComboGrace": 0.8, "maxFuryGain": 0.6,
+                  "maxMitigation": 0.25, "maxMeleeArea": 0.3, "maxKillHealBonus": 0.5 },
+"lowHp":        { "maxMissingHpMultiplier": 1.6 }
+```
+
+同じ既定値が `WARRIOR_DEFAULTS`（`src/systems/WarriorCombatSystem.js`）にもあるので、
+balance を渡さなくても例外にならず、data 側の値が常に優先される。
+
+### `balance.json` — `skillCaps` を 20 件追加（計 205 件）
+
+| 種別 | 追加した cap |
+|------|-------------|
+| damage / event | `maxLaunchTargets` `maxChargeContacts` `maxRiposteStrikes` `maxThrowImpacts` `maxCrushStages` `maxGuardTicksPerFrame` `maxRushSteps` `maxAxeHitsPerTarget` `maxKneeStrikes` `maxRallyFields` |
+| visual | `maxLaunchVisuals` `maxChargeTrails` `maxRiposteTrails` `maxThrowArcs` `maxCrushShockVisuals` `maxGuardBladeVisuals` `maxRushSparks` `maxAxeSpinVisuals` `maxKneeImpactVisuals` `maxBannerRings` |
+
+すべて `low ≤ medium ≤ high ≤ ultra`・**正の数**（0 にすると効果そのものが消えるため）で、
+**未参照の cap は `validate-data` がエラーにする**。
+
+### `skill-config.json` — `guidance` へ 1 キー追加
+
+```jsonc
+"activeSupportWeightMultiplier": 1.6   // 補助が active のレシピの補助側だけへ追加補正
+```
+
+M8-C.1 の他のキーとしきい値は 1 つも変えていない（`validate-data` が固定値で検証する）。
+
+### `jobs.json` — 戦士のプールを 25 / 4 / 13 へ
+
+`activeSkillPool` へ 10 件、`evolutionPool` へ 5 件を末尾へ追加しただけ。並び順も含めて
+`validate-data` が期待値と突き合わせる。火 / 氷のプールは 1 件も変えていない。

@@ -735,3 +735,57 @@ M8-C で戦士の active が 5 → 15 になり、枠 4 の進化到達率が落
 `rng.next()` 呼び出し回数は変わらず、**guidance の ON / OFF で cursor が 1 も動かない**。
 
 詳細は `./warrior-evolution-guidance.md`、修正前の実測分析は `./warrior-draft-analysis-wave1.md`。
+
+
+---
+
+## Milestone 8-D: 戦士スキル拡張 Wave2（構造上の変更点）
+
+### 方針は M8-B から変わらない
+
+> 戦士の状態は `WarriorCombatSystem` が唯一の管理者。BattleScene へスキルごとの状態を散らさない。
+
+Wave2 で足した 5 つの機構（打ち上げ / 前面防御 / 掴み・投げ / 戦旗の陣 / 低 HP スケーリング）も
+すべて `WarriorCombatSystem` の中にあり、上限は `balance.json` から読む。
+スキルクラスは**判断をせず**、`launchPolicy()` / `grabPolicy()` の結果に従うだけ
+（スキル側で `isBoss` / `isElite` を見ない）。
+
+### 敵オブジェクトを保持しない
+
+Wave1 の鎖鉤・怒涛連撃と同じく、Wave2 の掴み・投げ・戦斧も**敵の参照を持たない**。
+持つのは安定 runtime id（`Enemy._seq`）だけで、実体は毎フレーム引き直す。
+
+```
+WarriorCombatSystem._grab = { source, seq, phase, leftMs }   // ← 敵オブジェクトではない
+BattleScene.grabbedTarget()  → _seq から引き直す
+BattleScene.releaseGrab()    → 敵側の _grabbed も必ず戻す
+```
+
+これにより、敵がプールへ返却されても参照が残らず、保存データにも runtime id が漏れない。
+
+### 共通経路への追加は「明示したときだけ効く」形にした
+
+`BattleScene.meleeStrike` へ足した `isThrown` / `launch` / `seqHitCounts` / `toughPoiseBonus` は
+いずれもオプションで、未指定なら従来と同じ経路を通る。
+`Player.takeDamage(amount, from)` の第 2 引数も任意で、火 / 氷の被弾経路は渡さない。
+`balance.warrior.frontalGuard.requireDirection: true` なので、方向のない被弾に前面軽減は乗らない。
+
+**`Projectile` は 1 行も変えていない。** 戦斧投擲は弾を使わず、スキルが決定論的に動かす
+「移動する判定ボリューム」（`combat.thrownStrike` を毎フレーム呼ぶ）として実装した。
+`Projectile.reset()` は火 / 氷の状態異常フィールドを多数持つため、そこへ物理投擲を混ぜると
+非回帰ハッシュが壊れる、という判断。
+
+### `Enemy` への追加は既定値で恒等
+
+```js
+this._airborneUntil = 0; this._launchImmuneUntil = 0; this._launchHeight = 0; this._grabbed = false;
+...
+if (this._grabbed || now < this._airborneUntil) spd = 0;   // 既定値では絶対に通らない
+```
+
+`reset()` も同じ 4 つを戻すので、プール再利用で状態が持ち越されない。
+
+### 時限状態の tick は 1 か所
+
+前面防御 / 掴み / 戦旗の陣はすべて `WarriorCombatSystem.update(dt)` の末尾で
+まとめて減算・終了処理される（`Phaser.Time` に依存しない＝テストから同じ経路を駆動できる）。

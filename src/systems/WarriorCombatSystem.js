@@ -74,6 +74,19 @@ export const WARRIOR_DEFAULTS = {
   execute: { allowElite: false, allowBoss: false, bossMissingHpCapDefault: 0.5, maxExecutesPerSecond: 6 },
   // M8-C: 鎖鉤の引き寄せ（ボスは動かさない）。
   pull: { bossPullDistance: 0, worldMargin: 24, maxPullPerCast: 1 },
+  // M8-D: 打ち上げ（通常敵のみ。エリート / ボスは体勢削りへ変換）。
+  launch: { maxAirborneMs: 900, immuneMs: 1200, allowElite: false, allowBoss: false, poiseConversion: 1.35 },
+  // M8-D: 前面防御（方向の分かる被弾だけを前面判定する）。
+  frontalGuard: { requireDirection: true, maxFrontalMitigation: 0.55, sideMultiplier: 0.35, backMultiplier: 0.0 },
+  // M8-D: 掴み / 投げ（通常敵のみ。ボスは掴まない）。
+  grab: { allowElite: false, allowBoss: false, maxGrabPerCast: 1, maxThrowMs: 700, worldMargin: 24, bossPoiseMultiplier: 1.0 },
+  // M8-D: 戦旗の陣（常に 1 つ・内側でのみ効く）。
+  rally: {
+    maxFields: 1, maxDurationMs: 12000, maxComboGrace: 0.8, maxFuryGain: 0.6,
+    maxMitigation: 0.25, maxMeleeArea: 0.3, maxKillHealBonus: 0.5,
+  },
+  // M8-D: 低 HP スケーリング（自傷なし・処刑なし・必ず頭打ち）。
+  lowHp: { maxMissingHpMultiplier: 1.6 },
 };
 
 // 闘気の獲得源（telemetry のキーと 1:1）。
@@ -137,6 +150,11 @@ export class WarriorCombatSystem {
     this.counterWindows = new Map(); // source -> { leftMs, used, max, priority, mitigation, gapLeftMs, gapMs }
     this._counterGlobalCdLeftMs = 0;
     this._executeSecondWindow = { startMs: -Infinity, count: 0 };
+    // M8-D: Wave2 の共通状態（スキルは BattleScene の内部状態を触らず、ここへ集約する）。
+    this.frontGuard = { leftMs: 0, mitigation: 0, arc: 0, facing: 0, source: null };
+    this.rallyField = null;          // { x, y, leftMs, radius, comboGrace, furyGain, mitigation, meleeArea, killHealBonus, perSecondCapBonus, source }
+    this._rallyInside = false;
+    this._grab = null;               // { seq, phase, leftMs, source }（敵オブジェクトは持たない）
     this._runStartMs = this._now();
     this.telemetry = this._emptyTelemetry();
   }
@@ -162,6 +180,14 @@ export class WarriorCombatSystem {
       warCryApplications: 0, warCryUptimeMs: 0,
       chainPulls: 0, chainPullDistance: 0, bossApproaches: 0,
       leapLandings: 0, sweepDistance: 0, relentlessChains: 0, relentlessRetargets: 0,
+      // M8-D: Wave2（打ち上げ / 前面防御 / 掴み・投げ / 段組み / 刃防陣 / 低HP / 斧 / 踏み込み / 戦旗）。
+      launches: 0, launchBlocked: 0, launchPoiseConverted: 0,
+      frontGuardUptimeMs: 0, frontGuardBlocked: 0, frontGuardSideHits: 0, frontGuardBackHits: 0,
+      grabs: 0, grabRefused: 0, grabCancels: 0, throwImpacts: 0, throwDistance: 0,
+      comboStages: 0, guardTicks: 0, guardUptimeMs: 0,
+      lowHpBonusSum: 0, lowHpBonusSamples: 0,
+      axeOutboundHits: 0, axeReturnHits: 0, stepIns: 0, stepInDistance: 0,
+      rallyPlacements: 0, rallyUptimeMs: 0, rallyInsideMs: 0, rallyAssists: 0, rallyKillHealBonus: 0,
     };
   }
 
@@ -202,7 +228,8 @@ export class WarriorCombatSystem {
     return m;
   }
   // 近接範囲倍率（コンボ閾値のみ。パッシブ area は既存 PassiveManager 経路が担当）。
-  meleeAreaMultiplier() { return 1 + this.comboBonuses().meleeAreaMult; }
+  // M8-D: 戦旗の陣の内側にいる間だけ間合いが伸びる（外側では加算 0）。
+  meleeAreaMultiplier() { return 1 + this.comboBonuses().meleeAreaMult + this.rallyBonus('meleeArea'); }
   // 攻撃/詠唱速度倍率 → クールダウン倍率（1/speed）。
   attackSpeedMultiplier() {
     const c = this.comboBonuses();
@@ -244,6 +271,7 @@ export class WarriorCombatSystem {
     // コンボ閾値 / Job Lv / passive の獲得倍率。
     amt *= this.mods.furyGainMult * (1 + this.comboBonuses().furyGainMult);
     if (this.warCry.leftMs > 0) amt *= (1 + this.warCry.furyGainBonus); // M8-C: 戦吼
+    amt *= (1 + this.rallyBonus('furyGain'));                            // M8-D: 戦旗の陣（内側のみ）
     // ボス体勢崩し中（exposed）は獲得増加。
     if (this.exposedActive) amt *= (1 + num(this.cfg.poise.boss.exposedFuryGainMult, 0));
     if (amt <= 0) return 0;
@@ -351,7 +379,8 @@ export class WarriorCombatSystem {
     const before = this.combo;
     this.combo = clamp(this.combo + n * num(cfg.gainPerHit, 1), 0, num(cfg.maxValue, 999));
     this.comboGraceLeftMs = num(cfg.graceMs, 2500) * Math.max(0.1, this.mods.comboGraceMult)
-      * (this.warCry.leftMs > 0 ? (1 + this.warCry.comboGraceBonus) : 1); // M8-C: 戦吼
+      * (this.warCry.leftMs > 0 ? (1 + this.warCry.comboGraceBonus) : 1) // M8-C: 戦吼
+      * (1 + this.rallyBonus('comboGrace'));                             // M8-D: 戦旗の陣（内側のみ）
     const gained = this.combo - before;
     if (this.combo > this.telemetry.comboPeak) this.telemetry.comboPeak = this.combo;
     // 閾値の到達（またぐたびに 1 回）。
@@ -366,6 +395,22 @@ export class WarriorCombatSystem {
     // コンボ由来の闘気（コンボそのものが闘気を生む＝殴り続ける報酬）。
     if (gained > 0) this.addFury(num(this.cfg.fury.gainPerComboStep, 0) * gained, 'combo', castKey);
     return gained;
+  }
+
+  // コンボの「猶予（grace）」だけを戻す。コンボ値そのものは 1 も増やさない。
+  // 進化「無影燕返」が使う（無料コンボの大量付与を作らないための専用経路）。
+  refillComboGrace(ratio) {
+    if (!this.enabled) return 0;
+    const r = clamp(num(ratio, 0), 0, 1);
+    if (r <= 0 || this.combo <= 0) return 0;
+    const cfg = this.cfg.combo;
+    const full = num(cfg.graceMs, 2500) * Math.max(0.1, this.mods.comboGraceMult)
+      * (this.warCry.leftMs > 0 ? (1 + this.warCry.comboGraceBonus) : 1)
+      * (1 + this.rallyBonus('comboGrace'));
+    const next = Math.max(this.comboGraceLeftMs, full * r);
+    const added = next - this.comboGraceLeftMs;
+    this.comboGraceLeftMs = next;
+    return added;
   }
 
   breakCombo() {
@@ -420,6 +465,9 @@ export class WarriorCombatSystem {
     const maxHp = num(this._maxHp, 0);
     if (maxHp <= 0) return 0;
     let amount = maxHp * num(cfg.maxHpPercent, 0) * mult * Math.max(0, num(extraMult, 1));
+    // M8-D: 血盟戦旗（陣の内側で倒したときだけ回復量が小幅に伸びる。毎秒上限は共有したまま）。
+    const oath = this.rallyBonus('killHealBonus');
+    if (oath > 0) { amount *= (1 + oath); this.telemetry.rallyKillHealBonus += oath; this.telemetry.rallyAssists += 1; }
     if (enemy && enemy.isBoss) amount *= num(cfg.bossMult, 1);
     else if (enemy && enemy.isElite) amount *= num(cfg.eliteMult, 1);
     if (this.releaseActive) amount *= num(cfg.releaseMult, 1) * this.mods.killHealReleaseMult;
@@ -428,7 +476,8 @@ export class WarriorCombatSystem {
     const now = this._now();
     const w = this._killHealWindow;
     if (now - w.startMs >= 1000) { w.startMs = now; w.healed = 0; }
-    const capPerSec = maxHp * num(cfg.perSecondCapPercent, 0) * Math.max(0, this.mods.killHealCapMult);
+    const capPerSec = maxHp * num(cfg.perSecondCapPercent, 0) * Math.max(0, this.mods.killHealCapMult)
+      * (1 + this.rallyBonus('perSecondCapBonus')); // M8-D: 血盟戦旗（陣の内側でだけ毎秒上限が小幅に伸びる）
     const room = Math.max(0, capPerSec - w.healed);
     if (room <= 0) { this.telemetry.killHealCapped += 1; return 0; }
     if (amount > room) { amount = room; this.telemetry.killHealCapped += 1; }
@@ -449,6 +498,8 @@ export class WarriorCombatSystem {
     if (ctx.engaged) r += num(cfg.engagedReduction, 0);
     if (this._now() - this._lastMeleeCastAt <= num(cfg.meleeCastWindowMs, 0)) r += num(cfg.meleeCastReduction, 0);
     if (ctx.charging || this._now() < this._chargeUntilMs) r += num(cfg.chargeReduction, 0);
+    r += this.frontGuardMitigation(ctx);   // M8-D: 鉄壁突進の前面防御（方向のある被弾のみ）
+    r += this.rallyBonus('mitigation');    // M8-D: 戦旗の陣（内側のみ）
     if (this.releaseActive) r += num(this.cfg.furyRelease.damageReduction, 0);
     if (this.unyieldingActive) r += num(this.cfg.unyielding.damageReduction, 0) * Math.max(0, this.mods.unyieldingPowerMult);
     r += this.mods.damageReductionBonus;                 // Job Lv20 / 重装
@@ -613,6 +664,212 @@ export class WarriorCombatSystem {
     else if (kind === 'sweep') this.telemetry.sweepDistance += v;
     else if (kind === 'relentlessChain') this.telemetry.relentlessChains += 1;
     else if (kind === 'relentlessRetarget') this.telemetry.relentlessRetargets += 1;
+  }
+
+  // ================= M8-D: Wave2 の共通フック =================
+  // スキルは Scene の内部状態を直接いじらず、必ずここを通す。すべて data（balance.warrior）駆動。
+
+  // ---- 打ち上げ（昇竜斬 / 天衝断空）----
+  // 通常敵だけを短く浮かせる。エリート / ボスは浮かせず、その分を体勢削りへ変換して返す。
+  // 戻り値: { launched, poiseBonus, reason }
+  launchPolicy(target, o = {}) {
+    const out = { launched: false, poiseBonus: 0, reason: 'none' };
+    if (!this.enabled || !target || !target.alive) { out.reason = 'invalid'; return out; }
+    const cfg = this.cfg.launch;
+    const hard = !!target.isBoss || !!target.isElite;
+    if (hard) {
+      const allow = target.isBoss ? cfg.allowBoss === true : cfg.allowElite === true;
+      if (!allow) {
+        out.poiseBonus = Math.max(0, num(o.poiseDamage, 0)) * Math.max(0, num(cfg.poiseConversion, 1));
+        out.reason = target.isBoss ? 'bossNoLaunch' : 'eliteNoLaunch';
+        this.telemetry.launchBlocked += 1;
+        this.telemetry.launchPoiseConverted += out.poiseBonus;
+        return out;
+      }
+    }
+    // 直前に打ち上げた相手は一定時間浮かせない（無限に浮かせ続けない）。
+    if (num(target._launchImmuneUntil, 0) > this._now()) { out.reason = 'immune'; return out; }
+    out.launched = true;
+    out.reason = 'launch';
+    this.telemetry.launches += 1;
+    return out;
+  }
+  // 打ち上げの持続（data の上限でクランプ）と免疫時間を返す。実際の座標操作は Scene 側。
+  launchDurationMs(requested) {
+    return clamp(num(requested, 0), 0, num(this.cfg.launch.maxAirborneMs, 900));
+  }
+  // 打ち上げ免疫の長さ。skill が短く申告できるが、balance の上限を超えられない。
+  launchImmuneMs(requested) {
+    const capMs = Math.max(0, num(this.cfg.launch.immuneMs, 0));
+    const r = num(requested, NaN);
+    return Number.isFinite(r) ? clamp(r, 0, capMs) : capMs;
+  }
+
+  // ---- 前面防御（鉄壁突進 / 城塞蹂躙）----
+  // 方向の分かる被弾だけを前面判定する。方向なし（DoT・全体）には前面軽減を乗せない。
+  beginFrontGuard(source, o = {}) {
+    if (!this.enabled || !source) return null;
+    const cfg = this.cfg.frontalGuard;
+    const g = {
+      leftMs: Math.max(0, num(o.durationMs, 0)),
+      mitigation: clamp(num(o.mitigation, 0), 0, num(cfg.maxFrontalMitigation, 0.55)),
+      arc: Math.max(0, num(o.frontArc, 0)),
+      facing: num(o.facing, 0),
+      source,
+    };
+    if (g.leftMs <= 0 || g.arc <= 0) return null;
+    this.frontGuard = g; // refresh（重ねない）
+    return { ...g };
+  }
+  updateFrontGuardFacing(source, facing) {
+    if (this.frontGuard.source === source && this.frontGuard.leftMs > 0) this.frontGuard.facing = num(facing, this.frontGuard.facing);
+  }
+  endFrontGuard(source) {
+    if (!source || this.frontGuard.source === source) this.frontGuard = { leftMs: 0, mitigation: 0, arc: 0, facing: 0, source: null };
+  }
+  get frontGuardActive() { return this.frontGuard.leftMs > 0; }
+  // 被弾方向に応じた軽減量。ctx.fromX / fromY があるときだけ前面判定する。
+  // 合計は damageReduction() 側で maxTotalReduction（70%）へ必ずクランプされる。
+  frontGuardMitigation(ctx = {}) {
+    if (!this.enabled || this.frontGuard.leftMs <= 0) return 0;
+    const cfg = this.cfg.frontalGuard;
+    const hasDir = isFiniteNum(ctx.fromX) && isFiniteNum(ctx.fromY) && isFiniteNum(ctx.x) && isFiniteNum(ctx.y);
+    if (!hasDir) {
+      // 方向が分からない被弾（DoT・画面全体）は前面扱いにしない。
+      if (cfg.requireDirection !== false) return 0;
+      return this.frontGuard.mitigation * clamp(num(cfg.sideMultiplier, 0), 0, 1);
+    }
+    let d = Math.atan2(ctx.fromY - ctx.y, ctx.fromX - ctx.x) - this.frontGuard.facing;
+    while (d > Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    const half = this.frontGuard.arc / 2;
+    if (Math.abs(d) <= half) { this.telemetry.frontGuardBlocked += 1; return this.frontGuard.mitigation; }
+    if (Math.abs(d) <= Math.PI / 2 + half) {
+      this.telemetry.frontGuardSideHits += 1;
+      return this.frontGuard.mitigation * clamp(num(cfg.sideMultiplier, 0), 0, 1);
+    }
+    this.telemetry.frontGuardBackHits += 1;
+    return this.frontGuard.mitigation * clamp(num(cfg.backMultiplier, 0), 0, 1);
+  }
+
+  // ---- 掴み / 投げ（豪腕投げ / 山岳投擲）----
+  // 通常敵だけ掴める。エリートはその場で叩きつけ、ボスは掴まず近接の体勢打撃へ置換する。
+  grabPolicy(target) {
+    const out = { canGrab: false, mode: 'none', reason: 'none' };
+    if (!this.enabled || !target || !target.alive) { out.reason = 'invalid'; return out; }
+    const cfg = this.cfg.grab;
+    if (target.isBoss) {
+      if (cfg.allowBoss !== true) {
+        out.mode = 'bossStrike'; out.reason = 'bossNoGrab';
+        // 掴めない代わりの一撃は、体勢削りだけを data の倍率で調整する（ダメージは触らない）。
+        out.poiseMultiplier = Math.max(0, num(cfg.bossPoiseMultiplier, 1));
+        this.telemetry.grabRefused += 1; return out;
+      }
+    } else if (target.isElite) {
+      if (cfg.allowElite !== true) { out.mode = 'eliteSlam'; out.reason = 'eliteNoGrab'; this.telemetry.grabRefused += 1; return out; }
+    }
+    out.canGrab = true; out.mode = 'throw'; out.reason = 'grab';
+    return out;
+  }
+  // 掴みの開始。敵オブジェクトは持たず、安定 runtime id（_seq）だけを保持する。
+  beginGrab(source, seq) {
+    if (!this.enabled || !source) return null;
+    if (this._grab) return null;                 // 1 度に 1 つだけ（再帰投げを作らない）
+    this._grab = { source, seq, phase: 'hold', leftMs: Math.max(0, num(this.cfg.grab.maxThrowMs, 700)) };
+    this.telemetry.grabs += 1;
+    return { ...this._grab };
+  }
+  grabState(source) { return this._grab && this._grab.source === source ? { ...this._grab } : null; }
+  setGrabPhase(source, phase) { if (this._grab && this._grab.source === source) this._grab.phase = phase; }
+  endGrab(source, cancelled) {
+    if (!this._grab) return false;
+    if (source && this._grab.source !== source) return false;
+    this._grab = null;
+    if (cancelled) this.telemetry.grabCancels += 1;
+    return true;
+  }
+  get grabbing() { return !!this._grab; }
+  maxGrabPerCast() { return Math.max(1, Math.round(num(this.cfg.grab.maxGrabPerCast, 1))); }
+  noteThrowImpact(distance) {
+    if (!this.enabled) return;
+    this.telemetry.throwImpacts += 1;
+    this.telemetry.throwDistance += Math.max(0, num(distance, 0));
+  }
+
+  // ---- 段組みコンボ（三段砕き / 天衝断空の 2 段目など）----
+  noteComboStage() { if (this.enabled) this.telemetry.comboStages += 1; }
+  // ---- 刃防陣 ----
+  noteGuardTick() { if (this.enabled) this.telemetry.guardTicks += 1; }
+  // ---- 低 HP スケーリング（狂戦猛進）----
+  // 失った HP に比例した倍率。data の上限で必ず頭打ちになる。自傷も処刑もしない。
+  lowHpDamageMultiplier(bonusPerMissing) {
+    if (!this.enabled) return 1;
+    const maxHp = num(this._maxHp, 0);
+    if (maxHp <= 0) return 1;
+    const missing = clamp(1 - num(this._curHp, 0) / maxHp, 0, 1);
+    const cap = Math.max(1, num(this.cfg.lowHp.maxMissingHpMultiplier, 1));
+    const m = clamp(1 + missing * Math.max(0, num(bonusPerMissing, 0)), 1, cap);
+    this.telemetry.lowHpBonusSum += m;
+    this.telemetry.lowHpBonusSamples += 1;
+    return m;
+  }
+  // ---- 戦斧の往復 ----
+  noteAxeHit(returning) {
+    if (!this.enabled) return;
+    if (returning) this.telemetry.axeReturnHits += 1; else this.telemetry.axeOutboundHits += 1;
+  }
+  // ---- 安全な踏み込み（破城膝撃）----
+  noteStepIn(distance) {
+    if (!this.enabled) return;
+    this.telemetry.stepIns += 1;
+    this.telemetry.stepInDistance += Math.max(0, num(distance, 0));
+  }
+
+  // ---- 戦旗の陣（戦旗招集 / 血盟戦旗）----
+  // 常に 1 つだけ。再設置は置換（refresh）で、重ねがけしない。
+  placeRallyField(source, o = {}) {
+    if (!this.enabled || !source) return null;
+    const cfg = this.cfg.rally;
+    // 陣は data の本数上限まで（既定 1）。0 なら張らない。重ねがけは常に置換。
+    if (Math.max(0, num(cfg.maxFields, 1)) < 1) return null;
+    const dur = clamp(num(o.durationMs, 0), 0, num(cfg.maxDurationMs, 12000));
+    if (dur <= 0) return null;
+    this.rallyField = {
+      source, x: num(o.x, 0), y: num(o.y, 0), leftMs: dur, totalMs: dur,
+      radius: Math.max(1, num(o.radius, 1)),
+      comboGrace: clamp(num(o.comboGrace, 0), 0, num(cfg.maxComboGrace, 0.8)),
+      furyGain: clamp(num(o.furyGain, 0), 0, num(cfg.maxFuryGain, 0.6)),
+      mitigation: clamp(num(o.mitigation, 0), 0, num(cfg.maxMitigation, 0.25)),
+      meleeArea: clamp(num(o.meleeArea, 0), 0, num(cfg.maxMeleeArea, 0.3)),
+      killHealBonus: clamp(num(o.killHealBonus, 0), 0, num(cfg.maxKillHealBonus, 0.5)),
+      perSecondCapBonus: clamp(num(o.perSecondCapBonus, 0), 0, num(cfg.maxKillHealBonus, 0.5)),
+    };
+    this._rallyInside = false;
+    this.telemetry.rallyPlacements += 1;
+    this._emit('rallyField', { ...this.rallyField });
+    return { ...this.rallyField };
+  }
+  clearRallyField(source) {
+    if (!this.rallyField) return false;
+    if (source && this.rallyField.source !== source) return false;
+    this.rallyField = null;
+    this._rallyInside = false;
+    return true;
+  }
+  get rallyActive() { return !!this.rallyField && this.rallyField.leftMs > 0; }
+  get rallyInside() { return this._rallyInside; }
+  // 毎フレーム、プレイヤー座標で内外を更新する（内側にいるときだけバフが効く）。
+  updateRallyPosition(x, y) {
+    if (!this.rallyField) { this._rallyInside = false; return false; }
+    const dx = num(x, 0) - this.rallyField.x;
+    const dy = num(y, 0) - this.rallyField.y;
+    this._rallyInside = (dx * dx + dy * dy) <= this.rallyField.radius * this.rallyField.radius;
+    return this._rallyInside;
+  }
+  // 内側にいるときだけの効果値（外側では常に 0）。
+  rallyBonus(key) {
+    if (!this.rallyActive || !this._rallyInside) return 0;
+    return num(this.rallyField[key], 0);
   }
 
   // ---- 不屈（瀕死時の基礎能力）----
@@ -780,6 +1037,24 @@ export class WarriorCombatSystem {
         if (w.leftMs === 0) this.counterWindows.delete(src);
       }
     }
+    // M8-D: 前面防御（時間切れで必ず消える）。
+    if (this.frontGuard.leftMs > 0) {
+      this.frontGuard.leftMs = Math.max(0, this.frontGuard.leftMs - d);
+      this.telemetry.frontGuardUptimeMs += d;
+      if (this.frontGuard.leftMs === 0) this.endFrontGuard(this.frontGuard.source);
+    }
+    // M8-D: 掴み（時間切れで必ず解除される＝掴みっぱなしにならない）。
+    if (this._grab) {
+      this._grab.leftMs = Math.max(0, this._grab.leftMs - d);
+      if (this._grab.leftMs === 0) this.endGrab(this._grab.source, true);
+    }
+    // M8-D: 戦旗の陣（時間切れで消える。内外の判定はスキル側が毎フレーム更新する）。
+    if (this.rallyField) {
+      this.rallyField.leftMs = Math.max(0, this.rallyField.leftMs - d);
+      this.telemetry.rallyUptimeMs += d;
+      if (this._rallyInside) this.telemetry.rallyInsideMs += d;
+      if (this.rallyField.leftMs === 0) { this.rallyField = null; this._rallyInside = false; this._emit('rallyFieldEnd', {}); }
+    }
     // 不屈の判定（HP は setHp で毎フレーム更新済み）。
     this.checkUnyielding();
   }
@@ -812,12 +1087,20 @@ export class WarriorCombatSystem {
     return {
       warCry: { ...this.warCry },
       counterWindows: windows,
+      // M8-D: Wave2（前面防御 / 戦旗の陣）。掴みは途中状態を保存しない（再開時の二重投げを防ぐ）。
+      frontGuard: this.frontGuard.leftMs > 0 ? { ...this.frontGuard } : null,
+      rallyField: this.rallyField ? { ...this.rallyField } : null,
       counterGlobalCdLeftMs: this._counterGlobalCdLeftMs,
     };
   }
   restoreTimedBuffs(s) {
     this.warCry = { leftMs: 0, meleeDamageBonus: 0, furyGainBonus: 0, comboGraceBonus: 0 };
     this.counterWindows = new Map();
+    // M8-D: Wave2（掴みは復元しない＝再開で無料の投げを作らない）。
+    this.frontGuard = { leftMs: 0, mitigation: 0, arc: 0, facing: 0, source: null };
+    this.rallyField = null;
+    this._rallyInside = false;
+    this._grab = null;
     this._counterGlobalCdLeftMs = 0;
     if (!s || typeof s !== 'object') return;
     const cfg = this.cfg.warCry;
@@ -847,6 +1130,28 @@ export class WarriorCombatSystem {
       }
     }
     this._counterGlobalCdLeftMs = Math.max(0, num(s.counterGlobalCdLeftMs, 0));
+    // M8-D: 前面防御（残り時間と軽減値だけ・上限クランプを通す）。
+    const fg = s.frontGuard;
+    if (fg && typeof fg === 'object' && num(fg.leftMs, 0) > 0 && num(fg.arc, 0) > 0) {
+      this.frontGuard = {
+        leftMs: Math.max(0, num(fg.leftMs, 0)),
+        mitigation: clamp(num(fg.mitigation, 0), 0, num(this.cfg.frontalGuard.maxFrontalMitigation, 0.55)),
+        arc: Math.max(0, num(fg.arc, 0)), facing: num(fg.facing, 0),
+        source: typeof fg.source === 'string' ? fg.source : null,
+      };
+    }
+    // M8-D: 戦旗の陣（必ず 1 つだけ復元する。壊れた保存は上限でクランプする）。
+    const rf = s.rallyField;
+    if (rf && typeof rf === 'object' && num(rf.leftMs, 0) > 0 && num(rf.radius, 0) > 0
+      && isFiniteNum(rf.x) && isFiniteNum(rf.y)) {
+      this.placeRallyField(typeof rf.source === 'string' ? rf.source : 'rallying_banner', {
+        x: rf.x, y: rf.y, durationMs: rf.leftMs, radius: rf.radius,
+        comboGrace: rf.comboGrace, furyGain: rf.furyGain, mitigation: rf.mitigation,
+        meleeArea: rf.meleeArea, killHealBonus: rf.killHealBonus, perSecondCapBonus: rf.perSecondCapBonus,
+      });
+      // 復元は「置き直し」ではないので設置回数を戻す（テレメトリの水増しを防ぐ）。
+      this.telemetry.rallyPlacements = Math.max(0, this.telemetry.rallyPlacements - 1);
+    }
   }
 
   _serializeTelemetry() {
@@ -872,6 +1177,17 @@ export class WarriorCombatSystem {
       chainPulls: t.chainPulls, chainPullDistance: t.chainPullDistance, bossApproaches: t.bossApproaches,
       leapLandings: t.leapLandings, sweepDistance: t.sweepDistance,
       relentlessChains: t.relentlessChains, relentlessRetargets: t.relentlessRetargets,
+      launches: t.launches, launchBlocked: t.launchBlocked, launchPoiseConverted: t.launchPoiseConverted,
+      frontGuardUptimeMs: t.frontGuardUptimeMs, frontGuardBlocked: t.frontGuardBlocked,
+      frontGuardSideHits: t.frontGuardSideHits, frontGuardBackHits: t.frontGuardBackHits,
+      grabs: t.grabs, grabRefused: t.grabRefused, grabCancels: t.grabCancels,
+      throwImpacts: t.throwImpacts, throwDistance: t.throwDistance,
+      comboStages: t.comboStages, guardTicks: t.guardTicks, guardUptimeMs: t.guardUptimeMs,
+      lowHpBonusSum: t.lowHpBonusSum, lowHpBonusSamples: t.lowHpBonusSamples,
+      axeOutboundHits: t.axeOutboundHits, axeReturnHits: t.axeReturnHits,
+      stepIns: t.stepIns, stepInDistance: t.stepInDistance,
+      rallyPlacements: t.rallyPlacements, rallyUptimeMs: t.rallyUptimeMs, rallyInsideMs: t.rallyInsideMs,
+      rallyAssists: t.rallyAssists, rallyKillHealBonus: t.rallyKillHealBonus,
     };
   }
 
@@ -943,6 +1259,11 @@ export class WarriorCombatSystem {
     // M8-C: 一時バフ・反撃の構えも破棄する（Scene 終了で持ち越さない）。
     this.warCry = { leftMs: 0, meleeDamageBonus: 0, furyGainBonus: 0, comboGraceBonus: 0 };
     this.counterWindows.clear();
+    // M8-D: Wave2 の共通状態も残さない。
+    this.frontGuard = { leftMs: 0, mitigation: 0, arc: 0, facing: 0, source: null };
+    this.rallyField = null;
+    this._rallyInside = false;
+    this._grab = null;
     this._counterGlobalCdLeftMs = 0;
     this._emit = () => {};
     this._heal = () => 0;
@@ -955,6 +1276,12 @@ export class WarriorCombatSystem {
     e._poiseImmuneUntil = 0;
     e._staggerUntil = 0;
     e._staggerSlow = 0;
+    // M8-D: 打ち上げ / 掴みの残留を落とす（掴んでいた相手が消えたら掴みも解除する）。
+    e._airborneUntil = 0;
+    e._launchImmuneUntil = 0;
+    e._launchHeight = 0;
+    if (this._grab && this._grab.seq === e._seq) this.endGrab(null, true);
+    e._grabbed = false;
     this._targetHitAt.delete(e);
   }
 
@@ -994,8 +1321,21 @@ export class WarriorCombatSystem {
       chainPulls: t.chainPulls, chainPullDistance: t.chainPullDistance, bossApproaches: t.bossApproaches,
       leapLandings: t.leapLandings, sweepDistance: t.sweepDistance,
       relentlessChains: t.relentlessChains, relentlessRetargets: t.relentlessRetargets,
+      // M8-D（Wave2）
+      launches: t.launches, launchBlocked: t.launchBlocked, launchPoiseConverted: t.launchPoiseConverted,
+      frontGuardUptimeSeconds: t.frontGuardUptimeMs / 1000, frontGuardBlocked: t.frontGuardBlocked,
+      frontGuardSideHits: t.frontGuardSideHits, frontGuardBackHits: t.frontGuardBackHits,
+      grabs: t.grabs, grabRefused: t.grabRefused, grabCancels: t.grabCancels,
+      throwImpacts: t.throwImpacts, throwDistance: t.throwDistance,
+      comboStages: t.comboStages, guardTicks: t.guardTicks, guardUptimeSeconds: t.guardUptimeMs / 1000,
+      lowHpAvgMultiplier: t.lowHpBonusSamples > 0 ? t.lowHpBonusSum / t.lowHpBonusSamples : 0,
+      axeOutboundHits: t.axeOutboundHits, axeReturnHits: t.axeReturnHits,
+      stepIns: t.stepIns, stepInDistance: t.stepInDistance,
+      rallyPlacements: t.rallyPlacements, rallyUptimeSeconds: t.rallyUptimeMs / 1000,
+      rallyInsideSeconds: t.rallyInsideMs / 1000, rallyAssists: t.rallyAssists,
       // 現在値（F8/F9 のライブ表示用。CombatTelemetry へは取り込まれない）。
       fury: this.fury, combo: this.combo, bossPoiseGauge: this.bossPoise.gauge,
+      rallyActive: this.rallyActive, rallyInside: this._rallyInside, frontGuardActive: this.frontGuardActive,
     };
   }
 }

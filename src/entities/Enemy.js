@@ -42,6 +42,11 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this._poiseImmuneUntil = 0;
     this._staggerUntil = 0;
     this._staggerSlow = 0;
+    // M8-D: 打ち上げ / 掴みの残留（プール再利用で別の敵へ持ち越さない）。
+    this._airborneUntil = 0;
+    this._launchImmuneUntil = 0;
+    this._launchHeight = 0;
+    this._grabbed = false;
     // dasher 用
     this._chargeState = 'idle'; // idle | telegraph | dash
     this._chargeTimer = 0;
@@ -84,6 +89,11 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this._poiseImmuneUntil = 0;
     this._staggerUntil = 0;
     this._staggerSlow = 0;
+    // M8-D: 打ち上げ / 掴みの残留（プール再利用で別の敵へ持ち越さない）。
+    this._airborneUntil = 0;
+    this._launchImmuneUntil = 0;
+    this._launchHeight = 0;
+    this._grabbed = false;
     this._chargeState = 'idle';
     this._chargeCd = 1200;
     this._chargeTimer = 0;
@@ -106,6 +116,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     if (this._chillSlow > 0) spd *= (1 - this._chillSlow);
     // M8-B: 体勢崩し（エリートの stagger）による減速。戦士以外では _staggerUntil=0 のため不変。
     if (now < this._staggerUntil) spd *= (1 - this._staggerSlow);
+    // M8-D: 打ち上げ中・掴まれている間は自分から動かない（戦士以外では常に 0/false なので不変）。
+    if (this._grabbed || now < this._airborneUntil) spd = 0;
     return Math.max(0, spd);
   }
 

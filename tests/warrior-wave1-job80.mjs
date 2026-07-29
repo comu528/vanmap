@@ -40,7 +40,9 @@ const run = (ctx, ms, step = 16) => {
 };
 const st = (ctx, id) => ctx.sm.statsList().find((s) => s.id === id) || {};
 // 自力で近づく（＝遠方の敵にもいずれ届く）スキル。遠距離判定の対象から外す。
-const MOVERS = new Set(['charge_slash', 'leap_smash', 'sweeping_advance', 'chain_hook']);
+// M8-D（Wave2）で shield_charge / backstep_riposte / berserker_rush が加わった。
+const MOVERS = new Set(['charge_slash', 'leap_smash', 'sweeping_advance', 'chain_hook',
+  'shield_charge', 'backstep_riposte', 'berserker_rush']);
 
 // ===== 1. 対象はちょうど 6 種 =====
 section('1. Job Lv80 の対象は戦士 active のうちちょうど 6 種');

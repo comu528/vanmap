@@ -1,4 +1,4 @@
-# 戦士の進化導線補助（guidance・Milestone 8-C.1）
+# 戦士の進化導線補助（guidance・Milestone 8-C.1 / 8-D）
 
 M8-C で戦士の active が 5 → 15 になり、**active 枠 4 の進化到達率が 92.5% → 46.5%** に落ちた。
 テストのしきい値を下げるのではなく、production の抽選導線を戦士向けに直した回。
@@ -50,6 +50,7 @@ M6-F の synergy は「基礎を持っている → その補助を煽る」の�
   "requiredSupportWeightMultiplier": 1.3,    // 所持 base の未達補助
   "nearRequiredRemainingLevels": 1,          // 「必要 Lv 手前」とみなす残り段数
   "supportNearRequiredMultiplier": 1.2,      // 必要 Lv 手前の補助への追加
+  "activeSupportWeightMultiplier": 1.6,      // 補助が active のレシピへの追加（M8-D）
 
   "pity": { "threshold": 3, "bonusPerStep": 0.12, "maxMultiplier": 1.8 }
 }
@@ -85,6 +86,7 @@ supportMult = max over recipes:
   必要 Lv 未達の補助で、その進化元を所持している
                         → requiredSupportWeightMultiplier
                           × (必要 Lv - 現在 Lv ≤ nearRequiredRemainingLevels なら supportNearRequiredMultiplier)
+                          × (補助が active なら activeSupportWeightMultiplier)
 
 guidanceMult = min(baseMult × supportMult × pityBonus, maxMultiplier)
 ```
@@ -173,3 +175,43 @@ M8-A 時点と byte-identical であることを確認している。
 - active 枠数の変更 / `save_version` の更新
 
 不採用にした案とその理由は `./warrior-draft-analysis-wave1.md` の §7。
+
+---
+
+## 9. Milestone 8-D（active 25 種）での追調整
+
+active が 15 → 25、進化が 8 → 13 になると、1 回のドラフトで特定の組み合わせを引く確率が薄まる。
+**しきい値は 1 つも下げず**、data の guidance へキーを 1 つ足すだけで吸収した。
+
+| 追加キー | 値 | 何のため |
+|---------|----|---------|
+| `activeSupportWeightMultiplier` | 1.6 | **補助が active** のレシピの補助側へ追加補正 |
+
+理由: passive 補助は最大 Lv が低く（4）、枠も active とは別なので早期に埋まる。
+一方 **active 補助は active 枠を 1 つ食い、必要 Lv も高い**（`ground_slam` Lv6）。
+カタログが増えるほど不利になるのはこちらだけなので、そこだけを補正する。
+判定は**候補のカテゴリ（`m.category === 'active'`）だけ**を見る。特定の skill ID は実装に書かない。
+
+### 効果（200 seed・5 方針）
+
+| 指標 | 追加前 | 追加後 |
+|------|--------|--------|
+| `heaven_crushing_descent` 取得（枠4 / 6 / 8）| 6 / 62 / 134 | **13 / 90 / 192** |
+| `mountain_hurl` 取得（枠4 / 6 / 8）| 2 / 22 / 43 | **7 / 20 / 63** |
+| 最頻進化のシェア（枠4 / 6 / 8）| 19.6% / 16.8% / 14.4% | **19.3% / 16.8% / 14.2%** |
+| 素朴戦略 枠4 / 40lv・進化 1 個以上 | 85.0% | **85.0%** |
+
+集中は悪化せず（最頻シェアはむしろ微減）、active 補助の 2 進化だけが持ち上がっている。
+1.9 / 2.2 も測ったが、`mountain_hurl` はほぼ伸びない一方で素朴戦略の枠4 到達率が
+85.0% → 83.5% / 84.0% と落ちたため、**1.6 を採用**した。
+
+### M8-D 時点の到達率（しきい値はすべて M8-C.1 のまま）
+
+| 構成 | 実測 | 目標 |
+|------|------|------|
+| 枠4 / 40 lv・進化 1 個以上 / 平均 / 0 個 | 85.0% / 1.17 / 15.0% | 80% 以上 / 1.0 以上 / 20% 以下 |
+| 枠6 / 60 lv・1 個以上 / 2 個以上 / 平均 | 99.0% / 88.0% / 2.38 | 95% / 60% / 1.7 |
+| 枠8 / 80 lv・1 個以上 / 2 個以上 / 平均 | 100.0% / 98.5% / 3.46 | 95% / 65% / 1.8 |
+
+13 進化すべてが取得 > 0、25 active すべてが提示・取得 > 0、
+候補ゼロ / 混入 / 重複 / 枠違反はいずれも 0 件。

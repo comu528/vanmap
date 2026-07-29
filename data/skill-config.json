@@ -83,6 +83,7 @@
     "requiredSupportWeightMultiplier": 1.3,
     "nearRequiredRemainingLevels": 1,
     "supportNearRequiredMultiplier": 1.2,
+    "activeSupportWeightMultiplier": 1.6,
     "pity": {
       "threshold": 3,
       "bonusPerStep": 0.12,

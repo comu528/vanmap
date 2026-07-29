@@ -120,13 +120,16 @@ section('6. 同じ補助を複数の進化が要求しても倍率が積み上�
 {
   const count = {};
   for (const r of GUIDANCE_RECIPES) for (const q of r.requirements) count[q.skill] = (count[q.skill] || 0) + 1;
-  const single = G.requiredSupportWeightMultiplier * G.supportNearRequiredMultiplier;
+  // 1 レシピぶんの上限。M8-D で「補助が active」のときだけ追加倍率が乗るので、種別で分ける。
+  const singleFor = (sid) => G.requiredSupportWeightMultiplier * G.supportNearRequiredMultiplier
+    * (WARRIOR.activeSkillPool.includes(sid) ? (G.activeSupportWeightMultiplier || 1) : 1);
   for (const [sid, n] of Object.entries(count)) {
     const bases = GUIDANCE_RECIPES.filter((r) => r.requirements.some((q) => q.skill === sid)).map((r) => r.baseSkillId);
     const owned = { active: {}, passive: {} };
     for (const b of bases) owned.active[b] = 3;
     const c = find(poolOf(mk(), ctxOf(owned, 8)), sid);
     if (!c || c.guidanceMult === undefined) continue;
+    const single = singleFor(sid);
     ok(c.guidanceMult <= single + 1e-9, `${sid}（${n} レシピが共有）: ×${c.guidanceMult.toFixed(3)} ≤ 単体上限 ×${single.toFixed(3)}`);
   }
 }

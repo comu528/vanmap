@@ -12,7 +12,7 @@ import { createHash } from 'node:crypto';
 import { SkillDraftManager } from '../src/systems/SkillDraftManager.js';
 import { buildCatalog } from '../src/systems/SkillCatalog.js';
 import { memberAllowedForJob } from '../src/systems/poolEligibility.js';
-import { DATA, WARRIOR, FLAME, FROST, draftCatalog, jobPools, seedRange, runner, readSrc, registeredIds } from './warrior-common.mjs';
+import { DATA, WARRIOR, FLAME, FROST, EXPECTED, draftCatalog, jobPools, seedRange, runner, readSrc, registeredIds } from './warrior-common.mjs';
 import { SKILL_CONFIG, GUIDANCE_RECIPES } from './warrior-draft-sim.mjs';
 
 const T = runner('戦士 導線補助 非回帰（M8-C.1）');
@@ -116,7 +116,10 @@ section('4. poolEligibility とプールが不変');
   info(`poolEligibility hash: ${sha(lines.join('\n')).slice(0, 32)}…`);
   ok(FLAME.activeSkillPool.length === 30 && FLAME.evolutionPool.length === 18, '火 30/18 が不変');
   ok(FROST.activeSkillPool.length === 30 && FROST.evolutionPool.length === 18, '氷 30/18 が不変');
-  ok(WARRIOR.activeSkillPool.length === 15 && WARRIOR.evolutionPool.length === 8, '戦士 15/8 が不変（M8-C.1 は data のスキルを増やしていない）');
+  // 戦士の規模は Milestone ごとに増える（M8-C 15/8 → M8-D 25/13）。
+  // このテストが守るのは「導線補助が火 / 氷を動かさないこと」なので、正は EXPECTED を見る。
+  ok(WARRIOR.activeSkillPool.length === EXPECTED.activeCount && WARRIOR.evolutionPool.length === EXPECTED.evolutionCount,
+    `戦士 ${EXPECTED.activeCount}/${EXPECTED.evolutionCount}（導線補助そのものは 1 件も増やしていない）`);
   for (const jid of ['flame_witch', 'frost_mage', 'warrior']) {
     ok((jobPools(jid).passiveSkillPool || []).length === 4, `${jid}: passive プール 4 件が不変`);
   }
@@ -164,10 +167,17 @@ section('7. 保存キーの追加は 1 件だけ・save_version は v6');
 // ===== 8. data の非回帰 =====
 section('8. M8-C.1 で data のスキル / 進化 / バランスを 1 件も変えていない');
 {
-  ok(DATA.skills.length === 75, `skills.json 75 件（${DATA.skills.length}）`);
-  ok(DATA.evolutions.length === 44, `skill-evolutions.json 44 件（${DATA.evolutions.length}）`);
+  // 導線補助（guidance）そのものは data のスキルを 1 件も増やしていない。
+  // 増えるのは戦士の Wave 追加ぶんだけなので、「戦士以外は不変」を正として測る。
+  const nonWarriorSkills = DATA.skills.filter((x) => !(x.jobs || []).includes('warrior')).length;
+  const nonWarriorEvos = DATA.evolutions.filter((x) => !((DATA.skills.find((s2) => s2.id === x.baseSkillId) || {}).jobs || []).includes('warrior')).length;
+  ok(nonWarriorSkills === 60, `戦士以外の skills が不変 60 件（${nonWarriorSkills}）`);
+  ok(nonWarriorEvos === 36, `戦士以外の evolutions が不変 36 件（${nonWarriorEvos}）`);
+  ok(DATA.skills.length === 60 + EXPECTED.activeCount, `skills.json ${60 + EXPECTED.activeCount} 件（${DATA.skills.length}）`);
+  ok(DATA.evolutions.length === 36 + EXPECTED.evolutionCount, `skill-evolutions.json ${36 + EXPECTED.evolutionCount} 件（${DATA.evolutions.length}）`);
   ok(DATA.passives.length >= 12, `passives.json 件数が不変（${DATA.passives.length}）`);
-  ok(Object.keys(DATA.balance.skillCaps).length === 185, `skillCaps 185 件（${Object.keys(DATA.balance.skillCaps).length}）`);
+  // skillCaps は M8-C.1 時点で 185 件。M8-D の Wave2 で 20 件（新 active10 の damage/event + visual）増えた。
+  ok(Object.keys(DATA.balance.skillCaps).length === 205, `skillCaps 205 件（${Object.keys(DATA.balance.skillCaps).length}）`);
   // 追加したのは skill-config.json の guidance ブロックだけ。
   ok(!!SKILL_CONFIG.guidance, 'skill-config.json に guidance がある');
   ok(SKILL_CONFIG.guidance.jobs.length === 1 && SKILL_CONFIG.guidance.jobs[0] === 'warrior', 'guidance は戦士専用');

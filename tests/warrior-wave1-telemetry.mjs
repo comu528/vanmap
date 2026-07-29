@@ -61,7 +61,8 @@ section('1. Wave1 の指標が CombatTelemetry と summary() の両方にある'
     ok(Object.prototype.hasOwnProperty.call(ctx.w.telemetry, internalKey), `内部 telemetry に ${internalKey} がある`);
   }
   // 1:1 が崩れていない（M8-B のテストと同じ規則）。
-  const live = new Set(['fury', 'combo', 'bossPoiseGauge']);
+  // M8-D でライブ表示専用キーが 3 つ増えた（戦旗の在否 / 内外・前面防御の在否）。
+  const live = new Set(['fury', 'combo', 'bossPoiseGauge', 'rallyActive', 'rallyInside', 'frontGuardActive']);
   for (const k of Object.keys(t.warrior)) ok(Object.prototype.hasOwnProperty.call(sum, k), `summary() が ${k} を返す（全体の 1:1）`);
   for (const k of Object.keys(sum)) {
     ok(Object.prototype.hasOwnProperty.call(t.warrior, k) || live.has(k), `${k}: telemetry 側にも存在する`);

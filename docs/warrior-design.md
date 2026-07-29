@@ -376,3 +376,15 @@ M8-C で active が 5 → 15 になり、枠 4 の進化到達率が 92.5% → 4
 結果として「基礎 active の Lv8 だけが残る」形になり、そこへ効く補正が既存 synergy に無かった。
 
 詳細は `./warrior-evolution-guidance.md`、実測分析は `./warrior-draft-analysis-wave1.md`。
+
+
+---
+
+## Milestone 8-D 以降のカタログ
+
+戦士のカタログは **active 25 / passive 4 / evolution 13** まで拡張された（M8-D）。
+基盤（闘気 / コンボ / 強靱 / 不屈 / 体勢崩し）は M8-B から一切変えていない。
+
+Wave2 で足した 5 つの機構（打ち上げ / 前面防御 / 掴み・投げ / 戦旗の陣 / 低 HP スケーリング）も
+**新しい formal status を作らず**、`WarriorCombatSystem` 上の状態として持つ。
+設計意図は `./warrior-wave2.md`、一覧は `./skill-catalog.md` を参照。

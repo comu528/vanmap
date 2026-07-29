@@ -779,6 +779,14 @@ export class BattleScene extends Phaser.Scene {
       movePlayerTowards: (x, y, distance) => this.movePlayerTowards(x, y, distance),
       bossTelegraphing: () => !!(this.boss && this.boss.alive && (this.boss.state === 'telegraph' || this.boss.state === 'charge')),
       warriorPullConfig: () => (DataManager.balance.warrior && DataManager.balance.warrior.pull) || {},
+      // M8-D: 戦士 Wave2 の共通経路（スキルは Scene / 敵の内部状態を直接いじらない）。
+      launchTarget: (e, opts) => this.launchTarget(e, opts),
+      grabTarget: (e, opts) => this.grabTarget(e, opts),
+      throwGrabbed: (opts) => this.throwGrabbed(opts),
+      releaseGrab: (cancelled) => this.releaseGrab(cancelled),
+      grabbedTarget: () => this.grabbedTarget(),
+      thrownStrike: (o) => this.meleeStrike({ ...o, isThrown: true }),
+      warriorWave2Config: (key) => ((DataManager.balance.warrior && DataManager.balance.warrior[key]) || {}),
       // 同一発動を識別する ID（凍結判定回数の上限に使う。多段攻撃で同じ敵を毎tick凍結しない）。
       nextHitGroupId: () => this.nextHitGroupId(),
     };
@@ -1331,7 +1339,7 @@ export class BattleScene extends Phaser.Scene {
   // M8-B: 被弾の共通入口（Player.takeDamage から。障壁処理の後・HP 減算の前）。
   // 強靱（接敵/近接直後/突進/闘気解放/不屈）＋スキル由来の一時軽減を合成し、軽減後ダメージを返す。
   // 戦士以外のジョブでは warrior.enabled=false のため amount がそのまま返り、火/氷の被弾計算は不変。
-  onWarriorDamage(amount) {
+  onWarriorDamage(amount, from) {
     const w = this.warrior;
     if (!w || !w.enabled) return amount;
     const p = this.player;
@@ -1346,7 +1354,10 @@ export class BattleScene extends Phaser.Scene {
       if (typeof sk.chargeMitigation === 'function') extra = Math.max(extra, sk.chargeMitigation() || 0);
       if (sk.charging) charging = true;
     }
-    const out = w.applyIncomingDamage(amount, { engaged, charging, extra });
+    // M8-D: 被弾方向（分かるときだけ）。鉄壁突進の前面防御はこれがあるときにしか効かない。
+    const dir = (from && Number.isFinite(from.x) && Number.isFinite(from.y))
+      ? { fromX: from.x, fromY: from.y, x: p.x, y: p.y } : {};
+    const out = w.applyIncomingDamage(amount, { engaged, charging, extra, ...dir });
     // 反応スキル（不落の城塞 / 迎撃の構え / 金剛迎撃）へ被弾を通知する。
     this.onWarriorHit(amount, out);
     return out;
@@ -1426,6 +1437,9 @@ export class BattleScene extends Phaser.Scene {
       if (hits >= cap) { this._m.suppressed++; break; }
       if (!e || !e.alive) continue;
       if (o.hitSet && o.hitSet.has(e)) continue;
+      // M8-D: 同一敵への命中回数上限（戦斧投擲の行き / 帰りで最大 2 回）。
+      // 敵オブジェクトを保持しないよう、安定 runtime id（_seq）をキーにする。
+      if (o.seqHitCounts && (o.seqHitCounts.get(e._seq) || 0) >= (o.seqHitCap || 1)) continue;
       if (!full) {
         let d = Math.atan2(e.y - o.y, e.x - o.x) - (o.facing || 0);
         while (d > Math.PI) d -= Math.PI * 2;
@@ -1433,9 +1447,10 @@ export class BattleScene extends Phaser.Scene {
         if (Math.abs(d) > half) continue;
       }
       if (o.hitSet) o.hitSet.add(e);
+      if (o.seqHitCounts) o.seqHitCounts.set(e._seq, (o.seqHitCounts.get(e._seq) || 0) + 1);
       hits += 1;
-      // ダメージ（physical・戦士の近接倍率つき）。
-      let dmg = (o.damage || 0) * (w ? w.meleeDamageMultiplier(e) : 1);
+      // ダメージ（physical）。投擲（戦斧投擲）は近接ではないので近接倍率を乗せない。
+      let dmg = (o.damage || 0) * ((w && !o.isThrown) ? w.meleeDamageMultiplier(e) : 1);
       // M8-C: 硬い相手（エリート/ボス）への追加倍率（兜割り系）。
       if (o.toughBonus && (e.isElite || e.isBoss)) dmg *= (1 + o.toughBonus);
       // M8-C: 処刑。可否は WarriorCombatSystem が判断し、通常敵だけが即死しうる。
@@ -1451,8 +1466,8 @@ export class BattleScene extends Phaser.Scene {
         dmg *= pol.damageMult;
       }
       const died = this.dealDamage(e, dmg, o.skillId, {
-        element: 'physical', damageTags: o.tags || ['melee'], color: o.color || 0xffd54f,
-        from: { x: o.x, y: o.y }, hitGroupId, isMelee: true,
+        element: 'physical', damageTags: o.tags || (o.isThrown ? ['thrown'] : ['melee']), color: o.color || 0xffd54f,
+        from: { x: o.x, y: o.y }, hitGroupId, isMelee: !o.isThrown,
       });
       if (died) continue;
       // ノックバック / 体勢削り（エリートはノックバックを大幅軽減し主に体勢へ回す）。
@@ -1461,10 +1476,29 @@ export class BattleScene extends Phaser.Scene {
         ws.meleeHits += 1; ws.physicalDamage += dmg;
         const kb = w.resolveKnockback(e, o.knockback);
         if (kb.knockback > 0 && e.applyKnockback) { e.applyKnockback(o.x, o.y, kb.knockback); ws.knockbacks += 1; }
+        // M8-D: 打ち上げ。通常敵だけを浮かせ、エリート / ボスは浮かせず体勢削りへ変換する。
+        let launchPoise = 0;
+        if (o.launch) {
+          // 1 発動あたり同一敵を打ち上げられる回数（安定 runtime id で数える。敵参照は持たない）。
+          const counts = o.launch.counts;
+          const perTarget = Math.max(0, o.launch.maxPerTarget || 1);
+          const done = counts ? (counts.get(e._seq) || 0) : 0;
+          if (!counts || done < perTarget) {
+            if (counts) counts.set(e._seq, done + 1);
+            const lr = this.launchTarget(e, {
+              durationMs: o.launch.durationMs, height: o.launch.height,
+              immuneMs: o.launch.immuneMs,
+              poiseDamage: o.poiseDamage, skillId: o.skillId,
+            });
+            launchPoise = lr.poiseBonus || 0;
+          }
+        }
         const poiseOnce = o.poiseOnceSet;
         if (!poiseOnce || !poiseOnce.has(e)) {
           if (poiseOnce) poiseOnce.add(e);
-          const poise = (o.poiseDamage || 0) + kb.poiseBonus;
+          // M8-D: 硬い相手（エリート / ボス）への体勢特化ボーナス（破城膝撃）。
+          const toughPoise = (o.toughPoiseBonus && (e.isElite || e.isBoss)) ? o.toughPoiseBonus : 0;
+          const poise = ((o.poiseDamage || 0) * (1 + toughPoise)) + kb.poiseBonus + launchPoise;
           if (poise > 0) {
             ws.poiseDamage += poise;
             const pr = w.applyPoiseDamage(e, poise);
@@ -1549,6 +1583,88 @@ export class BattleScene extends Phaser.Scene {
       ws.executions = (ws.executions || 0) + 1;
     }
     return died;
+  }
+
+  // ================= M8-D: 戦士 Wave2 の共通経路 =================
+
+  // 打ち上げ（昇竜斬 / 天衝断空）。可否は WarriorCombatSystem.launchPolicy() が決める。
+  // 通常敵だけを短く浮かせ、エリート / ボスは浮かせず体勢削りへ変換する。
+  // 無限再打ち上げを防ぐため免疫時間を敵へ刻む（Enemy.reset でクリアされる）。
+  launchTarget(e, opts = {}) {
+    const w = this.warrior;
+    if (!w || !e || !e.alive) return { launched: false, poiseBonus: 0 };
+    const pol = w.launchPolicy(e, { poiseDamage: opts.poiseDamage });
+    if (!pol.launched) return { launched: false, poiseBonus: pol.poiseBonus, reason: pol.reason };
+    const ms = w.launchDurationMs(opts.durationMs);
+    if (ms <= 0) return { launched: false, poiseBonus: 0, reason: 'zero' };
+    const now = this.time.now;
+    e._airborneUntil = Math.max(e._airborneUntil || 0, now + ms);
+    e._launchImmuneUntil = now + w.launchImmuneMs(opts.immuneMs);
+    e._launchHeight = Math.max(0, opts.height || 0);
+    if (e.setVelocity) e.setVelocity(0, 0);
+    if (e._knockback) { e._knockback.set(0, 0); e._knockbackTimer = 0; }
+    if (opts.skillId) this._warriorSkillStat(opts.skillId).launches += 1;
+    return { launched: true, poiseBonus: 0, durationMs: ms };
+  }
+
+  // 掴み（豪腕投げ / 山岳投擲）。通常敵だけを掴む。
+  // 敵オブジェクトは保持せず、安定 runtime id（_seq）だけを WarriorCombatSystem へ預ける。
+  grabTarget(e, opts = {}) {
+    const w = this.warrior;
+    if (!w || !e || !e.alive) return { mode: 'none' };
+    const pol = w.grabPolicy(e);
+    if (!pol.canGrab) return { mode: pol.mode, reason: pol.reason };
+    if (!w.beginGrab(opts.source || opts.skillId, e._seq)) return { mode: 'none', reason: 'busy' };
+    e._grabbed = true;
+    if (e.setVelocity) e.setVelocity(0, 0);
+    if (e._knockback) { e._knockback.set(0, 0); e._knockbackTimer = 0; }
+    if (opts.skillId) this._warriorSkillStat(opts.skillId).grabs += 1;
+    return { mode: 'throw', seq: e._seq };
+  }
+
+  // 掴んでいる敵を _seq から引き直す（保持しないための共通ヘルパ）。
+  grabbedTarget() {
+    const w = this.warrior;
+    if (!w || !w.grabbing) return null;
+    const seq = w._grab.seq;
+    let found = null;
+    this.enemyPool.forEachActive((e) => { if (!found && e.alive && e._seq === seq) found = e; });
+    return found;
+  }
+
+  // 掴みの解除（対象消失・時間切れ・run 終了）。敵側のフラグも必ず戻す。
+  releaseGrab(cancelled) {
+    const w = this.warrior;
+    if (!w) return false;
+    const t = this.grabbedTarget();
+    if (t) t._grabbed = false;
+    return w.endGrab(null, !!cancelled);
+  }
+
+  // 投げ（掴んだ敵を着地点へ運ぶ）。テレポートせず、壁内へクランプし、SpatialGrid を必ず更新する。
+  // 着地時の衝撃は呼び出し側が meleeStrike で出す（死亡イベントの二重化を防ぐ）。
+  throwGrabbed(opts = {}) {
+    const w = this.warrior;
+    if (!w || !w.grabbing) return 0;
+    const e = this.grabbedTarget();
+    if (!e || !e.alive) { this.releaseGrab(true); return 0; }
+    const cfg = (DataManager.balance.warrior && DataManager.balance.warrior.grab) || {};
+    const margin = cfg.worldMargin ?? 24;
+    const step = Math.max(0, opts.distance || 0);
+    const dx = (opts.x != null ? opts.x : e.x) - e.x;
+    const dy = (opts.y != null ? opts.y : e.y) - e.y;
+    const d = Math.hypot(dx, dy);
+    if (!(d > 1e-3) || step <= 0) return 0;
+    const move = Math.min(step, d);
+    const nx = e.x + (dx / d) * move;
+    const ny = e.y + (dy / d) * move;
+    if (!Number.isFinite(nx) || !Number.isFinite(ny)) return 0;
+    const px = e.x, py = e.y;
+    e.x = Math.max(margin, Math.min(this.worldW - margin, nx));
+    e.y = Math.max(margin, Math.min(this.worldH - margin, ny));
+    if (e.setVelocity) e.setVelocity(0, 0);
+    if (this._useSpatial) this.enemyGrid.update(e);
+    return distance(px, py, e.x, e.y);
   }
 
   // M8-C: 鎖鉤の引き寄せ。ボスは動かさない（0 距離）。壁外・NaN を作らず SpatialGrid を必ず更新する。
@@ -1968,7 +2084,7 @@ export class BattleScene extends Phaser.Scene {
       this.bossBulletPool.forEachActive((b) => {
         if (!b.alive) return;
         if (distance(b.x, b.y, p.x, p.y) <= pr + 6 * b.scaleX) {
-          if (p.takeDamage(b.damage)) { this.effects.screenShake(120, 0.006); if (!p.alive) this.onPlayerDeath(); }
+          if (p.takeDamage(b.damage, { x: b.x, y: b.y })) { this.effects.screenShake(120, 0.006); if (!p.alive) this.onPlayerDeath(); }
           b.alive = false;
         }
       });
@@ -1979,12 +2095,12 @@ export class BattleScene extends Phaser.Scene {
       this.enemyPool.forEachActive((e) => {
         if (!e.alive) return;
         if (distance(p.x, p.y, e.x, e.y) <= pr + e.displayWidth * 0.4) {
-          if (p.takeDamage(e.damage)) { this.effects.screenShake(120, 0.006); if (!p.alive) this.onPlayerDeath(); }
+          if (p.takeDamage(e.damage, { x: e.x, y: e.y })) { this.effects.screenShake(120, 0.006); if (!p.alive) this.onPlayerDeath(); }
         }
       });
       // ボス接触
       if (this.boss && this.boss.alive && distance(p.x, p.y, this.boss.x, this.boss.y) <= pr + this.boss.displayWidth * 0.4) {
-        if (p.takeDamage(this.boss.damage)) { this.effects.screenShake(160, 0.008); if (!p.alive) this.onPlayerDeath(); }
+        if (p.takeDamage(this.boss.damage, { x: this.boss.x, y: this.boss.y })) { this.effects.screenShake(160, 0.008); if (!p.alive) this.onPlayerDeath(); }
       }
     }
   }
@@ -2919,6 +3035,19 @@ export class BattleScene extends Phaser.Scene {
     L.push('— 移動 / 引き寄せ —');
     L.push(`鎖鉤 ${w.telemetry.chainPulls}回 ${Math.round(w.telemetry.chainPullDistance)}px ボス接近${w.telemetry.bossApproaches}回（ボスは動かない）`);
     L.push(`跳躍着地${w.telemetry.leapLandings} 進軍${Math.round(w.telemetry.sweepDistance)}px 連撃完走${w.telemetry.relentlessChains} 引継${w.telemetry.relentlessRetargets}`);
+    // ---- M8-D（Wave2）----
+    L.push('— 打ち上げ（launch・通常敵のみ）—');
+    L.push(`成立${w.telemetry.launches} 拒否${w.telemetry.launchBlocked}（エリート/ボスは体勢へ${Math.round(w.telemetry.launchPoiseConverted)}）滞空上限${w.cfg.launch.maxAirborneMs}ms 免疫${w.cfg.launch.immuneMs}ms`);
+    L.push('— 前面防御（frontGuard・方向つき被弾のみ）—');
+    L.push(`${w.frontGuardActive ? `残${(w.frontGuard.leftMs / 1000).toFixed(1)}s 軽減${(w.frontGuard.mitigation * 100).toFixed(0)}% 弧${w.frontGuard.arc.toFixed(2)}rad` : '×'} 受流${w.telemetry.frontGuardBlocked} 側面${w.telemetry.frontGuardSideHits} 背面${w.telemetry.frontGuardBackHits}`);
+    L.push('— 掴み / 投げ（grab・通常敵のみ）—');
+    L.push(`${w.grabbing ? `掴み中 残${(w._grab.leftMs / 1000).toFixed(1)}s` : '×'} 成立${w.telemetry.grabs} 拒否${w.telemetry.grabRefused} 中断${w.telemetry.grabCancels} 着地${w.telemetry.throwImpacts} ${Math.round(w.telemetry.throwDistance)}px`);
+    L.push('— 三段 / 刃防陣 / 低HP / 戦斧 / 膝 —');
+    L.push(`三段${w.telemetry.comboStages}段 刃防陣${w.telemetry.guardTicks}tick 低HP平均×${(w.telemetry.lowHpBonusSamples ? w.telemetry.lowHpBonusSum / w.telemetry.lowHpBonusSamples : 1).toFixed(3)}（上限×${w.cfg.lowHp.maxMissingHpMultiplier}）`);
+    L.push(`戦斧 行き${w.telemetry.axeOutboundHits}/帰り${w.telemetry.axeReturnHits} 踏み込み${w.telemetry.stepIns}回 ${Math.round(w.telemetry.stepInDistance)}px`);
+    L.push('— 戦旗の陣（rally・内側にいるときだけ効く）—');
+    L.push(`${w.rallyActive ? `残${(w.rallyField.leftMs / 1000).toFixed(1)}s 半径${Math.round(w.rallyField.radius)} ${w.rallyInside ? '内側' : '外側'}` : '×'} 設置${w.telemetry.rallyPlacements}本 内側${(w.telemetry.rallyInsideMs / 1000).toFixed(1)}s 血の誓い${w.telemetry.rallyAssists}回`);
+    L.push(`陣の効果: 猶予+${(w.rallyBonus('comboGrace') * 100).toFixed(0)}% 闘気+${(w.rallyBonus('furyGain') * 100).toFixed(0)}% 軽減+${(w.rallyBonus('mitigation') * 100).toFixed(0)}% 範囲+${(w.rallyBonus('meleeArea') * 100).toFixed(0)}%`);
     L.push('— 所持 —');
     L.push(`active: ${Array.from(this.skills.skills.keys()).join(',') || '(なし)'}`);
     L.push(`passive: ${this.passives.ownedList().map((p) => `${p.id}Lv${p.level}`).join(',') || '(なし)'}`);
@@ -3196,6 +3325,26 @@ export class BattleScene extends Phaser.Scene {
         if (on && g.triggers > 0 && g.resets === 0) B.push('⚠ pity が発動したまま一度もリセットされていない');
         void evoShare;
       }
+      // M8-D: Wave2 の実動作カウンタ。ローカル表示のみ・外部送信しない。
+      B.push('— 戦士 Wave2（M8-D 実動作カウンタ）—');
+      B.push(`打ち上げ ${w.launches}回（拒否${w.launchBlocked} 体勢変換${Math.round(w.launchPoiseConverted)}）※通常敵のみ`);
+      B.push(`前面防御 稼働${w.frontGuardUptimeSeconds.toFixed(1)}s 受け流し${w.frontGuardBlocked} 側面${w.frontGuardSideHits} 背面${w.frontGuardBackHits}`);
+      B.push(`掴み ${w.grabs}回（拒否${w.grabRefused} 中断${w.grabCancels}） 投げ ${w.throwImpacts}回 ${Math.round(w.throwDistance)}px`);
+      B.push(`三段 ${w.comboStages}段 刃防陣 ${w.guardTicks}tick 稼働${w.guardUptimeSeconds.toFixed(1)}s`);
+      B.push(`低HP倍率 平均×${w.lowHpAvgMultiplier.toFixed(3)} 戦斧 行き${w.axeOutboundHits}/帰り${w.axeReturnHits} 踏み込み ${w.stepIns}回 ${Math.round(w.stepInDistance)}px`);
+      B.push(`戦旗 ${w.rallyPlacements}本 稼働${w.rallyUptimeSeconds.toFixed(1)}s 内側${w.rallyInsideSeconds.toFixed(1)}s 血の誓い${w.rallyAssists}回`);
+      // active 補助の進化（枠を 2 つ使うぶん到達しづらい）を個別に出す。
+      const auxActiveEvos = evoPool.filter((id) => ((DataManager.getEvolution(id) || {}).requiredSkills || [])
+        .some((q) => (wjob.activeSkillPool || []).includes(q.skill)));
+      if (auxActiveEvos.length) {
+        B.push(`active補助の進化 ${auxActiveEvos.filter((id) => evolved.includes(id)).length}/${auxActiveEvos.length}（${auxActiveEvos.join(' ')}）`);
+      }
+      if (w.launches === 0 && w.launchBlocked === 0 && ownedIds.includes('rising_slash')) B.push('⚠ 昇竜斬はあるが打ち上げ0');
+      if (w.frontGuardUptimeSeconds > 0 && w.frontGuardBlocked === 0) B.push('⚠ 前面防御は稼働しているが受け流し0');
+      if (w.grabs === 0 && w.grabRefused === 0 && ownedIds.includes('battlefield_throw')) B.push('⚠ 豪腕投げはあるが掴み0');
+      if (w.rallyPlacements > 0 && w.rallyInsideSeconds === 0) B.push('⚠ 戦旗は立つが内側に居た時間0（効果が乗っていない）');
+      if (w.axeOutboundHits > 0 && w.axeReturnHits === 0) B.push('⚠ 戦斧の帰りが 1 度も当たっていない');
+      if (evolved.length > 0 && new Set(evolved).size === 1 && evoPool.length > 8) B.push('⚠ build が 1 進化へ偏っている');
     }
     B.push('— 性能 / 上限 —');
     B.push(`抑制/f ${(this._mLast || this._m).suppressed}  索引上限 ${JSON.stringify(sfx ? sfx.capReached() : {})}`);

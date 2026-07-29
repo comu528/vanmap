@@ -1148,6 +1148,126 @@
       "medium": 6,
       "high": 10,
       "ultra": 14
+    },
+    "maxLaunchTargets": {
+      "low": 4,
+      "medium": 6,
+      "high": 8,
+      "ultra": 10
+    },
+    "maxChargeContacts": {
+      "low": 8,
+      "medium": 12,
+      "high": 16,
+      "ultra": 20
+    },
+    "maxRiposteStrikes": {
+      "low": 2,
+      "medium": 2,
+      "high": 3,
+      "ultra": 3
+    },
+    "maxThrowImpacts": {
+      "low": 1,
+      "medium": 2,
+      "high": 2,
+      "ultra": 2
+    },
+    "maxCrushStages": {
+      "low": 3,
+      "medium": 3,
+      "high": 3,
+      "ultra": 3
+    },
+    "maxGuardTicksPerFrame": {
+      "low": 1,
+      "medium": 1,
+      "high": 2,
+      "ultra": 2
+    },
+    "maxRushSteps": {
+      "low": 4,
+      "medium": 6,
+      "high": 8,
+      "ultra": 10
+    },
+    "maxAxeHitsPerTarget": {
+      "low": 2,
+      "medium": 2,
+      "high": 2,
+      "ultra": 2
+    },
+    "maxKneeStrikes": {
+      "low": 1,
+      "medium": 1,
+      "high": 2,
+      "ultra": 2
+    },
+    "maxRallyFields": {
+      "low": 1,
+      "medium": 1,
+      "high": 1,
+      "ultra": 1
+    },
+    "maxLaunchVisuals": {
+      "low": 4,
+      "medium": 6,
+      "high": 10,
+      "ultra": 14
+    },
+    "maxChargeTrails": {
+      "low": 4,
+      "medium": 6,
+      "high": 10,
+      "ultra": 14
+    },
+    "maxRiposteTrails": {
+      "low": 3,
+      "medium": 5,
+      "high": 8,
+      "ultra": 12
+    },
+    "maxThrowArcs": {
+      "low": 2,
+      "medium": 4,
+      "high": 6,
+      "ultra": 8
+    },
+    "maxCrushShockVisuals": {
+      "low": 3,
+      "medium": 4,
+      "high": 6,
+      "ultra": 8
+    },
+    "maxGuardBladeVisuals": {
+      "low": 4,
+      "medium": 6,
+      "high": 10,
+      "ultra": 14
+    },
+    "maxRushSparks": {
+      "low": 4,
+      "medium": 8,
+      "high": 12,
+      "ultra": 18
+    },
+    "maxAxeSpinVisuals": {
+      "low": 4,
+      "medium": 6,
+      "high": 10,
+      "ultra": 14
+    },
+    "maxKneeImpactVisuals": {
+      "low": 2,
+      "medium": 3,
+      "high": 5,
+      "ultra": 7
+    },
+    "maxBannerRings": {
+      "low": 2,
+      "medium": 3,
+      "high": 4,
+      "ultra": 6
     }
   },
   "speedModes": [
@@ -1477,6 +1597,39 @@
       "bossPullDistance": 0,
       "worldMargin": 24,
       "maxPullPerCast": 1
+    },
+    "launch": {
+      "maxAirborneMs": 900,
+      "immuneMs": 1200,
+      "allowElite": false,
+      "allowBoss": false,
+      "poiseConversion": 1.35
+    },
+    "frontalGuard": {
+      "requireDirection": true,
+      "maxFrontalMitigation": 0.55,
+      "sideMultiplier": 0.35,
+      "backMultiplier": 0.0
+    },
+    "grab": {
+      "allowElite": false,
+      "allowBoss": false,
+      "maxGrabPerCast": 1,
+      "maxThrowMs": 700,
+      "worldMargin": 24,
+      "bossPoiseMultiplier": 1.0
+    },
+    "rally": {
+      "maxFields": 1,
+      "maxDurationMs": 12000,
+      "maxComboGrace": 0.8,
+      "maxFuryGain": 0.6,
+      "maxMitigation": 0.25,
+      "maxMeleeArea": 0.3,
+      "maxKillHealBonus": 0.5
+    },
+    "lowHp": {
+      "maxMissingHpMultiplier": 1.6
     }
   }
 }

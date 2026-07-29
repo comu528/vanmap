@@ -574,7 +574,9 @@ if (jobProgData) {
     // M8-B: 戦士（物理近接）のタグ
     'physical', 'warrior', 'blunt', 'defense', 'spin', 'stance_break', 'knockback', 'cleave', 'counter', 'sustain',
     // M8-C: 戦士 Wave1 のタグ
-    'execute', 'buff', 'pull', 'reactive']);
+    'execute', 'buff', 'pull', 'reactive',
+    // M8-D: 戦士 Wave2 のタグ
+    'launch', 'grab', 'throw', 'thrown', 'field']);
   const skillsArr = (skillsData && skillsData.skills) || [];
   const evosArr = (evoData && evoData.evolutions) || [];
   const actives = skillsArr.filter((s) => (s.category || 'active') === 'active');
@@ -723,7 +725,9 @@ if (jobProgData) {
     // 倍率は 1 以上の有限数（重みを下げる補助にしない＝到達不能を作らない）。
     const MULT = ['maxMultiplier', 'readyBaseAcquireWeightMultiplier', 'ownedBaseUpgradeWeightMultiplier',
       'baseNearMaxBonusMultiplier', 'supportReadyBaseMultiplier', 'requiredSupportWeightMultiplier',
-      'supportNearRequiredMultiplier'];
+      'supportNearRequiredMultiplier',
+      // M8-D: 補助が active のレシピ（枠を 1 つ占める＝カタログ拡張で不利になる）への追加補正。
+      'activeSupportWeightMultiplier'];
     for (const k of MULT) {
       const v = g[k];
       if (typeof v !== 'number' || !Number.isFinite(v)) err(`skill-config.json: guidance.${k} が有限数でない (${v})`);
@@ -1564,17 +1568,22 @@ if (jobProgData) {
   const frostJob = (jobsData?.jobs || []).find((j) => j.id === 'frost_mage');
   if (!warriorJob) err('M8-B: jobs.json に warrior が無い');
   else {
-    // M8-C（戦士スキル拡張 Wave1）で active5 → 15 / evolution3 → 8 へ拡張。passive は 4 のまま。
+    // M8-C（Wave1）で active5 → 15 / evolution3 → 8、M8-D（Wave2）で active15 → 25 / evolution8 → 13。
+    // passive は 4 のまま。Job Lv80 の対象は 6 種のまま（Wave1 / Wave2 の新規は対象にしない）。
     const EXPECT = {
       actives: ['great_cleave', 'shield_bash', 'whirlwind_slash', 'charge_slash', 'ground_slam',
         'armor_breaker', 'twin_fang_slash', 'execution_strike', 'leap_smash', 'sweeping_advance',
-        'counter_stance', 'war_cry', 'chain_hook', 'shockwave_stomp', 'relentless_combo'],
+        'counter_stance', 'war_cry', 'chain_hook', 'shockwave_stomp', 'relentless_combo',
+        'rising_slash', 'shield_charge', 'backstep_riposte', 'battlefield_throw', 'triple_crush',
+        'blade_guard', 'berserker_rush', 'war_axe_throw', 'breaker_knee', 'rallying_banner'],
       passives: ['brute_force', 'heavy_armor', 'combat_instinct', 'bloodlust'],
       evolutions: ['thousand_blade_dance', 'bloodstorm_whirlwind', 'unyielding_fortress',
-        'skull_splitter', 'crimson_execution', 'war_god_roar', 'adamant_counter', 'heaven_crushing_descent'],
+        'skull_splitter', 'crimson_execution', 'war_god_roar', 'adamant_counter', 'heaven_crushing_descent',
+        'heaven_rending_ascent', 'fortress_rampage', 'shadow_swallow_riposte', 'mountain_hurl',
+        'blood_oath_standard'],
       lv80: ['great_cleave', 'shield_bash', 'ground_slam', 'armor_breaker', 'twin_fang_slash', 'relentless_combo'],
     };
-    // 1. カタログ規模（M8-C は active15 / passive4 / evolution8）。
+    // 1. カタログ規模（M8-D は active25 / passive4 / evolution13）。
     if ((warriorJob.activeSkillPool || []).join(',') !== EXPECT.actives.join(',')) err(`M8-B: 戦士 activeSkillPool が期待と違う（${(warriorJob.activeSkillPool || []).join(',')}）`);
     if ((warriorJob.passiveSkillPool || []).join(',') !== EXPECT.passives.join(',')) err(`M8-B: 戦士 passiveSkillPool が期待と違う`);
     if ((warriorJob.evolutionPool || []).join(',') !== EXPECT.evolutions.join(',')) err(`M8-B: 戦士 evolutionPool が期待と違う`);
@@ -1821,6 +1830,175 @@ if (jobProgData) {
         if (!docsCatalog.includes(id)) err(`M8-B: docs/skill-catalog.md に ${id} の記載が無い`);
       }
     } catch (e) { warn(`M8-B: docs の確認に失敗 (${e.message})`); }
+  }
+}
+
+// ---------- Milestone 8-D: 戦士スキル拡張 Wave2（データ整合の追加検証） ----------
+{
+  const warriorJob = (jobsData?.jobs || []).find((j) => j.id === 'warrior');
+  if (warriorJob) {
+    const WAVE2_ACT = ['rising_slash', 'shield_charge', 'backstep_riposte', 'battlefield_throw', 'triple_crush',
+      'blade_guard', 'berserker_rush', 'war_axe_throw', 'breaker_knee', 'rallying_banner'];
+    const WAVE2_EVO = ['heaven_rending_ascent', 'fortress_rampage', 'shadow_swallow_riposte',
+      'mountain_hurl', 'blood_oath_standard'];
+
+    // 1. カタログ規模（active25 / passive4 / evolution13）。
+    if ((warriorJob.activeSkillPool || []).length !== 25) err(`M8-D: 戦士 active が 25 でない（${(warriorJob.activeSkillPool || []).length}）`);
+    if ((warriorJob.passiveSkillPool || []).length !== 4) err(`M8-D: 戦士 passive が 4 でない（${(warriorJob.passiveSkillPool || []).length}）`);
+    if ((warriorJob.evolutionPool || []).length !== 13) err(`M8-D: 戦士 evolution が 13 でない（${(warriorJob.evolutionPool || []).length}）`);
+    for (const id of WAVE2_ACT) if (!(warriorJob.activeSkillPool || []).includes(id)) err(`M8-D: 戦士 activeSkillPool に ${id} が無い`);
+    for (const id of WAVE2_EVO) if (!(warriorJob.evolutionPool || []).includes(id)) err(`M8-D: 戦士 evolutionPool に ${id} が無い`);
+
+    // 2. Job Lv80「打撃数 +1」の対象を増やしていない（3 ジョブとも 6 種のまま）。
+    for (const jid of ['warrior', 'flame_witch', 'frost_mage']) {
+      const j = (jobsData?.jobs || []).find((x) => x.id === jid);
+      const n = (j?.activeSkillPool || []).filter((id) => ((skillsData?.skills || []).find((s) => s.id === id) || {}).lv80ProjectileTarget === true).length;
+      if (n !== 6) err(`M8-D: ${jid} の Job Lv80 対象が 6 種でない（${n}）`);
+    }
+    for (const id of [...WAVE2_ACT, ...WAVE2_EVO]) {
+      const def = (skillsData?.skills || []).find((s) => s.id === id) || (evoData?.evolutions || []).find((e) => e.id === id);
+      if (def && def.lv80ProjectileTarget !== false) err(`M8-D: ${id} は Lv80 対象にしない（lv80ProjectileTarget:false）`);
+    }
+
+    // 3. 新 active の data 完全性（物理・戦士専用・Lv1–8・残響/分身の対象外）。
+    for (const id of WAVE2_ACT) {
+      const s2 = (skillsData?.skills || []).find((x) => x.id === id);
+      if (!s2) { err(`M8-D: skills.json に ${id} が無い`); continue; }
+      if (s2.element !== 'physical') err(`M8-D: ${id} の element が physical でない`);
+      if ((s2.jobs || []).join(',') !== 'warrior') err(`M8-D: ${id} の jobs が ["warrior"] でない`);
+      if (s2.isCommon !== false) err(`M8-D: ${id} の isCommon が false でない`);
+      if (s2.maxLevel !== 8 || (s2.levels || []).length !== 8) err(`M8-D: ${id} が Lv1–8 でない`);
+      if (s2.echoPolicy !== 'forbidden' || s2.clonePolicy !== 'forbidden') err(`M8-D: ${id} の echo/clonePolicy が forbidden でない`);
+      if (s2.canTriggerEcho !== false || s2.canBeCopiedByClone !== false) err(`M8-D: ${id} の canTriggerEcho/canBeCopiedByClone が false でない`);
+      if (s2.castMode !== 'cooldown') err(`M8-D: ${id} の castMode が cooldown でない`);
+      if (!(typeof s2.meleeRange === 'number' && s2.meleeRange > 0)) err(`M8-D: ${id} の meleeRange が正の数でない`);
+      // 成長: cooldown は非増加、宣言した軸のうち 2 つ以上が Lv1 → Lv8 で伸びる。
+      let cdOk = true;
+      for (let i = 1; i < (s2.levels || []).length; i++) if (s2.levels[i].cooldown > s2.levels[i - 1].cooldown) cdOk = false;
+      if (!cdOk) err(`M8-D: ${id} の cooldown が Lv で増えている`);
+      const a = s2.levels[0], b = s2.levels[7];
+      const grew = Object.keys(a).filter((k) => k !== 'level' && k !== 'cooldown' && typeof a[k] === 'number' && b[k] > a[k]);
+      if (grew.length < 2) err(`M8-D: ${id} の Lv1 → Lv8 で伸びる数値が 2 つ未満`);
+    }
+
+    // 4. 新 evolution の data 完全性。
+    for (const id of WAVE2_EVO) {
+      const e = (evoData?.evolutions || []).find((x) => x.id === id);
+      if (!e) { err(`M8-D: skill-evolutions.json に ${id} が無い`); continue; }
+      if (!WAVE2_ACT.includes(e.baseSkillId)) err(`M8-D: ${id} の基礎 ${e.baseSkillId} が Wave2 の active でない`);
+      if ((e.requiredSkills || []).length !== 1) err(`M8-D: ${id} の補助が 1 件でない`);
+      if (e.replacementSkillId !== id) err(`M8-D: ${id} の replacementSkillId が自身でない`);
+      if (e.element !== 'physical') err(`M8-D: ${id} の element が physical でない`);
+      if (e.echoPolicy !== 'forbidden' || e.clonePolicy !== 'forbidden') err(`M8-D: ${id} の echo/clonePolicy が forbidden でない`);
+      // 補助 active は置換しない（別スキルとして併存し、CD も触らない）。
+      const req = (e.requiredSkills || [])[0];
+      if (req && (warriorJob.activeSkillPool || []).includes(req.skill) && e.replacementSkillId === req.skill) {
+        err(`M8-D: ${id} が補助 active ${req.skill} を置換している`);
+      }
+    }
+
+    // 5. balance.warrior の Wave2 ブロック。
+    const W = balance?.warrior || {};
+    for (const k of ['launch', 'frontalGuard', 'grab', 'rally', 'lowHp']) {
+      if (!W[k] || typeof W[k] !== 'object') err(`M8-D: balance.warrior.${k} が無い`);
+    }
+    if (W.launch) {
+      if (!(W.launch.maxAirborneMs > 0)) err('M8-D: balance.warrior.launch.maxAirborneMs が正でない');
+      if (!(W.launch.immuneMs > 0)) err('M8-D: balance.warrior.launch.immuneMs が正でない');
+      if (W.launch.allowElite !== false || W.launch.allowBoss !== false) err('M8-D: 打ち上げはエリート / ボスへ許可しない');
+      if (!(W.launch.poiseConversion > 0)) err('M8-D: balance.warrior.launch.poiseConversion が正でない');
+    }
+    if (W.frontalGuard) {
+      const f = W.frontalGuard;
+      if (f.requireDirection !== true) err('M8-D: frontalGuard.requireDirection は true（方向なしの被弾を前面扱いにしない）');
+      if (!(f.maxFrontalMitigation > 0 && f.maxFrontalMitigation < 1)) err('M8-D: frontalGuard.maxFrontalMitigation が 0 < x < 1 でない');
+      if (!(f.sideMultiplier >= 0 && f.sideMultiplier <= 1)) err('M8-D: frontalGuard.sideMultiplier が 0..1 でない');
+      if (!(f.backMultiplier >= 0 && f.backMultiplier <= f.sideMultiplier)) err('M8-D: frontalGuard.backMultiplier ≤ sideMultiplier でない');
+    }
+    if (W.grab) {
+      if (W.grab.allowElite !== false || W.grab.allowBoss !== false) err('M8-D: 掴みはエリート / ボスへ許可しない');
+      if (!(W.grab.maxGrabPerCast >= 1)) err('M8-D: grab.maxGrabPerCast が 1 以上でない');
+      if (!(W.grab.maxThrowMs > 0)) err('M8-D: grab.maxThrowMs が正でない');
+    }
+    if (W.rally) {
+      if (W.rally.maxFields !== 1) err(`M8-D: rally.maxFields は 1（陣は常に 1 つ・実際 ${W.rally.maxFields}）`);
+      for (const k of ['maxDurationMs', 'maxComboGrace', 'maxFuryGain', 'maxMitigation', 'maxMeleeArea', 'maxKillHealBonus']) {
+        if (!(W.rally[k] > 0)) err(`M8-D: rally.${k} が正でない`);
+      }
+    }
+    if (W.lowHp) {
+      if (!(W.lowHp.maxMissingHpMultiplier > 1)) err('M8-D: lowHp.maxMissingHpMultiplier が 1 より大きくない');
+      if (W.lowHp.maxMissingHpMultiplier > 2) err('M8-D: lowHp.maxMissingHpMultiplier が 2 を超えている（暴走の恐れ）');
+    }
+
+    // 6. data の宣言値が balance の上限を超えていない。
+    const lv8 = (id) => (((skillsData?.skills || []).find((s) => s.id === id) || {}).levels || [])[7] || {};
+    if (W.frontalGuard && lv8('shield_charge').frontalMitigation > W.frontalGuard.maxFrontalMitigation) {
+      err('M8-D: shield_charge Lv8 の frontalMitigation が balance の上限を超えている');
+    }
+    if (W.launch && lv8('rising_slash').launchDuration > W.launch.maxAirborneMs) {
+      err('M8-D: rising_slash Lv8 の launchDuration が maxAirborneMs を超えている');
+    }
+    if (W.rally) {
+      const b = lv8('rallying_banner');
+      if (b.duration > W.rally.maxDurationMs) err('M8-D: rallying_banner Lv8 の duration が上限を超えている');
+      if (b.comboGrace > W.rally.maxComboGrace) err('M8-D: rallying_banner Lv8 の comboGrace が上限を超えている');
+      if (b.furyGain > W.rally.maxFuryGain) err('M8-D: rallying_banner Lv8 の furyGain が上限を超えている');
+      if (b.mitigationValue > W.rally.maxMitigation) err('M8-D: rallying_banner Lv8 の mitigationValue が上限を超えている');
+      if (b.meleeArea > W.rally.maxMeleeArea) err('M8-D: rallying_banner Lv8 の meleeArea が上限を超えている');
+    }
+    if (W.lowHp && lv8('berserker_rush').missingHpBonus > W.lowHp.maxMissingHpMultiplier) {
+      err('M8-D: berserker_rush Lv8 の missingHpBonus が上限を超えている');
+    }
+
+    // 7. Wave2 で足した skillCaps（4 段階・単調非減少・正の数）。
+    const WAVE2_CAPS = ['maxLaunchTargets', 'maxChargeContacts', 'maxRiposteStrikes', 'maxThrowImpacts',
+      'maxCrushStages', 'maxGuardTicksPerFrame', 'maxRushSteps', 'maxAxeHitsPerTarget', 'maxKneeStrikes', 'maxRallyFields',
+      'maxLaunchVisuals', 'maxChargeTrails', 'maxRiposteTrails', 'maxThrowArcs', 'maxCrushShockVisuals',
+      'maxGuardBladeVisuals', 'maxRushSparks', 'maxAxeSpinVisuals', 'maxKneeImpactVisuals', 'maxBannerRings'];
+    for (const name of WAVE2_CAPS) {
+      const c = (balance?.skillCaps || {})[name];
+      if (!c) { err(`M8-D: balance.skillCaps に ${name} が無い`); continue; }
+      for (const q of ['low', 'medium', 'high', 'ultra']) {
+        if (!(typeof c[q] === 'number' && Number.isFinite(c[q]) && c[q] > 0)) err(`M8-D: skillCaps.${name}.${q} が正の有限数でない`);
+      }
+      if (!(c.low <= c.medium && c.medium <= c.high && c.high <= c.ultra)) err(`M8-D: skillCaps.${name} が単調非減少でない`);
+    }
+
+    // 8. 火 / 氷の非回帰（規模・混入）。
+    for (const jid of ['flame_witch', 'frost_mage']) {
+      const j = (jobsData?.jobs || []).find((x) => x.id === jid);
+      if (!j) continue;
+      if ((j.activeSkillPool || []).length !== 30) err(`M8-D: ${jid} の active が 30 でない`);
+      if ((j.evolutionPool || []).length !== 18) err(`M8-D: ${jid} の evolution が 18 でない`);
+      for (const id of [...WAVE2_ACT, ...WAVE2_EVO]) {
+        if ((j.activeSkillPool || []).includes(id) || (j.evolutionPool || []).includes(id)) err(`M8-D: ${jid} へ ${id} が混入している`);
+      }
+    }
+    if (balance?.saveVersion !== 6) err(`M8-D: saveVersion が 6 でない（${balance?.saveVersion}）— 追加は加算的にする`);
+
+    // 9. guidance へ足したキー（active 補助の追加補正）。
+    const g = (skillCfg || {}).guidance || {};
+    if (typeof g.activeSupportWeightMultiplier !== 'number' || !(g.activeSupportWeightMultiplier >= 1)) {
+      err('M8-D: guidance.activeSupportWeightMultiplier が 1 以上の数値でない');
+    }
+    if (!(g.jobs || []).includes('warrior') || (g.jobs || []).length !== 1) {
+      err('M8-D: guidance.jobs は ["warrior"] のまま（火 / 氷は非回帰）');
+    }
+    // M8-C.1 のしきい値を下げていない。
+    const KEEP = { minBattleLevel: 3, readyBaseAcquireWeightMultiplier: 1.3, ownedBaseUpgradeWeightMultiplier: 1.8, requiredSupportWeightMultiplier: 1.3 };
+    for (const [k, v] of Object.entries(KEEP)) {
+      if (g[k] !== v) err(`M8-D: guidance.${k} が M8-C.1 の値（${v}）から変わっている（${g[k]}）`);
+    }
+    if ((g.pity || {}).threshold !== 3) err('M8-D: guidance.pity.threshold が 3 から変わっている');
+
+    // 10. docs の記載。
+    try {
+      const docsCatalog = readFileSync(join(__dirname, '..', 'docs', 'skill-catalog.md'), 'utf8');
+      for (const id of [...WAVE2_ACT, ...WAVE2_EVO]) {
+        if (!docsCatalog.includes(id)) err(`M8-D: docs/skill-catalog.md に ${id} の記載が無い`);
+      }
+    } catch (e) { warn(`M8-D: docs の確認に失敗 (${e.message})`); }
   }
 }
 

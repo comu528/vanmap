@@ -13,7 +13,7 @@ M6-A で導入したジョブ基盤（`data/jobs.json`・`data/job-progression.j
 |-------|--------|---------|-----------|--------|---------|------|--------|
 | `flame_witch` | 火の魔女 | fire | `fireball` | 30 | 4（共通） | 18 | 1〜100 |
 | `frost_mage` | 氷術師 | ice | `frost_shard` | 30 | 4（氷専用） | 18 | 1〜100 |
-| `warrior` | 戦士 | physical | `great_cleave` | 5 | 4（戦士専用） | 3 | 1〜100 |
+| `warrior` | 戦士 | physical | `great_cleave` | 25 | 4（戦士専用） | 13 | 1〜100 |
 
 - **火の魔女は M7-A〜M7-D で変更なし**（active30 / passive4 / evo18・同 seed 抽選結果不変）。
 - **氷術師は M7-A で active5/passive4/evo3、M7-B で active15/passive4/evo8、M7-C で active25/passive4/evo13、M7-D で active30/passive4/evo18 へ拡張**（下記「Milestone 7-B」〜「Milestone 7-D」）。**M7-D で火の魔女と同規模のカタログに到達（氷術師カタログ完成）**。
@@ -353,3 +353,39 @@ M8-C.1 では抽選導線そのものを直した（カタログ規模・スキ�
 枠 4 では active を 2 つ使うぶん不利で、実測の取得率も他の進化より低い（設計どおり・到達不能ではない）。
 
 詳細は `./warrior-evolution-guidance.md`、修正前の実測分析は `./warrior-draft-analysis-wave1.md`。
+
+
+---
+
+## Milestone 8-D: 戦士スキル拡張 Wave2（active25 / evolution13・save_version は v6 のまま）
+
+M8-C（Wave1）の 15 active / 8 進化へ **active 10 種・進化 5 種**を足して **25 / 13** にした。
+passive は 4 種のまま、Job Lv1〜100 の内容も据え置き、**Job Lv80「打撃数 +1」の対象は 3 ジョブとも 6 種のまま**。
+
+| ジョブ | active | passive | evolution | 属性 |
+|--------|--------|---------|-----------|------|
+| 火の魔女 flame_witch | 30 | 4 | 18 | fire |
+| 氷術師 frost_mage | 30 | 4 | 18 | ice |
+| **戦士 warrior** | **25** | **4** | **13** | **physical** |
+
+### 戦士専用の機構（Wave2 で追加した 5 つ）
+
+いずれも `src/systems/WarriorCombatSystem.js` が唯一の管理者で、上限は `balance.json` の
+`warrior` ブロックにある。**新しい共通状態異常（formal status）は 1 つも作っていない。**
+
+| 機構 | 内容 | data |
+|------|------|------|
+| 打ち上げ launch | 通常敵だけを短く浮かせる。浮いている間は動かない | `balance.warrior.launch` |
+| 前面防御 frontalGuard | 方向の分かる被弾のうち**前方だけ**を強く受け流す | `balance.warrior.frontalGuard` |
+| 掴み / 投げ grab | 通常敵を 1 体だけ掴んで投げる。敵参照は持たない | `balance.warrior.grab` |
+| 戦旗の陣 rally | その場へ 1 つだけ張る自己バフ。**内側にいるときだけ**効く | `balance.warrior.rally` |
+| 低 HP スケーリング lowHp | 欠損 HP に比例した倍率。自傷も処刑もせず必ず頭打ち | `balance.warrior.lowHp` |
+
+- **エリート / ボスは浮かず・掴まれない**（可否は `launchPolicy()` / `grabPolicy()` に一元化）。
+  代わりに体勢削り / その場叩きつけ / 重い体勢打撃へ置換される。
+- 前面防御は `requireDirection: true` なので、**方向の分からない被弾（DoT / 全体攻撃）には効かない**。
+  側面は ×0.35・背面は ×0・単体上限 55%・合計軽減は従来どおり 70% でクランプ（無敵にならない）。
+- 戦旗の陣は既存の `meleeAreaMultiplier()` / `addFury()` / `comboGraceLeftMs` /
+  `damageReduction()` / `_killHeal()` へ**加算的に**入る。血盟戦旗の回復強化も既存の毎秒 cap を共有する。
+
+詳細な設計意図は `./warrior-wave2.md`、一覧は `./skill-catalog.md` の Wave2 節。

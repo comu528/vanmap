@@ -98,7 +98,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   // 被弾処理（M6-B のダメージ軽減パイプライン）。処理順:
   //   1) 無敵確認 → 2) 炎の障壁による軽減/無効化(＋反撃1回) → 3) 通常HPダメージ → 4) 致死時に不死鳥判定。
   // 障壁/不死鳥の状態(_barrier/_phoenix)は各スキルが設定し、AoE 演出は scene のフックが担う。
-  takeDamage(amount) {
+  // M8-D: from（被弾方向の発生源座標）は任意。渡されたときだけ戦士の前面防御が判定できる。
+  // 渡されない被弾（DoT・方向のない全体攻撃）は前面扱いにならない＝火/氷の計算は完全に不変。
+  takeDamage(amount, from) {
     if (!this.alive || this.isInvulnerable) return false; // 1) 無敵中は多重被弾しない
     let dmg = amount;
 
@@ -116,7 +118,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // 2.5) M8-B 戦士: 強靱（接敵/近接発動直後/突進/闘気解放/不屈/盾撃）による軽減と、
     //      軽減量・被弾量に応じた闘気獲得。戦士以外は onWarriorDamage を持たない/無効で素通りする。
-    if (dmg > 0 && this.scene.onWarriorDamage) dmg = this.scene.onWarriorDamage(dmg);
+    if (dmg > 0 && this.scene.onWarriorDamage) dmg = this.scene.onWarriorDamage(dmg, from);
 
     // 3) 通常HPダメージ
     if (dmg > 0) this.hp = clamp(this.hp - dmg, 0, this.maxHp);
