@@ -10,7 +10,7 @@
 
 - ブランチ: **`claude/funny-heisenberg-frhgq9`**（`CLAUDE.md` の継続ブランチ。指定なき限りここへコミット・プッシュ）
 - 直近コミット:
-  - `M8D_COMMIT` Milestone 8-D: 戦士スキル拡張 Wave2（active25 / 進化13・打ち上げ/前面防御/掴み投げ/戦旗/低HP）
+  - `dec7eaa` Milestone 8-D: 戦士スキル拡張 Wave2（active25 / 進化13・打ち上げ/前面防御/掴み投げ/戦旗/低HP）
   - `02ab13e` Milestone 8-C.1 ドキュメント更新: docs/project-state.md へ commit ID を記載
   - `6f9b1de` Milestone 8-C.1: 戦士4枠時の進化導線修正（ジョブ限定 guidance ＋ 進化導線 pity）
   - `7e24e1a` Milestone 8-C ドキュメント更新: docs/project-state.md へ commit ID を記載
@@ -108,7 +108,7 @@ active 補助の進化（`heaven_crushing_descent` / `mountain_hurl`）は guida
 | M8-B.1 | passive 再計算バグ修正（status 乗率・戦士 mods を `passives.version` 単一トリガーへ）（`601fe2a` `4a621b6`） |
 | M8-C | 戦士スキル拡張 Wave1（active15 / 進化8・処刑 / 反撃調停 / 戦吼 / 引き寄せ）（`bae3f34` `7e24e1a`） |
 | M8-C.1 | 戦士 4 枠時の進化導線修正（ジョブ限定 guidance ＋ 進化導線 pity・新規コンテンツなし）（`6f9b1de` `02ab13e`） |
-| **M8-D** | **戦士スキル拡張 Wave2**（active25 / 進化13・打ち上げ / 前面防御 / 掴み投げ / 戦旗の陣 / 低 HP スケーリング・guidance へ active 補助補正を 1 キー追加）（`M8D_COMMIT`） |
+| **M8-D** | **戦士スキル拡張 Wave2**（active25 / 進化13・打ち上げ / 前面防御 / 掴み投げ / 戦旗の陣 / 低 HP スケーリング・guidance へ active 補助補正を 1 キー追加）（`dec7eaa`） |
 
 ## Job catalog counts
 
@@ -419,7 +419,7 @@ M7-E の「火由来の未参照 cap 5 件」は解消済み。**戦士は M8-C 
 
 ## Latest test results
 
-- 実行日時点: Milestone 8-D 完了時（コミット `M8D_COMMIT`）
+- 実行日時点: Milestone 8-D 完了時（コミット `dec7eaa`）
 - **テストスイート: 147 件（`tests/*.mjs` から共通土台 `frost-audit-common.mjs` / `flame-audit-common.mjs` /
   `warrior-common.mjs` / `status-passive-common.mjs` / `warrior-draft-sim.mjs` と `validate-data.mjs` を除く）
   → 全 147 通過・失敗 0**
