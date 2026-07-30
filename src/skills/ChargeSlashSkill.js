@@ -40,7 +40,10 @@ export class ChargeSlashSkill extends WarriorSkillBase {
     const durMs = Math.min(600, (travel / speed) * 1000);
     this._dash = {
       castKey: this.newCastKey(), leftMs: durMs, totalMs: Math.max(1, durMs),
-      angle: ang, speed, hitSet: new Set(), traveled: 0, maxTravel: travel,
+      // hitOncePerTarget（data）: 経路上の敵へ 1 体 1 回だけ命中させる。
+      // false を宣言した場合は毎フレーム当たり判定を通す（現在の data は true）。
+      angle: ang, speed, traveled: 0, maxTravel: travel,
+      hitSet: cfg.hitOncePerTarget === false ? null : new Set(),
     };
     if (this.warrior) this.warrior.setChargeWindow(durMs);
     this.scene.skills.recordExtra(this.id, 'charges', 1, 'add');
@@ -66,14 +69,15 @@ export class ChargeSlashSkill extends WarriorSkillBase {
     }
     // 経路上の敵を斬る（1 体 1 回・上限つき）。
     const cap = this.scene.combat.skillCap('maxChargeHits', 14);
-    if (d.hitSet.size < cap) {
+    const used = d.hitSet ? d.hitSet.size : 0;
+    if (used < cap) {
       this.scene.combat.meleeStrike({
         x: p.x, y: p.y, radius: this.meleeRadius(s.width), arc: Math.PI * 2, facing: 0,
         damage: s.damage, skillId: this.id, castKey: d.castKey,
         knockback: s.knockback, poiseDamage: s.poiseDamage,
         comboGain: s.comboGain, furyGain: s.furyGain,
         tags: ['melee', 'slash', 'charge'], color: 0xff8a65,
-        hitSet: d.hitSet, maxTargets: cap - d.hitSet.size,
+        hitSet: d.hitSet || undefined, maxTargets: cap - used,
       });
     }
     if (d.leftMs <= 0 || d.traveled >= d.maxTravel) this._dash = null;
@@ -87,7 +91,7 @@ export class ChargeSlashSkill extends WarriorSkillBase {
   }
   restoreState(st) {
     if (!st) return;
-    if (typeof st.cdLeft === 'number') this._cd = st.cdLeft;
+    this.restoreCd(st.cdLeft);
     // 突進の途中状態は復元しない（無料の再ダッシュ・座標の飛びを防ぐ）。CD だけを戻す。
     this._dash = null;
   }

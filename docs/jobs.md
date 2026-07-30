@@ -430,3 +430,32 @@ passive は 4 種のまま、Job Lv1〜100 の内容も据え置き、**Job Lv80
 - 弾き返しと近接反撃は別経路で、**1 つのイベントに応じるのは最大 1 系統**（`arbitrateDeflectionAndCounter()`）。
 
 詳細な設計意図は `./warrior-final-wave.md`、一覧は `./skill-catalog.md` の 最終Wave 節。
+
+---
+
+## Milestone 8-F: 戦士 完成監査（ジョブ定義は 1 行も変えていない）
+
+`jobs.json` の 3 ジョブ定義・プール・`statusEffects` は **M8-F で 1 件も変えていない**。
+`job-progression.json`（Job Lv1〜100 / `xpCurve` / `xpReward` / `milestones`）も不変。
+
+監査で確認したジョブまわりの性質:
+
+| 項目 | 結果 |
+|------|------|
+| 3 ジョブのカタログ | 火 30/4/18・氷 30/4/18・**戦士 30/4/18**（各合計 52） |
+| 3 ジョブの active / evolution / passive プール | **互いに素**（他ジョブ混入 0・判定は `poolEligibility.memberAllowedForJob` 1 か所） |
+| 戦士の rarity 内訳 | common 7 / uncommon 13 / rare 10 / **legendary 0**（legendary 段は進化 18 件が担う） |
+| 戦士の castMode | 30 件すべて `cooldown`（リソースコスト型・チャージ型は無い） |
+| 戦士の共通状態異常 | **1 つも使わない**（`statusEffects` が空・体勢は専用ゲージ） |
+| 戦士 passive 4 種の使用 | 全件が進化条件に使われている（`combat_instinct` 4 / `bloodlust` 4 / `heavy_armor` 4 / `brute_force` 3。加えて active 条件 `ground_slam` 2 / `counter_stance` 1） |
+| passive の `modifiers` キー | 全 13 キーが実装から参照される（**未使用 0**・`op` は `addMult` / `subMult` のみ） |
+| Job Lv80「打撃数 +1」 | 3 ジョブとも**ちょうど 6 種**（戦士の進化 18 種と Wave2 / 最終Wave の active 15 種は全て対象外） |
+| Job Lv1 の恒等性 | 3 ジョブとも Lv1 で倍率 1.0（成長が「初期状態を弱くする」形になっていない） |
+
+### 戦士に legendary active が無いのは意図的
+
+火 / 氷は legendary active を 3 件ずつ持つが、戦士は 0 件。
+戦士は**進化 18 件が legendary 段の役割を担う**設計で、M8-F では変えていない
+（rarity を足すと 3 ジョブぶんの抽選の重みが全体的に動くため、監査の範囲外）。
+
+一覧は `./warrior-completion-matrix.md`、監査本体は `./warrior-completion-audit.md`。

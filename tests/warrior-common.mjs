@@ -200,6 +200,8 @@ export function makeScene(opts = {}) {
         timers[i].left -= ms;
         if (timers[i].left <= 0) { const t = timers.splice(i, 1)[0]; try { t.fn(); } catch (e) { void e; } }
       }
+      // M8-F: production の BattleScene.update と同じく、決闘が終わったら古いマーカーを掃除する。
+      if (scene._duelMarkSeq != null && scene.warrior && !scene.warrior.duelActive) scene.clearDuelMark();
     },
     pendingTimers() { return timers.length; },
     _m: { suppressed: 0 }, worldW: 1600, worldH: 1200, _defaultElement: 'physical',
@@ -219,6 +221,7 @@ export function makeScene(opts = {}) {
     enemyBullets: opts.enemyBullets || [],
     reflected: [],
     _deflectSeq: 0,
+    _duelMarkSeq: null,
     _deflectOpts: null,
     passives: { getAreaMultiplier: () => 1, getDurationMultiplier: () => 1, getDamageMultiplier: () => 1, getProjectileCountBonus: () => 0, getMult: () => 1, _cooldownMin: 0.5, version: 0 },
     jobMods: {
@@ -498,9 +501,23 @@ export function makeScene(opts = {}) {
     if (!target) return null;
     const r = w.beginDuelChallenge(source, target, o);
     if (!r) return null;
-    target._duelMark = true;
+    scene.setDuelMark(target);
     if (o.skillId) warriorSkillStat(o.skillId).duels += 1;
     return { ...r, target };
+  };
+  // M8-F: production の BattleScene._setDuelMark / _clearDuelMark と同じ寿命。
+  scene.setDuelMark = (target) => {
+    if (scene._duelMarkSeq != null && (!target || target._seq !== scene._duelMarkSeq)) scene.clearDuelMark();
+    if (target) { target._duelMark = true; scene._duelMarkSeq = target._seq; }
+  };
+  // Scene 終了相当の後始末（production の BattleScene.cleanup と同じ）。
+  scene.cleanupWarrior = () => { scene.clearDuelMark(); };
+  scene.clearDuelMark = () => {
+    const seq = scene._duelMarkSeq;
+    scene._duelMarkSeq = null;
+    if (seq == null) return;
+    if (scene.boss && scene.boss._seq === seq) scene.boss._duelMark = false;
+    for (const e of enemies) if (e._seq === seq) e._duelMark = false;
   };
   scene.duelTarget = () => {
     const w = scene.warrior;
@@ -516,11 +533,11 @@ export function makeScene(opts = {}) {
     if (!w || !w.duelActive) return false;
     const t = scene.duelTarget();
     if (t && t.alive) return true;
-    if (!(o.retargetRange > 0)) { w.clearDuelTarget(null, 'targetLost'); return false; }
+    if (!(o.retargetRange > 0)) { w.clearDuelTarget(null, 'targetLost'); scene.clearDuelMark(); return false; }
     const next = scene.pickDuelTarget(scene.player.x, scene.player.y, o.retargetRange, o);
-    if (!next || w.duelPriority(next) < 2) { w.clearDuelTarget(null, 'noWorthyTarget'); return false; }
-    if (!w.retargetDuel(next)) return false;
-    next._duelMark = true;
+    if (!next || w.duelPriority(next) < 2) { w.clearDuelTarget(null, 'noWorthyTarget'); scene.clearDuelMark(); return false; }
+    if (!w.retargetDuel(next)) { scene.clearDuelMark(); return false; }
+    scene.setDuelMark(next);
     return true;
   };
   scene.deflectableProjectiles = (x, y, r) => {

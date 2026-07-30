@@ -67,7 +67,7 @@ export function computeEvolvables(owned, evolved) {
 }
 
 // BattleScene.buildDraftCtx() と同じ形。
-export function buildCtx(owned, slotMax, battleLevel, evolvables, need = 3) {
+export function buildCtx(owned, slotMax, battleLevel, evolvables, need = 3, evolvedBase = null) {
   return {
     catalog: CATALOG,
     job: JOB,
@@ -77,6 +77,8 @@ export function buildCtx(owned, slotMax, battleLevel, evolvables, need = 3) {
       passive: { used: Object.keys(owned.passive).length, max: slotMax.passive },
     },
     evolvables,
+    // M8-F: production の buildDraftCtx と同じく、進化済みの基礎 id を渡す。
+    evolvedBaseIds: [...(evolvedBase || [])],
     need,
     unlock: { highestClearedDifficulty: 0 },
     synergy: { partnerIds: evolutionPartnerIds(RECIPES, owned), battleLevel },
@@ -208,6 +210,8 @@ export function simulateRun(opts) {
     formedPartiallyOffered: 0,
     activeSlotFullAt: -1, passiveSlotFullAt: -1,
     candidateNone: 0, duplicates: 0, slotViolations: 0, leakage: 0,
+    // M8-F: 候補ゼロの内訳。飽和（所持がすべて上限 ＋ 残り進化なし）なら「詰まり」ではない。
+    saturatedNone: 0, unsaturatedNone: 0,
     rerolls: 0, banishes: 0, skips: 0,
     pityTriggered: 0, pityMax: 0,
     synergyAssisted: 0, guidanceAssisted: { base: 0, support: 0, upgrade: 0, evolution: 0 },
@@ -220,7 +224,7 @@ export function simulateRun(opts) {
     const evolvables = computeEvolvables(owned, evolved);
     for (const e of evolvables) if (!stats.evolvableFormedAt.has(e.evolutionId)) stats.evolvableFormedAt.set(e.evolutionId, i);
     const battleLevel = i + 1;
-    const ctx = buildCtx(owned, slotMax, battleLevel, evolvables, need);
+    const ctx = buildCtx(owned, slotMax, battleLevel, evolvables, need, [...evolved].map((id) => (REQS[id] ? REQS[id].base : id)));
     let cands = draft.open(ctx);
     stats.levelUpsUsed += 1;
 
@@ -244,6 +248,15 @@ export function simulateRun(opts) {
     // 検査（候補列そのものの健全性）。
     if (!cands.length) {
       stats.candidateNone += 1;
+      // 飽和判定: active / passive の枠が埋まりきり全て最大 Lv で、残る進化条件も無い。
+      // 進化は基礎 active を置換して同じ枠に残る（単一形態なので Lv1 が最大）。
+      const aIds = Object.keys(owned.active);
+      const pIds = Object.keys(owned.passive);
+      const maxOf = (id) => (evolved.has(id) ? 1 : (ACTIVE_MAX[id] || 8));
+      const aFull = aIds.length >= slotMax.active && aIds.every((id) => (owned.active[id] || 0) >= maxOf(id));
+      const pFull = pIds.length >= slotMax.passive && pIds.every((id) => (owned.passive[id] || 0) >= (PASSIVE_MAX[id] || 4));
+      if (aFull && pFull && evolvables.length === 0) stats.saturatedNone += 1;
+      else stats.unsaturatedNone += 1;
       if (useSkip && draft.skipsRemaining > 0) { draft.skip(); stats.skips += 1; }
       else draft.forceClear();
       continue;
@@ -321,7 +334,8 @@ export function aggregate(opts) {
     runs: 0, evolutionCounts: [], offered: new Map(), taken: new Map(), acquired: new Map(),
     offeredRarity: {}, takenRarity: {},
     evoFormed: new Map(), evoOffered: new Map(), evoTaken: new Map(),
-    formedButNotOffered: 0, formedPartiallyOffered: 0, candidateNone: 0, duplicates: 0, slotViolations: 0, leakage: 0,
+    formedButNotOffered: 0, formedPartiallyOffered: 0, candidateNone: 0, saturatedNone: 0, unsaturatedNone: 0,
+    duplicates: 0, slotViolations: 0, leakage: 0,
     rerolls: 0, banishes: 0, skips: 0, pityTriggered: 0, synergyAssisted: 0,
     guidanceAssisted: { base: 0, support: 0, upgrade: 0, evolution: 0 },
     firstActive: new Map(), byStrategy: {}, activeSlotFull: 0, passiveSlotFull: 0,
@@ -348,6 +362,8 @@ export function aggregate(opts) {
       agg.formedButNotOffered += r.formedButNotOffered;
       agg.formedPartiallyOffered += r.formedPartiallyOffered;
       agg.candidateNone += r.candidateNone;
+      agg.saturatedNone += r.saturatedNone;
+      agg.unsaturatedNone += r.unsaturatedNone;
       agg.duplicates += r.duplicates;
       agg.slotViolations += r.slotViolations;
       agg.leakage += r.leakage;

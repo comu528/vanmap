@@ -145,7 +145,7 @@ export class LeapSmashSkill extends WarriorSkillBase {
   }
   restoreState(st) {
     if (!st) return;
-    if (typeof st.cdLeft === 'number') this._cd = st.cdLeft;
+    this.restoreCd(st.cdLeft);
     this._leap = null; // 再開時に無料の着地衝撃を発生させない
   }
   destroy() { this._dead = true; this._leap = null; }

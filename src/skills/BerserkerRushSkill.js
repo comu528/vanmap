@@ -104,7 +104,7 @@ export class BerserkerRushSkill extends WarriorSkillBase {
   }
   restoreState(st) {
     if (!st) return;
-    if (typeof st.cdLeft === 'number') this._cd = st.cdLeft;
+    this.restoreCd(st.cdLeft);
     this._rush = null;
   }
   destroy() { this._dead = true; this._rush = null; }

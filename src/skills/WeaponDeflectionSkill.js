@@ -86,7 +86,7 @@ export class WeaponDeflectionSkill extends WarriorSkillBase {
   // 弾いた弾の id 集合や弾オブジェクトは保存しない（reload 後に過去の弾を復活させない）。
   serializeState() { return { cdLeft: this._cd }; }
   restoreState(st) {
-    if (st && typeof st.cdLeft === 'number') this._cd = st.cdLeft;
+    if (st) this.restoreCd(st.cdLeft);
     // 復元直後は被弾フックを張り直す（window 自体が残っていれば update が使う）。
     if (this.warrior && this.warrior.deflectionState(this.id) && this.scene.combat.setDeflectOptions) {
       this.scene.combat.setDeflectOptions({ skillId: this.id, knockback: 0 });

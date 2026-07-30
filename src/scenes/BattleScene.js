@@ -670,6 +670,8 @@ export class BattleScene extends Phaser.Scene {
     document.removeEventListener('visibilitychange', this._onVisibility);
     this.game.events.off('blur', this._onBlur);
     if (this.skills) this.skills.destroy();
+    // M8-F: 決闘マーカーを Scene 終了時に必ず外す（プールへ戻る前の敵にも残さない）。
+    this._clearDuelMark();
     // M6-E/M7-A: 死亡履歴・状態異常索引を破棄（Scene終了で古い参照を残さない）。
     this._deathEvents.length = 0; this._deathTrackers = 0;
     if (this.statusFx) this.statusFx.clearAll();
@@ -1667,9 +1669,22 @@ export class BattleScene extends Phaser.Scene {
     if (!target) return null;
     const r = w.beginDuelChallenge(source, target, o);
     if (!r) return null;
-    target._duelMark = true;                       // 表示用のマーカー（Enemy.reset / onEnemyRemoved が落とす）
+    this._setDuelMark(target);                     // 表示用のマーカー（前の対象からは必ず外す）
     if (o.skillId) this._warriorSkillStat(o.skillId).duels += 1;
     return { ...r, target };
+  }
+  // M8-F: 決闘マーカーは常に 1 体だけに付く。付け替え / 解除のたびに前の対象から必ず外し、
+  // 生きている敵に古いマーカーが残らないようにする（オブジェクト参照は持たず _seq で引き直す）。
+  _setDuelMark(target) {
+    if (this._duelMarkSeq != null && (!target || target._seq !== this._duelMarkSeq)) this._clearDuelMark();
+    if (target) { target._duelMark = true; this._duelMarkSeq = target._seq; }
+  }
+  _clearDuelMark() {
+    const seq = this._duelMarkSeq;
+    this._duelMarkSeq = null;
+    if (seq == null) return;
+    if (this.boss && this.boss._seq === seq) this.boss._duelMark = false;
+    this.enemyPool.forEachActive((e) => { if (e._seq === seq) e._duelMark = false; });
   }
   // 決闘対象を _seq から引き直す（オブジェクトを保持しないための共通ヘルパ）。
   duelTarget() {
@@ -1687,12 +1702,12 @@ export class BattleScene extends Phaser.Scene {
     if (!w || !w.duelActive) return false;
     const t = this.duelTarget();
     if (t && t.alive) return true;
-    if (!(o.retargetRange > 0)) { w.clearDuelTarget(null, 'targetLost'); return false; }
+    if (!(o.retargetRange > 0)) { w.clearDuelTarget(null, 'targetLost'); this._clearDuelMark(); return false; }
     const next = this.pickDuelTarget(this.player.x, this.player.y, o.retargetRange, o);
     // 再選択できるのはエリート / ボスだけ（通常敵の間を無限に渡り歩かせない）。
-    if (!next || w.duelPriority(next) < 2) { w.clearDuelTarget(null, 'noWorthyTarget'); return false; }
-    if (!w.retargetDuel(next)) return false;
-    next._duelMark = true;
+    if (!next || w.duelPriority(next) < 2) { w.clearDuelTarget(null, 'noWorthyTarget'); this._clearDuelMark(); return false; }
+    if (!w.retargetDuel(next)) { this._clearDuelMark(); return false; }
+    this._setDuelMark(next);
     return true;
   }
 
@@ -1924,6 +1939,8 @@ export class BattleScene extends Phaser.Scene {
       this._refreshWarriorMods();
       this.warrior.setHp(this.player.hp, this.player.maxHp);
       this.warrior.update(dt);
+      // M8-F: 決闘が時間切れ / 解除で終わったら、生きている敵に古いマーカーを残さない。
+      if (this._duelMarkSeq != null && !this.warrior.duelActive) this._clearDuelMark();
     }
     this.updateEnemies(dt);
     if (this.boss && this.boss.alive) this.boss.update(dt, this.player);
@@ -2348,6 +2365,8 @@ export class BattleScene extends Phaser.Scene {
         passive: { used: this.passives.count(), max: this.passiveSlotsMax },
       },
       evolvables: this.computeEvolvables(),
+      // M8-F: この周回で進化済みの基礎 active（空き枠へ基礎が新規候補として戻るのを防ぐ）。
+      evolvedBaseIds: this.skills.evolvedBaseIds,
       need: this.choicesPerLevel,
       unlock: { highestClearedDifficulty: this.profile.highestClearedDifficulty || 0 },
       // M6-F: 進化相手の抽選補助（所持基礎の未達補助スキル）＋現在の battleLevel（決定論を壊さない付随情報）。

@@ -78,7 +78,7 @@ export class BladeGuardSkill extends WarriorSkillBase {
   }
   restoreState(st) {
     if (!st) return;
-    if (typeof st.cdLeft === 'number') this._cd = st.cdLeft;
+    this.restoreCd(st.cdLeft);
     const left = Math.max(0, st.guardLeftMs || 0);
     const P = this.guardParams();
     // 「再開」であり「二重化」ではない: 残り時間と消化済み tick 数を引き継ぐ。

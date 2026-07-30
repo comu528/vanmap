@@ -68,6 +68,7 @@ export const WARRIOR_DEFAULTS = {
   // M8-C: 反撃の調停（1 被弾イベントにつき最大 1 系統）。
   counter: {
     maxPerDamageEvent: 1, globalCooldownMs: 200,
+    maxCountersPerWindow: 6, maxWindowMs: 6000,
     priority: { adamant_counter: 3, unyielding_fortress: 2, counter_stance: 1 },
   },
   // M8-C: 処刑（通常敵のみ即死可能）。
@@ -82,7 +83,7 @@ export const WARRIOR_DEFAULTS = {
   grab: { allowElite: false, allowBoss: false, maxGrabPerCast: 1, maxThrowMs: 700, worldMargin: 24, bossPoiseMultiplier: 1.0 },
   // M8-D: 戦旗の陣（常に 1 つ・内側でのみ効く）。
   rally: {
-    maxFields: 1, maxDurationMs: 12000, maxComboGrace: 0.8, maxFuryGain: 0.6,
+    maxFields: 1, maxDurationMs: 12000, maxRadius: 280, maxComboGrace: 0.8, maxFuryGain: 0.6,
     maxMitigation: 0.25, maxMeleeArea: 0.3, maxKillHealBonus: 0.5,
   },
   // M8-D: 低 HP スケーリング（自傷なし・処刑なし・必ず頭打ち）。
@@ -627,11 +628,14 @@ export class WarriorCombatSystem {
   // 同じ source の再登録は refresh（上書き）で、重ねがけにならない。
   beginCounterWindow(source, o = {}) {
     if (!this.enabled || !source) return null;
-    const pr = this.cfg.counter.priority || {};
+    const cfg = this.cfg.counter;
+    const pr = cfg.priority || {};
+    // M8-F: 窓の持続と 1 窓で反撃できる回数を data の上限で必ず頭打ちにする
+    //（改ざんされた保存値で「無限反撃の窓」を作らせない）。
     const w = {
-      leftMs: Math.max(0, num(o.durationMs, 0)),
+      leftMs: clamp(num(o.durationMs, 0), 0, num(cfg.maxWindowMs, 6000)),
       used: 0,
-      max: Math.max(1, Math.round(num(o.maxCounters, 1))),
+      max: Math.max(1, Math.min(Math.round(num(o.maxCounters, 1)), Math.round(num(cfg.maxCountersPerWindow, 6)))),
       priority: num(o.priority, num(pr[source], 0)),
       mitigation: clamp(num(o.mitigation, 0), 0, 1),
       gapMs: Math.max(0, num(o.counterCooldownMs, 0)),
@@ -900,7 +904,8 @@ export class WarriorCombatSystem {
     if (dur <= 0) return null;
     this.rallyField = {
       source, x: num(o.x, 0), y: num(o.y, 0), leftMs: dur, totalMs: dur,
-      radius: Math.max(1, num(o.radius, 1)),
+      // M8-F: 半径も data の上限で頭打ちにする（改ざんで「常に内側」の永久バフを作らせない）。
+      radius: clamp(num(o.radius, 1), 1, num(cfg.maxRadius, 280)),
       comboGrace: clamp(num(o.comboGrace, 0), 0, num(cfg.maxComboGrace, 0.8)),
       furyGain: clamp(num(o.furyGain, 0), 0, num(cfg.maxFuryGain, 0.6)),
       mitigation: clamp(num(o.mitigation, 0), 0, num(cfg.maxMitigation, 0.25)),
@@ -1623,9 +1628,11 @@ export class WarriorCombatSystem {
     if (ws && typeof ws === 'object') {
       for (const [src, w] of Object.entries(ws)) {
         if (!w || typeof w !== 'object') continue;
-        const leftMs = num(w.leftMs, 0);
+        // M8-F: 持続と回数を data の上限で必ず頭打ちにする（改ざんで無限反撃を作らせない）。
+        const ccfg = this.cfg.counter;
+        const leftMs = clamp(num(w.leftMs, 0), 0, num(ccfg.maxWindowMs, 6000));
         if (leftMs <= 0) continue;
-        const max = Math.max(1, Math.round(num(w.max, 1)));
+        const max = Math.max(1, Math.min(Math.round(num(w.max, 1)), Math.round(num(ccfg.maxCountersPerWindow, 6))));
         // used も復元する＝再読込で構えを使い直せない。
         this.counterWindows.set(src, {
           leftMs, used: clamp(Math.round(num(w.used, 0)), 0, max), max,

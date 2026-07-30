@@ -2380,7 +2380,7 @@
       "canBeCopiedByClone": false,
       "safetyCaps": {
         "maxExecutesPerCast": 3,
-        "maxTargetsPerStrike": 10,
+        "maxTargetsPerStrike": 20,
         "maxKillChainGenerations": 1
       },
       "displayOrder": 130,

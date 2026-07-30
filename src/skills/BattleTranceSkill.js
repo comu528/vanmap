@@ -73,7 +73,7 @@ export class BattleTranceSkill extends WarriorSkillBase {
 
   // 構えそのものは WarriorCombatSystem.serializeTimedBuffs() が保存する（二重に保存しない）。
   serializeState() { return { cdLeft: this._cd }; }
-  restoreState(st) { if (st && typeof st.cdLeft === 'number') this._cd = st.cdLeft; }
+  restoreState(st) { if (st) this.restoreCd(st.cdLeft); }
   destroy() {
     this._dead = true;
     if (this.warrior) this.warrior.endBattleTrance(this.id);

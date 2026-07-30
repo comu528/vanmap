@@ -125,7 +125,7 @@ export class PiercingLungeSkill extends WarriorSkillBase {
   }
   restoreState(st) {
     if (!st) return;
-    if (typeof st.cdLeft === 'number') this._cd = st.cdLeft;
+    this.restoreCd(st.cdLeft);
     this._lunge = null;
   }
   destroy() { this._dead = true; this._lunge = null; }

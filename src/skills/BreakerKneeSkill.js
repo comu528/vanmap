@@ -81,7 +81,7 @@ export class BreakerKneeSkill extends WarriorSkillBase {
   serializeState() { return { cdLeft: this._cd, stepPending: !!this._step }; }
   restoreState(st) {
     if (!st) return;
-    if (typeof st.cdLeft === 'number') this._cd = st.cdLeft;
+    this.restoreCd(st.cdLeft);
     this._step = null; // 踏み込みの途中状態は復元しない（無料の追加打撃を作らない）
   }
   destroy() { this._dead = true; this._step = null; }

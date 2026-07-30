@@ -1432,3 +1432,84 @@ M8-C.1 / M8-D の他のキーとしきい値は 1 つも変えていない（`va
 
 `activeSkillPool` へ 5 件、`evolutionPool` へ 5 件を末尾へ追加しただけ。並び順も含めて
 `validate-data` が期待値と突き合わせる。火 / 氷のプールは 1 件も変えていない。
+
+---
+
+## Milestone 8-F: 戦士 完成監査（`save_version` は v6 のまま）
+
+**新しいスキル / passive / 進化の data は 1 件も追加していない。** data の変更は 4 か所だけ。
+
+### `balance.json` — 改ざん耐性のための上限キー 3 件（追加）
+
+```json
+"warrior": {
+  "rally": {
+    "maxDurationMs": 12000,
+    "maxRadius": 280            // M8-F 追加: 陣の半径の上限
+  },
+  "counter": {
+    "maxCountersPerWindow": 6,  // M8-F 追加: 1 つの反撃窓で反撃できる最大回数
+    "maxWindowMs": 6000         // M8-F 追加: 反撃窓の最大持続
+  }
+}
+```
+
+- 用途は**保存値・呼び出し値のクランプだけ**。現在の data はどれも上限に達しないため、
+  **正常プレイでの挙動は変わらない**。
+- 同じ値が `WarriorCombatSystem.WARRIOR_DEFAULTS` にも置かれており、
+  `balance.json` を渡さない経路（テスト・フォールバック）でも同じ上限になる。
+- `validate-data` の M8-F ブロックがこの 3 キーの存在と正の有限値であることを検証する。
+
+### `skill-evolutions.json` — `safetyCaps` の 1 値だけ変更
+
+```json
+"crimson_execution": {
+  "safetyCaps": {
+    "maxExecutesPerCast": 3,
+    "maxTargetsPerStrike": 20,   // M8-F: 10 → 20
+    "maxKillChainGenerations": 1
+  }
+}
+```
+
+base `execution_strike` の実効的な breadth（品質上限 24 のもとで実測 20）より狭く、
+**進化すると弱くなる逆転**（evo/base = 0.69）を起こしていたため base 相当へ広げた（修正後 1.37）。
+依然として有界で、品質上限（24）以下。**他 17 進化の `safetyCaps` は 1 件も変えていない。**
+
+### `skills.json` — 死にフィールドを実装へ接続（data 自体は不変）
+
+`charge_slash.config.hitOncePerTarget`（`true`）はコメントでしか触れられておらず、
+挙動は実装にハードコードされていた。実装から読むようにしたので、
+**この宣言が初めて意味を持つ**（`false` にすれば毎フレーム判定へ切り替わる）。
+data の値は `true` のままなので挙動は不変。
+
+### 変えていない data
+
+- `skills.json` の active 30 件の `damage` / `cooldown` / `radius` / `arc` / `levels`
+- `passives.json`（4 件・`modifiers` とも）
+- `job-progression.json`（Job Lv1〜100・`xpCurve` / `xpReward` / `milestones`）
+- `balance.json` の `skillCaps`（217 件・**追加も削除もしていない**）
+- `guidance` の全キー（**しきい値を 1 つも下げていない**）
+- `enemies.json` / `bosses.json` / `difficulty` / 報酬 / `status-effects.json`（5 種のまま）
+- 火の魔女・氷術師の data 全体（`validate-data` と非回帰テストが SHA-256 で保証）
+
+### `validate-data` の M8-F ブロック（16 節）
+
+追加した検証は次のとおり。いずれも**期待値を固定値で持つ**ので、data を静かに動かすと落ちる。
+
+1. カタログ 30 / 4 / 18 / 合計 52
+2. 3 ジョブの active / evolution / passive プールが互いに素
+3. `name` / `displayName` の重複 0
+4. rarity の内訳（戦士 legendary は 0 件）
+5. 進化 18 件の到達性（base と補助が実在し、循環しない）
+6. active 補助の進化がちょうど 3 件
+7. Job Lv80「打撃数 +1」対象がちょうど 6 件
+8. `balance.warrior` の必須 20 ブロック / キーの存在
+9. 数値に NaN / Infinity / 負値が無い
+10. `skillCaps` の形（`low ≤ medium ≤ high ≤ ultra`・すべて正）
+11. 進化の `safetyCaps` がすべて正の有限値
+12. passive の `modifiers` の `op` が `addMult` / `subMult` のいずれか
+13. `guidance` の 10 個の固定値（**下げられていないことの検知**）
+14. `save_version` = 6
+15. `status-effects.json` が 5 種のまま
+16. M8-F の docs 3 件と README の記載の存在

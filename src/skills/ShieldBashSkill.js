@@ -51,6 +51,6 @@ export class ShieldBashSkill extends WarriorSkillBase {
   }
 
   serializeState() { return { cdLeft: this._cd, mitigationLeft: this._mitigationLeft }; }
-  restoreState(st) { if (!st) return; if (typeof st.cdLeft === 'number') this._cd = st.cdLeft; this._mitigationLeft = Math.max(0, st.mitigationLeft || 0); }
+  restoreState(st) { if (!st) return; this.restoreCd(st.cdLeft); this._mitigationLeft = Math.max(0, st.mitigationLeft || 0); }
   destroy() { this._dead = true; this._mitigationLeft = 0; }
 }

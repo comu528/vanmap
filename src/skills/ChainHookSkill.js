@@ -119,7 +119,7 @@ export class ChainHookSkill extends WarriorSkillBase {
   }
   restoreState(st) {
     if (!st) return;
-    if (typeof st.cdLeft === 'number') this._cd = st.cdLeft;
+    this.restoreCd(st.cdLeft);
     // 引き寄せの途中状態は復元しない（再開時の二重移動・座標の飛びを防ぐ）。CD だけ戻す。
     this._hook = null;
   }

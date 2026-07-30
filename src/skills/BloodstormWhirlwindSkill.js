@@ -74,7 +74,7 @@ export class BloodstormWhirlwindSkill extends WarriorEvolvedBase {
   serializeState() { return { cdLeft: this._cd, spinLeftMs: this._spin ? this._spin.leftMs : 0, spinTickLeft: this._spin ? this._spin.tickLeft : 0 }; }
   restoreState(st) {
     if (!st) return;
-    if (typeof st.cdLeft === 'number') this._cd = st.cdLeft;
+    this.restoreCd(st.cdLeft);
     const left = Math.max(0, st.spinLeftMs || 0);
     this._spin = left > 0
       ? { leftMs: Math.min(left, this.cap('maxSpinDurationMs', 5200)), tickLeft: Math.max(0, st.spinTickLeft || 0), castKey: this.nextCastKey(), ticks: 0, extendedMs: 0, extendCount: 0 }

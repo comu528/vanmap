@@ -134,7 +134,7 @@ export class RelentlessComboSkill extends WarriorSkillBase {
   }
   restoreState(st) {
     if (!st) return;
-    if (typeof st.cdLeft === 'number') this._cd = st.cdLeft;
+    this.restoreCd(st.cdLeft);
     // 連撃の途中状態は復元しない（再開時の二重 strike を防ぐ）。CD だけ戻す。
     this._combo = null;
   }

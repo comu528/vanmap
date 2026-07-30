@@ -104,7 +104,7 @@ export class WarAxeThrowSkill extends WarriorSkillBase {
   }
   restoreState(st) {
     if (!st) return;
-    if (typeof st.cdLeft === 'number') this._cd = st.cdLeft;
+    this.restoreCd(st.cdLeft);
     this._axe = null;
   }
   destroy() { this._dead = true; this._axe = null; }

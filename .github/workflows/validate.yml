@@ -384,6 +384,54 @@ jobs:
       - name: Three job final catalog non-regression tests
         run: node tests/three-job-final-catalog-nonregression.mjs
 
+      # 戦士 完成監査（M8-F・新規コンテンツなし・監査と最小修正のみ・Node.js 標準機能のみ）。
+      - name: Warrior completion catalog tests
+        run: node tests/warrior-completion-catalog.mjs
+      - name: Warrior completion draft tests
+        run: node tests/warrior-completion-draft.mjs
+      - name: Warrior completion evolutions tests
+        run: node tests/warrior-completion-evolutions.mjs
+      - name: Warrior completion low-rate evolution tests
+        run: node tests/warrior-completion-low-rate.mjs
+      - name: Warrior completion skill audit tests
+        run: node tests/warrior-completion-skill-audit.mjs
+      - name: Warrior completion recordCast tests
+        run: node tests/warrior-completion-record-cast.mjs
+      - name: Warrior completion cooldown save tests
+        run: node tests/warrior-completion-cooldown-save.mjs
+      - name: Warrior completion runtime state tests
+        run: node tests/warrior-completion-runtime-state.mjs
+      - name: Warrior completion fury/combo tests
+        run: node tests/warrior-completion-fury-combo.mjs
+      - name: Warrior completion recovery tests
+        run: node tests/warrior-completion-recovery.mjs
+      - name: Warrior completion defense tests
+        run: node tests/warrior-completion-defense.mjs
+      - name: Warrior completion enemy type tests
+        run: node tests/warrior-completion-enemy-types.mjs
+      - name: Warrior completion movement tests
+        run: node tests/warrior-completion-movement.mjs
+      - name: Warrior completion projectile/field tests
+        run: node tests/warrior-completion-projectile-field.mjs
+      - name: Warrior completion job/passive tests
+        run: node tests/warrior-completion-job-passive.mjs
+      - name: Warrior completion telemetry tests
+        run: node tests/warrior-completion-telemetry.mjs
+      - name: Warrior completion debug panel tests
+        run: node tests/warrior-completion-debug-panels.mjs
+      - name: Warrior completion performance tests
+        run: node tests/warrior-completion-performance.mjs
+      - name: Warrior completion caps/fields tests
+        run: node tests/warrior-completion-caps-fields.mjs
+      - name: Warrior completion save tests
+        run: node tests/warrior-completion-save.mjs
+      - name: Warrior completion determinism tests
+        run: node tests/warrior-completion-determinism.mjs
+      - name: Warrior completion balance tests
+        run: node tests/warrior-completion-balance.mjs
+      - name: Three job completion non-regression tests
+        run: node tests/three-job-completion-nonregression.mjs
+
       # 状態異常の視認性・実動作検証（M7-B.1・表示状態/デバッグ/ボス氷砕UI/非回帰・Node.js 標準機能のみ）。
       - name: Status visual state tests
         run: node tests/status-visual-state.mjs

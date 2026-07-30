@@ -471,8 +471,55 @@ M8-E で戦士へ **active5 種・進化5 種**を追加し、**火の魔女・�
 
 - **Job Lv80「打撃数 +1」対象は 3 ジョブとも 6 種のまま**（`great_cleave` `shield_bash` `ground_slam`
   `armor_breaker` `twin_fang_slash` `relentless_combo`）。最終Wave の 10 種はすべて対象外。
-- 進化を持たない active は 11 種のまま（Wave2 と同じ。最終Wave の 5 種はすべて進化を持つ）。
+- 進化を持たない active は **12 種**（最終Wave の 5 種はすべて進化を持つ）:
+  `charge_slash` `ground_slam` `twin_fang_slash` `sweeping_advance` `chain_hook` `shockwave_stomp`
+  `relentless_combo` `triple_crush` `blade_guard` `berserker_rush` `war_axe_throw` `breaker_knee`。
+  （M8-F の監査で数え直した。以前の記述「11 種」は誤り。）
 - `ground_slam` は天墜崩撃・山岳投擲の、`counter_stance` は天鏡返しの **active 補助**を兼ねる
   （いずれも置換されず CD にも触らない）。
 - 最終Wave の active / 進化もすべて **残響・分身の対象外**（`echoPolicy` / `clonePolicy` = `forbidden`）。
 - 役割・設計意図の詳細は `./warrior-final-wave.md`。
+
+---
+
+## 戦士 完成監査（Milestone 8-F）
+
+**カタログは M8-E から 1 件も変わっていない**（active 30 / passive 4 / evolution 18 / 合計 52）。
+M8-F はその 52 件を全数監査した回で、**新規追加は 0 件**。
+
+### カタログ整合性の確認結果
+
+| 観点 | 結果 |
+|------|------|
+| id の重複 | 0 件 |
+| `SkillManager` に登録の無い id（未知クラス） | 0 件 |
+| クラスがあるのに data に無い（class だけ） | 0 件 |
+| data にあるのにクラスが無い（JSON だけ） | 0 件 |
+| docs にしか出てこない id（docs だけ） | 0 件 |
+| どの pool にも属さない（orphan） | 0 件 |
+| `name` / `displayName` の重複 | 0 件 |
+| 3 ジョブのプールの互いの素性 | 保たれている（混入 0） |
+
+### 48 スキルの一覧（新規文書）
+
+保存キー・12 秒あたりの主発動回数・補助統計・進化の `safetyCaps` まで並べた完全な表を
+**`./warrior-completion-matrix.md`** に用意した。表は production の
+`serializeState()` / `SkillManager.stats` を実際に駆動して生成しているので、
+data と実装が食い違ったら表の値が変わる。
+
+### M8-F でカタログに関わる変更が 1 つだけあった
+
+`crimson_execution`（血断処刑）の `safetyCaps.maxTargetsPerStrike` を **10 → 20** にした。
+base `execution_strike` より 1 撃の breadth が狭く、**進化すると弱くなる逆転**
+（evo/base = 0.69）を起こしていたため。修正後 1.37。
+**id・名称・進化条件・置換関係・rarity・`maxLevel` は 1 件も変えていない。**
+
+### 抽選での網羅（200 seed × 5 戦略 ＋ 素朴 × 枠 4/6/8）
+
+- **提示 0 / 取得 0 の active・passive・進化はすべて 0 件**（52 件すべてが抽選に出て取得され得る）。
+- 最頻進化のシェア **10.7%**（過剰誘導なし）。
+- **候補ゼロはすべて飽和由来**（所持がすべて上限＋残り進化なし）。飽和以外の候補ゼロは 0 件。
+- 取得率が低い 3 件（`mountain_hurl` / `heaven_crushing_descent` / `heaven_mirror_reversal`）は
+  いずれも **active 補助で枠を 2 つ使う**構造由来で、到達不能ではない。
+
+監査本体は `./warrior-completion-audit.md`、バランス分布は `./warrior-completion-balance.md`。

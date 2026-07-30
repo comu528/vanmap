@@ -1655,7 +1655,9 @@
         "adamant_counter": 3,
         "unyielding_fortress": 2,
         "counter_stance": 1
-      }
+      },
+      "maxCountersPerWindow": 6,
+      "maxWindowMs": 6000
     },
     "execute": {
       "_comment": "M8-C: 処刑。通常敵のみ即死可能で、エリート/ボスは失ったHPに応じた追加ダメージだけ。",
@@ -1694,6 +1696,7 @@
     "rally": {
       "maxFields": 1,
       "maxDurationMs": 12000,
+      "maxRadius": 280,
       "maxComboGrace": 0.8,
       "maxFuryGain": 0.6,
       "maxMitigation": 0.25,

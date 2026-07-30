@@ -4,12 +4,14 @@
 > **各 Milestone 完了時に必ず更新する**（完了報告の要約・コミットID・テスト結果・次 Milestone）。
 > compact 後・新セッション開始時は `CLAUDE.md` → `README.md` → `TODO.md` → 本ファイル → `git log -5 --oneline` の順で確認する。
 >
-> 最終更新: Milestone 8-E 完了時点
+> 最終更新: Milestone 8-F 完了時点
 
 ## Current branch
 
 - ブランチ: **`claude/funny-heisenberg-frhgq9`**（`CLAUDE.md` の継続ブランチ。指定なき限りここへコミット・プッシュ）
 - 直近コミット:
+  - `M8F_COMMIT` Milestone 8-F: 戦士 完成監査（cdLeft復元の改ざん耐性 / 進化済み基礎の再提示 / destroy後の残留 / 上限クランプ 3 件）
+  - `d8c915b` Milestone 8-E ドキュメント更新: docs/project-state.md へ commit ID を記載
   - `00e886f` Milestone 8-E: 戦士スキル拡張 最終Wave（active30 / 進化18・貫穿突き/一騎討ち/修羅の構え/震天踏破/刃返し）
   - `05587df` Milestone 8-D ドキュメント更新: docs/project-state.md へ commit ID を記載
   - `dec7eaa` Milestone 8-D: 戦士スキル拡張 Wave2（active25 / 進化13・打ち上げ/前面防御/掴み投げ/戦旗/低HP）
@@ -28,11 +30,92 @@
 
 ## Current milestone
 
-- **Milestone 8-E（戦士スキル拡張 最終Wave）完了・停止中。** 次の指示待ち。
-- 戦士を **active 25 → 30 / evolution 13 → 18** へ拡張し、**3 ジョブがそろって 30 / 4 / 18 の同規模**へ到達した
-  （passive は 4 種のまま・Job Lv1〜100 据え置き）。
-- **Job Lv80「打撃数 +1」の対象は 3 ジョブとも 6 種のまま**（最終Wave の 10 種はすべて対象外）。
-- 火の魔女・氷術師は**数値 / 挙動 / 候補列 / 状態異常 / 保存とも完全に不変**。`save_version` は **v6 のまま**。
+- **Milestone 8-F（戦士 完成監査）完了・停止中。** 次の指示待ち。
+- **新しい active / passive / 進化 / ジョブは 1 件も追加していない。** M8-E で確定した
+  **active30 / passive4 / evolution18 = 52** のカタログを 12 観点で総点検した回。
+- **不備 8 件 + data の死にフィールド 1 件**を修正した（内容は下の「M8-F で見つけて直した不備」）。
+- **敵 HP / 攻撃力 / 経験値 / スキルの damage・cooldown / 難易度倍率 / 報酬は 1 件も変えていない。**
+  変えた data は `crimson_execution.safetyCaps.maxTargetsPerStrike`（10 → 20）と、
+  上限クランプ用のキー 3 件（`rally.maxRadius` / `counter.maxCountersPerWindow` / `counter.maxWindowMs`）だけ。
+- **抽選しきい値は 1 つも下げていない**（M8-C.1 の目標をそのまま満たす）。
+- 火の魔女・氷術師は**候補列 / ランタイム / セーブ / 状態異常 RNG とも完全に不変**（SHA-256 一致）。
+  `save_version` は **v6 のまま**（保存キーを 1 つも増やしていない）。
+- **全 185 スイート通過**・`validate-data` 0 エラー 0 警告。**実ブラウザ確認は未実施。**
+
+### M8-F の 12 観点と結果
+
+| 観点 | 結果 |
+|------|------|
+| 完成カタログ（30 / 4 / 18 / 52） | 重複 0・未知クラス 0・「JSON だけ / class だけ / docs だけ」0・orphan 0・`displayName` 重複 0 |
+| プール分離 | 3 ジョブのプールが互いに素・他ジョブ混入 0（判定は `poolEligibility.memberAllowedForJob` 1 か所） |
+| rarity / role / support | common7 / uncommon13 / rare10 / **legendary 0**（legendary 段は進化 18 件が担う）・castMode は 30 件すべて `cooldown` |
+| 進化 18 件の到達性 | 全件が条件形成 > 0・提示 > 0・取得 > 0。提示 / 形成 ≈ 100% |
+| production 抽選 simulation | 200 seed × 5 戦略 ＋ 素朴 × 枠 4/6/8 でしきい値をすべて満たす（下表） |
+| `SkillAudit` 48 件 | 未解決 issue 0 |
+| `recordCast` 48 件 | 全件 cast > 0・**スキル側は 1 度も `recordCast` を呼ばない**・多段で増えない |
+| cooldown 保存 48 件 | 全件往復・復元直後に無料 cast なし・**改ざん耐性を追加**（不備 1 件を修正） |
+| `runtimeState` 48 件 | 宣言と実使用が一致・no-op serialize 0・**オブジェクト参照 0 件**（敵は `_seq`） |
+| 固有機構 | 闘気 / コンボ / 撃破回復 / 不屈 / 軽減 / 反撃と弾き返しの調停 / 処刑 / 打ち上げ・掴み・投げ / エリート体勢 / ボス崩し / 移動 の上限と解除条件がすべて効く（不備 4 件を修正） |
+| cap / 死にフィールド | `skillCaps` 217 件すべて参照・`safetyCaps` 全件有効・**死にフィールド 0**（不備 1 件を修正） |
+| telemetry / F8 / F9 | キーと実装が 1:1・dead key 0・外部送信 0・**F10 は不変** |
+
+### M8-F の抽選 simulation（200 seed・しきい値は M8-C.1 から据え置き）
+
+| 枠 | 戦略 | 平均 | 0 個 | ≥1 | ≥2 | 目標 |
+|----|------|------|------|-----|-----|------|
+| 4 | 5 戦略 ＋ 素朴 | 2.19〜3.55 | 0.0〜2.0% | 98.0〜100% | 75.5〜100% | ≥1 80% / 平均 1.0 / 0 個 ≤20% |
+| 6 | 5 戦略 | 3.37〜5.33 | 0.0% | 100% | 96.5〜100% | ≥1 95% / ≥2 60% / 平均 1.7 |
+| 8 | 5 戦略 | 4.51〜7.05 | 0.0% | 100% | 99.5〜100% | ≥1 95% / ≥2 65% / 平均 1.8 |
+
+最頻進化シェア **10.7%**（目標 35% 以下）/ build の種類 枠4 185〜199 / 200・枠6 198〜200・枠8 199〜200 /
+提示 0・取得 0 の active・passive・進化 **0 件** / 他ジョブ混入・重複・枠違反 **0 件** /
+**候補ゼロはすべて飽和由来**（所持がすべて上限＋残り進化なし。飽和以外 0 件）。
+低率 3 件（`mountain_hurl` / `heaven_crushing_descent` / `heaven_mirror_reversal`）はいずれも
+**active 補助で枠を 2 つ使う**構造由来で、到達不能ではない（HEAVY 500 seed でも取得 > 0）。
+
+### M8-F のバランス分布 / 性能
+
+| 指標 | 実測 |
+|------|------|
+| 最大ダメージシェア（30 active 同時所持・4.8 分相当） | `great_cleave` **13.6%**（しきい値 35% 以下） |
+| 死にスキル | **0 件**（ダメージ 0 の `weapon_deflection` は弾き 390 発・反射 6 発の防御スキル） |
+| evo/base < 1.0 の逆転 | **0 件**（修正後。`crimson_execution` は 0.69 → **1.37**） |
+| 全部盛りでの進化シェア最大 | `thousand_blade_dance` 20.6%（他を全部食う進化 0 件） |
+| 永久状態 | 0（構え / 決闘 / 弾き窓 / 陣 / 闘気解放 / 露出 / 掴み / 反撃窓すべて 0 に戻る） |
+| ボス崩し | 39 回 / 露出合計 118.9s / しきい値 ×3.00（永久拘束にならない） |
+| 弾き返し | 検知 202,414 / 弾き 390（**0.2%**）/ 反射 6（完全無効化にならない） |
+| 性能（10 分相当の Node 実測） | low 2.5s / medium 2.5s / high 2.7s / ultra 3.1s |
+| 1 フレーム最大処理 | 238 / 335 / 424 / 534（上限 360 / 540 / 720 / 960 以内） |
+
+### M8-F の重要な設計判断
+
+1. **cooldown 復元を 1 か所へ集約した。** `WarriorSkillBase` / `WarriorEvolvedBase` の
+   共通 `restoreCd(value)` が「`typeof value === 'number'` でなければ採用しない・非有限値は採用しない・
+   有限値は ±`MAX_RESTORED_CD_MS`(120s) へクランプ」を担う。35 ファイルの生の代入を寄せた。
+   **クランプは `[-MAX, +MAX]`**（`[0, MAX]` ではない）。正当なセーブに小さな負の `cdLeft` が入るため
+   （0 へ丸めると `warrior-chain-hook` / `warrior-relentless-combo` の往復一致が壊れる）。
+   **火 / 氷の 27 ファイルは従来の生の代入のまま**＝ restore の挙動は 1 バイトも変わっていない。
+2. **破棄ガードは 2 つの戦士基底にだけ置いた。** `update()` の先頭で `if (this._dead) return;`、
+   `destroy()` で `_dead = true`。派生の `destroy()` は `super.destroy()` を呼ぶか自分で `_dead` を立てる。
+   火 / 氷の基底には入れていない（共通 `SkillBase` を触っていない）。
+3. **進化済み基礎の除外は「加算的」にした。** 抽選コンテキストの `evolvedBaseIds` は
+   **未指定なら空集合**として扱われ、渡さなければ従来と完全に同一の候補列になる。
+   これを明示的にテストしている（`[]` と省略が同じ結果になること）ので、
+   火 / 氷の候補列ハッシュは変わらない。
+4. **決闘マーカーの寿命を BattleScene の 2 メソッドへ集約した。**
+   `_setDuelMark(target)` / `_clearDuelMark()` が `_duelMarkSeq` を単一の正として持ち、
+   再指定・時間切れ・解除・Scene 終了のすべてで古いマーカーを外す。
+   スキル側・`WarriorCombatSystem` 側にマーカーの知識を持たせない。
+5. **改ざん耐性はすべて data の上限で表現した。** 追加した 3 キーは
+   `rally.maxRadius`(280) / `counter.maxCountersPerWindow`(6) / `counter.maxWindowMs`(6000)。
+   同じ値を `WARRIOR_DEFAULTS` にも置いたので data 欠落時も同じ上限になる。
+   **コードにハードコードした数値は増やしていない。**
+6. **balance の修正は 1 値だけに絞った。** 18 進化すべての evo/base を測り、逆転は
+   `crimson_execution` の 1 件（0.69）だけだと確認してから `safetyCaps` を 1 つ動かした。
+   **バランス改修（全体の数値見直し）はしていない。**
+7. **`candidateNone` は欠陥ではないと証明してから記録した。** 候補ゼロを
+   `saturatedNone` / `unsaturatedNone` に分解し、飽和判定は進化を含めた実際の上限
+   （進化は 1・active は `maxLevel`）で行う。実測は飽和 60 / 非飽和 **0**。
 
 ### M8-E で足したもの
 
@@ -131,7 +214,8 @@ M8-D では `heaven_crushing_descent` が枠6 で 7 件だったので**大き�
 | M8-C | 戦士スキル拡張 Wave1（active15 / 進化8・処刑 / 反撃調停 / 戦吼 / 引き寄せ）（`bae3f34` `7e24e1a`） |
 | M8-C.1 | 戦士 4 枠時の進化導線修正（ジョブ限定 guidance ＋ 進化導線 pity・新規コンテンツなし）（`6f9b1de` `02ab13e`） |
 | M8-D | 戦士スキル拡張 Wave2（active25 / 進化13・打ち上げ / 前面防御 / 掴み投げ / 戦旗の陣 / 低 HP スケーリング・guidance へ active 補助補正を 1 キー追加）（`dec7eaa` `05587df`） |
-| **M8-E** | **戦士スキル拡張 最終Wave**（active30 / 進化18 で**3 ジョブが同規模へ到達**・直線の対象選択 / 決闘 / 構え / 進軍 / 弾き返し・guidance へ高要求補助の補正を 2 キー追加）（`00e886f`） |
+| M8-E | 戦士スキル拡張 最終Wave（active30 / 進化18 で**3 ジョブが同規模へ到達**・直線の対象選択 / 決闘 / 構え / 進軍 / 弾き返し・guidance へ高要求補助の補正を 2 キー追加）（`00e886f` `d8c915b`） |
+| **M8-F** | **戦士 完成監査**（**新スキル追加なし**・12 観点で 48 スキルを全数監査・不備 8 件 + 死にフィールド 1 件を修正・23 スイート追加で全 185 通過・火 / 氷は SHA-256 一致）（`M8F_COMMIT`） |
 
 ## Job catalog counts
 
@@ -141,7 +225,7 @@ M8-D では `heaven_crushing_descent` が枠6 で 7 件だったので**大き�
 | 氷術師 | `frost_mage` | ice | **30** | **4** | **18** | 1〜100 |
 | **戦士** | **`warrior`** | **physical** | **30** | **4** | **18** | **1〜100** |
 
-- 合計: 火 52 / 氷 52 / **戦士 52**（M8-E 最終Wave で 3 ジョブが同規模へ到達）。
+- 合計: 火 52 / 氷 52 / **戦士 52**（M8-E 最終Wave で 3 ジョブが同規模へ到達。**M8-F で戦士 52 件を全数監査済み**）。
   `SkillCatalog.buildCatalog()` の issues は **3 ジョブとも 0**。3 ジョブの active / 進化プールは**互いに素**。
 - active slot 4 → 6 → 8（転生で拡張）、passive slot 4。全 active は maxLevel 8、進化は単一形態（Lv 固定）。
 - Job Lv80「発射数+1」対象は**明示 flag（`lv80ProjectileTarget:true`）のみ**。
@@ -174,8 +258,9 @@ M8-D では `heaven_crushing_descent` が枠6 で 7 件だったので**大き�
   `blood_oath_standard`（戦旗招集+血気）＋ `godspeed_impaler`（貫穿突き+戦闘本能）/
   `king_slayer_duel`（一騎討ち+剛力）/ `blood_asura_trance`（修羅の構え+血気）/
   `continental_quake_march`（震天踏破+重装）/ `heaven_mirror_reversal`（刃返し+**active 反撃の構え Lv4**）。
-  **進化を持たない active は 12 種**（Wave1 の 6 種 ＋ `triple_crush` `blade_guard`
-  `berserker_rush` `war_axe_throw` `breaker_knee` ＋ `counter_stance` は自身の進化を持つので除く）。
+  **進化を持たない active は 12 種**: `charge_slash` `ground_slam` `twin_fang_slash` `sweeping_advance`
+  `chain_hook` `shockwave_stomp` `relentless_combo` `triple_crush` `blade_guard` `berserker_rush`
+  `war_axe_throw` `breaker_knee`（M8-F の監査で全数確認。`counter_stance` は自身の進化を持つので含まない）。
   `ground_slam` は**天墜崩撃と山岳投擲の 2 つ**の active 補助を兼ねる（置換されず CD にも触らない）。
   `counter_stance` は**自身の進化 `adamant_counter` を持ちつつ天鏡返しの補助も兼ねる**
   （天鏡返しは置換せず CD にも触らないので両方目指せる。M8-C.1 の不変条件を意図的に緩めた箇所）。
@@ -215,6 +300,12 @@ M8-D では `heaven_crushing_descent` が枠6 で 7 件だったので**大き�
   **弾いた弾の id 集合（`_deflectedIds`）・反射弾そのもの・進行中の突き / 進軍は保存しない。**
   復元は新規発動として数えないので `duelStarts` / `tranceStarts` / `deflectWindows` が水増しされない。
 - 戦士 48 スキル（active30 + 進化18）すべてが `skillRuntime` に載る（最低でも `cdLeft`）。
+- **M8-F では保存キーを 1 つも増やしていない**（`save_version` は v6 のまま・移行処理なし）。
+  代わりに**復元の入口を固くした**: 戦士 48 スキルの `cdLeft` は共通 `restoreCd()` を通り、
+  数値以外（文字列 / null / object）は採用せず、非有限値も採用せず、有限値は ±120s へクランプされる。
+  旋風の回転残り時間は data の `duration` で、陣の半径は `rally.maxRadius` で、
+  反撃窓の回数と持続は `counter.maxCountersPerWindow` / `counter.maxWindowMs` でクランプされる。
+  **保存ファイルを書き換えても上限を超えられない。**
 - 詳細は `docs/save-format.md`。
 
 ## Important architecture
@@ -284,6 +375,16 @@ M8-D では `heaven_crushing_descent` が枠6 で 7 件だったので**大き�
 | 17 | **M8-E** | `canDeflectProjectile()` が `deflectGeneration` を見ておらず、印（`alreadyDeflected`）が落ちた反射弾を**再び弾けてしまう**経路が残っていた。世代だけで止まるガードを追加 | `00e886f` |
 | 18 | **M8-E** | 弾き返しの枠を使い切ると `deflectionActive` が false になって調停へ入らず、**「上限に達した窓へ弾が来た」を 1 度も計測できなかった**（`deflectCapReached` が死んだカウンタになっていた）。窓の開閉だけを見る `deflectionWindowOpen` を追加し、調停までは通して正しく数えるようにした（弾は素通りするので挙動は不変） | `00e886f` |
 | 19 | **M8-E** | テスト側の `formedButNotOffered`（進化が成立したのに候補へ出なかった数）が、進化 18 種では「同時に成立した 4 件以上が 3 枠に収まらない」だけで誤検知していた。**進化候補が 1 つも出なかった draft** だけを数える形へ修正し、良性ケースを `formedPartiallyOffered` として分離 | `00e886f` |
+| 20 | **M8-E** | **`WARRIOR_DEFAULTS` に最終Wave のブロック（line / duel / trance / deflection / march）が無く、`balance` を渡さないと `beginPiercingLunge` が例外を投げた**（data 欠落時にフォールバックが機能しない）。既定値を追加 | `00e886f` |
+| 21 | **M8-F** | **戦士 48 スキルの `restoreState({cdLeft})` が負数 / NaN / ±Infinity / 桁外れをそのまま採用**していた。改ざんされた保存で `_cd = NaN` にすると、以後そのスキルが二度と撃てない（または常に撃てる）状態を作れた。`WarriorSkillBase` / `WarriorEvolvedBase` へ共通 `restoreCd()` を追加し、非有限値は採用せず有限値を ±`MAX_RESTORED_CD_MS`(120s) へクランプ。35 ファイルの生の代入をこの 1 か所へ寄せた（**火 / 氷の 27 ファイルは 1 行も変えていない**） | `M8F_COMMIT` |
+| 22 | **M8-F** | **陣（`placeRallyField`）の半径が上限クランプされていなかった**。改ざんで半径 1e9 の陣を作れば「常に内側」＝永久バフになった。`balance.warrior.rally.maxRadius`(280) を追加してクランプ | `M8F_COMMIT` |
+| 23 | **M8-F** | **反撃窓（`beginCounterWindow` と復元）の回数と持続が上限クランプされていなかった**。改ざんで「999 回・1e9ms」の窓＝実質無限反撃を作れた。`counter.maxCountersPerWindow`(6) / `counter.maxWindowMs`(6000) を追加し、開始時と復元時の両方でクランプ | `M8F_COMMIT` |
+| 24 | **M8-F** | **旋風斬（`WhirlwindSlashSkill.restoreState`）が回転の残り時間をクランプしていなかった**。改ざんで永久に回り続ける（継続ダメージが止まらない）状態を作れた。血戦旋風も同じ経路。data の `duration` で頭打ちにした（他の再開型 — 薙ぎ進軍 / 刃防陣 — は既にクランプ済みだった） | `M8F_COMMIT` |
+| 25 | **M8-F** | **進化済みの基礎 active が空き枠へ「新規」候補として戻っていた**（200 seed 中 38 回）。取得すると進化と基礎を**同時所持**でき「元 active と同時稼働しない」に違反した。抽選コンテキストへ `evolvedBaseIds` を**加算的に**追加し、`SkillDraftManager._eligible` が除外する（未指定なら従来と完全に同一挙動なので**火 / 氷の候補列ハッシュは不変**） | `M8F_COMMIT` |
+| 26 | **M8-F** | **M8-B / M8-C の 21 スキルが `destroy()` 後も発動し続けた**（`_dead` ガードが無く、進化置換・Scene 終了のあとに「墓場から」攻撃が飛ぶ余地があった）。2 つの戦士基底の `update()` に破棄ガードを、`destroy()` に `_dead = true` を置いた（1 か所） | `M8F_COMMIT` |
+| 27 | **M8-F** | **決闘マーカー（`Enemy._duelMark`）が時間切れ / 再指定 / 解除で外れなかった**（生きている敵に古いマーカーが `Enemy.reset()` まで残った）。`BattleScene._setDuelMark` / `_clearDuelMark` でマーカーの寿命を 1 か所へ集約し、決闘が終わったフレームと Scene 終了で必ず外す | `M8F_COMMIT` |
+| 28 | **M8-F** | **`crimson_execution`（血断処刑）が base より弱かった**（群れの中で総ダメージ 69% の逆転）。`safetyCaps.maxTargetsPerStrike: 10` が base `execution_strike` の実効 breadth（品質上限 24 のもとで実測 20）より狭かった。**10 → 20** にした（修正後 evo/base = 1.37・依然として有界で品質上限以下）。18 進化のうち逆転はこの 1 件だけ | `M8F_COMMIT` |
+| 29 | **M8-F** | **data の死にフィールド `charge_slash.config.hitOncePerTarget`**（コメントでしか触れられておらず、挙動はハードコードだった）。実装から読むようにした（`false` を宣言すれば毎フレーム判定に切り替わる。現在の data は `true` なので挙動は不変） | `M8F_COMMIT` |
 | 14 | M8-B | 実装中に作り込みかけた**死にフィールド 2 件を作らずに済ませた**: passive `heavy_armor` の `knockbackResist`（プレイヤーがノックバックされる仕組みが存在しない）と `charge_slash.levels[].visual`（`visualScale()` を使わない）。data・`modifierKeys`・`balance.warrior.mitigation` から削除し、「予約値として残さない」原則を維持 | `4c8bd10` |
 
 ## Non-regression requirements
@@ -329,6 +430,17 @@ M8-D では `heaven_crushing_descent` が枠6 で 7 件だったので**大き�
   `meleeStrike` の `line`・`Projectile` の 4 フィールド・`Enemy._duelMark` は
   **いずれも opt-in / 無害な既定値**（未指定なら従来と同一経路）／
   天鏡返しは `counter_stance` を**置換せず CD にも触らない**
+- **戦士 完成監査（M8-F）で固めた不変条件**:
+  戦士 48 スキルの `cdLeft` 復元は**共通 `restoreCd()` を通る**（数値以外を採用しない・非有限値を採用しない・
+  ±120s へクランプ・**クランプ範囲は `[-MAX, +MAX]`** で 0 へ丸めない）／
+  **火 / 氷の 27 ファイルの restore は生の代入のまま**（触ったら非回帰ハッシュが落ちる）／
+  2 つの戦士基底に**破棄ガード**がある（`destroy()` 後に `update()` が何もしない）／
+  **進化済みの基礎 active は候補へ戻らない**（`evolvedBaseIds`。未指定なら従来と同一挙動という加算性も含めて不変条件）／
+  **決闘マーカーの寿命は `_setDuelMark` / `_clearDuelMark` の 2 メソッドだけが持つ**／
+  陣の半径 / 反撃窓の回数と持続 / 旋風の回転残り時間は**すべて data の上限でクランプされる**／
+  **evo/base < 1.0 の逆転が 0 件**（18 進化すべて）／
+  **死にフィールド 0・未参照 `skillCaps` 0**（217 件）／
+  **候補ゼロは飽和由来のみ**（非飽和の候補ゼロが出たら抽選の欠陥）
 - **3 ジョブのプール完全分離**（各メンバーが適格なジョブは最大 1 つ）
 - passive のジョブプール分離／`poolEligibility.memberAllowedForJob` が単一の正／`jobs` 未指定を暗黙共通にしない
 - active slot 4→6→8・passive slot 4・Job Lv1〜100・Job XP・熟練度
@@ -347,7 +459,8 @@ M8-D では `heaven_crushing_descent` が枠6 で 7 件だったので**大き�
   `tests/three-job-wave1-nonregression.mjs` / `tests/three-job-wave2-nonregression.mjs` /
   `tests/three-job-final-catalog-nonregression.mjs` /
   `tests/warrior-wave1-determinism.mjs` / `tests/warrior-wave2-determinism.mjs` /
-  `tests/warrior-final-determinism.mjs` のハッシュ**
+  `tests/warrior-final-determinism.mjs` /
+  `tests/three-job-completion-nonregression.mjs` / `tests/warrior-completion-determinism.mjs` のハッシュ**
   （火/氷の候補列・火/氷のランタイムトレース）。火・氷を触ったら必ずここが落ちる。
   落ちたら「意図した変更か」を必ず確認すること。
 - **push 型 passive modifier の反映**（M8-B.1）: status 乗率・戦士 mods は `passives.version` 駆動で、
@@ -364,6 +477,12 @@ M8-D では `heaven_crushing_descent` が枠6 で 7 件だったので**大き�
 | `FROST_FREEZE_EXCESSIVE` | 状態異常ハーネスで凍結成功率 93.3% | 飽和負荷のテスト条件による。実際の抑止は凍結耐性が担っている |
 | （火）`hexagram_inferno_array` の evolution-first/slot6 取得率 0.0% | 合算では 3% | base rare ＋ 補助 rare の二重ハンデ。M6-F 以来の既知の低率。**到達不能ではない** |
 | （火）`star_devouring_furnace` / `doomsday_core` の合算取得率 各 1% | — | base が legendary。終盤の legendary 軸として意図的 |
+
+**M8-F の残留 warning は 0 件**（`validate-data` 0 エラー 0 警告・185 スイート全通過）。
+監査で「低い」と分かったが**警告ではなく構造として記録した**もの: active 補助を要求する進化 3 件
+（`mountain_hurl` / `heaven_crushing_descent` / `heaven_mirror_reversal`）の取得率が
+passive 補助の 15 件より低いこと。**枠を 2 つ使う二重ハンデどおりの結果**で到達不能ではなく
+（HEAVY 500 seed でも取得 > 0）、均一化すると build の個性が消えるため意図的に残している。
 
 **`FLAME_*` 警告は 0 件**（high / medium / low すべて 0）。火の魔女の未参照 cap も 0 件になり、
 M7-E の「火由来の未参照 cap 5 件」は解消済み。**戦士は M8-C 時点でも警告 0 件**
@@ -405,6 +524,15 @@ M7-E の「火由来の未参照 cap 5 件」は解消済み。**戦士は M8-C 
 - ヘッドレス環境では `requestAnimationFrame` の間引き・非フォーカス自動一時停止のため、実時間ループ依存の計測が不安定。
 - passive `ember_persist` は進化補助として要求されない（火は 18 進化中 14 件が active 補助）。
   `duration` modifier が実装から参照されるため死に passive ではないが、氷（passive 補助 4/4）とは設計が異なる。
+- **戦士に legendary rarity の active が 1 件も無い**（common7 / uncommon13 / rare10）。
+  火 / 氷は legendary active を 3 件ずつ持つ。戦士は legendary 段を進化 18 件が担う設計で、
+  M8-F では**意図的に変えていない**（rarity を足すと抽選の重みが全体的に動くため）。
+- **`great_cleave` の主発動回数だけが品質で 1 回ずれる**（58 → 59）。低品質では 1 撃あたりの対象数が
+  少なくコンボの伸びがわずかに遅く、攻撃速度しきい値を越えるタイミングが 1 回分ずれる。
+  **1 発動あたりのダメージと規則の階層は 4 品質で不変**。M8-B からある 3 ジョブ共通の帰結で、
+  M8-F で新たに生じた差ではない。
+- **M8-F の性能数値は Node 純ロジックの計算時間**（10 分相当で 2.5〜3.1s）であり、
+  **実ブラウザの FPS ではない**。描画・入力・Phaser の内部処理は含まれていない。
 
 ## Browser verification status
 
@@ -493,13 +621,52 @@ M7-E の「火由来の未参照 cap 5 件」は解消済み。**戦士は M8-C 
   無料の再発動・二重がけ・弾ける残り回数のリセットが起きないこと）
 - すべての品質で 1 周回して **JS エラー 0**
 
+### M8-F（戦士 完成監査）で未確認のもの
+
+M8-F は**新しい見た目・新しい操作を 1 つも追加していない**ので、確認すべきは
+「修正が実プレイで悪影響を出していないこと」に絞られる。
+
+- **進化済みの基礎 active が候補に出なくなったこと**（進化後のレベルアップで元の active が
+  「新規」として並ばない・進化と基礎を同時所持できない）
+- **決闘マーカーが正しく消えること**（時間切れ / 対象を変えた / 対象が死んだあと、
+  生きている敵に古いマーカーが残って見えないか）
+- **進化置換の瞬間に基礎スキルの攻撃が飛ばないこと**（破棄ガード。演出が二重に出ないか）
+- **保存 / 再開で cooldown が正しいこと**（`restoreCd` のクランプで、
+  再開直後に無料発動も逆に永久沈黙も起きないこと）
+- **血断処刑（`crimson_execution`）が進化後に強くなったと体感できること**（cap 10 → 20 の影響）
+- **陣 / 反撃窓 / 旋風が正常プレイでは従来どおりであること**（追加した上限に通常は達しない）
+- すべての品質で 1 周回して **JS エラー 0**・**60FPS 維持**
+
 ## Latest test results
 
-- 実行日時点: Milestone 8-E 完了時（コミット `00e886f`）
-- **テストスイート: 162 件（`tests/*.mjs` から共通土台 `frost-audit-common.mjs` / `flame-audit-common.mjs` /
+- 実行日時点: Milestone 8-F 完了時（コミット `M8F_COMMIT`）
+- **テストスイート: 185 件（`tests/*.mjs` から共通土台 `frost-audit-common.mjs` / `flame-audit-common.mjs` /
   `warrior-common.mjs` / `status-passive-common.mjs` / `warrior-draft-sim.mjs` と `validate-data.mjs` を除く）
-  → 全 162 通過・失敗 0**（`validate.yml` のステップ数は `validate-data` を含めて **163**）
+  → 全 185 通過・失敗 0**（`validate.yml` のステップ数は `validate-data` を含めて **186**）
 - `node tests/validate-data.mjs` → **0 エラー / 0 警告**
+- M8-F 新規 23 スイート（括弧内はアサーション数）:
+  `warrior-completion-catalog`（425）/ `warrior-completion-draft`（328）/
+  `warrior-completion-evolutions`（404）/ `warrior-completion-low-rate`（110）/
+  `warrior-completion-skill-audit`（1746）/ `warrior-completion-record-cast`（269）/
+  `warrior-completion-cooldown-save`（2012）/ `warrior-completion-runtime-state`（1733）/
+  `warrior-completion-fury-combo`（51）/ `warrior-completion-recovery`（33）/
+  `warrior-completion-defense`（51）/ `warrior-completion-enemy-types`（198）/
+  `warrior-completion-movement`（447）/ `warrior-completion-projectile-field`（198）/
+  `warrior-completion-job-passive`（258）/ `warrior-completion-telemetry`（208）/
+  `warrior-completion-debug-panels`（90）/ `warrior-completion-performance`（137）/
+  `warrior-completion-caps-fields`（1513）/ `warrior-completion-save`（217）/
+  `warrior-completion-determinism`（283）/ `warrior-completion-balance`（260）/
+  `three-job-completion-nonregression`（354）
+- M8-F で更新した既存のもの: `tests/warrior-draft-sim.mjs`（`saturatedNone` / `unsaturatedNone` の分解・
+  飽和判定を進化込みの実上限へ・`evolvedBaseIds` を渡す `buildCtx`）/
+  `tests/warrior-common.mjs`（`_duelMarkSeq` / `setDuelMark` / `clearDuelMark` / `cleanupWarrior` を
+  production と同じ形で追加）/ `tests/validate-data.mjs`（M8-F ブロック 16 節）
+- `.github/workflows/validate.yml` へ 23 ステップ追加（計 **186** ステップ・
+  すべて実在するファイルを指し、テストファイルの取りこぼしも 0）。
+- **いずれも regex だけでなく production の class / prototype / manager を直接駆動する実測**で、
+  M8-F の修正を巻き戻すと落ちる（例: `restoreCd` を戻すと cooldown-save の改ざん節が落ち、
+  `evolvedBaseIds` を戻すと completion-draft が落ち、`_dead` を戻すと completion-runtime-state が落ち、
+  `crimson_execution` の cap を戻すと completion-balance が落ちる）。
 - M8-E 新規 16 スイート（括弧内はアサーション数）:
   `warrior-final-catalog`（935）/ `warrior-final-pool`（229）/ `warrior-final-draft`（164）/
   `warrior-final-guidance`（124）/ `warrior-final-evolutions`（171）/
@@ -532,34 +699,56 @@ M7-E の「火由来の未参照 cap 5 件」は解消済み。**戦士は M8-C 
 | 枠を使い切ると `deflectionActive` が false になり調停へ入らない | 「上限に達した窓へ弾が来た」を**1 度も計測できない** | 窓の開閉だけを見る `deflectionWindowOpen` を追加し、調停までは通して `capReached` を数える（弾は素通りするので挙動は不変） |
 | `warrior-build-diversity` の `formedButNotOffered` が誤検知 | 進化 18 種では「同時成立が 3 枠に収まらない」だけで失敗する | 進化候補が**1 つも出なかった** draft だけを数える形へ。良性ケースは `formedPartiallyOffered` として分離 |
 
+### M8-F で見つけて直した不備
+
+| 不備 | 影響 | 修正 |
+|------|------|------|
+| 戦士 48 スキルの `restoreState({cdLeft})` が負数 / NaN / ±Infinity / 桁外れを採用 | 改ざん保存で `_cd = NaN` → 二度と撃てない / 常に撃てる | 共通 `restoreCd()` を 2 つの戦士基底へ。非有限値は採用せず ±120s へクランプ（火 / 氷は不変） |
+| 陣（`placeRallyField`）の半径が無制限 | 半径 1e9 = 永久バフ | `rally.maxRadius`(280) を追加してクランプ |
+| 反撃窓の回数と持続が無制限 | 「999 回・1e9ms」= 実質無限反撃 | `counter.maxCountersPerWindow`(6) / `counter.maxWindowMs`(6000) を追加（開始時と復元時の両方） |
+| 旋風斬の回転残り時間が復元でクランプされない | 永久回転（継続ダメージが止まらない） | data の `duration` で頭打ち |
+| 進化済みの基礎 active が空き枠へ再提示（200 seed 中 38 回） | 進化と基礎を同時所持できた | `evolvedBaseIds` を加算的に追加し `_eligible` が除外（火 / 氷の候補列は不変） |
+| M8-B / M8-C の 21 スキルが `destroy()` 後も発動 | 進化置換 / Scene 終了後に攻撃が飛ぶ | 2 つの戦士基底へ破棄ガード（1 か所） |
+| `Enemy._duelMark` が時間切れ / 再指定 / 解除で外れない | 生きた敵に古いマーカーが残る | `_setDuelMark` / `_clearDuelMark` で寿命を集約 |
+| `crimson_execution` が base より弱い（69%） | 進化すると火力が下がる逆転 | `safetyCaps.maxTargetsPerStrike` 10 → 20（修正後 1.37） |
+| 死にフィールド `charge_slash.config.hitOncePerTarget` | data にあるのに実装がハードコード | 実装から読むようにした（現 data は `true` なので挙動不変） |
+
 ## Next milestone
 
-**未定（次の指示待ち）。** 候補は以下。
+**未定（次の指示待ち）。** 3 ジョブすべてのカタログ（各 30 / 4 / 18）と
+完成監査（氷 M7-E / 火 M8-A / 戦士 M8-F）が揃ったので、次はジョブ単体の作業ではない選択肢が中心。候補は以下。
 
-1. **戦士 完成監査（M8-F）** — カタログは M8-E で **30 / 4 / 18** に揃った。
-   M7-E（氷）/ M8-A（火）と同じ 12 観点（カタログ / プール分離 / 進化到達率 / 抽選シミュレーション /
-   死にコンテンツ / SkillAudit / 保存 / 決定論 / 固有機構 / cap / cleanup / telemetry）。
-   火・氷の監査では**毎回「CD 保存漏れ」「recordCast の欠落」「死にフィールド」「未参照 cap」**が出ているので、
-   戦士でも同じ 4 種を最初に洗うこと。
+1. **3 ジョブ横断の総合監査** — 個別監査は 3 ジョブとも完了した。次はジョブ間の比較
+   （同規模なのに体験が違うか）・共通機構の重複（3 ジョブで似た処理が別実装になっていないか）・
+   共有 cap / balance キーの整合・3 ジョブ同時の性能を見る回。
 2. **火と氷の属性反応** — 炎上⇄冷気/凍結の相互作用（付与時の source element を活用）。
 3. **転生レガシー / ジョブ間継承**（`futureInheritanceSettings` / `extraAllowedIds` が拡張口）。
 4. **周回長の拡張**（10分 / 15分 / 無限モード）・**追加の敵 / ボス / 難易度**。
-5. **実ブラウザでの M7-E / M8-A / M8-B / M8-B.1 / M8-C / M8-C.1 / M8-D / M8-E 手動確認**
+5. **4 人目のジョブ** — 3 ジョブぶんの基盤・監査観点・テスト雛形がそろっている
+   （M8-B〜M8-F の流れをそのまま再利用できる）。
+6. **実ブラウザでの M7-E / M8-A / M8-B / M8-B.1 / M8-C / M8-C.1 / M8-D / M8-E / M8-F 手動確認**
    （`docs/test-guide.md` の該当節）— コード変更を伴わない検証タスク。
-   **M8-E は B（新 active 5 種の見え方）・C（新 evolution 5 種）・D（保存 / 復元）・
-   E（F8 / F9 / F10）・G（敵弾が多い状況での負荷）の確認価値が特に高い。**
+   **M8-F は「進化済み基礎が候補に出ない」「決闘マーカーが消える」「進化置換で二重に攻撃しない」
+   「保存 / 再開で cooldown が正しい」の 4 点の確認価値が特に高い。**
 
 いずれも**指示された範囲のみ**実装し、未指定の先行実装はしない（`CLAUDE.md` の作業手順）。
 
-### 拡張のたびに必ず回すもの（M8-C.1 / M8-D / M8-E で共通）
+### 拡張のたびに必ず回すもの（M8-C.1 / M8-D / M8-E / M8-F で共通）
 
 ```
 node tests/warrior-slot4-evolution-rate.mjs      # 枠4 の到達率（最も薄まりやすい）
-node tests/warrior-final-draft.mjs               # 最終カタログの網羅・集中度
+node tests/warrior-completion-draft.mjs          # 完成カタログの網羅・集中度・飽和の分解
 node tests/warrior-final-guidance.mjs            # guidance の追調整（過剰誘導なし）
 node tests/warrior-build-diversity.mjs           # build 多様性
-node tests/three-job-final-catalog-nonregression.mjs   # 火 / 氷のハッシュ
+node tests/warrior-completion-caps-fields.mjs    # 未参照 cap / 死にフィールド 0
+node tests/warrior-completion-balance.mjs        # 死にスキル 0・evo/base の逆転 0・永久状態 0
+node tests/three-job-completion-nonregression.mjs      # 火 / 氷のハッシュ（最新）
+node tests/three-job-final-catalog-nonregression.mjs   # 火 / 氷のハッシュ（M8-E 版も維持）
 ```
 
 薄まりの吸収は**「しきい値を下げる」のではなく guidance を data で調整する**
-（M8-C.1 / M8-D / M8-E と同じ方針）。
+（M8-C.1 / M8-D / M8-E / M8-F と同じ方針）。
+
+戦士へ手を入れるときは、M8-F で固めた 4 つの経路を必ず確認する
+（`restoreCd` / 破棄ガード / `evolvedBaseIds` / 決闘マーカーの寿命）。
+どれも 1 か所へ集約してあるので、**新しいスキルは何もしなくても同じ保証を継承する**。

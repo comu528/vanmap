@@ -60,10 +60,15 @@ export class WhirlwindSlashSkill extends WarriorSkillBase {
   }
   restoreState(st) {
     if (!st) return;
-    if (typeof st.cdLeft === 'number') this._cd = st.cdLeft;
-    const left = Math.max(0, st.spinLeftMs || 0);
+    this.restoreCd(st.cdLeft);
+    const s = this.stats;
+    // M8-F: 保存値は data の duration で必ず頭打ちにする（改ざんで永久回転を作らせない）。
+    const maxMs = Math.max(0, (s && s.duration) || 0);
+    const left = Math.min(Math.max(0, st.spinLeftMs || 0), maxMs);
     // 復元では回転を「再開」するだけで、新しい発動としてカウントしない（duration の二重化を防ぐ）。
-    this._spin = left > 0 ? { leftMs: left, tickLeft: Math.max(0, st.spinTickLeft || 0), castKey: this.nextCastKey(), ticks: 0 } : null;
+    this._spin = left > 0
+      ? { leftMs: left, tickLeft: Math.max(0, Math.min(st.spinTickLeft || 0, maxMs)), castKey: this.nextCastKey(), ticks: 0 }
+      : null;
   }
   destroy() { this._dead = true; this._spin = null; }
 }

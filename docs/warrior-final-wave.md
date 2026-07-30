@@ -248,3 +248,50 @@ timedBuffs: {
 - 新しい敵 / ボス / 難易度・転生レガシー・UI 全面改修・正式画像素材
 - 戦士の「完成監査」（別 Milestone）
 - 抽選そのものの全体設計変更（guidance は戦士だけに効く data キーの追加のみ）
+
+---
+
+## 補記: Milestone 8-F（完成監査）で最終Wave について確認したこと
+
+M8-F は監査だけの回で、**最終Wave の 5 active / 5 進化の data も実装も 1 件も変えていない**。
+ただし監査の過程で、最終Wave の機構について次のことを確認・是正した。
+
+### 是正した 3 点（いずれも改ざん耐性・残留）
+
+| 対象 | 内容 |
+|------|------|
+| 反撃窓（`counter_stance` / `adamant_counter` / 天鏡返しの調停経路） | 回数と持続が上限クランプされておらず、改ざんされた保存で「999 回・1e9ms」の窓＝実質無限反撃を作れた。`counter.maxCountersPerWindow`(6) / `counter.maxWindowMs`(6000) を追加し、**開始時も復元時も**クランプ |
+| 決闘マーカー（`Enemy._duelMark`） | M8-E では `Enemy.reset()` / `onEnemyRemoved()` が戻す設計だったが、**時間切れ / 再指定 / 明示解除では外れず**、生きている敵に古いマーカーが残った。`BattleScene._setDuelMark` / `_clearDuelMark` で寿命を集約し、決闘が終わったフレームと Scene 終了で必ず外す |
+| 最終Wave の 5 スキルの `cdLeft` 復元 | 48 スキル共通の不備。共通 `restoreCd()` を通すようにした（非有限値を採用せず ±120s へクランプ） |
+
+### 変えなかったことの確認
+
+| 項目 | 確認結果 |
+|------|----------|
+| 貫穿突きの射程 | `line.maxLineLength`(300px) で頭打ち。画面端まで届かない |
+| 決闘の永久ロック | 延長は合計上限つき。ボスの露出も 39 回でしきい値 ×3.00 まで上がり連続しない |
+| 構えのリスク | 合計軽減は `minMitigationAfterPenalty` を下回らない（**負にならない**）。攻撃補正は闘気解放との合成上限（0.85）で頭打ち |
+| 自傷 / ライフスティール | 実装に `hp -=` / `selfDamage` / `hpCost` の経路が存在しない |
+| 震天踏破の終了条件 | 距離と時間の**両方**で必ず終わる。壁外・NaN・無限歩行 0 件 |
+| 弾き返しの無効化率 | 検知 202,414 / 弾き 390（**0.2%**）/ 反射 6。完全無効化にならない |
+| 反射弾の世代 | 世代 1 で止まり再反射しない。同じ弾を 2 度弾かない |
+| 1 イベント = 最大 1 系統 | `arbitrateDeflectionAndCounter()` が唯一の調停点 |
+| 最終Wave 5 種が既存 25 種を食う | 合計シェア **11.7%**（既存 25 種 88.3%）＝全ハズレにしていない |
+| 天鏡返しの取得率 | 200 seed で 39 / 71 / 104（枠4 / 6 / 8）。**到達不能ではない** |
+| M8-E で追加した `Projectile` の 4 フィールド | 既定値のままなので火 / 氷の弾のランタイムハッシュは SHA-256 一致 |
+| 最終Wave の skillCaps 12 件 | すべて参照済み（未参照 0）。`low ≤ medium ≤ high ≤ ultra` かつ正 |
+
+### 最終Wave の 5 進化はすべて base より強い
+
+| 進化 | base | evo/base | 全部盛りシェア |
+|------|------|----------|----------------|
+| `godspeed_impaler` | `piercing_lunge` | 1.15 | 3.1% |
+| `king_slayer_duel` | `duel_challenge` | 1.25 | 0.1% |
+| `blood_asura_trance` | `battle_trance` | 1.21 | 0.1% |
+| `continental_quake_march` | `earthshaker_march` | 1.96 | 14.8% |
+| `heaven_mirror_reversal` | `weapon_deflection` | ダメージ 0 の防御ペア（弾き回数で比較） | 0.0% |
+
+逆転（evo/base < 1.0）は最終Wave では 0 件。
+唯一の逆転は Wave1 の `crimson_execution` で、M8-F で是正した。
+
+監査本体は `./warrior-completion-audit.md`、バランス分布は `./warrior-completion-balance.md`。

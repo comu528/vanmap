@@ -53,6 +53,6 @@ export class WarCrySkill extends WarriorSkillBase {
 
   serializeState() { return { cdLeft: this._cd }; }
   // バフ本体は WarriorCombatSystem.serializeTimedBuffs() が持つ（スキル側では二重に保存しない）。
-  restoreState(st) { if (st && typeof st.cdLeft === 'number') this._cd = st.cdLeft; }
+  restoreState(st) { if (st) this.restoreCd(st.cdLeft); }
   destroy() { this._dead = true; }
 }

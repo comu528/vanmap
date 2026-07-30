@@ -102,7 +102,7 @@ export class UnyieldingFortressSkill extends WarriorEvolvedBase {
   }
   restoreState(st) {
     if (!st) return;
-    if (typeof st.cdLeft === 'number') this._cd = st.cdLeft;
+    this.restoreCd(st.cdLeft);
     this._window = { leftMs: Math.max(0, st.windowLeftMs || 0), used: Math.max(0, st.counterUsed || 0) };
     this._mitigationLeft = Math.max(0, st.mitigationLeft || 0);
   }

@@ -7,7 +7,26 @@
 npm・ビルド処理・バックエンド・データベースは一切使いません。Phaser 3.90.0 を CDN から読み込み、
 すべての素材（プレイヤー・敵・弾・エフェクト等）は JavaScript 上で動的生成しています。
 
-> ⚠️ **開発状況**: 現在 **Milestone 8-E**（戦士スキル拡張 最終Wave）まで実装済みです。
+> ⚠️ **開発状況**: 現在 **Milestone 8-F**（戦士 完成監査）まで実装済みです。
+> M8-F は**監査だけの Milestone**で、**新しい active / passive / 進化 / ジョブを 1 件も追加していません**。
+> 戦士の 48 スキル（active 30 + 進化 18）を、カタログ整合性・プール分離・進化到達性・
+> production 抽選 simulation・`SkillAudit`・`recordCast` の 1:1・cooldown 保存・`runtimeState`・
+> 固有機構（闘気 / コンボ / 撃破回復 / 不屈 / 防御 / 敵種別 / 移動）・cap と死にフィールド・
+> telemetry / F8 / F9 / F10・性能・セーブ往復・決定性・バランス分布の
+> **12 観点**で総点検し、**不備 8 件 + 死にフィールド 1 件を修正**しました。
+> 主な修正は、48 スキルの `cdLeft` 復元を共通 `restoreCd()` で改ざん耐性化（保存破損の防止）、
+> 陣の半径 / 反撃窓の回数・持続 / 旋風の残り時間の上限クランプ、
+> **進化済みの基礎 active が空き枠へ再提示されていた抽選漏れ**の修正、
+> `destroy()` 後もスキルが動き続けた残留の修正、決闘マーカーの寿命の一元化、
+> そして `crimson_execution` が base より弱かった逆転の解消（`safetyCaps` 1 値のみ）です。
+> **敵 HP / 攻撃力 / 経験値 / 難易度倍率 / 報酬 / スキルの damage・cooldown は 1 件も変えていません。**
+> **抽選しきい値は 1 つも下げていません**（M8-C.1 の目標をそのまま満たしています）。
+> **火の魔女・氷術師は候補列・ランタイム・セーブ・状態異常 RNG とも完全に不変**（SHA-256 で一致）・
+> **save_version は v6 のまま**。実ブラウザでの確認は未実施。
+> 詳細は `docs/warrior-completion-audit.md`・`docs/warrior-completion-matrix.md`・
+> `docs/warrior-completion-balance.md`。
+>
+> （M8-E まで）**Milestone 8-E**（戦士スキル拡張 最終Wave）。
 > M8-E では戦士の **active を 5 種追加して計 30 種**、**進化を 5 種追加して計 18 種**にし、
 > **3 ジョブがそろって 30 / 4 / 18 の同規模**になりました
 > （passive は 4 種のまま・Job Lv1〜100 も据え置き）。
@@ -154,6 +173,7 @@ npm・ビルド処理・バックエンド・データベースは一切使い�
 | **M8-C.1** | **戦士 4 枠時の進化導線修正**（新規コンテンツ・バランス変更なし）: M8-C で戦士の active が5→15になった結果、production の `SkillDraftManager` を使った 200 seed シミュレーションで **active 枠4 の「進化1個以上」到達率が 92.5% → 46.5%** へ低下していた問題を修正。原因分析の結果、(a) 既存の synergy 補助（M6-F）は**「所持している基礎 → その補助スキル」の一方向しか無く**、逆方向（補助が揃っている → 基礎を伸ばす）が存在しなかったこと、(b) 既存 pity は進化成立でしかリセットされず**基礎 Lv8 の詰まりを救えなかった**こと、(c) 既存の到達率テストが `_generate()` 直呼びで synergy / pity / reroll を通していなかったこと、の 3 点が判明（進化 0 の周回では**所持基礎の最高 Lv が 7.03**＝あと 1 段階で届いていなかった）。火/氷は進化の補助が active 中心なので基礎も自然に育つのに対し、戦士は 8 進化中 7 件が passive 補助で passive が早期に最大化されるため、基礎 active の Lv8 だけが最後まで残る構造だった。修正は `data/skill-config.json` へ**ジョブ限定の `guidance` ブロック**を追加し、`SkillDraftManager._guidanceMult()` が **data の進化レシピからのみ**補正対象を導出する形（**特定 skill ID のハードコードなし**）。「どの進化元を取るか」はレアリティ階層に委ねたまま、「取った進化元を最後まで伸ばす」側だけを助ける（所持基礎の強化・最大Lv接近・補助が揃った基礎・未達補助・必要Lv手前の補助）。同じスキルが複数レシピに関わっても倍率は掛け算にせず役割ごとの最大値だけを採り（重複上限）、合成は `maxMultiplier` で必ず頭打ち。進化導線用の pity（`guidanceStall`）を追加し、進展（基礎の取得/強化・補助の取得/強化・進化取得）でリセット・**保存するので save/reload で稼げない**・**RNG 消費は 1 も増やさない**（重みだけを変える）。結果は枠4/40レベルアップで **62.5% → 89.5%**（平均 0.70 → 1.26・進化0個 37.5% → 10.5%）、枠6/60 で 99.0% → 100.0%（2個以上 70.5% → 91.0%）、枠8/80 で平均 3.50 → 3.92。**過剰誘導なし**（最頻進化シェア 34.8% → 30.4%・build 多様性 61.9% → 66.5%・新規取得率が同 rarity 中央値の3倍超は 0 件・進化を持たない active の取得は +3.9%）。M8-C で一時的に下げたテスト閾値を復元（枠4 ≥80%/平均1.0/0個≤20%、枠6 ≥95%/2個以上≥60%/平均1.7、枠8 ≥95%/2個以上≥65%/平均1.8）。自動テスト9スイート追加（**全125スイート通過**）。**火の魔女・氷術師は候補列300seedのSHA-256・48スキルのランタイムトレースとも完全一致**・**data のスキル/進化/バランスは1件も変更なし**・**save_version v6 維持**（draft へ `guidanceStall` を1キー加算的に追加）。実ブラウザ確認は未実施。詳細は `docs/warrior-evolution-guidance.md`・`docs/warrior-draft-analysis-wave1.md` | ✅ 実装済み |
 | **M8-D** | **戦士のスキル拡張 Wave2**: active を10種追加して**計25種**、進化を5種追加して**計13種**（passive は4種のまま・Job Lv1〜100 も据え置き・**Job Lv80「打撃数 +1」の対象は 3 ジョブとも 6 種のまま**）。新 active10種（昇竜斬 `rising_slash` / 鉄壁突進 `shield_charge` / 燕返し `backstep_riposte` / 豪腕投げ `battlefield_throw` / 三段砕き `triple_crush` / 刃防陣 `blade_guard` / 狂戦猛進 `berserker_rush` / 戦斧投擲 `war_axe_throw` / 破城膝撃 `breaker_knee` / 戦旗招集 `rallying_banner`）・新 evolution5種（天衝断空 `heaven_rending_ascent` / 城塞蹂躙 `fortress_rampage` / 無影燕返 `shadow_swallow_riposte` / 山岳投擲 `mountain_hurl` / 血盟戦旗 `blood_oath_standard`）。**新しい共通機構 5 つ（打ち上げ / 前面防御 / 掴み・投げ / 戦旗の陣 / 低 HP スケーリング）はすべて `WarriorCombatSystem` へ集約**し、BattleScene へスキルごとの状態を散らしていない。**新しい formal status は 1 つも作っていない**（共通状態異常は 5 種のまま）。**打ち上げと掴みが効くのは通常敵だけ**（エリートは体勢削り / その場叩きつけ、ボスは掴めず重い体勢打撃へ置換）で、可否は `launchPolicy()` / `grabPolicy()` に一元化（スキル側で `isBoss` を見ない）。打ち上げは滞空 `maxAirborneMs` と免疫 `immuneMs` で無限に浮かせられず、残留（`_airborneUntil` / `_launchImmuneUntil` / `_launchHeight` / `_grabbed`）は `Enemy.reset()` と `onEnemyRemoved()` の両方が必ず戻す。**前面防御は方向の分かる被弾だけ**を受け流し（`requireDirection: true`）、側面は ×0.35・背面は ×0（`Player.takeDamage` の第 2 引数は任意なので**火 / 氷の被弾計算は 1 バイトも変わらない**）。合計軽減は従来どおり 70% でクランプされ**無敵にならない**。掴みは**敵オブジェクトを保持せず安定 runtime id（`_seq`）だけ**を持ち、同時 1 体・時間切れで必ず解除・**保存しない**（reload で無料の着地衝撃を作らない）・**投げから投げが連鎖しない**。戦旗の陣は**常に 1 つ**（重ねがけは置換）で、効果が乗るのは**戦士本人が内側にいるときだけ**（外へ出れば即座に 0）。血盟戦旗の回復強化は**既存の毎秒 cap を共有**したままなので永久機関にならない。低 HP スケーリングは**自傷せず処刑もせず**必ず頭打ち（×1.6）。戦斧投擲は `Projectile` を使わず `combat.thrownStrike`（`meleeStrike` の `isThrown` 版）で表現するので**火 / 氷の弾は完全に不変**、かつ**近接倍率が乗らない**（同一敵へは行き / 帰りで最大 2 回）。品質別 skillCaps 20種追加（**未参照 cap 0**）・F8 戦士分析と F9 戦士検証パネルへ Wave2 の項目を追加（**F10 は不変**）。active が 25 に増えたぶんの抽選の薄まりは、**M8-C.1 のしきい値を 1 つも下げず**に guidance へ data キーを 1 つ（`activeSupportWeightMultiplier` = 1.6・**補助が active のレシピだけ**へ追加補正・skill ID のハードコードなし）足して吸収した。結果、素朴戦略の枠4/40lv で 進化1個以上 **85.0%**（平均 1.17・0個 15.0%）・枠6/60lv 99.0%（2個以上 88.0%・平均 2.38）・枠8/80lv 100%（2個以上 98.5%・平均 3.46）で M8-C.1 の目標をすべて満たし、**13 進化すべて・25 active すべてが取得 0 件なし**、最頻進化シェアは 19.6% → 19.3% と**むしろ改善**（過剰誘導なし）。自動テスト21スイート追加（**全147スイート通過**）。**火の魔女・氷術師は数値/挙動/候補列/状態異常/保存とも完全に不変**（`tests/three-job-wave2-nonregression.mjs` がハッシュで保証）・**新 status/属性反応/装備/敵/ボス/難易度/新ジョブなし**・**save_version v6 維持**。実ブラウザ描画/体感は未検証。詳細は `docs/warrior-wave2.md`・`docs/warrior-evolution-guidance.md`・`docs/skill-catalog.md` | ✅ 実装済み |
 | **M8-E** | **戦士のスキル拡張 最終Wave**: active を5種追加して**計30種**、進化を5種追加して**計18種**（passive は4種のまま・Job Lv1〜100 も据え置き・**Job Lv80「打撃数 +1」の対象は 3 ジョブとも 6 種のまま**）。これで**3 ジョブがそろって 30 / 4 / 18 の同規模**になった。新 active5種（貫穿突き `piercing_lunge` / 一騎討ち `duel_challenge` / 修羅の構え `battle_trance` / 震天踏破 `earthshaker_march` / 刃返し `weapon_deflection`）・新 evolution5種（神速貫陣 `godspeed_impaler` / 覇王討ち `king_slayer_duel` / 血染修羅 `blood_asura_trance` / 大陸震砕踏破 `continental_quake_march` / 天鏡返し `heaven_mirror_reversal`）。**新しい共通機構 5 つ（直線の対象選択 / 決闘 / 構え / 進軍 / 弾き返し）はすべて `WarriorCombatSystem` へ集約**し、BattleScene へスキルごとの状態を散らしていない。**新しい formal status は 1 つも作っていない**（共通状態異常は 5 種のまま）。**貫穿突きは弾ではない**（踏み込み＋近接の直線判定・射程は `line.maxLineLength` 300px で頭打ちで**画面端まで届かない**）。射線上にエリート / ボスがいると通常敵の枠が `toughSingleTargetRatio` 由来の少数に絞られ、**硬い相手ほど威力が 1 点へ集まる**。**一騎討ちは正式な状態異常を作らない**（相手へ debuff を貼らず、戦士本人の補正としてだけ効く）。対象は**同時 1 体**・再発動は置換・優先度は data 由来で ボス > エリート > 高 HP 通常敵・**敵オブジェクトを保持せず安定 runtime id（`_seq`）だけ**を持ち、死亡 / プール返却 / Scene 終了で必ず解除される。覇王討ちの延長は合計上限つきで**ボスを永久ロックできない**。**修羅の構えも formal status ではない**（同時 1 つ・重ねがけせず上書き）。攻撃補正は**闘気解放との合成上限** `combinedOffenseCap`(0.85) で必ず頭打ちになり、リスクは**軽減の実効値の小幅低下だけ**。低下は合計から引くだけで**重装 / 闘気解放 / 不屈のいずれも無効化せず**、`minMitigationAfterPenalty` を下回らない（**負にならない**）。**自傷もライフスティールもしない**。震天踏破は大地砕き / 震脚と違い**移動しながら複数地点**を踏み、1 発動 = 1 recordCast・距離と時間の**両方**で必ず終わり・`worldMargin` で壁の内側にクランプされ・座標が NaN にならない。**刃返しは完全無効化ではない**。弾けるのは allowlist の通常敵弾だけで、**ボス予兆 / 光条 / 地形ハザード / DoT は弾かない**（可否は `canDeflectProjectile()` に一元化）。窓ごとの上限を超えた弾はそのまま通り、弾いた弾は必ず消えて短命の物理反射弾になる（元弾の特殊効果を引き継がず・**世代 1 で止まるので再反射しない**・同じ弾を 2 度弾かない）。`recordCast` は窓の開始時の 1 回だけ。近接反撃とは別経路で、**1 イベントに応じるのは最大 1 系統**（`arbitrateDeflectionAndCounter()`）。天鏡返しは `counter_stance` を**置換せず CD にも触らない**。品質別 skillCaps 12種追加（**未参照 cap 0**）・F8 戦士分析と F9 戦士検証パネルへ 最終Wave の項目を追加（**F10 は不変**）。active が 30 に増えたぶんの抽選の薄まりは、**M8-C.1 のしきい値を 1 つも下げず**に guidance へ data キーを 2 つ（`highRequirementSupportLevel` = 6 / `highRequirementSupportMultiplier` = 1.5・**役割ごとの max で積み上がらない**・skill ID のハードコードなし）足して吸収した。結果、素朴戦略の枠4/40lv で 進化1個以上 **89.5%**（平均 1.28・0個 10.5%）・枠6/60lv 99.0%（2個以上 94.5%・平均 2.65）・枠8/80lv 100%（2個以上 99.5%・平均 3.92）で M8-C.1 の目標をすべて満たし、**18 進化すべて・30 active すべてが取得 0 件なし**、最頻進化シェアは 19.3% → **16.2 / 13.8 / 11.7%**（枠4/6/8）と**むしろ改善**（過剰誘導なし・build 多様性 89.8 / 97.2 / 99.3%）。自動テスト16スイート追加（**全163スイート通過**・`validate-data` 0 エラー 0 警告）。**火の魔女・氷術師は数値/挙動/候補列/状態異常/保存とも完全に不変**（`tests/three-job-final-catalog-nonregression.mjs` がハッシュで保証）・**新 status/属性反応/装備/敵/ボス/難易度/新ジョブなし**・**save_version v6 維持**。実ブラウザ描画/体感は未検証。詳細は `docs/warrior-final-wave.md`・`docs/warrior-evolution-guidance.md`・`docs/skill-catalog.md` | ✅ 実装済み |
+| **M8-F** | **戦士の完成監査**（**新 active / passive / 進化 / ジョブは 1 件も追加していない**）: M8-E で戦士が **active30 / passive4 / evolution18 = 52** に到達し 3 ジョブが同規模になったのを受けた総点検。**12 観点**（カタログ整合性 30/4/18/52・3 ジョブのプール分離・rarity と役割・進化 18 件の到達性・production 抽選 simulation・`SkillAudit` 48 件・`recordCast` の 1:1 48 件・cooldown 保存 48 件・`runtimeState` 48 件・固有機構〈闘気 / コンボ / 撃破回復 / 不屈 / 防御 / 敵種別 / 移動〉・cap と死にフィールド・telemetry / F8 / F9 / F10）で **不備 8 件 + data の死にフィールド 1 件**を修正した。**① 48 スキルの `restoreState({cdLeft})` が負数 / NaN / ±Infinity / 桁外れをそのまま採用**していた（改ざん保存で `_cd = NaN` にして永久に撃てない / 常に撃てる状態を作れた）→ `WarriorSkillBase` / `WarriorEvolvedBase` へ共通 `restoreCd()` を置き、非有限値は採用せず有限値を ±120s へクランプ（**火 / 氷の restore は 1 行も変えていない**）。**② 陣（`placeRallyField`）の半径が無制限**→ `balance.warrior.rally.maxRadius`(280) を追加してクランプ。**③ 反撃窓（`beginCounterWindow` / 復元）の回数と持続が無制限**→ `counter.maxCountersPerWindow`(6) / `counter.maxWindowMs`(6000) を追加し開始時と復元時の両方でクランプ。**④ 旋風斬の回転残り時間が復元でクランプされず永久回転を作れた**→ data の `duration` で頭打ちにした。**⑤ 進化済みの基礎 active が空き枠へ「新規」候補として戻っていた**（200 seed 中 38 回・取得すると進化と基礎を同時所持できた）→ 抽選コンテキストへ `evolvedBaseIds` を**加算的に**追加して `SkillDraftManager._eligible` が除外する（未指定なら従来と完全に同一挙動なので**火 / 氷の候補列ハッシュは不変**）。**⑥ M8-B / M8-C の 21 スキルが `destroy()` 後も発動し続けた**→ 2 つの戦士基底の `update()` に破棄ガードを 1 か所だけ置いた。**⑦ 決闘マーカー（`Enemy._duelMark`）が時間切れ / 再指定 / 解除で外れず生きた敵に残留**→ `BattleScene._setDuelMark` / `_clearDuelMark` で寿命を一元化し、決闘終了フレームと Scene 終了で必ず外す。**⑧ `crimson_execution`（血断処刑）が base より弱い逆転**（群れで総ダメージ 69%）→ `safetyCaps.maxTargetsPerStrike` を **10 → 20**（修正後 evo/base = 1.37・依然として有界で品質上限以下）。死にフィールド `charge_slash.config.hitOncePerTarget` は実装から読むようにした（現 data は `true` なので挙動は不変）。**敵 HP / 攻撃力 / 経験値 / スキルの damage・cooldown / 難易度倍率 / 報酬は 1 件も変えていない**（変えたのは上の `safetyCaps` 1 値と、上限クランプ用の data キー 3 件だけ）。**抽選しきい値は 1 つも下げていない**: 200 seed × 5 戦略 × 枠4/6/8 で 枠4 の 6 戦略すべてが ≥1 個 98.0〜100%（平均 2.19〜3.55・0 個 ≤2.0%）、枠6 が ≥1 個 100% / 平均 3.37〜5.33、枠8 が ≥1 個 99.5〜100% / 平均 4.51〜7.05。**30 active・4 passive・18 進化すべてが提示 0 / 取得 0 なし**、最頻進化シェア **10.7%**、build 多様性 枠4 185〜199 / 200、候補ゼロは**すべて飽和由来**（飽和以外 0 件）。性能は 10 分相当の Node 実測で low 2.5s / medium 2.5s / high 2.7s / ultra 3.1s、1 フレーム最大処理は 4 品質とも上限内（238/335/424/534 ≤ 360/540/720/960）。自動テスト**23スイート追加**（**全185スイート通過**・`validate-data` 0 エラー 0 警告）。**火の魔女・氷術師は候補列 / ランタイム / セーブ / 状態異常 RNG とも完全に不変**（`tests/three-job-completion-nonregression.mjs` が SHA-256 で保証）・**新 status / 属性反応 / 装備 / 敵 / ボス / 難易度 / 新ジョブなし**・**save_version v6 維持**（保存キーを 1 つも増やしていない）。実ブラウザ描画/体感は未検証。詳細は `docs/warrior-completion-audit.md`・`docs/warrior-completion-matrix.md`・`docs/warrior-completion-balance.md` | ✅ 実装済み |
 
 ### 遊びの流れ（M4）
 タイトル →「はじめから / 拠点」→ **拠点**（恒久強化・難易度・熟練度・**転生**・**魂炎強化**）→「戦闘開始」→
@@ -1125,3 +1145,58 @@ slot8 ≥1=97.0%・≥2=78.5%）。
 GitHub Pages を実ブラウザ（`?debug=1` の F8/F9/F10）で開き、`docs/test-guide.md` の
 **Milestone 8-A** 項目を手動確認してください（実行していない項目を「確認済み」と報告しません）。
 詳細は `docs/flame-completion-audit.md` / `docs/flame-draft-analysis.md` / `docs/flame-balance-report.md`。
+
+
+**Milestone 8-F の検証**: 戦士の**完成監査**（**新 active / passive / 進化 / ジョブは 1 件も追加していない**）。
+M8-E で戦士が **active30 / passive4 / evolution18 = 52** に到達し、火の魔女（M8-A）・氷術師（M7-E）と
+同規模になったのを受けた総点検です。カタログ整合性（30 / 4 / 18 / 52・JSON だけ / class だけ / docs だけ = 0・orphan 0）・
+3 ジョブのプール分離（互いに素・他ジョブ混入 0）・rarity と役割（common7 / uncommon13 / rare10・legendary 段は進化 18 件が担う）・
+全 18 進化の到達可能性・production の `SkillDraftManager` ＋ `SeededRandom` ＋ 実 rarity / 実 guidance / 実 pity /
+実 synergy / 実 reroll・banish・skip による抽選シミュレーション（**200 seed × 5 戦略 ＋ 素朴戦略 × active枠 4 / 6 / 8**・
+`Math.random` を 1 度も使わない）・`SkillAudit` 48 件・`recordCast` の 1:1 48 件・cooldown 保存 48 件・
+`runtimeState` 48 件・固有機構（闘気 / コンボ / 撃破回復 / 不屈 / 軽減 / 反撃と弾き返しの調停 / 処刑 /
+ノックバック・打ち上げ・掴み・投げ / エリートの体勢 / ボスの崩し / 移動 / 投擲と陣）・Job Lv1〜100 と passive 4 種・
+telemetry と F8 / F9（F10 非回帰）・性能（`PoolManager` / `SpatialGrid` / `skillCaps`）・セーブ往復と旧セーブ・
+決定性・バランス分布を、`node tests/warrior-completion-catalog.mjs` ほか**新規23スイート**で検証しました（`HEAVY=1` で seed / 時間増）。
+
+他ジョブ混入・不正候補・重複候補・slot違反・不正進化は**すべて 0 件**、
+提示 0 / 取得 0 の active・passive・進化も **0 件**、到達不能な進化も **0 件**です。
+進化到達率は **M8-C.1 のしきい値を 1 つも下げずに**満たしています
+（枠4: 6 戦略すべてが ≥1 個 98.0〜100% / 平均 2.19〜3.55 / 0 個 ≤2.0%、
+枠6: ≥1 個 100% / ≥2 個 96.5〜100% / 平均 3.37〜5.33、
+枠8: ≥1 個 99.5〜100% / ≥2 個 96.5〜100% / 平均 4.51〜7.05）。
+最頻進化のシェアは **10.7%**（目標 35% 以下）、build の種類は 枠4 185〜199 / 200・枠6 198〜200 / 200・枠8 199〜200 / 200 で、
+**候補ゼロはすべて飽和由来**（所持がすべて上限＋残り進化なし。飽和以外は 0 件）です。
+
+監査で見つかった不備 **8 件** と data の死にフィールド **1 件**を修正しました
+（優先度は M8-F の指定順＝crash → save 破損 → プール漏れ → … → balance）。
+**(1) 戦士 48 スキルの `restoreState({cdLeft})` が負数 / NaN / ±Infinity / 桁外れをそのまま採用していた**
+（改ざん保存で `_cd = NaN` にすると、以後そのスキルが二度と撃てない / 常に撃てる状態を作れた）→
+`WarriorSkillBase` / `WarriorEvolvedBase` へ共通の `restoreCd()` を追加し、非有限値は採用せず有限値を ±120s へクランプ、
+35 ファイルの生の代入をこの 1 か所へ寄せました（**火 / 氷の restore は 1 行も変えていません**）。
+**(2) 陣（`placeRallyField`）の半径が上限クランプされていなかった** → `balance.warrior.rally.maxRadius`(280) を追加。
+**(3) 反撃窓（`beginCounterWindow` と復元）の回数と持続が上限クランプされていなかった** →
+`counter.maxCountersPerWindow`(6) / `counter.maxWindowMs`(6000) を追加し、開始時と復元時の両方でクランプ。
+**(4) 旋風斬の回転残り時間が復元でクランプされず、永久に回り続ける状態を作れた** → data の `duration` で頭打ちに。
+**(5) 進化済みの基礎 active が空き枠へ「新規」候補として戻っていた**（200 seed 中 38 回。取得すると進化と基礎を
+同時所持でき「元 active と同時稼働しない」に違反した）→ 抽選コンテキストへ `evolvedBaseIds` を**加算的に**追加し、
+`SkillDraftManager._eligible` が除外します（未指定なら従来と完全に同一挙動なので**火 / 氷の候補列ハッシュは不変**）。
+**(6) M8-B / M8-C の 21 スキルが `destroy()` 後も発動し続けた**（進化置換・Scene 終了のあとに攻撃が飛ぶ余地）→
+2 つの戦士基底の `update()` に破棄ガードを、`destroy()` に `_dead = true` を 1 か所だけ置きました。
+**(7) 決闘マーカー（`Enemy._duelMark`）が時間切れ / 再指定 / 解除で外れず、生きた敵に残留していた** →
+`BattleScene._setDuelMark` / `_clearDuelMark` で寿命を一元化し、決闘が終わったフレームと Scene 終了で必ず外します。
+**(8) `crimson_execution`（血断処刑）が base より弱かった**（群れの中で総ダメージ 69% の逆転）→
+`safetyCaps.maxTargetsPerStrike` を **10 → 20**（修正後 evo/base = 1.37・依然として有界で品質上限 24 以下）。
+死にフィールド `charge_slash.config.hitOncePerTarget` は実装から読むようにしました
+（現在の data は `true` なので挙動は不変）。
+
+**敵 HP / 攻撃力 / 経験値 / スキルの damage・cooldown / 難易度倍率 / 報酬は 1 件も変えていません。**
+変更した data は上の `safetyCaps` 1 値と、上限クランプ用のキー 3 件（`rally.maxRadius` /
+`counter.maxCountersPerWindow` / `counter.maxWindowMs`。現在の data では上限に達しないため正常プレイの挙動は不変）だけです。
+**全185スイート通過・`validate-data` 0エラー0警告**、`save_version` は **v6 のまま**（保存キーを 1 つも増やしていません）。
+火の魔女・氷術師の data・実装は候補列・ランタイム・セーブ・状態異常 RNG とも 1 件も変えておらず、
+**変更前後で SHA-256 完全一致**です（`tests/three-job-completion-nonregression.mjs`）。
+**実際の描画・当たり判定・体感バランス・60FPS 維持は Phaser 依存のためヘッドレスでは未計測**です。
+GitHub Pages を実ブラウザ（`?debug=1` の F8/F9/F10）で開き、`docs/test-guide.md` の
+**Milestone 8-F** 項目を手動確認してください（実行していない項目を「確認済み」と報告しません）。
+詳細は `docs/warrior-completion-audit.md` / `docs/warrior-completion-matrix.md` / `docs/warrior-completion-balance.md`。

@@ -855,3 +855,97 @@ this._duelMark = false; this._lineAlong = 0;   // 既定値では移動にも AI
 
 決闘 / 構え / 弾き返しの窓はすべて `WarriorCombatSystem.update(dt)` の末尾で
 まとめて減算・終了処理される（`Phaser.Time` に依存しない＝テストから同じ経路を駆動できる）。
+
+---
+
+## Milestone 8-F: 戦士 完成監査（構造上の変更点）
+
+**新しいクラス・新しいマネージャは 1 つも増やしていない。** 監査で見つけた不備を、
+既存の集約点へ寄せる形で直した回。
+
+### 1. cooldown 復元を戦士の基底 2 クラスへ集約した
+
+```
+src/skills/WarriorSkillBase.js
+  export const MAX_RESTORED_CD_MS = 120000
+
+  warriorMixin.restoreCd(value)     // 数値以外は採用しない / 非有限値は採用しない
+                                    // 有限値は [-MAX, +MAX] へクランプ
+  WarriorSkillBase.update()         // this._dead なら何もしない
+  WarriorSkillBase.destroy()        // this._dead = true
+  WarriorEvolvedBase.update()       // 同上
+  WarriorEvolvedBase.destroy()      // 同上
+```
+
+戦士 35 ファイルにあった `if (typeof st.cdLeft === 'number') this._cd = st.cdLeft;` という
+生の代入をすべて `this.restoreCd(st.cdLeft);` へ置き換えた。
+**火 / 氷の 27 ファイルは従来の生の代入のまま**で、共通 `SkillBase` も触っていない
+＝火 / 氷の restore は 1 バイトも変わらない。
+
+クランプ範囲が `[0, MAX]` ではなく `[-MAX, +MAX]` なのは意図的で、
+正当なセーブに小さな負の `cdLeft` が入る（フレーム末で `_cd` が負に振れる）ため。
+0 へ丸めると保存 → 復元の一致が壊れる。
+
+破棄ガードも同じ 2 クラスにだけ置いた。派生の `destroy()` は `super.destroy()` を呼ぶか
+自分で `_dead` を立てる（`WhirlwindSlashSkill` のように状態も落とす場合は後者）。
+
+### 2. 進化済み基礎の除外は抽選コンテキストの「加算的な」1 フィールド
+
+```
+BattleScene.buildDraftCtx()
+  → { ..., evolvedBaseIds: this.skills.evolvedBaseIds }
+
+SkillDraftManager._eligible(ctx)
+  const evolvedBase = new Set(ctx.evolvedBaseIds || [])
+  ...
+  if (isActive && evolvedBase.has(m.id)) continue   // 進化済みの基礎は再提示しない
+```
+
+`ctx.evolvedBaseIds` を**渡さなければ空集合**として扱われるので、
+既存の呼び出し元（火 / 氷 / カタログ表示 / シミュレーション）は挙動が変わらない。
+`[]` を渡した場合と省略した場合が同じ候補列になることをテストで固定している。
+
+### 3. 決闘マーカーの寿命を BattleScene の 2 メソッドへ集約した
+
+```
+BattleScene
+  _duelMarkSeq            // 現在マークしている敵の安定 runtime id（唯一の正）
+  _setDuelMark(target)    // 古いマークを外してから新しいマークを付ける
+  _clearDuelMark()        // _duelMarkSeq を頼りにボス / プール内から外す
+```
+
+`refreshDuel()` の解除パス・`update()` の「決闘が終わったフレーム」・`cleanup()` の 3 か所から
+必ず `_clearDuelMark()` を通る。**スキル側と `WarriorCombatSystem` 側はマーカーを知らない**
+（`WarriorCombatSystem` は `_seq` しか持たず、見た目の責務を持たない設計を維持）。
+
+### 4. 上限クランプは `WarriorCombatSystem` の入口と復元の両方へ
+
+```
+beginCounterWindow()   leftMs → clamp(0, counter.maxWindowMs)
+                       max    → clamp(1, counter.maxCountersPerWindow)
+placeRallyField()      radius → clamp(1, rally.maxRadius)
+（反撃窓の復元も同じクランプを通る）
+```
+
+`WARRIOR_DEFAULTS` にも同じ値を置いたので、`balance.json` を渡さないテスト経路でも同じ上限になる。
+**クランプ値をコードへハードコードしていない**（既定値も含めて 1 か所にまとまっている）。
+
+### 5. 旋風の再開はデータ由来の上限で頭打ち
+
+`WhirlwindSlashSkill.restoreState()` は保存された残り時間を
+`stats.duration` で頭打ちにする（`BloodstormWhirlwindSkill` も同じ経路を継承）。
+他の再開型（薙ぎ進軍 / 刃防陣）は M8-D 時点で既にクランプ済みだった。
+
+### 6. `hitOncePerTarget` を data から読むようにした
+
+`ChargeSlashSkill` の「同一敵へ 1 度だけ」は実装にハードコードされていた。
+`config.hitOncePerTarget === false` のときだけ毎フレーム判定へ切り替わる形にして、
+data の宣言が実際に効くようにした（現在の data は `true` なので挙動は不変）。
+
+### 変えていないもの
+
+- 新しいクラス / マネージャ / Scene / システムを 1 つも追加していない。
+- 共通 `SkillBase` / `EvolvedSkillBase` / `SkillManager` / `PoolManager` / `SpatialGrid` /
+  `StatusEffectManager` / `FreezeSystem` / `SaveCoordinator` を触っていない。
+- `save_version` は v6 のまま（保存キーを 1 つも増やしていない）。
+- npm 依存・ビルド工程・外部通信は増やしていない。

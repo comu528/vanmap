@@ -316,3 +316,58 @@ Wave1 / Wave2 と同じ土台（`WarriorSkillBase` / `WarriorEvolvedBase` / `app
 いずれも `_clearState()` が既定へ戻すので、プール再利用で前の弾の状態が残らない。
 
 一覧と役割は `./skill-catalog.md` の 最終Wave 節、設計意図は `./warrior-final-wave.md`。
+
+---
+
+## Milestone 8-F: 戦士 完成監査（スキル基底に 2 つだけ足した）
+
+**新しいスキルクラスは 1 つも追加していない。** `SkillBase` / `EvolvedSkillBase`（共通基底）も触っていない。
+追加したのは**戦士専用の基底 2 クラスに対する 2 つの仕組み**だけ。
+
+### 1. `restoreCd(value)` — cooldown 復元の共通入口
+
+`src/skills/WarriorSkillBase.js` の `warriorMixin` に定義され、
+`WarriorSkillBase` / `WarriorEvolvedBase` の両方の prototype に載る。
+
+```
+restoreCd(value):
+  typeof value !== 'number'   → 採用しない（false）
+  !Number.isFinite(value)     → 採用しない（false）
+  それ以外                    → this._cd = clamp(value, -MAX_RESTORED_CD_MS, +MAX_RESTORED_CD_MS)
+                                （MAX_RESTORED_CD_MS = 120000）
+```
+
+戦士 35 ファイルの `restoreState()` がこれを呼ぶ。
+**火 / 氷の 27 ファイルは従来の `if (typeof st.cdLeft === 'number') this._cd = st.cdLeft;` のまま**。
+
+新しい戦士スキルを足すときは `this.restoreCd(st.cdLeft)` を呼ぶだけでよい
+（改ざん耐性を個別に書く必要がない）。
+
+### 2. `_dead` — 破棄ガード
+
+```
+WarriorSkillBase / WarriorEvolvedBase
+  get dead()      → this._dead === true
+  update(dt, ctx) → this._dead なら即 return（super.update を呼ばない）
+  destroy()       → this._dead = true
+```
+
+進化置換・Scene 終了のあとに「墓場から」攻撃が飛ぶのを止める。
+派生クラスが `destroy()` を上書きする場合は `super.destroy()` を呼ぶか、
+自分で `this._dead = true` を立てる（状態も落としたい場合は後者。例: `WhirlwindSlashSkill`）。
+
+### 監査で確認したスキル 48 件の性質
+
+- **`recordCast` を呼ぶのは基底 `update` だけ**（スキル側は 1 度も呼ばない）。
+  多段 / tick / 反撃 / 反射 / 進軍の各地点で記録が増えない＝「1 主発動 = 1 記録」が保たれる。
+- `serializeState()` / `restoreState()` は 48 件すべてが持ち、**no-op（`{}` を返すだけ）は 0 件**。
+- **オブジェクト参照 / Phaser の実体を保存しているスキルは 0 件**。
+  敵を指す必要があるものは安定 runtime id（`Enemy._seq`）で保存する。
+- `echoPolicy` / `clonePolicy` は 48 件すべて `forbidden`、
+  `canTriggerEcho` / `canBeCopiedByClone` は 48 件すべて `false`（戦士は残響 / 分身の対象外）。
+- `damageTags` は 48 件すべて物理系（`melee` / `slash` / `blunt` / `thrust` / `thrown` / `dot` なし）。
+- 敵種別の可否判定を**スキル側で書いているものは 0 件**（`launchPolicy` / `grabPolicy` /
+  `executePolicy` / `duelPriority` / `resolveLineMeleeTargets` が単一の正）。
+  `isElite` / `isBoss` を**読む**スキルはあるが、それは優先度・距離・表示の材料としてだけ。
+
+一覧（保存キー・主発動回数・補助統計つき）は `./warrior-completion-matrix.md`。

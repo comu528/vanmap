@@ -185,5 +185,39 @@
 | `combat_instinct` | 無影燕返・神速貫陣 |
 | `bloodlust` | 血盟戦旗・血染修羅 |
 
-18 進化のうち **15 件が passive 補助・3 件が active 補助**。4 passive はいずれも 4〜5 件を担当していて、
-どれか 1 つだけが必須にならない配分になっている。
+18 進化のうち **15 件が passive 補助・3 件が active 補助**。
+passive の担当件数は `combat_instinct` 4 / `bloodlust` 4 / `heavy_armor` 4 / `brute_force` 3 で、
+どれか 1 つだけが必須にならない配分になっている（M8-F の監査で数え直した。
+以前の記述「4〜5 件」は誤り）。active 補助は `ground_slam` 2 件・`counter_stance` 1 件。
+
+---
+
+## Milestone 8-F: 完成監査での再集計
+
+M8-F でカタログを全数監査し、この文書の数え違いを 1 件是正した
+（passive の担当件数「4〜5 件」→ 実際は `combat_instinct` 4 / `bloodlust` 4 / `heavy_armor` 4 / `brute_force` 3）。
+
+**48 スキルの完全な一覧**（rarity / class / CD / ダメージ / 保存キー / 12 秒あたりの主発動回数 /
+補助統計 / 進化の `safetyCaps`）は、この文書ではなく **`./warrior-completion-matrix.md`** にある。
+そちらは production の `serializeState()` / `SkillManager.stats` を実際に駆動して生成しているので、
+data と実装が食い違ったら値が変わる（手書きの表ではない）。
+
+### この文書と `warrior-completion-matrix.md` の役割分担
+
+| 文書 | 役割 |
+|------|------|
+| `./warrior-skill-matrix.md`（本書） | **設計の意図**を役割の重なりで見る表（Wave ごとの追加理由・役割の被り具合） |
+| `./warrior-completion-matrix.md` | **実装の事実**を 1 行 1 スキルで並べた監査表（実測値・自動生成） |
+
+### M8-F 時点の集計（再確認済み）
+
+| 項目 | 値 |
+|------|-----|
+| active | **30**（common 7 / uncommon 13 / rare 10 / legendary 0） |
+| passive | **4**（`brute_force` uncommon / `heavy_armor` uncommon / `combat_instinct` uncommon / `bloodlust` rare） |
+| evolution | **18**（passive 補助 15 / active 補助 3） |
+| 合計 | **52** |
+| 進化を持たない active | **12**（`charge_slash` `ground_slam` `twin_fang_slash` `sweeping_advance` `chain_hook` `shockwave_stomp` `relentless_combo` `triple_crush` `blade_guard` `berserker_rush` `war_axe_throw` `breaker_knee`） |
+| 進化条件に使われる active | **2**（`ground_slam` 2 件 / `counter_stance` 1 件） |
+| Job Lv80「打撃数 +1」対象 | **6**（`great_cleave` `shield_bash` `ground_slam` `armor_breaker` `twin_fang_slash` `relentless_combo`） |
+| castMode | 30 件すべて `cooldown` |

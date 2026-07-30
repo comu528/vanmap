@@ -2228,6 +2228,286 @@ if (jobProgData) {
   }
 }
 
+// ============================================================================
+// Milestone 8-F: 戦士 完成監査。新規コンテンツは無く、監査で見つけた不備の修正だけ。
+// data 側の不変条件（カタログ規模 / 上限の存在 / 死にフィールド 0 / cap の健全性）を固定する。
+// ============================================================================
+{
+  const W = balance.warrior || {};
+  const jobs = (jobsData && jobsData.jobs) || [];
+  const skills = (skillsData && skillsData.skills) || [];
+  const evolutions = (evoData && evoData.evolutions) || [];
+  const passives = (passivesData && passivesData.passives) || [];
+  const skillConfig = skillCfg || {};
+  const statusEffects = loadJson('status-effects.json') || {};
+  const ROOT = join(__dirname, '..');
+  const wjob = jobs.find((j) => j.id === 'warrior') || {};
+  const wActives = wjob.activeSkillPool || [];
+  const wPassives = wjob.passiveSkillPool || [];
+  const wEvos = wjob.evolutionPool || [];
+
+  // --- 1. 完成カタログ 30 / 4 / 18 / 合計 52（M8-E から増減なし）---
+  if (wActives.length !== 30) err(`M8-F: 戦士 active が 30 件でない（${wActives.length}）`);
+  if (wPassives.length !== 4) err(`M8-F: 戦士 passive が 4 件でない（${wPassives.length}）`);
+  if (wEvos.length !== 18) err(`M8-F: 戦士 evolution が 18 件でない（${wEvos.length}）`);
+  if (wActives.length + wPassives.length + wEvos.length !== 52) err('M8-F: 戦士の合計が 52 件でない');
+  for (const jid of ['flame_witch', 'frost_mage']) {
+    const j = jobs.find((x) => x.id === jid) || {};
+    if ((j.activeSkillPool || []).length !== 30) err(`M8-F: ${jid} の active が 30 件でない`);
+    if ((j.evolutionPool || []).length !== 18) err(`M8-F: ${jid} の evolution が 18 件でない`);
+    if ((j.passiveSkillPool || []).length !== 4) err(`M8-F: ${jid} の passive が 4 件でない`);
+  }
+  if (skills.length !== 90) err(`M8-F: skills.json が 90 件でない（${skills.length}）`);
+  if (evolutions.length !== 54) err(`M8-F: skill-evolutions.json が 54 件でない（${evolutions.length}）`);
+  if (passives.length !== 12) err(`M8-F: passives.json が 12 件でない（${passives.length}）`);
+  if (jobs.length !== 3) err(`M8-F: jobs.json が 3 ジョブでない（${jobs.length}）`);
+
+  // --- 2. プール分離（3 ジョブとも互いに素）---
+  {
+    const sets = { flame_witch: 'flame_witch', frost_mage: 'frost_mage', warrior: 'warrior' };
+    const pools = {};
+    for (const jid of Object.keys(sets)) {
+      const j = jobs.find((x) => x.id === jid) || {};
+      pools[jid] = new Set([...(j.activeSkillPool || []), ...(j.evolutionPool || []), ...(j.passiveSkillPool || [])]);
+    }
+    const names = Object.keys(pools);
+    for (let a = 0; a < names.length; a++) {
+      for (let b = a + 1; b < names.length; b++) {
+        const dup = [...pools[names[a]]].filter((id) => pools[names[b]].has(id));
+        if (dup.length) err(`M8-F: ${names[a]} と ${names[b]} のプールが重複（${dup.join(',')}）`);
+      }
+    }
+  }
+
+  // --- 3. 表示名の重複 0（3 ジョブ横断）---
+  {
+    const allNames = [...skills.map((s) => s.name), ...evolutions.map((e) => e.displayName), ...passives.map((p) => p.displayName)];
+    const dup = allNames.filter((n, i) => n && allNames.indexOf(n) !== i);
+    if (dup.length) err(`M8-F: 表示名が重複している（${[...new Set(dup)].join(',')}）`);
+  }
+
+  // --- 4. rarity（戦士 active は common / uncommon / rare の 3 段・legendary 0）---
+  {
+    const byR = {};
+    for (const id of wActives) {
+      const s = skills.find((x) => x.id === id) || {};
+      byR[s.rarity] = (byR[s.rarity] || 0) + 1;
+    }
+    for (const r of ['common', 'uncommon', 'rare']) {
+      if (!(byR[r] > 0)) err(`M8-F: 戦士 active に ${r} が 0 件`);
+    }
+    if (byR.legendary) err(`M8-F: 戦士 active に legendary がある（進化がその役を担う設計・${byR.legendary} 件）`);
+    const rw = skillConfig.rarityWeights || {};
+    if (!(rw.common > rw.uncommon && rw.uncommon > rw.rare && rw.rare > rw.legendary)) {
+      err('M8-F: rarityWeights の階層が崩れている');
+    }
+  }
+
+  // --- 5. 進化の到達可能性（base Lv8 / 補助 Lv ≤ 最大 / 1 base に 1 進化）---
+  {
+    const byBase = {};
+    for (const id of wEvos) {
+      const e = evolutions.find((x) => x.id === id) || {};
+      if (!wActives.includes(e.baseSkillId)) err(`M8-F: ${id} の base ${e.baseSkillId} が戦士 active プールに無い`);
+      if (e.replacementSkillId !== id) err(`M8-F: ${id} の replacementSkillId が自身でない`);
+      if (e.lv80ProjectileTarget !== false) err(`M8-F: ${id} が Lv80 対象になっている`);
+      byBase[e.baseSkillId] = (byBase[e.baseSkillId] || 0) + 1;
+      const reqs = e.requiredSkills || [];
+      if (reqs.length !== 1) err(`M8-F: ${id} の補助が 1 件でない（${reqs.length}）`);
+      for (const r of reqs) {
+        const isActive = wActives.includes(r.skill);
+        const isPassive = wPassives.includes(r.skill);
+        if (!isActive && !isPassive) { err(`M8-F: ${id} の補助 ${r.skill} が戦士プールに無い`); continue; }
+        const max = isActive
+          ? ((skills.find((x) => x.id === r.skill) || {}).maxLevel || 8)
+          : ((passives.find((x) => x.id === r.skill) || {}).maxLevel || 4);
+        if (!(r.level >= 1 && r.level <= max)) err(`M8-F: ${id} の補助 ${r.skill} の必要 Lv ${r.level} が到達不能（最大 ${max}）`);
+      }
+    }
+    for (const [b, n] of Object.entries(byBase)) if (n > 1) err(`M8-F: base ${b} に進化が ${n} 件ぶら下がっている`);
+    if (Object.keys(byBase).length !== 18) err(`M8-F: 進化を持つ base が 18 種でない（${Object.keys(byBase).length}）`);
+  }
+
+  // --- 6. active 補助の進化（枠を 2 つ使うぶん必要 Lv が data で明示されている）---
+  {
+    const activeSupport = wEvos.filter((id) => {
+      const e = evolutions.find((x) => x.id === id) || {};
+      return (e.requiredSkills || []).some((r) => wActives.includes(r.skill));
+    });
+    if (activeSupport.length !== 3) err(`M8-F: active 補助の進化が 3 件でない（${activeSupport.length}）`);
+    for (const id of activeSupport) {
+      const e = evolutions.find((x) => x.id === id) || {};
+      for (const r of e.requiredSkills || []) {
+        if (wActives.includes(r.skill) && !(r.level >= 1)) err(`M8-F: ${id} の active 補助 ${r.skill} の必要 Lv が data に無い`);
+      }
+    }
+  }
+
+  // --- 7. Job Lv80 はちょうど 6 種・進化 0 種 ---
+  {
+    const lv80 = wActives.filter((id) => (skills.find((x) => x.id === id) || {}).lv80ProjectileTarget === true);
+    if (lv80.length !== 6) err(`M8-F: 戦士の Lv80 対象が 6 種でない（${lv80.length}）`);
+    const evoLv80 = wEvos.filter((id) => (evolutions.find((x) => x.id === id) || {}).lv80ProjectileTarget === true);
+    if (evoLv80.length) err(`M8-F: 進化が Lv80 対象になっている（${evoLv80.join(',')}）`);
+    for (const jid of ['flame_witch', 'frost_mage']) {
+      const j = jobs.find((x) => x.id === jid) || {};
+      const n = (j.activeSkillPool || []).filter((id) => (skills.find((x) => x.id === id) || {}).lv80ProjectileTarget === true).length;
+      if (n !== 6) err(`M8-F: ${jid} の Lv80 対象が 6 種でない（${n}）`);
+    }
+  }
+
+  // --- 8. WarriorCombatSystem が読む上限ブロックがすべて data にある ---
+  {
+    const NEED = {
+      fury: ['max', 'maxGainPerCast', 'maxGainPerSecond', 'releaseGainMult'],
+      furyRelease: ['durationMs', 'meleeDamageMult', 'attackSpeedMult', 'damageReduction'],
+      combo: ['thresholds'],
+      mitigation: ['maxTotalReduction', 'engagedRadius'],
+      killHeal: ['maxHpPercent', 'perSecondCapPercent', 'eliteMult', 'bossMult'],
+      unyielding: ['hpThreshold', 'durationMs', 'cooldownMs', 'minRunTimeMs'],
+      poise: ['elite', 'boss'],
+      execute: ['allowElite', 'allowBoss', 'maxExecutesPerSecond'],
+      counter: ['maxPerDamageEvent', 'globalCooldownMs', 'maxCountersPerWindow', 'maxWindowMs'],
+      launch: ['maxAirborneMs', 'immuneMs', 'allowElite', 'allowBoss'],
+      frontalGuard: ['requireDirection', 'maxFrontalMitigation', 'sideMultiplier', 'backMultiplier'],
+      grab: ['allowElite', 'allowBoss', 'maxGrabPerCast', 'maxThrowMs'],
+      rally: ['maxFields', 'maxDurationMs', 'maxRadius', 'maxComboGrace', 'maxMitigation'],
+      lowHp: ['maxMissingHpMultiplier'],
+      line: ['maxLineLength', 'maxWidth', 'maxTargets', 'maxStepInDistance', 'toughSingleTargetRatio'],
+      duel: ['maxTargets', 'maxDurationMs', 'maxMeleeDamageBonus', 'bossPriority', 'elitePriority', 'normalPriority'],
+      trance: ['maxStances', 'maxDurationMs', 'combinedOffenseCap', 'maxMitigationPenalty', 'minMitigationAfterPenalty'],
+      deflection: ['maxWindowMs', 'maxDeflectionsPerWindow', 'maxReflectGeneration', 'allowedKinds', 'deniedKinds'],
+      march: ['maxStomps', 'maxMarchMs', 'maxStepDistance', 'worldMargin'],
+    };
+    for (const [block, keys] of Object.entries(NEED)) {
+      if (!W[block]) { err(`M8-F: balance.warrior.${block} が無い`); continue; }
+      for (const k of keys) {
+        if (W[block][k] === undefined) err(`M8-F: balance.warrior.${block}.${k} が無い`);
+      }
+    }
+    // 上限そのものの健全性。
+    if (!(W.mitigation.maxTotalReduction > 0 && W.mitigation.maxTotalReduction < 1)) err('M8-F: 合計軽減の上限が (0,1) でない');
+    if (!(W.trance.minMitigationAfterPenalty >= 0)) err('M8-F: 構えの軽減下限が負');
+    if (!(W.trance.maxMeleeDamageBonus <= W.trance.combinedOffenseCap)) err('M8-F: 構えの単体上限が合成上限を超えている');
+    if (W.duel.maxTargets !== 1) err('M8-F: 決闘の同時対象が 1 でない');
+    if (W.trance.maxStances !== 1) err('M8-F: 構えの同時本数が 1 でない');
+    if (W.rally.maxFields !== 1) err('M8-F: 陣の同時本数が 1 でない');
+    if (W.deflection.maxReflectGeneration !== 1) err('M8-F: 反射弾の世代上限が 1 でない');
+    if (!(W.counter.maxCountersPerWindow >= 1 && W.counter.maxCountersPerWindow <= 20)) err('M8-F: 1 窓の反撃回数の上限が現実的でない');
+    if (!(W.rally.maxRadius > 0 && W.rally.maxRadius <= 600)) err('M8-F: 陣の半径上限が現実的でない');
+    if (!(W.poise.boss.thresholdMaxMult > 1)) err('M8-F: ボス体勢しきい値の上限倍率が 1 以下');
+    const allowed = W.deflection.allowedKinds || [];
+    const denied = W.deflection.deniedKinds || [];
+    if (!allowed.length || !denied.length) err('M8-F: 弾き返しの allowlist / denylist が空');
+    if (allowed.some((k) => denied.includes(k))) err('M8-F: 弾き返しの allowlist と denylist が重なっている');
+    for (const k of ['beam', 'telegraph', 'hazard', 'dot', 'ground']) {
+      if (!denied.includes(k)) err(`M8-F: 弾き返しの denylist に ${k} が無い`);
+    }
+  }
+
+  // --- 9. NaN / Infinity / 想定外の負数 ---
+  {
+    const NEG_OK = new Set(['mitigationPenalty', 'backMultiplier', 'minMitigationAfterPenalty']);
+    const scan = (o, path) => {
+      for (const [k, v] of Object.entries(o || {})) {
+        if (v && typeof v === 'object') scan(v, `${path}.${k}`);
+        else if (typeof v === 'number') {
+          if (!Number.isFinite(v)) err(`M8-F: ${path}.${k} が有限でない（${v}）`);
+          else if (v < 0 && !NEG_OK.has(k)) err(`M8-F: ${path}.${k} が負数（${v}）`);
+        }
+      }
+    };
+    for (const id of wActives) scan(skills.find((x) => x.id === id), `skills.${id}`);
+    for (const id of wEvos) scan(evolutions.find((x) => x.id === id), `evolutions.${id}`);
+    for (const id of wPassives) scan(passives.find((x) => x.id === id), `passives.${id}`);
+    scan(W, 'balance.warrior');
+  }
+
+  // --- 10. skillCaps の健全性（4 段階・正数・単調非減少・余分なキー無し）---
+  {
+    const caps = balance.skillCaps || {};
+    const Q = ['low', 'medium', 'high', 'ultra'];
+    for (const [name, c] of Object.entries(caps)) {
+      for (const q of Q) {
+        if (!(typeof c[q] === 'number' && Number.isFinite(c[q]) && c[q] > 0)) err(`M8-F: skillCaps.${name}.${q} が正の有限数でない（${c[q]}）`);
+      }
+      if (!(c.low <= c.medium && c.medium <= c.high && c.high <= c.ultra)) err(`M8-F: skillCaps.${name} が単調非減少でない`);
+      for (const k of Object.keys(c)) if (!Q.includes(k)) err(`M8-F: skillCaps.${name} に余分なキー ${k} がある`);
+    }
+  }
+
+  // --- 11. 進化の safetyCaps が非負・空でない ---
+  for (const id of wEvos) {
+    const e = evolutions.find((x) => x.id === id) || {};
+    const caps = e.safetyCaps || {};
+    if (!Object.keys(caps).length) err(`M8-F: ${id} に safetyCaps が無い`);
+    for (const [k, v] of Object.entries(caps)) {
+      if (!(typeof v === 'number' && Number.isFinite(v) && v >= 0)) err(`M8-F: ${id}.safetyCaps.${k} が非負の有限数でない（${v}）`);
+    }
+  }
+
+  // --- 12. passive4 の modifier が健全（死に modifier 0）---
+  for (const id of wPassives) {
+    const p = passives.find((x) => x.id === id) || {};
+    const mods = p.modifiers || [];
+    if (!mods.length) err(`M8-F: passive ${id} に modifiers が無い`);
+    for (const m of mods) {
+      if (!m.key) err(`M8-F: passive ${id} の modifier に key が無い`);
+      if (!['addMult', 'subMult'].includes(m.op)) err(`M8-F: passive ${id}.${m.key} の op が未知（${m.op}）`);
+      if (!(typeof m.perLevel === 'number' && Number.isFinite(m.perLevel) && m.perLevel > 0)) {
+        err(`M8-F: passive ${id}.${m.key} の perLevel が正の有限数でない（${m.perLevel}）`);
+      }
+    }
+    // 4 passive が進化の補助として使われている。
+    const used = wEvos.some((eid) => ((evolutions.find((x) => x.id === eid) || {}).requiredSkills || []).some((r) => r.skill === id));
+    if (!used) err(`M8-F: passive ${id} が 1 つの進化の補助にもなっていない`);
+  }
+
+  // --- 13. guidance の値が M8-E から変わっていない ---
+  {
+    const g = skillConfig.guidance || {};
+    const EXPECT = {
+      ownedBaseUpgradeWeightMultiplier: 1.8, nearMaxRemainingLevels: 3, baseNearMaxBonusMultiplier: 1.7,
+      supportReadyBaseMultiplier: 1.5, requiredSupportWeightMultiplier: 1.3, nearRequiredRemainingLevels: 1,
+      supportNearRequiredMultiplier: 1.2, activeSupportWeightMultiplier: 1.6,
+      highRequirementSupportLevel: 6, highRequirementSupportMultiplier: 1.5,
+    };
+    for (const [k, v] of Object.entries(EXPECT)) {
+      if (g[k] !== v) err(`M8-F: guidance.${k} が ${v} でない（${g[k]}）— M8-F では guidance を変更しない`);
+    }
+    if (!(Array.isArray(g.jobs) && g.jobs.length === 1 && g.jobs[0] === 'warrior')) err('M8-F: guidance が戦士専用でない');
+  }
+
+  // --- 14. save_version は v6 のまま ---
+  if (balance.saveVersion !== 6) err(`M8-F: saveVersion が 6 でない（${balance.saveVersion}）`);
+
+  // --- 15. 共通状態異常 5 種のまま（M8-F は formal status を作らない）---
+  {
+    const ids = (statusEffects.statusEffects || []).map((x) => x.id);
+    if (ids.length !== 5) err(`M8-F: 共通状態異常が 5 種でない（${ids.length}）`);
+  }
+
+  // --- 16. docs の件数一致 ---
+  {
+    const docs = [
+      ['docs/skill-catalog.md', ['30', '18']],
+      ['docs/warrior-completion-audit.md', ['30', '18', 'M8-F']],
+      ['docs/project-state.md', ['M8-F']],
+      ['README.md', ['M8-F']],
+      ['TODO.md', ['M8-F']],
+    ];
+    for (const [rel, needles] of docs) {
+      let src = '';
+      try { src = readFileSync(join(ROOT, rel), 'utf8'); } catch (e) { void e; err(`M8-F: ${rel} が無い`); continue; }
+      for (const n of needles) if (!src.includes(n)) err(`M8-F: ${rel} に「${n}」の記載が無い`);
+    }
+    // 48 スキルすべてが skill-catalog.md に載っている。
+    let cat = '';
+    try { cat = readFileSync(join(ROOT, 'docs/skill-catalog.md'), 'utf8'); } catch (e) { void e; }
+    for (const id of [...wActives, ...wEvos]) if (cat && !cat.includes(id)) err(`M8-F: docs/skill-catalog.md に ${id} が無い`);
+  }
+}
+
 // --- report ---
 if (warnings.length) {
   console.log('--- 警告 ---');

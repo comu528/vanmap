@@ -143,7 +143,7 @@ export class BattlefieldThrowSkill extends WarriorSkillBase {
   }
   restoreState(st) {
     if (!st) return;
-    if (typeof st.cdLeft === 'number') this._cd = st.cdLeft;
+    this.restoreCd(st.cdLeft);
     this._throw = null;
     if (this.scene.combat.releaseGrab) this.scene.combat.releaseGrab(true);
   }

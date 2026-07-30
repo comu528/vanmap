@@ -233,6 +233,10 @@ export class SkillDraftManager {
     const ownedPassive = (ctx.owned && ctx.owned.passive) || {};
     const slotA = (ctx.slots && ctx.slots.active) || { used: 0, max: 0 };
     const slotP = (ctx.slots && ctx.slots.passive) || { used: 0, max: 0 };
+    // M8-F: この周回で進化済みの「基礎 active」は二度と候補へ出さない。
+    // 進化はスキル表から基礎 id を消すので、そのままだと空き枠へ基礎が新規候補として戻り、
+    // 「進化と基礎を同時に所持する」状態を作れてしまう。渡されなければ従来と完全に同じ挙動。
+    const evolvedBase = new Set(ctx.evolvedBaseIds || []);
 
     for (const m of ctx.catalog || []) {
       if (m.enabled === false) continue;
@@ -242,6 +246,7 @@ export class SkillDraftManager {
       // 適格判定は poolEligibility（SkillCatalog / シミュレーター / テストと同一の正）へ集約。
       if (!memberAllowedForJob(m, job, extra)) continue;
       if (banned.has(m.id)) continue;
+      if (isActive && evolvedBase.has(m.id)) continue;   // 進化済みの基礎は再提示しない
       if (!this._unlockOk(m, ctx)) continue;
       if (!this._prereqOk(m, ctx, ownedActive, ownedPassive)) continue;
       if (this._conflictsOwned(m, cat, ownedActive, ownedPassive)) continue;

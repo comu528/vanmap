@@ -82,13 +82,40 @@ const warriorMixin = {
     const w = this.warrior;
     if (w) w.noteMeleeCast(this.id);
   },
+
+  // M8-F: 破棄済みフラグ。進化置換・Scene 終了で必ず立ち、以後は 1 度も発動しない。
+  // （進化置換の瞬間に「基礎と進化が同時稼働する」のを構造的に防ぐ。）
+  get dead() { return this._dead === true; },
+
+  // M8-F: 保存された cooldown の復元を 1 か所へ集約する。
+  // 改ざん / 破損した保存値（NaN・±Infinity・非数値・桁外れ）で `_cd` を壊さない。
+  //   - 非有限値は**採用しない**（既存の `_cd` を保つ）
+  //   - 有限値は ±MAX_RESTORED_CD_MS へ頭打ち（「二度と撃てない」状態も作らない）
+  // 通常の保存値（`SkillBase.update` は発動できないフレームで `_cd` が少しだけ負になる）は
+  // そのまま往復するので、既存の保存互換性を壊さない。
+  restoreCd(value) {
+    if (typeof value !== 'number') return false;   // 文字列 / null / undefined / object は採用しない
+    const n = value;
+    if (!Number.isFinite(n)) return false;
+    this._cd = Math.max(-MAX_RESTORED_CD_MS, Math.min(n, MAX_RESTORED_CD_MS));
+    return true;
+  },
 };
+
+// 復元時に許す cooldown の絶対値上限（ms）。data の最長 cooldown（十数秒）より十分大きく、
+// かつ「二度と撃てない」状態を作らない値にする。
+export const MAX_RESTORED_CD_MS = 120000;
 
 export class WarriorSkillBase extends SkillBase {
   passiveCooldownMult() { return this.warriorCooldownMult(super.passiveCooldownMult()); }
+  // 破棄後は基底の発動サイクルを 1 度も回さない。
+  update(dt, ctx) { if (this._dead) return; super.update(dt, ctx); }
+  destroy() { this._dead = true; }
 }
 export class WarriorEvolvedBase extends EvolvedSkillBase {
   passiveCooldownMult() { return this.warriorCooldownMult(super.passiveCooldownMult()); }
+  update(dt, ctx) { if (this._dead) return; super.update(dt, ctx); }
+  destroy() { this._dead = true; }
 }
 for (const proto of [WarriorSkillBase.prototype, WarriorEvolvedBase.prototype]) {
   for (const [k, v] of Object.entries(Object.getOwnPropertyDescriptors(warriorMixin))) {

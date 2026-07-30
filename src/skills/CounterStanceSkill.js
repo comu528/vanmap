@@ -96,7 +96,7 @@ export class CounterStanceSkill extends WarriorSkillBase {
   serializeState() { return { cdLeft: this._cd, windowLeftMs: this._window.leftMs, counterUsed: this._window.used }; }
   restoreState(st) {
     if (!st) return;
-    if (typeof st.cdLeft === 'number') this._cd = st.cdLeft;
+    this.restoreCd(st.cdLeft);
     // 使用回数も復元する＝再読込で構えを使い直せない。
     this._window = { leftMs: Math.max(0, st.windowLeftMs || 0), used: Math.max(0, st.counterUsed || 0) };
     if (this._window.leftMs > 0 && this.warrior) {

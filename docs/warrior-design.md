@@ -415,3 +415,56 @@ Wave2 で足した 5 つの機構（打ち上げ / 前面防御 / 掴み・投�
 | 恒久召喚 | 反射弾は短命（`maxReflectLifeMs`）。持続する実体は増やしていない |
 
 設計意図は `./warrior-final-wave.md`、一覧は `./skill-catalog.md` を参照。
+
+---
+
+## Milestone 8-F: 完成監査（設計の確認と 8 件の是正）
+
+M8-F は**新しい active / passive / 進化を 1 件も追加していない**回。
+M8-E で確定した設計が実装で守られているかを 48 スキル全件で確認し、守られていなかった 8 か所を直した。
+
+### 守られていることを確認した設計原則
+
+| 原則 | 確認方法と結果 |
+|------|----------------|
+| 状態はすべて `WarriorCombatSystem` に集約する | BattleScene / スキル側に散った戦士状態は 0 件。時限状態の tick も 1 か所 |
+| スキルは可否を判断せず共通経路に従う | `launchPolicy` / `grabPolicy` / `executePolicy` / `duelPriority` / `resolveLineMeleeTargets` / `canDeflectProjectile` が単一の正。スキル側で可否を書いているものは 0 件 |
+| 上限はすべて data 由来 | `skillCaps` 217 件すべて参照済み・進化 18 件の `safetyCaps` すべて有効・コードにハードコードした上限 0 |
+| 敵オブジェクトを保持しない | 保存にも実行時にもオブジェクト参照は無く、安定 runtime id（`_seq`）だけを持つ |
+| 新しい formal status を作らない | 共通状態異常は 5 種のまま（戦士は 1 つも使わない） |
+| 物理のみ・弾を撃たない | 48 件の `damageTags` はすべて物理系。唯一の「弾」は敵弾の反射（世代 1 で止まる短命弾） |
+| 残響 / 分身の対象外 | 48 件すべて `echoPolicy` / `clonePolicy` = `forbidden`・`canTriggerEcho` / `canBeCopiedByClone` = `false` |
+| 1 主発動 = 1 記録 | `recordCast` を呼ぶのは基底 `update` だけ。スキル側は 1 度も呼ばない |
+| 永久状態を作らない | 構え / 決闘 / 弾き窓 / 陣 / 闘気解放 / 露出 / 掴み / 反撃窓すべてが時間で必ず 0 に戻る |
+| 自傷して稼げない | 実装に `hp -=` / `selfDamage` / `hpCost` の経路が存在しない。低 HP 倍率も上限つき |
+| エリート / ボスの特別扱いは共通経路 | 実測でエリート / ボスは 1 度も浮かず・掴まれず・処刑されない |
+
+### 守られていなかった 8 か所（M8-F で是正）
+
+| # | 崩れていた設計 | 是正 |
+|---|----------------|------|
+| 1 | 「保存値を信じない」が cooldown で守られていなかった（48 スキル） | 共通 `restoreCd()` を戦士基底 2 クラスへ集約。非有限値は採用せず ±120s へクランプ |
+| 2 | 「上限はすべて data 由来」が陣の半径で守られていなかった | `rally.maxRadius`(280) を追加 |
+| 3 | 同じことが反撃窓の回数 / 持続で守られていなかった | `counter.maxCountersPerWindow`(6) / `counter.maxWindowMs`(6000) を追加 |
+| 4 | 同じことが旋風の回転残り時間（復元）で守られていなかった | data の `duration` で頭打ち |
+| 5 | 「進化は元 active と同時稼働しない」が抽選で崩れていた | `evolvedBaseIds` で進化済みの基礎を候補から除外 |
+| 6 | 「破棄したスキルは何もしない」が 21 スキルで守られていなかった | 戦士基底 2 クラスの `update()` に破棄ガード |
+| 7 | 「敵の一時状態は必ず戻す」が決闘マーカーで守られていなかった | `_setDuelMark` / `_clearDuelMark` で寿命を集約 |
+| 8 | 「進化は base より強い」が 1 件で崩れていた | `crimson_execution.safetyCaps.maxTargetsPerStrike` 10 → 20 |
+
+### 監査から得た設計上の教訓
+
+1. **「data に書いたら実装から読む」を機械で確認する必要がある。**
+   `charge_slash.config.hitOncePerTarget` は宣言だけで挙動はハードコードだった。
+   M8-F 以降は `tests/warrior-completion-caps-fields.mjs` が全 data フィールドの参照を検査する。
+2. **共通処理は「基底 2 クラス」に置くのが最も安全だった。**
+   `restoreCd` / 破棄ガードはどちらも 1 か所に置くだけで 48 スキルへ効いた。
+   新しい戦士スキルは何もしなくても同じ保証を継承する。
+3. **共通経路への追加は「明示したときだけ効く」形を守れば非回帰が保証できる。**
+   `evolvedBaseIds` は未指定なら空集合なので、火 / 氷の候補列は 1 バイトも変わらなかった。
+4. **「弱いのは balance の問題」と決めつけず、まず全件測る。**
+   18 進化すべての evo/base を測った結果、逆転は 1 件だけで、
+   原因は balance ではなく cap の設定ミスだった（全体の数値見直しは不要だった）。
+
+監査本体は `./warrior-completion-audit.md`、一覧は `./warrior-completion-matrix.md`、
+バランス分布は `./warrior-completion-balance.md`。

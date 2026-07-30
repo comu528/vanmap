@@ -138,7 +138,7 @@ export class BackstepRiposteSkill extends WarriorSkillBase {
   }
   restoreState(st) {
     if (!st) return;
-    if (typeof st.cdLeft === 'number') this._cd = st.cdLeft;
+    this.restoreCd(st.cdLeft);
     this._move = null;
   }
   destroy() { this._dead = true; this._move = null; }

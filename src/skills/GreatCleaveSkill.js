@@ -38,6 +38,6 @@ export class GreatCleaveSkill extends WarriorSkillBase {
 
   // M8-B: クールダウンを保存し、再開直後の無料発動を防ぐ。
   serializeState() { return { cdLeft: this._cd }; }
-  restoreState(st) { if (st && typeof st.cdLeft === 'number') this._cd = st.cdLeft; }
+  restoreState(st) { if (st) this.restoreCd(st.cdLeft); }
   destroy() { this._dead = true; this._pending = []; }
 }

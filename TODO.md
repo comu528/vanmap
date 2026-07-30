@@ -1056,12 +1056,110 @@ passive は 4 種のまま・Job Lv1〜100 も据え置き・**Job Lv80「打撃
 
 ---
 
+## Milestone 8-F: 戦士 完成監査 — 完了
+
+M8-E で戦士が **active30 / passive4 / evolution18 = 52** に到達し、火の魔女（M8-A）・氷術師（M7-E）と
+同規模になったのを受けた**監査だけの回**。**新 active / passive / 進化 / ジョブは 1 件も追加していない。**
+
+- [x] **カタログ整合性**: active30 / passive4 / evolution18 / 合計52。id 重複 0・未知クラス 0・
+      「JSON だけ / class だけ / docs だけ」0・orphan 0・`displayName` 重複 0。
+- [x] **プール分離**: `flame_witch` / `frost_mage` / `warrior` の 3 プールが互いに素・他ジョブ混入 0。
+      判定は `poolEligibility.memberAllowedForJob` 1 か所。
+- [x] **rarity と役割**: common7 / uncommon13 / rare10 / **legendary 0**（戦士は legendary 段を進化 18 件で担う。
+      火 / 氷は legendary active 3 件ずつという設計差で、これは変えていない）。castMode は 30 件すべて `cooldown`。
+- [x] **進化 18 件の到達性**: 全件が「条件形成 > 0・提示 > 0・取得 > 0」。提示 / 形成 ≈ 100%
+      （低い取得率は「提示の詰まり」ではなく「base を Lv8 まで伸ばせるか」に集約される）。
+- [x] **production 抽選 simulation**（`SkillDraftManager` / `SeededRandom` / `poolEligibility` /
+      `SkillCatalog` / 実 rarity / 実 guidance / 実 pity / 実 synergy / 実 reroll・banish・skip を直接駆動・
+      **`Math.random` を 1 度も使わない**）: 200 seed（`HEAVY=1` で 500）× 5 戦略 ＋ 素朴戦略 × 枠 4 / 6 / 8。
+      **M8-C.1 のしきい値を 1 つも下げずに**すべて達成（枠4 ≥1 個 98.0〜100% / 平均 2.19〜3.55 / 0 個 ≤2.0%、
+      枠6 ≥1 個 100% / 平均 3.37〜5.33、枠8 ≥1 個 99.5〜100% / 平均 4.51〜7.05）。
+      最頻進化シェア **10.7%**・build の種類 枠4 185〜199 / 200・**候補ゼロはすべて飽和由来**（飽和以外 0 件）。
+- [x] **`SkillAudit` 48 件**: 未解決 issue 0。`echoPolicy` / `clonePolicy` = `forbidden`・
+      `canTriggerEcho` / `canBeCopiedByClone` = `false`・`damageTags` が物理であることまで含めて全件確認。
+- [x] **`recordCast` の 1:1 48 件**: 全件 cast > 0。**スキル側は 1 度も `recordCast` を呼ばない**
+      （基底 `update` が 1 回だけ記録する）。多段 / tick / 反撃 / 反射で記録が増えない。
+- [x] **cooldown 保存 48 件**: 0 / 中間 / 最大付近が往復・復元直後に無料 cast が出ない・
+      攻撃速度 / 構え / 闘気解放で CD が変わっても壊れない・進化置換の前後で混ざらない・**改ざん耐性**。
+- [x] **`runtimeState` 48 件**: 宣言と実使用が一致・no-op serialize 0・
+      **オブジェクト参照 / Phaser 実体の保存 0 件**（敵は安定 runtime id `_seq` で保存）・
+      復元で二重再生しない・旧セーブのキー欠落で例外にならない。
+- [x] **固有機構**: 闘気（獲得予算 / 解放 / 稼働率 41.9%）・コンボ（猶予 / 減衰 / しきい値）・
+      撃破回復（毎秒 cap 共有・overheal なし・**自傷経路 0**）・不屈・軽減（合計 70% クランプで**無敵にならない**）・
+      反撃と弾き返しの調停（**1 イベント = 最大 1 系統**）・処刑（エリート / ボスは対象外）・
+      ノックバック / 打ち上げ / 掴み / 投げ（通常敵だけ・場外 0）・エリートの体勢・ボスの崩し
+      （39 回 / 露出 118.9s / しきい値 ×3.00 で**永久拘束にならない**）・移動（`worldMargin` クランプ・NaN 0）。
+- [x] **cap と死にフィールド**: `balance.json` の `skillCaps` 217 件すべてが参照済み（未参照 0）・
+      `low ≤ medium ≤ high ≤ ultra` かつすべて正・進化 18 件の `safetyCaps` すべて有効・**死にフィールド 0**。
+- [x] **telemetry / F8 / F9**: キーと実装が 1:1・dead key 0・外部送信 0・**F10 は不変**。
+- [x] **性能**: 10 分相当の Node 実測で low 2.5s / medium 2.5s / high 2.7s / ultra 3.1s、
+      1 フレーム最大処理は 4 品質とも上限内（238 / 335 / 424 / 534 ≤ 360 / 540 / 720 / 960）。
+      `PoolManager` の取り違え 0・`SpatialGrid` 経由で全敵総当たり 0。
+- [x] **セーブ / 決定性**: 保存 → 再読込で 48 スキル・戦士状態・telemetry が一致、
+      旧セーブ（v5 以前 / キー欠落 / 戦士状態なし）で起動不能にならない、
+      同 seed で候補列とランタイムが一致（**`save_version` は v6 のまま・保存キーを 1 つも増やしていない**）。
+- [x] **バランス分布**: 最大ダメージシェア 13.6%・**死にスキル 0 件**・
+      **evo/base < 1.0 の逆転 0 件**・全部盛りシェア最大 20.6%（他を全部食う進化 0 件）・
+      永久状態 0（構え / 決闘 / 弾き窓 / 陣 / 闘気解放 / 露出 / 掴み / 反撃窓すべて 0 に戻る）。
+- [x] **自動テスト 23 スイート追加**＋`validate-data` の M8-F ブロック（16 節）＋`validate.yml` へ 23 ステップ
+      （**全 185 スイート通過**・`validate-data` 0 エラー 0 警告）。
+      いずれも **regex だけでなく production の class / prototype / manager を直接駆動する実測**で、
+      修正を巻き戻すと落ちる。
+- [x] **火の魔女・氷術師は完全に非回帰**（候補列 / 48 スキルのランタイム / セーブ / 状態異常 RNG とも
+      SHA-256 一致・`tests/three-job-completion-nonregression.mjs`）。
+
+### M8-F で**実装しない**もの（対象外）
+- [ ] 新しい active / passive / 進化 / ジョブ
+- [ ] 属性反応・新しい formal status・装備・武器選択
+- [ ] 新しい敵 / ボス / 難易度・転生レガシー・周回長の拡張・UI 全面改修・正式グラフィック素材
+- [ ] 全体のバランス改修・火 / 氷の仕様変更・不要な `save_version` 更新・無関係な refactor
+
+### M8-F で見つけて直した不備（8 件 + 死にフィールド 1 件）
+
+優先度は M8-F の指定順（crash → save 破損 → プール漏れ → … → balance）。
+
+- [ ] **戦士 48 スキルの `restoreState({cdLeft})` が負数 / NaN / ±Infinity / 桁外れをそのまま採用**していた
+      → `WarriorSkillBase` / `WarriorEvolvedBase` へ共通 `restoreCd()` を追加。非有限値は採用せず、
+      有限値は ±`MAX_RESTORED_CD_MS`(120s) へクランプ。35 ファイルの生の代入をこの 1 か所へ寄せた。
+      **火 / 氷の restore は 1 行も変えていない**（27 ファイルは従来の代入のまま）。
+- [ ] **陣（`placeRallyField`）の半径が上限クランプされていなかった**（改ざんで半径 1e9 = 永久バフ）
+      → `balance.warrior.rally.maxRadius`(280) を追加してクランプ。
+- [ ] **反撃窓（`beginCounterWindow` と復元）の回数と持続が上限クランプされていなかった**
+      （改ざんで「999 回・1e9ms」= 実質無限反撃）→ `counter.maxCountersPerWindow`(6) /
+      `counter.maxWindowMs`(6000) を追加し、開始時と復元時の両方でクランプ。
+- [ ] **旋風斬（`WhirlwindSlashSkill.restoreState`）が回転の残り時間をクランプしていなかった**
+      （改ざんで永久回転）→ data の `duration` で頭打ちにした。血戦旋風も同じ経路。
+      他の再開型（薙ぎ進軍 / 刃防陣）は既にクランプ済みだった。
+- [ ] **進化済みの基礎 active が空き枠へ「新規」候補として戻っていた**（200 seed 中 38 回）
+      → 取得すると進化と基礎を**同時所持**でき「元 active と同時稼働しない」に違反した。
+      抽選コンテキストへ `evolvedBaseIds` を**加算的に**追加し `SkillDraftManager._eligible` が除外する。
+      未指定なら従来と完全に同一挙動なので**火 / 氷の候補列ハッシュは不変**。
+- [ ] **M8-B / M8-C の 21 スキルが `destroy()` 後も発動し続けた**（進化置換・Scene 終了のあとに
+      「墓場から」攻撃が飛ぶ余地）→ 2 つの戦士基底の `update()` に破棄ガード、
+      `destroy()` に `_dead = true` を置いた（1 か所）。
+- [ ] **決闘マーカー（`Enemy._duelMark`）が時間切れ / 再指定 / 解除で外れなかった**
+      （生きている敵に古いマーカーが `Enemy.reset()` まで残った）→ `BattleScene._setDuelMark` /
+      `_clearDuelMark` で寿命を一元化し、決闘が終わったフレームと Scene 終了で必ず外す。
+- [ ] **`crimson_execution`（血断処刑）が base より弱かった**（群れの中で総ダメージ 69% の逆転）
+      → 原因は `safetyCaps.maxTargetsPerStrike: 10` が base `execution_strike` の実効 breadth
+      （品質上限 24 のもとで実測 20）より狭かったこと。**10 → 20** にした（修正後 evo/base = 1.37・
+      依然として有界で品質上限以下）。18 進化のうち逆転はこの 1 件だけ。
+- [ ] **data の死にフィールド `charge_slash.config.hitOncePerTarget`**（コメントでしか触れられておらず
+      挙動はハードコードだった）→ 実装から読むようにした。現在の data は `true` なので挙動は不変。
+
+> **実ブラウザ未確認**: M8-F も Phaser 実プレイ確認は行っていない（Node 純ロジック＋最小モックのみ）。
+> `docs/test-guide.md` の **Milestone 8-F** 項目を実ブラウザで確認すること。
+
+---
+
 ### 次のマイルストーン候補
 - [ ] **火と氷の属性反応**（炎上⇄冷気/凍結の相互作用・付与時の source element を活用）
-- [ ] **戦士 完成監査（M8-F）**（カタログは M8-E で 30/4/18 に揃った。M7-E / M8-A と同じ 12 観点）
+- [ ] **3 ジョブ横断の総合監査**（3 ジョブが 30/4/18 で揃い、個別監査も M7-E / M8-A / M8-F で完了した。
+      次はジョブ間の比較・共通機構の重複・共有 cap の整合を見る回）
 - [ ] **転生レガシー / ジョブ間継承**（`futureInheritanceSettings` / `extraAllowedIds` が拡張口）
 - [ ] **周回長の拡張**（10分 / 15分 / 無限モード）・**追加の敵 / ボス / 難易度**
-- [ ] **実ブラウザでの M7-E / M8-A / M8-B / M8-C / M8-C.1 / M8-D / M8-E 手動確認**（コード変更を伴わない検証タスク）
+- [ ] **4 人目のジョブ**（3 ジョブぶんの基盤・監査観点・テスト雛形がそろっている）
+- [ ] **実ブラウザでの M7-E / M8-A / M8-B / M8-C / M8-C.1 / M8-D / M8-E / M8-F 手動確認**（コード変更を伴わない検証タスク）
 
 ---
 

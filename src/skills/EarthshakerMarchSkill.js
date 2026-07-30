@@ -122,7 +122,7 @@ export class EarthshakerMarchSkill extends WarriorSkillBase {
   }
   restoreState(st) {
     if (!st) return;
-    if (typeof st.cdLeft === 'number') this._cd = st.cdLeft;
+    this.restoreCd(st.cdLeft);
     this._march = null;
   }
   destroy() { this._dead = true; this._march = null; }

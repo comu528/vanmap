@@ -79,7 +79,7 @@ export class TripleCrushSkill extends WarriorSkillBase {
   }
   restoreState(st) {
     if (!st) return;
-    if (typeof st.cdLeft === 'number') this._cd = st.cdLeft;
+    this.restoreCd(st.cdLeft);
     this._combo = null;
   }
   destroy() { this._dead = true; this._combo = null; }

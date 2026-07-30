@@ -100,7 +100,7 @@ export class SweepingAdvanceSkill extends WarriorSkillBase {
   }
   restoreState(st) {
     if (!st) return;
-    if (typeof st.cdLeft === 'number') this._cd = st.cdLeft;
+    this.restoreCd(st.cdLeft);
     const left = Math.max(0, st.sweepLeftMs || 0);
     const s = this.stats;
     // 「再開」であり「二重化」ではない: 残り時間と消化済み strike 数を引き継ぐ。

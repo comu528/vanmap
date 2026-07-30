@@ -110,7 +110,7 @@ export class ShieldChargeSkill extends WarriorSkillBase {
   }
   restoreState(st) {
     if (!st) return;
-    if (typeof st.cdLeft === 'number') this._cd = st.cdLeft;
+    this.restoreCd(st.cdLeft);
     this._charge = null;
     if (this.warrior) this.warrior.endFrontGuard(this.id);
   }

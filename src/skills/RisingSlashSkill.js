@@ -55,6 +55,6 @@ export class RisingSlashSkill extends WarriorSkillBase {
   }
 
   serializeState() { return { cdLeft: this._cd }; }
-  restoreState(st) { if (st && typeof st.cdLeft === 'number') this._cd = st.cdLeft; }
+  restoreState(st) { if (st) this.restoreCd(st.cdLeft); }
   destroy() { this._dead = true; }
 }

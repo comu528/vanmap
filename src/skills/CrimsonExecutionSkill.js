@@ -76,6 +76,6 @@ export class CrimsonExecutionSkill extends WarriorEvolvedBase {
   }
 
   serializeState() { return { cdLeft: this._cd }; }
-  restoreState(st) { if (st && typeof st.cdLeft === 'number') this._cd = st.cdLeft; this._chainGen = 0; }
+  restoreState(st) { if (st) this.restoreCd(st.cdLeft); this._chainGen = 0; }
   destroy() { this._dead = true; }
 }
