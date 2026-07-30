@@ -459,3 +459,15 @@ passive は 4 種のまま、Job Lv1〜100 の内容も据え置き、**Job Lv80
 （rarity を足すと 3 ジョブぶんの抽選の重みが全体的に動くため、監査の範囲外）。
 
 一覧は `./warrior-completion-matrix.md`、監査本体は `./warrior-completion-audit.md`。
+
+---
+
+## Milestone 9-A: 横断監査での確認（ジョブ定義の変更 0 件）
+
+3 ジョブの定義・プール・`statusEffects`・progression は M9-A でも不変。横断で確定した事実:
+
+- 全体 **90 active / 12 passive / 54 evolution = 156 メンバー**・3 プール互いに素・
+  `memberAllowedForJob` と各プール所属が **156 件全数一致**（適格ジョブは常に最大 1 つ）。
+- 暗黙 common 0（`isCommon` / `jobs:["*"]` とも 0 件）・Lv80 対象 各ジョブちょうど 6。
+- ジョブの個性（rarity 構成 / 資源 / 状態異常 / 対ボス手段 / castMode 構成）は
+  `./cross-job-completion-matrix.md` の表として明文化した。**数値上の均一化はしない。**

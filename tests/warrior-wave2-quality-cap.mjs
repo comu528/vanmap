@@ -8,6 +8,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DATA, EXPECTED, REPO, makeScene, makeEnemies, makeWarrior, bootRuntime, runner, capFor } from './warrior-common.mjs';
+import { capTiers } from './cap-shape.mjs';
 
 const T = runner('戦士 Wave2 品質・安全上限（M8-D）');
 const { ok, section, info } = T;
@@ -24,17 +25,18 @@ const WAVE2_VISUAL_CAPS = ['maxLaunchVisuals', 'maxChargeTrails', 'maxRiposteTra
 const WAVE2_CAPS = [...WAVE2_EVENT_CAPS, ...WAVE2_VISUAL_CAPS];
 
 // ===== 1. cap の形が正しい =====
-section('1. Wave2 の cap が 4 段階そろい、単調非減少・正の数');
+section('1. Wave2 の cap が単調非減少・正の数（visual は 4 段階 / gameplay・safety は単一値）');
 for (const name of WAVE2_CAPS) {
   const c = CAPS[name];
   ok(!!c, `${name}: balance.json にある`);
   if (!c) continue;
+  const t4 = capTiers(c);  // M9-A: gameplay / safety は単一値、visual は 4 段階
   for (const q of QUALITIES) {
-    ok(typeof c[q] === 'number' && Number.isFinite(c[q]), `${name}.${q}: 有限数`);
-    ok(c[q] > 0, `${name}.${q}: 正の数（${c[q]}）— 0 にすると効果が消える`);
+    ok(Number.isFinite(t4[q]), `${name}.${q}: 有限数`);
+    ok(t4[q] > 0, `${name}.${q}: 正の数（${t4[q]}）— 0 にすると効果が消える`);
   }
-  ok(c.low <= c.medium && c.medium <= c.high && c.high <= c.ultra,
-    `${name}: low ≤ medium ≤ high ≤ ultra（${c.low}/${c.medium}/${c.high}/${c.ultra}）`);
+  ok(t4.low <= t4.medium && t4.medium <= t4.high && t4.high <= t4.ultra,
+    `${name}: low ≤ medium ≤ high ≤ ultra（${t4.low}/${t4.medium}/${t4.high}/${t4.ultra}）`);
 }
 info(`Wave2 で追加した cap: ${WAVE2_CAPS.length} 件 / skillCaps 全体 ${Object.keys(CAPS).length} 件`);
 
@@ -120,8 +122,8 @@ section('5. 個別 cap が実効している');
     ok(r.hits <= r.casts * cap, `${q}: 昇竜斬の命中 ${r.hits} ≤ cast${r.casts} × 上限${cap}`);
   }
   // 陣の本数上限。
-  ok(CAPS.maxRallyFields.low >= 1, '陣の本数上限は最低品質でも 1 以上（効果が消えない）');
-  ok(CAPS.maxAxeHitsPerTarget.low >= 1, '斧の命中上限も最低品質で 1 以上');
+  ok(capFor('maxRallyFields', 'low', 0) >= 1, '陣の本数上限は最低品質でも 1 以上（効果が消えない）');
+  ok(capFor('maxAxeHitsPerTarget', 'low', 0) >= 1, '斧の命中上限も最低品質で 1 以上');
 }
 
 // ===== 6. balance 側の上限も正の数 =====

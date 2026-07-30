@@ -2,6 +2,7 @@
 // 実ブラウザ FPS は未確認。ここで測るのは Node 上の純ロジック負荷と上限の効き方だけ。
 // 実行: node tests/warrior-completion-performance.mjs
 import { DATA, EXPECTED, makeScene, makeEnemies, makeBoss, makeWarrior, bootRuntime, capFor, readSrc, registryMap, runner } from './warrior-common.mjs';
+import { capTiers } from './cap-shape.mjs';
 const T = runner('戦士 性能 / プール 完成監査（M8-F）');
 const { ok, section, info } = T;
 const { SkillManager, WarriorCombatSystem } = await bootRuntime();
@@ -87,7 +88,7 @@ section('3. 品質を落としても発動回数が変わらない（演出と�
   info(`品質で発動回数が前後したスキル: ${diff.map((k) => `${k}(${lo.by[k]}→${hi.by[k]})`).join(' ') || 'なし'}`);
   // 規則そのものは品質で変わらない: 1 打撃のダメージと上限の階層。
   for (const cap of ['maxMeleeTargetsPerHit', 'maxLineTargets', 'maxMarchStomps', 'maxDeflectionsPerWindow']) {
-    const c = DATA.balance.skillCaps[cap];
+    const c = capTiers(DATA.balance.skillCaps[cap]);
     ok(c.low <= c.medium && c.medium <= c.high && c.high <= c.ultra, `${cap}: 上限の階層が保たれている`);
     ok(c.low >= 1, `${cap}.low ≥ 1（低品質でも効果が消えない）`);
   }

@@ -290,3 +290,15 @@ M8-A の変更後に、氷側が**一切変わっていない**ことを機械�
   （進化前後の比較は data 由来の項目差分で行っている）。
 - 抽選シミュレーションは **level-up 回数に強く依存**する（30 回で平均 0.24、60 回で 2.20、90 回で 2.37）。比較は同じ `levelUps` で行う。
 - 実ブラウザ（Phaser 実プレイ）確認は本環境では未実施。`docs/test-guide.md` の **Milestone 8-A** 節を参照。
+
+---
+
+## 補記: Milestone 9-A（3 ジョブ横断監査）での追加確認
+
+- 本書（M8-A）の監査結果は M9-A の横断監査でも維持されている（カタログ / プール / 抽選 /
+  recordCast / cooldown / runtimeState / 決定論を 3 ジョブ同一条件で再確認）。
+- **品質分離（M9-A）による変更**: 本ジョブの gameplay / safety に当たる cap は単一値
+  （canonical = 旧 high）になった。品質で対象数・実体数・tick 数が変わる挙動は**仕様から削除**された。
+- **cdLeft の改ざん耐性**が `SkillManager.restoreRuntime` の共通入口として全 48 スキルへ適用された
+  （正当なセーブの復元結果は不変）。
+- 詳細は `./cross-job-system-audit.md` / `./quality-cap-classification.md`。

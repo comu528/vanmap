@@ -6,7 +6,7 @@
 //   - 決闘 / 構え / 弾き窓 / 進軍が必ず時間で終わる
 // 実行: node tests/warrior-final-cleanup.mjs
 
-import { DATA, EXPECTED, makeScene, makeEnemies, makeBoss, makeWarrior, bootRuntime, runner, readSrc, registryMap, skillSource, skillSourceDeep } from './warrior-common.mjs';
+import { DATA, EXPECTED, makeScene, makeEnemies, makeBoss, makeWarrior, bootRuntime, runner, readSrc, registryMap, skillSource, skillSourceDeep, capFor } from './warrior-common.mjs';
 
 const T = runner('戦士 最終Wave 後始末・リーク防止（M8-E）');
 const { ok, section, info } = T;
@@ -155,7 +155,7 @@ section('7. 反射弾が溜まり続けない（世代 1・短命・同時数上
   const ctx = build({ bullets: mkBullets(40) });
   ctx.sm.acquireOrLevel('heaven_mirror_reversal'); ctx.sm.setLevel('heaven_mirror_reversal', 8);
   run(ctx, 30000);
-  const cap = DATA.balance.skillCaps.maxReflectedProjectiles.high;
+  const cap = capFor('maxReflectedProjectiles', 'high', 8);
   ok(ctx.scene.reflected.length <= cap, `同時反射弾が上限内（${ctx.scene.reflected.length} ≤ ${cap}）`);
   ok(ctx.scene.reflected.every((p) => p.deflectGeneration === 1), 'すべて世代 1（再反射しない）');
   ok(ctx.scene.reflected.every((p) => p.lifeMs <= DATA.balance.warrior.deflection.maxReflectLifeMs), 'すべて短命');

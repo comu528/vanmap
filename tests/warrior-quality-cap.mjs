@@ -6,6 +6,7 @@
 // 実行: node tests/warrior-quality-cap.mjs
 
 import { DATA, EXPECTED, makeScene, makeEnemies, makeWarrior, bootRuntime, runner, allSrc, capFor } from './warrior-common.mjs';
+import { capTiers } from './cap-shape.mjs';
 
 const T = runner('戦士 品質別上限（M8-B）');
 const { ok, section, info } = T;
@@ -24,13 +25,14 @@ for (const name of NEW_CAPS) {
   const c = DATA.balance.skillCaps[name];
   ok(!!c, `${name}: balance.json に定義がある`);
   if (!c) continue;
+  const t4 = capTiers(c);  // M9-A: gameplay / safety は単一値、visual は 4 段階
   for (const q of QUALITIES) {
-    ok(typeof c[q] === 'number' && Number.isFinite(c[q]), `${name}.${q} が数値`);
-    ok(c[q] > 0, `${name}.${q} = ${c[q]} > 0`);
-    ok(Number.isInteger(c[q]), `${name}.${q} が整数`);
+    ok(Number.isFinite(t4[q]), `${name}.${q} が数値`);
+    ok(t4[q] > 0, `${name}.${q} = ${t4[q]} > 0`);
+    ok(Number.isInteger(t4[q]), `${name}.${q} が整数`);
   }
-  ok(c.low <= c.medium && c.medium <= c.high && c.high <= c.ultra,
-    `${name}: low(${c.low}) ≤ medium(${c.medium}) ≤ high(${c.high}) ≤ ultra(${c.ultra})`);
+  ok(t4.low <= t4.medium && t4.medium <= t4.high && t4.high <= t4.ultra,
+    `${name}: low(${t4.low}) ≤ medium(${t4.medium}) ≤ high(${t4.high}) ≤ ultra(${t4.ultra})`);
 }
 
 // ===== 2. 未参照 cap の禁止 =====
@@ -49,8 +51,8 @@ section('3. 既存（火/氷）の cap 定義を壊していない');
   ok(names.length >= 165, `skillCaps 総数 ${names.length}`);
   let bad = 0;
   for (const name of names) {
-    const c = DATA.balance.skillCaps[name];
-    if (!(c.low <= c.medium && c.medium <= c.high && c.high <= c.ultra)) { bad++; }
+    const t = capTiers(DATA.balance.skillCaps[name]);
+    if (!(t.low <= t.medium && t.medium <= t.high && t.high <= t.ultra)) { bad++; }
   }
   ok(bad === 0, `全 ${names.length} cap が単調（違反 ${bad} 件）`);
   info(`M8-B 追加 ${NEW_CAPS.length} 件 / 全体 ${names.length} 件`);
@@ -108,7 +110,11 @@ section('6. 演出上限（visual）はダメージ判定件数へ影響しな�
 section('7. cap 名が未定義でもフォールバックで動く');
 {
   ok(capFor('nonexistent_cap_xyz', 'high', 7) === 7, '未定義 cap はフォールバック値を返す');
-  ok(capFor('maxMeleeTargetsPerHit', 'nonexistent_quality', 5) === 5, '未定義品質はフォールバック値を返す');
+  // M9-A: visual cap は品質キーで引くのでフォールバックが効く。
+  ok(capFor('maxSlashTrails', 'nonexistent_quality', 5) === 5, 'visual cap は未定義品質でフォールバック値を返す');
+  // gameplay cap は単一値なので、どんな品質名でも同じ値を返す（フォールバックへ落ちない）。
+  ok(capFor('maxMeleeTargetsPerHit', 'nonexistent_quality', 5) === capFor('maxMeleeTargetsPerHit', 'high', 5),
+    'gameplay cap は品質名に依存しない（未定義品質でも high と同じ）');
 }
 
 T.finish();

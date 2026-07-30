@@ -6,6 +6,7 @@
 import { createHash } from 'node:crypto';
 import { SkillDraftManager } from '../src/systems/SkillDraftManager.js';
 import { buildCatalog } from '../src/systems/SkillCatalog.js';
+import { capTiers } from './cap-shape.mjs';
 import { DATA, FLAME, FROST, WARRIOR, EXPECTED, draftCatalog, jobPools, seedRange, registeredIds,
   makeScene, makeEnemies, makeWarrior, bootRuntime, readSrc, runner } from './warrior-common.mjs';
 
@@ -192,7 +193,7 @@ section('7. 共通状態異常 5 種・skillCaps の火 / 氷ぶん・guidance �
     'maxActiveBeams', 'maxMines', 'maxClones', 'maxInfernoBlades'].filter((k) => DATA.balance.skillCaps[k]);
   ok(FIRE_ICE.length >= 8, `火 / 氷の cap を確認できる（${FIRE_ICE.length} 件）`);
   for (const k of FIRE_ICE) {
-    const c = DATA.balance.skillCaps[k];
+    const c = capTiers(DATA.balance.skillCaps[k]);
     ok(c.low <= c.medium && c.medium <= c.high && c.high <= c.ultra && c.low > 0, `${k}: 形が保たれている`);
   }
 }

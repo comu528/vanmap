@@ -949,3 +949,58 @@ data の宣言が実際に効くようにした（現在の data は `true` な�
   `StatusEffectManager` / `FreezeSystem` / `SaveCoordinator` を触っていない。
 - `save_version` は v6 のまま（保存キーを 1 つも増やしていない）。
 - npm 依存・ビルド工程・外部通信は増やしていない。
+
+---
+
+## Milestone 9-A: 3 ジョブ横断・共通システム総合監査（構造上の変更点）
+
+**新しいクラス / マネージャは 0 件。** 変更は 4 か所の既存共通経路だけ。
+
+### 1. cap の形が分類を強制する（DataManager.skillCap）
+
+```
+balance.json
+  skillCaps:        { name: { value } | { low, medium, high, ultra } }
+  skillCapClasses:  { name: 'visual' | 'gameplay' | 'safety' }   // 分類の正
+  gameplayLimits:   { maxEnemies: 200, maxProjectiles: 400 }     // プール上限（品質非依存）
+
+DataManager.skillCap(name, quality, fallback)
+  → c.value があれば品質と無関係にそれを返す（gameplay / safety）
+  → 無ければ従来どおり品質キーで引く（visual）
+```
+
+単一値の形は「品質で戦闘結果が変わる状態へ**静かに戻せない**」ための構造。
+4 段階へ戻すには data の形を変える必要があり、validate-data と分類テストが必ず落ちる。
+
+### 2. BattleScene の品質分岐の削減
+
+- 敵 / 弾プールの上限: `effectQuality` → **`gameplayLimits`** 由来へ。
+- hitStop: 品質ゲートを削除（ロジック frame を止める処理は gameplay）。
+- 魂炎ノード（敵密度 / エフェクト限界突破）: 品質ゲートを削除。
+- 残る品質参照は演出（particleScale / damageNumbers / shake / flash / sparks / particleBudget /
+  進化演出の lowFx）と、単一値 cap に対しては no-op の `skillCap(…, quality, …)` 引数だけ。
+
+### 3. cdLeft 改ざん耐性の共通入口（SkillManager）
+
+```
+SkillManager.restoreRuntime(obj)
+  → 各スキルへ渡す前に _sanitizeRuntimeState(state) を通す
+     cdLeft が number でない / 非有限 → キーごと除去（採用しない）
+     |cdLeft| > 120000              → ±120s へクランプ
+```
+
+火 / 氷の 27 ファイル（96 スキル）の restore 実装は 1 行も変えずに、M8-F の戦士 `restoreCd()` と
+同じ保証を全 144 スキルへ拡張した。戦士は基底との**二重防御**になる。
+正当なセーブは常に範囲内なので、復元結果・候補列・runtime trace のハッシュは不変。
+
+### 4. F8 の 3 ジョブ比較（表示のみ）
+
+`jobAnalysisReport()` に「— 3 ジョブ比較（M9-A）—」ブロックを追加
+（3 ジョブの A/P/E・rarity・Lv80 対象・cap 分類数・品質不変の明示）。profile を変更しない。
+
+### テスト側の共通土台（suite には数えない）
+
+- `tests/cap-shape.mjs` — cap の 2 形（単一値 / 4 段階）の判定・展開・分類ヘルパー。
+  M9-A 以前に書かれた単調性検査は「4 段階展開ビュー」で意味を変えずに通る。
+- `tests/cross-job-common.mjs` — 3 ジョブを同一条件で実駆動する `runJob()`（gameplay trace 生成）と、
+  production SkillDraftManager を任意ジョブで回す汎用 `simDraft()`。Math.random 不使用。

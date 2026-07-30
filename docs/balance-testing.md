@@ -660,3 +660,26 @@ M8-B からある 3 ジョブ共通の帰結で、M8-F で新たに生じた差�
 **敵 HP / 攻撃力 / 経験値 / 難易度倍率 / 報酬 / スキルの damage・cooldown は 1 件も変えていない。**
 
 詳細な分布表（30 active 全件 / 18 進化全件）は `./warrior-completion-balance.md`。
+
+---
+
+## Milestone 9-A: 横断バランス検証と品質不変性
+
+### 回すコマンド
+
+```
+node tests/cross-job-balance-comparison.mjs        # 共通 profile での 3 ジョブ構造検査
+node tests/cross-job-quality-gameplay-invariance.mjs  # 4 品質で gameplay trace が一致
+node tests/cross-job-draft-audit.mjs               # 3 ジョブ抽選の横断回帰フロア
+node tests/three-job-system-nonregression.mjs      # 候補列 / trace / cap 分類の SHA-256
+HEAVY=1 node tests/cross-job-quality-gameplay-invariance.mjs   # 長時間版
+```
+
+### M9-A の要点
+
+- **バランス値の変更 0 件。** gameplay cap の canonical 化（旧 high へ統一）は
+  「品質による分岐の削除」であって数値調整ではない（high は出荷既定＝全バランス計測の条件）。
+- **バランス計測は今後、品質を気にしなくてよい**（どの品質でも gameplay は同一）。
+  逆に「品質で結果が変わったら回帰」なので、invariance テストが常時それを検知する。
+- ジョブ間比較の読み方と限界（fire / frost の弾未解決・warrior の別尺度）は
+  `./cross-job-balance.md` の documented note を参照。ジョブ間 DPS 比は回帰フェンス（≤4.0）のみ。

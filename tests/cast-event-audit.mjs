@@ -4,12 +4,13 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { resolveCastMeta, defaultCastContext, replayContext, canCastTriggerEcho, canCloneCopy } from '../src/systems/CastPolicy.js';
+import { expandCapsInBalance } from './cap-shape.mjs';
 
 const dir = join(dirname(fileURLToPath(import.meta.url)), '..', 'data');
 const load = (n) => JSON.parse(readFileSync(join(dir, n), 'utf8'));
 const skills = load('skills.json').skills;
 const evolutions = load('skill-evolutions.json').evolutions;
-const balance = load('balance.json');
+const balance = expandCapsInBalance(load('balance.json'));  // M9-A: gameplay/safety cap は単一値なので 4 段階へ展開して従来の検査を通す
 const actives = skills.filter((s) => (s.category || 'active') === 'active');
 
 let pass = 0, fail = 0;

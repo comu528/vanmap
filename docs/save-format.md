@@ -898,3 +898,19 @@ restoreCd(value):
 
 なお決闘マーカーは M8-F で**寿命の管理場所を変えた**（`BattleScene._setDuelMark` /
 `_clearDuelMark` へ集約）が、**保存対象ではないままなので保存フォーマットへの影響はない**。
+
+---
+
+## Milestone 9-A: 復元入口の共通化（`save_version` は v6 のまま・**キー追加 0**）
+
+保存フォーマットは一切変えていない。読み口が 1 段固くなった。
+
+| 対象 | M8-F まで | M9-A |
+|------|-----------|------|
+| 戦士 48 スキルの `cdLeft` | 基底 `restoreCd()` が無害化 | **共通入口 + 基底の二重防御** |
+| 火 / 氷 96 スキルの `cdLeft` | `typeof === 'number'` なら**そのまま採用**（NaN / ±Infinity / 桁外れも通った） | **`SkillManager.restoreRuntime` の `_sanitizeRuntimeState` が全ジョブ一律に無害化**（非有限値はキーごと不採用・±120s クランプ） |
+
+- 各スキルファイルの restore 実装は 1 行も変えていない。正当なセーブ（±120s 内の有限値）は
+  素通しなので、**復元結果・候補列・runtime trace は M8-F 時点と SHA-256 一致**。
+- 品質設定は従来どおり settings 側（profile 本体・active_run へ品質キーを**追加していない**）。
+  M9-A で品質が gameplay へ影響しなくなったため、周回中に品質を変えても保存内容は変わらない。

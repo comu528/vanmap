@@ -413,3 +413,15 @@ M8-F の指示に従って M8-E のドキュメントを実ファイルで突き
 関連文書: `./warrior-completion-matrix.md`（48 スキルの一覧表）/
 `./warrior-completion-balance.md`（バランス分布の詳細）/ `./warrior-design.md` /
 `./warrior-final-wave.md` / `./skill-catalog.md`
+
+---
+
+## 補記: Milestone 9-A（3 ジョブ横断監査）での追加確認
+
+- 本書（M8-F）の監査結果は M9-A の横断監査でも維持されている（カタログ / プール / 抽選 /
+  recordCast / cooldown / runtimeState / 決定論を 3 ジョブ同一条件で再確認）。
+- **品質分離（M9-A）による変更**: 本ジョブの gameplay / safety に当たる cap は単一値
+  （canonical = 旧 high）になった。品質で対象数・実体数・tick 数が変わる挙動は**仕様から削除**された。
+- **cdLeft の改ざん耐性**が `SkillManager.restoreRuntime` の共通入口として全 48 スキルへ適用された
+  （正当なセーブの復元結果は不変）。
+- 詳細は `./cross-job-system-audit.md` / `./quality-cap-classification.md`。

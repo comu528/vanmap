@@ -5,6 +5,7 @@
 // 実行: node tests/flame-quality-cap-audit.mjs
 
 import { DATA, FLAME, registryMap, skillSource, readSrc, runner, allSrc, capFor, makeScene, makeEnemies, bootRuntime, evolutionBaseMap } from './flame-audit-common.mjs';
+import { capTiers } from './cap-shape.mjs';
 
 const { SkillManager } = await bootRuntime();
 const T = runner('火の魔女 quality cap 監査（M8-A）');
@@ -17,13 +18,15 @@ const TIERS = ['low', 'medium', 'high', 'ultra'];
 const EVO_BASE = evolutionBaseMap();
 
 // ===== 1. 値の妥当性（正数・low ≤ medium ≤ high ≤ ultra）=====
-section('1. すべての skillCaps が正数で low ≤ medium ≤ high ≤ ultra');
+section('1. すべての skillCaps が正数・単調（visual は 4 段階 / gameplay・safety は単一値）');
 for (const [name, v] of Object.entries(CAPS)) {
   ok(v && typeof v === 'object', `${name}: オブジェクト`);
+  // M9-A: gameplay / safety は単一値（品質非依存）、visual だけ 4 段階。
+  const t4 = capTiers(v);
   for (const t of TIERS) {
-    ok(typeof v[t] === 'number' && Number.isFinite(v[t]) && v[t] > 0, `${name}.${t} が正の有限数（${v[t]}）`);
+    ok(Number.isFinite(t4[t]) && t4[t] > 0, `${name}.${t} が正の有限数（${t4[t]}）`);
   }
-  ok(v.low <= v.medium && v.medium <= v.high && v.high <= v.ultra, `${name}: low ${v.low} ≤ medium ${v.medium} ≤ high ${v.high} ≤ ultra ${v.ultra}`);
+  ok(t4.low <= t4.medium && t4.medium <= t4.high && t4.high <= t4.ultra, `${name}: low ${t4.low} ≤ medium ${t4.medium} ≤ high ${t4.high} ≤ ultra ${t4.ultra}`);
 }
 info(`skillCaps 総数 ${Object.keys(CAPS).length} 件`);
 

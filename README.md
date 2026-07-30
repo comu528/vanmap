@@ -7,7 +7,32 @@
 npm・ビルド処理・バックエンド・データベースは一切使いません。Phaser 3.90.0 を CDN から読み込み、
 すべての素材（プレイヤー・敵・弾・エフェクト等）は JavaScript 上で動的生成しています。
 
-> ⚠️ **開発状況**: 現在 **Milestone 8-F**（戦士 完成監査）まで実装済みです。
+> ⚠️ **開発状況**: 現在 **Milestone 9-A**（3 ジョブ横断・共通システム総合監査）まで実装済みです。
+> M9-A は**監査だけの Milestone**で、**新しい active / passive / 進化 / ジョブを 1 件も追加していません**。
+> 最優先課題は M8-F が記録した「**演出品質が戦闘結果へ影響する**」問題の解消でした。
+> 調査の結果、`great_cleave` の主発動分岐（low 58 / high 59）だけでなく、
+> **敵の同時数（品質別 60〜320 体）・弾の実体数（120〜700）・skillCaps 161 件・hitStop・
+> 魂炎の恒久強化ノード 2 種**が品質依存になっていました。
+> M9-A で全 217 cap を **visual 47 / gameplay 150 / safety 20** へ分類し、
+> gameplay / safety を**品質キーを持てない単一値**（canonical = 出荷既定品質 high の値）へ、
+> 敵 / 弾プール上限を `gameplayLimits`（200 / 400）へ移しました。
+> 結果、**同 seed・同入力・同 dt の gameplay trace（cast / hit / damage / kill / 対象列 /
+> cooldown / RNG cursor / 戦士資源）が 4 品質で byte-identical** になり、
+> 品質が変えるのは演出（粒子 / trail / 数字表示 / シェイク / 閃光）だけになりました。
+> あわせて、火 / 氷 96 スキルに残っていた **cdLeft 改ざん脆弱性**（NaN / ±Infinity / 桁外れを
+> 受け入れる・M8-F が戦士だけ修正した同種の問題）を、`SkillManager.restoreRuntime` の
+> 共通入口 1 か所で全 144 スキル一律に無害化しました（正当なセーブの復元結果は不変）。
+> 3 ジョブ横断のカタログ（90 / 12 / 54 = 156・プール互いに素・Lv80 各 6）・抽選・進化 54 件の
+> 到達性・combat path・recordCast / cooldown / runtimeState 144 件・status / 資源 / 防御・
+> セーブ切替 / folder save・telemetry・F8（**3 ジョブ比較表示を追加**）/ F9 / F10・性能・
+> Pool / SpatialGrid・dead field / 未参照 cap・warning 体系・決定論も横断監査し、
+> **バランス値・guidance・抽選しきい値の変更は 0 件**（3 ジョブの個性は数値上均一化していません）。
+> 自動テスト **25 スイート追加（全 210 通過）**・`validate-data` へ M9-A ブロック追加（0 エラー 0 警告）・
+> **save_version は v6 のまま**。実ブラウザでの確認は未実施です。
+> 詳細は `docs/cross-job-system-audit.md`・`docs/quality-cap-classification.md`・
+> `docs/quality-gameplay-invariance.md`・`docs/cross-job-balance.md`・`docs/cross-job-completion-matrix.md`。
+>
+> （M8-F まで）**Milestone 8-F**（戦士 完成監査）。
 > M8-F は**監査だけの Milestone**で、**新しい active / passive / 進化 / ジョブを 1 件も追加していません**。
 > 戦士の 48 スキル（active 30 + 進化 18）を、カタログ整合性・プール分離・進化到達性・
 > production 抽選 simulation・`SkillAudit`・`recordCast` の 1:1・cooldown 保存・`runtimeState`・
@@ -174,6 +199,7 @@ npm・ビルド処理・バックエンド・データベースは一切使い�
 | **M8-D** | **戦士のスキル拡張 Wave2**: active を10種追加して**計25種**、進化を5種追加して**計13種**（passive は4種のまま・Job Lv1〜100 も据え置き・**Job Lv80「打撃数 +1」の対象は 3 ジョブとも 6 種のまま**）。新 active10種（昇竜斬 `rising_slash` / 鉄壁突進 `shield_charge` / 燕返し `backstep_riposte` / 豪腕投げ `battlefield_throw` / 三段砕き `triple_crush` / 刃防陣 `blade_guard` / 狂戦猛進 `berserker_rush` / 戦斧投擲 `war_axe_throw` / 破城膝撃 `breaker_knee` / 戦旗招集 `rallying_banner`）・新 evolution5種（天衝断空 `heaven_rending_ascent` / 城塞蹂躙 `fortress_rampage` / 無影燕返 `shadow_swallow_riposte` / 山岳投擲 `mountain_hurl` / 血盟戦旗 `blood_oath_standard`）。**新しい共通機構 5 つ（打ち上げ / 前面防御 / 掴み・投げ / 戦旗の陣 / 低 HP スケーリング）はすべて `WarriorCombatSystem` へ集約**し、BattleScene へスキルごとの状態を散らしていない。**新しい formal status は 1 つも作っていない**（共通状態異常は 5 種のまま）。**打ち上げと掴みが効くのは通常敵だけ**（エリートは体勢削り / その場叩きつけ、ボスは掴めず重い体勢打撃へ置換）で、可否は `launchPolicy()` / `grabPolicy()` に一元化（スキル側で `isBoss` を見ない）。打ち上げは滞空 `maxAirborneMs` と免疫 `immuneMs` で無限に浮かせられず、残留（`_airborneUntil` / `_launchImmuneUntil` / `_launchHeight` / `_grabbed`）は `Enemy.reset()` と `onEnemyRemoved()` の両方が必ず戻す。**前面防御は方向の分かる被弾だけ**を受け流し（`requireDirection: true`）、側面は ×0.35・背面は ×0（`Player.takeDamage` の第 2 引数は任意なので**火 / 氷の被弾計算は 1 バイトも変わらない**）。合計軽減は従来どおり 70% でクランプされ**無敵にならない**。掴みは**敵オブジェクトを保持せず安定 runtime id（`_seq`）だけ**を持ち、同時 1 体・時間切れで必ず解除・**保存しない**（reload で無料の着地衝撃を作らない）・**投げから投げが連鎖しない**。戦旗の陣は**常に 1 つ**（重ねがけは置換）で、効果が乗るのは**戦士本人が内側にいるときだけ**（外へ出れば即座に 0）。血盟戦旗の回復強化は**既存の毎秒 cap を共有**したままなので永久機関にならない。低 HP スケーリングは**自傷せず処刑もせず**必ず頭打ち（×1.6）。戦斧投擲は `Projectile` を使わず `combat.thrownStrike`（`meleeStrike` の `isThrown` 版）で表現するので**火 / 氷の弾は完全に不変**、かつ**近接倍率が乗らない**（同一敵へは行き / 帰りで最大 2 回）。品質別 skillCaps 20種追加（**未参照 cap 0**）・F8 戦士分析と F9 戦士検証パネルへ Wave2 の項目を追加（**F10 は不変**）。active が 25 に増えたぶんの抽選の薄まりは、**M8-C.1 のしきい値を 1 つも下げず**に guidance へ data キーを 1 つ（`activeSupportWeightMultiplier` = 1.6・**補助が active のレシピだけ**へ追加補正・skill ID のハードコードなし）足して吸収した。結果、素朴戦略の枠4/40lv で 進化1個以上 **85.0%**（平均 1.17・0個 15.0%）・枠6/60lv 99.0%（2個以上 88.0%・平均 2.38）・枠8/80lv 100%（2個以上 98.5%・平均 3.46）で M8-C.1 の目標をすべて満たし、**13 進化すべて・25 active すべてが取得 0 件なし**、最頻進化シェアは 19.6% → 19.3% と**むしろ改善**（過剰誘導なし）。自動テスト21スイート追加（**全147スイート通過**）。**火の魔女・氷術師は数値/挙動/候補列/状態異常/保存とも完全に不変**（`tests/three-job-wave2-nonregression.mjs` がハッシュで保証）・**新 status/属性反応/装備/敵/ボス/難易度/新ジョブなし**・**save_version v6 維持**。実ブラウザ描画/体感は未検証。詳細は `docs/warrior-wave2.md`・`docs/warrior-evolution-guidance.md`・`docs/skill-catalog.md` | ✅ 実装済み |
 | **M8-E** | **戦士のスキル拡張 最終Wave**: active を5種追加して**計30種**、進化を5種追加して**計18種**（passive は4種のまま・Job Lv1〜100 も据え置き・**Job Lv80「打撃数 +1」の対象は 3 ジョブとも 6 種のまま**）。これで**3 ジョブがそろって 30 / 4 / 18 の同規模**になった。新 active5種（貫穿突き `piercing_lunge` / 一騎討ち `duel_challenge` / 修羅の構え `battle_trance` / 震天踏破 `earthshaker_march` / 刃返し `weapon_deflection`）・新 evolution5種（神速貫陣 `godspeed_impaler` / 覇王討ち `king_slayer_duel` / 血染修羅 `blood_asura_trance` / 大陸震砕踏破 `continental_quake_march` / 天鏡返し `heaven_mirror_reversal`）。**新しい共通機構 5 つ（直線の対象選択 / 決闘 / 構え / 進軍 / 弾き返し）はすべて `WarriorCombatSystem` へ集約**し、BattleScene へスキルごとの状態を散らしていない。**新しい formal status は 1 つも作っていない**（共通状態異常は 5 種のまま）。**貫穿突きは弾ではない**（踏み込み＋近接の直線判定・射程は `line.maxLineLength` 300px で頭打ちで**画面端まで届かない**）。射線上にエリート / ボスがいると通常敵の枠が `toughSingleTargetRatio` 由来の少数に絞られ、**硬い相手ほど威力が 1 点へ集まる**。**一騎討ちは正式な状態異常を作らない**（相手へ debuff を貼らず、戦士本人の補正としてだけ効く）。対象は**同時 1 体**・再発動は置換・優先度は data 由来で ボス > エリート > 高 HP 通常敵・**敵オブジェクトを保持せず安定 runtime id（`_seq`）だけ**を持ち、死亡 / プール返却 / Scene 終了で必ず解除される。覇王討ちの延長は合計上限つきで**ボスを永久ロックできない**。**修羅の構えも formal status ではない**（同時 1 つ・重ねがけせず上書き）。攻撃補正は**闘気解放との合成上限** `combinedOffenseCap`(0.85) で必ず頭打ちになり、リスクは**軽減の実効値の小幅低下だけ**。低下は合計から引くだけで**重装 / 闘気解放 / 不屈のいずれも無効化せず**、`minMitigationAfterPenalty` を下回らない（**負にならない**）。**自傷もライフスティールもしない**。震天踏破は大地砕き / 震脚と違い**移動しながら複数地点**を踏み、1 発動 = 1 recordCast・距離と時間の**両方**で必ず終わり・`worldMargin` で壁の内側にクランプされ・座標が NaN にならない。**刃返しは完全無効化ではない**。弾けるのは allowlist の通常敵弾だけで、**ボス予兆 / 光条 / 地形ハザード / DoT は弾かない**（可否は `canDeflectProjectile()` に一元化）。窓ごとの上限を超えた弾はそのまま通り、弾いた弾は必ず消えて短命の物理反射弾になる（元弾の特殊効果を引き継がず・**世代 1 で止まるので再反射しない**・同じ弾を 2 度弾かない）。`recordCast` は窓の開始時の 1 回だけ。近接反撃とは別経路で、**1 イベントに応じるのは最大 1 系統**（`arbitrateDeflectionAndCounter()`）。天鏡返しは `counter_stance` を**置換せず CD にも触らない**。品質別 skillCaps 12種追加（**未参照 cap 0**）・F8 戦士分析と F9 戦士検証パネルへ 最終Wave の項目を追加（**F10 は不変**）。active が 30 に増えたぶんの抽選の薄まりは、**M8-C.1 のしきい値を 1 つも下げず**に guidance へ data キーを 2 つ（`highRequirementSupportLevel` = 6 / `highRequirementSupportMultiplier` = 1.5・**役割ごとの max で積み上がらない**・skill ID のハードコードなし）足して吸収した。結果、素朴戦略の枠4/40lv で 進化1個以上 **89.5%**（平均 1.28・0個 10.5%）・枠6/60lv 99.0%（2個以上 94.5%・平均 2.65）・枠8/80lv 100%（2個以上 99.5%・平均 3.92）で M8-C.1 の目標をすべて満たし、**18 進化すべて・30 active すべてが取得 0 件なし**、最頻進化シェアは 19.3% → **16.2 / 13.8 / 11.7%**（枠4/6/8）と**むしろ改善**（過剰誘導なし・build 多様性 89.8 / 97.2 / 99.3%）。自動テスト16スイート追加（**全163スイート通過**・`validate-data` 0 エラー 0 警告）。**火の魔女・氷術師は数値/挙動/候補列/状態異常/保存とも完全に不変**（`tests/three-job-final-catalog-nonregression.mjs` がハッシュで保証）・**新 status/属性反応/装備/敵/ボス/難易度/新ジョブなし**・**save_version v6 維持**。実ブラウザ描画/体感は未検証。詳細は `docs/warrior-final-wave.md`・`docs/warrior-evolution-guidance.md`・`docs/skill-catalog.md` | ✅ 実装済み |
 | **M8-F** | **戦士の完成監査**（**新 active / passive / 進化 / ジョブは 1 件も追加していない**）: M8-E で戦士が **active30 / passive4 / evolution18 = 52** に到達し 3 ジョブが同規模になったのを受けた総点検。**12 観点**（カタログ整合性 30/4/18/52・3 ジョブのプール分離・rarity と役割・進化 18 件の到達性・production 抽選 simulation・`SkillAudit` 48 件・`recordCast` の 1:1 48 件・cooldown 保存 48 件・`runtimeState` 48 件・固有機構〈闘気 / コンボ / 撃破回復 / 不屈 / 防御 / 敵種別 / 移動〉・cap と死にフィールド・telemetry / F8 / F9 / F10）で **不備 8 件 + data の死にフィールド 1 件**を修正した。**① 48 スキルの `restoreState({cdLeft})` が負数 / NaN / ±Infinity / 桁外れをそのまま採用**していた（改ざん保存で `_cd = NaN` にして永久に撃てない / 常に撃てる状態を作れた）→ `WarriorSkillBase` / `WarriorEvolvedBase` へ共通 `restoreCd()` を置き、非有限値は採用せず有限値を ±120s へクランプ（**火 / 氷の restore は 1 行も変えていない**）。**② 陣（`placeRallyField`）の半径が無制限**→ `balance.warrior.rally.maxRadius`(280) を追加してクランプ。**③ 反撃窓（`beginCounterWindow` / 復元）の回数と持続が無制限**→ `counter.maxCountersPerWindow`(6) / `counter.maxWindowMs`(6000) を追加し開始時と復元時の両方でクランプ。**④ 旋風斬の回転残り時間が復元でクランプされず永久回転を作れた**→ data の `duration` で頭打ちにした。**⑤ 進化済みの基礎 active が空き枠へ「新規」候補として戻っていた**（200 seed 中 38 回・取得すると進化と基礎を同時所持できた）→ 抽選コンテキストへ `evolvedBaseIds` を**加算的に**追加して `SkillDraftManager._eligible` が除外する（未指定なら従来と完全に同一挙動なので**火 / 氷の候補列ハッシュは不変**）。**⑥ M8-B / M8-C の 21 スキルが `destroy()` 後も発動し続けた**→ 2 つの戦士基底の `update()` に破棄ガードを 1 か所だけ置いた。**⑦ 決闘マーカー（`Enemy._duelMark`）が時間切れ / 再指定 / 解除で外れず生きた敵に残留**→ `BattleScene._setDuelMark` / `_clearDuelMark` で寿命を一元化し、決闘終了フレームと Scene 終了で必ず外す。**⑧ `crimson_execution`（血断処刑）が base より弱い逆転**（群れで総ダメージ 69%）→ `safetyCaps.maxTargetsPerStrike` を **10 → 20**（修正後 evo/base = 1.37・依然として有界で品質上限以下）。死にフィールド `charge_slash.config.hitOncePerTarget` は実装から読むようにした（現 data は `true` なので挙動は不変）。**敵 HP / 攻撃力 / 経験値 / スキルの damage・cooldown / 難易度倍率 / 報酬は 1 件も変えていない**（変えたのは上の `safetyCaps` 1 値と、上限クランプ用の data キー 3 件だけ）。**抽選しきい値は 1 つも下げていない**: 200 seed × 5 戦略 × 枠4/6/8 で 枠4 の 6 戦略すべてが ≥1 個 98.0〜100%（平均 2.19〜3.55・0 個 ≤2.0%）、枠6 が ≥1 個 100% / 平均 3.37〜5.33、枠8 が ≥1 個 99.5〜100% / 平均 4.51〜7.05。**30 active・4 passive・18 進化すべてが提示 0 / 取得 0 なし**、最頻進化シェア **10.7%**、build 多様性 枠4 185〜199 / 200、候補ゼロは**すべて飽和由来**（飽和以外 0 件）。性能は 10 分相当の Node 実測で low 2.5s / medium 2.5s / high 2.7s / ultra 3.1s、1 フレーム最大処理は 4 品質とも上限内（238/335/424/534 ≤ 360/540/720/960）。自動テスト**23スイート追加**（**全185スイート通過**・`validate-data` 0 エラー 0 警告）。**火の魔女・氷術師は候補列 / ランタイム / セーブ / 状態異常 RNG とも完全に不変**（`tests/three-job-completion-nonregression.mjs` が SHA-256 で保証）・**新 status / 属性反応 / 装備 / 敵 / ボス / 難易度 / 新ジョブなし**・**save_version v6 維持**（保存キーを 1 つも増やしていない）。実ブラウザ描画/体感は未検証。詳細は `docs/warrior-completion-audit.md`・`docs/warrior-completion-matrix.md`・`docs/warrior-completion-balance.md` | ✅ 実装済み |
+| **M9-A** | **3 ジョブ横断・共通システム総合監査**（**新 active / passive / 進化 / ジョブは 1 件も追加していない**）: 最優先課題は M8-F 記録の「**演出品質が戦闘結果へ影響する**」問題。production 経路で再現したところ、`great_cleave` の主発動分岐（low 58 / high 59）の根本原因である `maxMeleeTargetsPerHit`（12〜32）だけでなく、**敵プール上限（品質別 60〜320 体）・弾プール上限（120〜700）・skillCaps のうち gameplay / safety に当たる 161 件・hitStop（high/ultra のみ）・魂炎の恒久強化ノード 2 種（low で敵密度が、low/medium で弾上限が無効）**が品質依存だった。全 217 cap を **visual 47 / gameplay 150 / safety 20** へ分類（`balance.json` の `skillCapClasses` が正）し、gameplay / safety を**品質キーを構造的に持てない単一値 `{ value }`**（canonical = 出荷既定品質 high の値。低品質は強化・high 不変・ultra は計測実績のある high へ整列＝特定スキルの nerf 0 件）へ、敵 / 弾プール上限を新設 `gameplayLimits`（200 / 400）へ移し、hitStop と魂炎ノードの品質ゲートを削除した。結果、**同 seed・同入力・同 dt の gameplay trace（cast / hit / damage / kill / 対象列 / cooldown / runtimeState / status RNG cursor / 闘気・コンボ・体勢）が 3 ジョブ × active30 / evolution18 × 4 品質で byte-identical**（`tests/cross-job-quality-gameplay-invariance.mjs` ほかが実駆動で保証・巻き戻すと必ず落ちる）。品質が変えるのは演出（粒子 / trail / debris / 数字表示 / シェイク / 閃光・visual cap 47 件中 45 件が low < ultra）だけになった。あわせて **火 / 氷 96 スキルの cdLeft 改ざん脆弱性**（NaN / ±Infinity / 桁外れの受け入れ・M8-F が戦士だけ `restoreCd()` で修正した同種の問題）を、`SkillManager.restoreRuntime` の共通入口 `_sanitizeRuntimeState` 1 か所で全 144 スキル一律に無害化（非有限値は不採用・±120s クランプ・**正当なセーブの復元結果と候補列 / runtime trace は不変**）。3 ジョブ横断監査: カタログ（各 30/4/18・全体 90/12/54 = 156・重複 0・orphan 0・プール互いに素・`memberAllowedForJob` 全 156 メンバー一致・暗黙 common 0・Lv80 各ちょうど 6・進化の Lv80 対象 0）／production 抽選（200 seed × 枠 4/6/8 × 3 ジョブ・leakage / duplicate / slot 違反 / 非飽和候補ゼロ = 0・戦士しきい値維持・最頻進化シェア 9.9〜23.0%）／進化 54 件の data 整合と到達性（全数実駆動）／共通 combat path（skillId 全経路・element/physical 分離・再帰ガード固定・重複実装は cooldown 復元の 1 件のみ→共通入口化。対ボス / 資源の別実装は意図した job-specific policy として記録）／recordCast・cooldown 保存・runtimeState 144 件／status / 資源 / 防御（ジョブ外恒等・永久状態 0・完全無効化なし）／セーブ（v6 維持・migration 冪等・ジョブ切替 / 旧セーブ / 不正値安全・folder/browser 往復・競合検出）／telemetry（キー構造ジョブ不変・dead key 0・外部送信 0・quality はヘッダ表示のみ）／**F8 へ 3 ジョブ比較表示を追加**（カタログ / rarity / Lv80 / cap 分類 / 品質不変の明示・既存表示は不変・F10 は 1 行も変えない）／性能（品質を変えても gameplay イベント数不変・実行時間比 < 5・long run で配列増加なし）／Pool / SpatialGrid（acquire/release/reset/残留 0）／dead field / 未参照 cap 0／warning 体系（FLAME/FROST 重複 0・validate-data 0/0）／決定論（候補列 / trace が run 間・品質間で一致）。**バランス値・guidance・抽選しきい値の変更 0 件**（ジョブ間の DPS 差はハーネス由来と分析し documented note へ）。自動テスト **25 スイート追加**（cross-job-* 24 + three-job-system-nonregression・**全 210 スイート通過**・candidates / trace / cap 分類を SHA-256 固定）・validate.yml へ 25 ステップ（計 211）・validate-data へ M9-A ブロック（**0 エラー 0 警告**）。**save_version v6 維持**（保存キー追加 0）。実ブラウザ描画 / FPS / 体感は未検証。詳細は `docs/cross-job-system-audit.md`・`docs/quality-cap-classification.md`・`docs/quality-gameplay-invariance.md`・`docs/cross-job-balance.md`・`docs/cross-job-completion-matrix.md` | ✅ 実装済み |
 
 ### 遊びの流れ（M4）
 タイトル →「はじめから / 拠点」→ **拠点**（恒久強化・難易度・熟練度・**転生**・**魂炎強化**）→「戦闘開始」→
@@ -1200,3 +1226,32 @@ telemetry と F8 / F9（F10 非回帰）・性能（`PoolManager` / `SpatialGrid
 GitHub Pages を実ブラウザ（`?debug=1` の F8/F9/F10）で開き、`docs/test-guide.md` の
 **Milestone 8-F** 項目を手動確認してください（実行していない項目を「確認済み」と報告しません）。
 詳細は `docs/warrior-completion-audit.md` / `docs/warrior-completion-matrix.md` / `docs/warrior-completion-balance.md`。
+
+
+**Milestone 9-A の検証**: 3 ジョブ横断・共通システム総合監査（**新スキル追加なし**）。
+最優先課題は「**演出品質が戦闘結果へ影響する**」問題の解消です。修正前の tree で
+`great_cleave` の主発動分岐（low 58 / high 59）を production 経路で再現し、根本原因を
+**品質別 cap の誤分類**と特定しました。対象数 cap だけでなく、敵の同時数（60〜320 体）・
+弾の実体数（120〜700）・gameplay / safety に当たる skillCaps 161 件・hitStop・魂炎ノード 2 種が
+品質依存でした。全 217 cap を visual 47 / gameplay 150 / safety 20 へ分類し、
+gameplay / safety を**単一値 `{ value }`**（canonical = 出荷既定品質 high）へ、
+敵 / 弾上限を `gameplayLimits` へ移した結果、**gameplay trace（cast / hit / damage / kill /
+対象列 / cooldown / runtimeState / RNG cursor / 闘気・コンボ・体勢）が 3 ジョブ × 4 品質で
+byte-identical** になりました（`tests/cross-job-quality-gameplay-invariance.mjs` ほかが実駆動で保証）。
+
+あわせて火 / 氷 96 スキルの cdLeft 改ざん脆弱性を `SkillManager.restoreRuntime` の共通入口で
+全 144 スキル一律に無害化し（正当なセーブの復元結果は不変・候補列 / runtime trace の SHA-256 一致を確認）、
+カタログ整合（90 / 12 / 54 = 156）・プール分離・抽選・進化 54 件の到達性・combat path・
+recordCast / cooldown / runtimeState 144 件・status / 資源 / 防御・セーブ切替 / folder save・
+telemetry・F8（3 ジョブ比較を追加）/ F9 / F10・性能・Pool / SpatialGrid・dead field / 未参照 cap・
+warning 体系・決定論を横断監査しました。**バランス値・guidance・抽選しきい値の変更は 0 件**です。
+
+新規 **25 スイート**（`tests/cross-job-*.mjs` / `tests/three-job-system-nonregression.mjs`）を追加し、
+**全 210 スイート通過・`validate-data` 0 エラー 0 警告**、`save_version` は **v6 のまま**です。
+**実際の描画・当たり判定・体感・60FPS 維持・メモリは Phaser 依存のためヘッドレスでは未計測**です。
+GitHub Pages を実ブラウザ（`?debug=1` の F8/F9/F10）で開き、`docs/test-guide.md` の
+**Milestone 9-A** 項目（同 seed・同 save・同敵配置で 4 品質を比較し、damage / kills / XP /
+Combo / Fury / status / poise / boss HP / cast 数 / リザルトが一致して**演出だけが変わる**こと）を
+手動確認してください（実行していない項目を「確認済み」と報告しません）。
+詳細は `docs/cross-job-system-audit.md` / `docs/quality-cap-classification.md` /
+`docs/quality-gameplay-invariance.md` / `docs/cross-job-balance.md` / `docs/cross-job-completion-matrix.md`。

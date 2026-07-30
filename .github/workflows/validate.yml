@@ -441,3 +441,55 @@ jobs:
         run: node tests/frostbreak-ui-state.mjs
       - name: Status visibility non-regression tests
         run: node tests/status-visibility-nonregression.mjs
+
+      # M9-A: 3 ジョブ横断・共通システム総合監査（Node.js 標準機能のみ・HEAVY=1 で増量可）。
+      - name: Cross-job catalog tests
+        run: node tests/cross-job-catalog.mjs
+      - name: Cross-job pool isolation tests
+        run: node tests/cross-job-pool-isolation.mjs
+      - name: Cross-job quality cap classification tests
+        run: node tests/cross-job-quality-cap-classification.mjs
+      - name: Cross-job quality gameplay invariance tests
+        run: node tests/cross-job-quality-gameplay-invariance.mjs
+      - name: Cross-job quality RNG invariance tests
+        run: node tests/cross-job-quality-rng-invariance.mjs
+      - name: Cross-job quality visual reduction tests
+        run: node tests/cross-job-quality-visual-reduction.mjs
+      - name: Cross-job draft audit tests
+        run: node tests/cross-job-draft-audit.mjs
+      - name: Cross-job evolution audit tests
+        run: node tests/cross-job-evolution-audit.mjs
+      - name: Cross-job balance comparison tests
+        run: node tests/cross-job-balance-comparison.mjs
+      - name: Cross-job combat path tests
+        run: node tests/cross-job-combat-paths.mjs
+      - name: Cross-job record cast tests
+        run: node tests/cross-job-record-cast.mjs
+      - name: Cross-job cooldown save tests
+        run: node tests/cross-job-cooldown-save.mjs
+      - name: Cross-job runtime state tests
+        run: node tests/cross-job-runtime-state.mjs
+      - name: Cross-job status resource tests
+        run: node tests/cross-job-status-resource.mjs
+      - name: Cross-job defense tests
+        run: node tests/cross-job-defense.mjs
+      - name: Cross-job save switching tests
+        run: node tests/cross-job-save-switching.mjs
+      - name: Cross-job folder save tests
+        run: node tests/cross-job-folder-save.mjs
+      - name: Cross-job telemetry tests
+        run: node tests/cross-job-telemetry.mjs
+      - name: Cross-job debug panel tests
+        run: node tests/cross-job-debug-panels.mjs
+      - name: Cross-job performance tests
+        run: node tests/cross-job-performance.mjs
+      - name: Cross-job pool and spatial grid tests
+        run: node tests/cross-job-pool-spatial.mjs
+      - name: Cross-job caps and fields tests
+        run: node tests/cross-job-caps-fields.mjs
+      - name: Cross-job warning consistency tests
+        run: node tests/cross-job-warning-consistency.mjs
+      - name: Cross-job determinism tests
+        run: node tests/cross-job-determinism.mjs
+      - name: Three job system non-regression tests
+        run: node tests/three-job-system-nonregression.mjs

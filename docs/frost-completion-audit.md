@@ -159,3 +159,15 @@ trap / field tick / wave / barrage / mark 起爆 / shatter / frostbreak / status
 - カタログ 30/4/18・`SkillCatalog` issues 0。
 - 同 seed 候補列（`passive-pool-audit.mjs` の 300 seed 比較）・passive プール分離・保存系はすべて不変。
 - 火の魔女の data 値・実装は M7-E で 1 件も変更していない（変更はすべて氷術師側と共通エンジンの既定 0/1 追加）。
+
+---
+
+## 補記: Milestone 9-A（3 ジョブ横断監査）での追加確認
+
+- 本書（M7-E）の監査結果は M9-A の横断監査でも維持されている（カタログ / プール / 抽選 /
+  recordCast / cooldown / runtimeState / 決定論を 3 ジョブ同一条件で再確認）。
+- **品質分離（M9-A）による変更**: 本ジョブの gameplay / safety に当たる cap は単一値
+  （canonical = 旧 high）になった。品質で対象数・実体数・tick 数が変わる挙動は**仕様から削除**された。
+- **cdLeft の改ざん耐性**が `SkillManager.restoreRuntime` の共通入口として全 48 スキルへ適用された
+  （正当なセーブの復元結果は不変）。
+- 詳細は `./cross-job-system-audit.md` / `./quality-cap-classification.md`。

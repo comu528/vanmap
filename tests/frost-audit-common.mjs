@@ -136,9 +136,12 @@ export function makeScene(opts = {}) {
   return scene;
 }
 
+// M9-A: skillCaps は 2 つの形を持つ（{ value } = gameplay/safety・品質非依存 /
+// { low..ultra } = visual）。解決規則は production の DataManager.skillCap と同一。
 export function capFor(name, quality, fallback) {
   const c = DATA.balance.skillCaps && DATA.balance.skillCaps[name];
   if (!c) return fallback == null ? Infinity : fallback;
+  if (typeof c.value === 'number') return c.value;
   const v = c[quality];
   return typeof v === 'number' ? v : (fallback == null ? Infinity : fallback);
 }

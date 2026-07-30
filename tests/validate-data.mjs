@@ -51,7 +51,27 @@ function checkDuplicateIds(name, list, key = 'id') {
 }
 
 // --- balance.json ---
-const balance = loadJson('balance.json');
+// M9-A: skillCaps は 2 つの形を持つ。
+//   { value }                     … gameplay / safety 上限（**品質非依存の単一値**）
+//   { low, medium, high, ultra }  … visual 上限のみ
+// M6-B〜M8-F の既存ブロックは 4 段階の形を前提にしているので、単一値を 4 段階へ展開した
+// ビューを渡す（値は 4 つとも同じ＝単調・正の検査はそのまま通る）。
+// 生の形と分類は M9-A ブロックが直接検証する。
+function expandSkillCaps(caps) {
+  const out = {};
+  for (const [n, c] of Object.entries(caps || {})) {
+    if (c && typeof c.value === 'number') out[n] = { low: c.value, medium: c.value, high: c.value, ultra: c.value };
+    else out[n] = c;
+  }
+  return out;
+}
+function withExpandedCaps(bal) {
+  if (!bal || !bal.skillCaps) return bal;
+  return { ...bal, skillCaps: expandSkillCaps(bal.skillCaps), rawSkillCaps: bal.skillCaps };
+}
+
+const balanceRaw = loadJson('balance.json');
+const balance = withExpandedCaps(balanceRaw);
 if (balance) {
   requireFields('balance.json', balance, ['saveVersion', 'gameVersion', 'player', 'run', 'leveling', 'difficulties']);
   if (typeof balance.saveVersion !== 'number' || balance.saveVersion < 1) {
@@ -96,8 +116,9 @@ if (balance) {
     if (typeof sg.enabledByDefault !== 'boolean') {
       err('balance.json: spatialGrid.enabledByDefault は真偽値である必要がある');
     }
-    // 登録上限は同時出現しうる敵の最大数（品質別 maxEnemies の最大）以上であること。
-    const maxEnemyCap = Math.max(0, ...QUALITIES.map((q) => (eq[q] && eq[q].maxEnemies) || 0));
+    // 登録上限は同時出現しうる敵の最大数以上であること。
+    // M9-A: 敵プール上限は gameplay 上限なので品質ブロックではなく gameplayLimits にある。
+    const maxEnemyCap = (balance.gameplayLimits && balance.gameplayLimits.maxEnemies) || 0;
     if (typeof sg.maxRegistered === 'number' && maxEnemyCap > 0 && sg.maxRegistered < maxEnemyCap) {
       err(`balance.json: spatialGrid.maxRegistered (${sg.maxRegistered}) が最大同時敵数 (${maxEnemyCap}) を下回っている`);
     }
@@ -108,8 +129,13 @@ if (balance) {
   for (const q of QUALITIES) {
     const c = eq[q];
     if (!c) { err(`balance.json: effectQuality.${q} が未定義`); continue; }
-    requireFields('balance.json', c, ['maxEnemies', 'maxProjectiles', 'maxSparksPerBurst', 'particleScale'], `(effectQuality.${q})`);
-    for (const k of ['maxEnemies', 'maxProjectiles', 'maxSparksPerBurst']) {
+    // M9-A: maxEnemies / maxProjectiles は gameplay 上限として gameplayLimits へ移した。
+    // effectQuality に残しておくと「品質で敵数が変わる」経路が復活しうるので、あってはならない。
+    requireFields('balance.json', c, ['maxSparksPerBurst', 'particleScale'], `(effectQuality.${q})`);
+    for (const k of ['maxEnemies', 'maxProjectiles']) {
+      if (c[k] !== undefined) err(`M9-A: effectQuality.${q}.${k} は gameplay 上限なので effectQuality に置けない（gameplayLimits へ）`);
+    }
+    for (const k of ['maxSparksPerBurst']) {
       if (typeof c[k] !== 'number' || c[k] <= 0 || !Number.isInteger(c[k])) {
         err(`balance.json: effectQuality.${q}.${k} は正の整数である必要がある (${c[k]})`);
       }
@@ -129,9 +155,17 @@ if (balance) {
       }
     }
   };
-  monotonic((q) => eq[q] && eq[q].maxEnemies, 'effectQuality.maxEnemies');
-  monotonic((q) => eq[q] && eq[q].maxProjectiles, 'effectQuality.maxProjectiles');
   monotonic((q) => eq[q] && eq[q].maxSparksPerBurst, 'effectQuality.maxSparksPerBurst');
+  // M9-A: gameplay 上限は品質順ではなく単一値。正の整数であることだけを検査する。
+  {
+    const gl = balance.gameplayLimits;
+    if (!gl) err('M9-A: balance.json に gameplayLimits が無い');
+    else for (const k of ['maxEnemies', 'maxProjectiles']) {
+      if (typeof gl[k] !== 'number' || gl[k] <= 0 || !Number.isInteger(gl[k])) {
+        err(`M9-A: gameplayLimits.${k} は正の整数である必要がある (${gl[k]})`);
+      }
+    }
+  }
   monotonic((q) => pb[q], 'combatCaps.particleBudget');
 
   // --- 保存設定（M5-B） ---
@@ -1235,7 +1269,7 @@ if (jobProgData) {
   const passives = loadJson('passives.json');
   const evolutions = loadJson('skill-evolutions.json');
   const jobs = loadJson('jobs.json');
-  const balance = loadJson('balance.json');
+  const balance = withExpandedCaps(loadJson('balance.json'));
   const statusEffects = loadJson('status-effects.json');
   const frost = (jobs?.jobs || []).find((j) => j.id === 'frost_mage');
   const flame = (jobs?.jobs || []).find((j) => j.id === 'flame_witch');
@@ -2506,6 +2540,111 @@ if (jobProgData) {
     try { cat = readFileSync(join(ROOT, 'docs/skill-catalog.md'), 'utf8'); } catch (e) { void e; }
     for (const id of [...wActives, ...wEvos]) if (cat && !cat.includes(id)) err(`M8-F: docs/skill-catalog.md に ${id} が無い`);
   }
+}
+
+
+// --- M9-A: 3 ジョブ横断・共通システム総合監査 ---
+{
+  const jobsData = loadJson('jobs.json');
+  const skillsData = loadJson('skills.json');
+  const evoData = loadJson('skill-evolutions.json');
+  const passivesData = loadJson('passives.json');
+  const bal = loadJson('balance.json');
+  const jobsAll = (jobsData && jobsData.jobs) || [];
+  const skillsAll = (skillsData && skillsData.skills) || [];
+  const evosAll = (evoData && evoData.evolutions) || [];
+  const passivesAll = (passivesData && passivesData.passives) || [];
+  const ROOT9 = join(__dirname, '..');
+
+  // 1. 3 ジョブ 30/4/18・全体 90/12/54（合計 156）。
+  for (const jid of ['flame_witch', 'frost_mage', 'warrior']) {
+    const j = jobsAll.find((x) => x.id === jid);
+    if (!j) { err(`M9-A: jobs.json に ${jid} が無い`); continue; }
+    if ((j.activeSkillPool || []).length !== 30) err(`M9-A: ${jid} の active が 30 でない`);
+    if ((j.passiveSkillPool || []).length !== 4) err(`M9-A: ${jid} の passive が 4 でない`);
+    if ((j.evolutionPool || []).length !== 18) err(`M9-A: ${jid} の evolution が 18 でない`);
+    const lv80 = (j.activeSkillPool || []).filter((id) => (skillsAll.find((x) => x.id === id) || {}).lv80ProjectileTarget === true).length;
+    if (lv80 !== 6) err(`M9-A: ${jid} の Lv80 対象が 6 でない (${lv80})`);
+  }
+  if (skillsAll.length !== 90) err(`M9-A: skills 全体が 90 でない (${skillsAll.length})`);
+  if (passivesAll.length !== 12) err(`M9-A: passives 全体が 12 でない (${passivesAll.length})`);
+  if (evosAll.length !== 54) err(`M9-A: evolutions 全体が 54 でない (${evosAll.length})`);
+  if (skillsAll.length + evosAll.length + passivesAll.length !== 156) err('M9-A: メンバー合計が 156 でない');
+
+  // 2. 3 ジョブのプールが互いに素。
+  {
+    const jobs3 = ['flame_witch', 'frost_mage', 'warrior'].map((id) => jobsAll.find((x) => x.id === id)).filter(Boolean);
+    for (const kind of ['activeSkillPool', 'passiveSkillPool', 'evolutionPool']) {
+      const seen = new Map();
+      for (const j of jobs3) for (const id of j[kind] || []) {
+        if (seen.has(id)) err(`M9-A: ${kind} の ${id} が ${seen.get(id)} と ${j.id} の両方にある`);
+        seen.set(id, j.id);
+      }
+    }
+  }
+
+  // 3. cap 分類: すべて分類され、visual は 4 段階単調、gameplay / safety は単一値。
+  {
+    const caps = (bal && bal.skillCaps) || {};
+    const cls = (bal && bal.skillCapClasses) || {};
+    const cnt = { visual: 0, gameplay: 0, safety: 0 };
+    for (const [n, c] of Object.entries(caps)) {
+      const k = cls[n];
+      if (!['visual', 'gameplay', 'safety'].includes(k)) { err(`M9-A: skillCaps.${n} に分類が無い (${k})`); continue; }
+      cnt[k]++;
+      if (k === 'visual') {
+        for (const q of ['low', 'medium', 'high', 'ultra']) {
+          if (!(typeof c[q] === 'number' && Number.isFinite(c[q]) && c[q] > 0)) err(`M9-A: visual cap ${n}.${q} が正の有限数でない`);
+        }
+        if (!(c.low <= c.medium && c.medium <= c.high && c.high <= c.ultra)) err(`M9-A: visual cap ${n} が単調でない`);
+        if (typeof c.value === 'number') err(`M9-A: visual cap ${n} に value がある（形の混在）`);
+      } else {
+        if (!(typeof c.value === 'number' && Number.isFinite(c.value) && c.value > 0)) err(`M9-A: ${k} cap ${n}.value が正の有限数でない`);
+        if (Object.keys(c).length !== 1) err(`M9-A: ${k} cap ${n} に value 以外のキーがある（品質依存へ戻せてしまう）`);
+      }
+    }
+    for (const n of Object.keys(cls)) if (!caps[n]) err(`M9-A: skillCapClasses.${n} に対応する cap が無い`);
+    if (!(cnt.visual === 47 && cnt.gameplay === 150 && cnt.safety === 20)) {
+      err(`M9-A: cap 分類数が 47/150/20 でない (${cnt.visual}/${cnt.gameplay}/${cnt.safety})`);
+    }
+  }
+
+  // 4. 品質ブロックに gameplay 上限が無い / gameplayLimits が正しい。
+  {
+    const eq = (bal && bal.effectQuality) || {};
+    for (const q of ['low', 'medium', 'high', 'ultra']) {
+      const c = eq[q] || {};
+      if (c.maxEnemies !== undefined || c.maxProjectiles !== undefined) {
+        err(`M9-A: effectQuality.${q} に gameplay 上限（maxEnemies / maxProjectiles）が残っている`);
+      }
+      for (const k of Object.keys(c)) {
+        if (!['particleScale', 'damageNumbers', 'screenShake', 'whiteFlash', 'maxSparksPerBurst'].includes(k)) {
+          err(`M9-A: effectQuality.${q}.${k} は演出キーでない`);
+        }
+      }
+    }
+    const gl = (bal && bal.gameplayLimits) || {};
+    if (gl.maxEnemies !== 200) err(`M9-A: gameplayLimits.maxEnemies が 200 でない (${gl.maxEnemies})`);
+    if (gl.maxProjectiles !== 400) err(`M9-A: gameplayLimits.maxProjectiles が 400 でない (${gl.maxProjectiles})`);
+  }
+
+  // 5. save_version v6・状態異常 5 種。
+  if (bal && bal.saveVersion !== 6) err(`M9-A: saveVersion が 6 でない (${bal && bal.saveVersion})`);
+  {
+    const st = loadJson('status-effects.json') || {};
+    const list = Array.isArray(st.statusEffects) ? st.statusEffects : [];
+    if (list.length !== 5) err(`M9-A: 状態異常が 5 種でない (${list.length})`);
+  }
+
+  // 6. docs の存在と README の記載。
+  for (const f of ['cross-job-system-audit.md', 'cross-job-balance.md', 'quality-cap-classification.md',
+    'quality-gameplay-invariance.md', 'cross-job-completion-matrix.md']) {
+    if (!existsSync(join(ROOT9, 'docs', f))) err(`M9-A: docs/${f} が無い`);
+  }
+  try {
+    const readme = readFileSync(join(ROOT9, 'README.md'), 'utf8');
+    if (!readme.includes('M9-A')) err('M9-A: README.md に「M9-A」の記載が無い');
+  } catch { err('M9-A: README.md を読めない'); }
 }
 
 // --- report ---

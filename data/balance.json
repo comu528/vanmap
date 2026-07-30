@@ -40,64 +40,34 @@
   },
   "skillCaps": {
     "maxFlameLances": {
-      "low": 24,
-      "medium": 48,
-      "high": 80,
-      "ultra": 120
+      "value": 80
     },
     "maxHomingWisps": {
-      "low": 16,
-      "medium": 30,
-      "high": 50,
-      "ultra": 80
+      "value": 50
     },
     "maxSplitWisps": {
-      "low": 8,
-      "medium": 16,
-      "high": 28,
-      "ultra": 40
+      "value": 28
     },
     "maxSummons": {
-      "low": 4,
-      "medium": 6,
-      "high": 8,
-      "ultra": 10
+      "value": 8
     },
     "maxSummonProjectiles": {
-      "low": 20,
-      "medium": 40,
-      "high": 70,
-      "ultra": 100
+      "value": 70
     },
     "maxActiveVortices": {
-      "low": 2,
-      "medium": 3,
-      "high": 4,
-      "ultra": 6
+      "value": 4
     },
     "maxMarks": {
-      "low": 10,
-      "medium": 18,
-      "high": 30,
-      "ultra": 40
+      "value": 30
     },
     "maxChainDepth": {
-      "low": 4,
-      "medium": 6,
-      "high": 8,
-      "ultra": 10
+      "value": 8
     },
     "maxSimultaneousExplosions": {
-      "low": 3,
-      "medium": 5,
-      "high": 8,
-      "ultra": 10
+      "value": 8
     },
     "maxEvolutionProjectiles": {
-      "low": 40,
-      "medium": 80,
-      "high": 140,
-      "ultra": 220
+      "value": 140
     },
     "maxPhoenixEffects": {
       "low": 1,
@@ -106,544 +76,274 @@
       "ultra": 2
     },
     "maxActiveBeams": {
-      "low": 2,
-      "medium": 3,
-      "high": 5,
-      "ultra": 7
+      "value": 5
     },
     "maxBeamTicksPerFrame": {
-      "low": 12,
-      "medium": 24,
-      "high": 40,
-      "ultra": 60
+      "value": 40
     },
     "maxMines": {
-      "low": 20,
-      "medium": 30,
-      "high": 40,
-      "ultra": 60
+      "value": 40
     },
     "maxMineExplosionsPerFrame": {
-      "low": 3,
-      "medium": 5,
-      "high": 6,
-      "ultra": 8
+      "value": 6
     },
     "maxRicochetProjectiles": {
-      "low": 16,
-      "medium": 28,
-      "high": 44,
-      "ultra": 64
+      "value": 44
     },
     "maxRicochetChecksPerFrame": {
-      "low": 40,
-      "medium": 80,
-      "high": 140,
-      "ultra": 220
+      "value": 140
     },
     "maxClones": {
-      "low": 2,
-      "medium": 3,
-      "high": 4,
-      "ultra": 5
+      "value": 4
     },
     "maxCloneCastsPerFrame": {
-      "low": 2,
-      "medium": 3,
-      "high": 4,
-      "ultra": 6
+      "value": 4
     },
     "maxBloodfireProjectiles": {
-      "low": 12,
-      "medium": 20,
-      "high": 32,
-      "ultra": 48
+      "value": 32
     },
     "maxAbsorbedBulletsPerSecond": {
-      "low": 8,
-      "medium": 12,
-      "high": 16,
-      "ultra": 24
+      "value": 16
     },
     "maxFurnaceCharge": {
-      "low": 8,
-      "medium": 10,
-      "high": 14,
-      "ultra": 18
+      "value": 14
     },
     "maxFurnaceProjectiles": {
-      "low": 24,
-      "medium": 48,
-      "high": 90,
-      "ultra": 160
+      "value": 90
     },
     "maxScreenEdgeWaves": {
-      "low": 2,
-      "medium": 3,
-      "high": 4,
-      "ultra": 4
+      "value": 4
     },
     "maxTethers": {
-      "low": 6,
-      "medium": 10,
-      "high": 16,
-      "ultra": 24
+      "value": 16
     },
     "maxTetherRetargetsPerFrame": {
-      "low": 2,
-      "medium": 4,
-      "high": 6,
-      "ultra": 8
+      "value": 6
     },
     "maxBlazingTrails": {
-      "low": 16,
-      "medium": 28,
-      "high": 44,
-      "ultra": 64
+      "value": 44
     },
     "maxSolarMirrors": {
-      "low": 4,
-      "medium": 5,
-      "high": 6,
-      "ultra": 8
+      "value": 6
     },
     "maxMineNetworkDepth": {
-      "low": 3,
-      "medium": 4,
-      "high": 6,
-      "ultra": 8
+      "value": 6
     },
     "maxMineNetworkExplosions": {
-      "low": 10,
-      "medium": 16,
-      "high": 24,
-      "ultra": 32
+      "value": 24
     },
     "maxInfernoBlades": {
-      "low": 4,
-      "medium": 6,
-      "high": 8,
-      "ultra": 10
+      "value": 8
     },
     "maxAshLegionUnits": {
-      "low": 4,
-      "medium": 6,
-      "high": 8,
-      "ultra": 10
+      "value": 8
     },
     "maxAshLegionCastsPerFrame": {
-      "low": 2,
-      "medium": 3,
-      "high": 4,
-      "ultra": 6
+      "value": 4
     },
     "maxStarFurnaceCores": {
-      "low": 3,
-      "medium": 4,
-      "high": 6,
-      "ultra": 8
+      "value": 6
     },
     "maxStarFurnaceProjectiles": {
-      "low": 40,
-      "medium": 80,
-      "high": 140,
-      "ultra": 220
+      "value": 140
     },
     "maxEchoCloneGeneration": {
-      "low": 1,
-      "medium": 1,
-      "high": 1,
-      "ultra": 1
+      "value": 1
     },
     "maxDeathEventsTracked": {
-      "low": 24,
-      "medium": 32,
-      "high": 40,
-      "ultra": 48
+      "value": 40
     },
     "maxDeathEventsPerFrame": {
-      "low": 4,
-      "medium": 6,
-      "high": 8,
-      "ultra": 10
+      "value": 8
     },
     "maxFuneralPyres": {
-      "low": 4,
-      "medium": 6,
-      "high": 8,
-      "ultra": 12
+      "value": 8
     },
     "maxPyreEruptionsPerFrame": {
-      "low": 3,
-      "medium": 4,
-      "high": 6,
-      "ultra": 8
+      "value": 6
     },
     "maxMagmaVeins": {
-      "low": 2,
-      "medium": 3,
-      "high": 4,
-      "ultra": 6
+      "value": 4
     },
     "maxMagmaSegments": {
-      "low": 16,
-      "medium": 24,
-      "high": 36,
-      "ultra": 52
+      "value": 36
     },
     "maxMagmaIntersections": {
-      "low": 4,
-      "medium": 6,
-      "high": 10,
-      "ultra": 14
+      "value": 10
     },
     "maxTriArrays": {
-      "low": 2,
-      "medium": 3,
-      "high": 4,
-      "ultra": 5
+      "value": 4
     },
     "maxArrayTicksPerFrame": {
-      "low": 4,
-      "medium": 6,
-      "high": 8,
-      "ultra": 12
+      "value": 8
     },
     "maxResonanceTargets": {
-      "low": 20,
-      "medium": 40,
-      "high": 60,
-      "ultra": 90
+      "value": 60
     },
     "maxResonanceChains": {
-      "low": 8,
-      "medium": 14,
-      "high": 24,
-      "ultra": 36
+      "value": 24
     },
     "maxResonanceExplosions": {
-      "low": 2,
-      "medium": 3,
-      "high": 3,
-      "ultra": 4
+      "value": 3
     },
     "maxOverdriveProjectiles": {
-      "low": 24,
-      "medium": 40,
-      "high": 64,
-      "ultra": 96
+      "value": 64
     },
     "maxOverdriveCastsPerFrame": {
-      "low": 3,
-      "medium": 4,
-      "high": 6,
-      "ultra": 8
+      "value": 6
     },
     "maxMausoleums": {
-      "low": 2,
-      "medium": 2,
-      "high": 3,
-      "ultra": 4
+      "value": 3
     },
     "maxHexagramArrays": {
-      "low": 1,
-      "medium": 2,
-      "high": 2,
-      "ultra": 3
+      "value": 2
     },
     "maxHexagramBeams": {
-      "low": 4,
-      "medium": 6,
-      "high": 6,
-      "ultra": 8
+      "value": 6
     },
     "maxDoomsdayProjectiles": {
-      "low": 32,
-      "medium": 48,
-      "high": 60,
-      "ultra": 90
+      "value": 60
     },
     "maxDoomsdayExplosions": {
-      "low": 4,
-      "medium": 6,
-      "high": 8,
-      "ultra": 10
+      "value": 8
     },
     "maxFrozenEnemies": {
-      "low": 30,
-      "medium": 60,
-      "high": 100,
-      "ultra": 160
+      "value": 100
     },
     "maxShattersPerFrame": {
-      "low": 3,
-      "medium": 5,
-      "high": 8,
-      "ultra": 12
+      "value": 8
     },
     "maxShatterProjectiles": {
-      "low": 12,
-      "medium": 24,
-      "high": 40,
-      "ultra": 64
+      "value": 40
     },
     "maxStatusIndexEntries": {
-      "low": 160,
-      "medium": 260,
-      "high": 400,
-      "ultra": 600
+      "value": 400
     },
     "maxFrostShards": {
-      "low": 24,
-      "medium": 44,
-      "high": 72,
-      "ultra": 110
+      "value": 72
     },
     "maxFrostNovaTargetsPerFrame": {
-      "low": 20,
-      "medium": 40,
-      "high": 60,
-      "ultra": 90
+      "value": 60
     },
     "maxGlacialLances": {
-      "low": 8,
-      "medium": 14,
-      "high": 22,
-      "ultra": 34
+      "value": 22
     },
     "maxPermafrostFields": {
-      "low": 2,
-      "medium": 3,
-      "high": 4,
-      "ultra": 6
+      "value": 4
     },
     "maxPermafrostTicksPerFrame": {
-      "low": 4,
-      "medium": 6,
-      "high": 8,
-      "ultra": 12
+      "value": 8
     },
     "maxIceWalls": {
-      "low": 2,
-      "medium": 2,
-      "high": 3,
-      "ultra": 4
+      "value": 3
     },
     "maxIceWallSegments": {
-      "low": 8,
-      "medium": 12,
-      "high": 18,
-      "ultra": 28
+      "value": 18
     },
     "maxIceWallCollisionsPerFrame": {
-      "low": 20,
-      "medium": 40,
-      "high": 70,
-      "ultra": 110
+      "value": 70
     },
     "maxDiamondBlizzardProjectiles": {
-      "low": 32,
-      "medium": 56,
-      "high": 90,
-      "ultra": 140
+      "value": 90
     },
     "maxAbsoluteZeroDomains": {
-      "low": 1,
-      "medium": 2,
-      "high": 2,
-      "ultra": 3
+      "value": 2
     },
     "maxAbsoluteZeroShattersPerFrame": {
-      "low": 2,
-      "medium": 3,
-      "high": 3,
-      "ultra": 4
+      "value": 3
     },
     "maxHeavenGlacierFragments": {
-      "low": 4,
-      "medium": 6,
-      "high": 8,
-      "ultra": 12
+      "value": 8
     },
     "maxBossFrostbreaksPerFrame": {
-      "low": 1,
-      "medium": 1,
-      "high": 1,
-      "ultra": 1
+      "value": 1
     },
     "maxIcicleVolleyProjectiles": {
-      "low": 28,
-      "medium": 52,
-      "high": 84,
-      "ultra": 130
+      "value": 84
     },
     "maxIcicleVolleyBurstsPerFrame": {
-      "low": 3,
-      "medium": 5,
-      "high": 8,
-      "ultra": 12
+      "value": 8
     },
     "maxFrostOrbitCrystals": {
-      "low": 3,
-      "medium": 4,
-      "high": 6,
-      "ultra": 8
+      "value": 6
     },
     "maxFrostOrbitHitsPerFrame": {
-      "low": 12,
-      "medium": 24,
-      "high": 40,
-      "ultra": 64
+      "value": 40
     },
     "maxFreezingRayTargets": {
-      "low": 10,
-      "medium": 18,
-      "high": 28,
-      "ultra": 44
+      "value": 28
     },
     "maxFreezingRayTicksPerFrame": {
-      "low": 6,
-      "medium": 10,
-      "high": 16,
-      "ultra": 26
+      "value": 16
     },
     "maxHailstorms": {
-      "low": 2,
-      "medium": 3,
-      "high": 4,
-      "ultra": 6
+      "value": 4
     },
     "maxHailImpactsPerFrame": {
-      "low": 6,
-      "medium": 12,
-      "high": 20,
-      "ultra": 32
+      "value": 20
     },
     "maxCryoMines": {
-      "low": 16,
-      "medium": 30,
-      "high": 48,
-      "ultra": 72
+      "value": 48
     },
     "maxCryoMineExplosionsPerFrame": {
-      "low": 3,
-      "medium": 5,
-      "high": 8,
-      "ultra": 12
+      "value": 8
     },
     "maxFrostSpirits": {
-      "low": 3,
-      "medium": 4,
-      "high": 6,
-      "ultra": 8
+      "value": 6
     },
     "maxFrostSpiritProjectiles": {
-      "low": 24,
-      "medium": 44,
-      "high": 72,
-      "ultra": 110
+      "value": 72
     },
     "maxIcePrisons": {
-      "low": 3,
-      "medium": 4,
-      "high": 5,
-      "ultra": 6
+      "value": 5
     },
     "maxIcePrisonTargetsPerFrame": {
-      "low": 6,
-      "medium": 10,
-      "high": 16,
-      "ultra": 24
+      "value": 16
     },
     "maxAvalancheWaves": {
-      "low": 2,
-      "medium": 3,
-      "high": 4,
-      "ultra": 6
+      "value": 4
     },
     "maxAvalancheHitsPerFrame": {
-      "low": 20,
-      "medium": 40,
-      "high": 60,
-      "ultra": 90
+      "value": 60
     },
     "maxMirrorIceBarriers": {
-      "low": 2,
-      "medium": 3,
-      "high": 4,
-      "ultra": 5
+      "value": 4
     },
     "maxMirrorIceInterceptsPerFrame": {
-      "low": 4,
-      "medium": 8,
-      "high": 14,
-      "ultra": 22
+      "value": 14
     },
     "maxMirrorIceCounterProjectiles": {
-      "low": 6,
-      "medium": 12,
-      "high": 20,
-      "ultra": 32
+      "value": 20
     },
     "maxGlacierDrops": {
-      "low": 1,
-      "medium": 2,
-      "high": 2,
-      "ultra": 3
+      "value": 2
     },
     "maxGlacierImpactsPerFrame": {
-      "low": 1,
-      "medium": 2,
-      "high": 3,
-      "ultra": 4
+      "value": 3
     },
     "maxCrystalTempestProjectiles": {
-      "low": 32,
-      "medium": 56,
-      "high": 90,
-      "ultra": 140
+      "value": 90
     },
     "maxAbsoluteZeroRayBranches": {
-      "low": 4,
-      "medium": 5,
-      "high": 6,
-      "ultra": 8
+      "value": 6
     },
     "maxWhiteoutCataclysms": {
-      "low": 1,
-      "medium": 2,
-      "high": 2,
-      "ultra": 3
+      "value": 2
     },
     "maxWhiteoutHailImpactsPerFrame": {
-      "low": 4,
-      "medium": 6,
-      "high": 8,
-      "ultra": 12
+      "value": 8
     },
     "maxFrostQueenSpirits": {
-      "low": 4,
-      "medium": 5,
-      "high": 6,
-      "ultra": 8
+      "value": 6
     },
     "maxFrostQueenProjectiles": {
-      "low": 24,
-      "medium": 44,
-      "high": 72,
-      "ultra": 110
+      "value": 72
     },
     "maxWorldEndAvalancheWaves": {
-      "low": 3,
-      "medium": 3,
-      "high": 4,
-      "ultra": 6
+      "value": 4
     },
     "maxWorldEndAvalancheShattersPerFrame": {
-      "low": 3,
-      "medium": 4,
-      "high": 5,
-      "ultra": 8
+      "value": 5
     },
     "maxStatusIcons": {
       "low": 1,
@@ -712,52 +412,28 @@
       "ultra": 60
     },
     "maxRimeBoomerangs": {
-      "low": 6,
-      "medium": 10,
-      "high": 16,
-      "ultra": 24
+      "value": 16
     },
     "maxRimeBoomerangHitsPerFrame": {
-      "low": 16,
-      "medium": 30,
-      "high": 48,
-      "ultra": 72
+      "value": 48
     },
     "maxFrostChainSegmentsPerFrame": {
-      "low": 16,
-      "medium": 30,
-      "high": 48,
-      "ultra": 72
+      "value": 48
     },
     "maxCrystalBlooms": {
-      "low": 4,
-      "medium": 6,
-      "high": 10,
-      "ultra": 16
+      "value": 10
     },
     "maxCrystalBloomPulsesPerFrame": {
-      "low": 8,
-      "medium": 16,
-      "high": 28,
-      "ultra": 44
+      "value": 28
     },
     "maxSnowblindMistTicksPerFrame": {
-      "low": 6,
-      "medium": 10,
-      "high": 16,
-      "ultra": 26
+      "value": 16
     },
     "maxPolarStars": {
-      "low": 2,
-      "medium": 3,
-      "high": 4,
-      "ultra": 6
+      "value": 4
     },
     "maxPolarStarShards": {
-      "low": 6,
-      "medium": 12,
-      "high": 20,
-      "ultra": 32
+      "value": 20
     },
     "maxIcebreakerEffects": {
       "low": 2,
@@ -766,28 +442,16 @@
       "ultra": 10
     },
     "maxIcebreakerHitsPerFrame": {
-      "low": 20,
-      "medium": 40,
-      "high": 60,
-      "ultra": 90
+      "value": 60
     },
     "maxFrozenClockWaves": {
-      "low": 3,
-      "medium": 4,
-      "high": 6,
-      "ultra": 8
+      "value": 6
     },
     "maxFrozenClockHitsPerFrame": {
-      "low": 24,
-      "medium": 44,
-      "high": 72,
-      "ultra": 110
+      "value": 72
     },
     "maxRefractionProjectiles": {
-      "low": 12,
-      "medium": 24,
-      "high": 40,
-      "ultra": 64
+      "value": 40
     },
     "maxWinterHaloVisualShards": {
       "low": 4,
@@ -796,196 +460,100 @@
       "ultra": 12
     },
     "maxWinterHaloInterceptsPerFrame": {
-      "low": 2,
-      "medium": 4,
-      "high": 8,
-      "ultra": 14
+      "value": 8
     },
     "maxCometSleetProjectiles": {
-      "low": 16,
-      "medium": 30,
-      "high": 48,
-      "ultra": 72
+      "value": 48
     },
     "maxCometImpactsPerFrame": {
-      "low": 6,
-      "medium": 12,
-      "high": 20,
-      "ultra": 32
+      "value": 20
     },
     "maxRimeExecutionWheelHitsPerFrame": {
-      "low": 24,
-      "medium": 44,
-      "high": 72,
-      "ultra": 110
+      "value": 72
     },
     "maxEternalFrostChainSegmentsPerFrame": {
-      "low": 24,
-      "medium": 44,
-      "high": 72,
-      "ultra": 110
+      "value": 72
     },
     "maxCrystalWorldTrees": {
-      "low": 1,
-      "medium": 2,
-      "high": 2,
-      "ultra": 3
+      "value": 2
     },
     "maxEverlastingMistTicksPerFrame": {
-      "low": 8,
-      "medium": 14,
-      "high": 22,
-      "ultra": 34
+      "value": 22
     },
     "maxZeroHourWorldWaves": {
-      "low": 4,
-      "medium": 6,
-      "high": 8,
-      "ultra": 12
+      "value": 8
     },
     "maxGlacialSpearTelegraphs": {
-      "low": 2,
-      "medium": 4,
-      "high": 6,
-      "ultra": 10
+      "value": 6
     },
     "maxGlacialSpearImpactsPerFrame": {
-      "low": 6,
-      "medium": 12,
-      "high": 20,
-      "ultra": 32
+      "value": 20
     },
     "maxGlacialSpearProjectiles": {
-      "low": 16,
-      "medium": 30,
-      "high": 48,
-      "ultra": 72
+      "value": 48
     },
     "maxSnowflakeSentries": {
-      "low": 2,
-      "medium": 3,
-      "high": 4,
-      "ultra": 6
+      "value": 4
     },
     "maxSentryProjectiles": {
-      "low": 24,
-      "medium": 44,
-      "high": 72,
-      "ultra": 110
+      "value": 72
     },
     "maxIcebergRams": {
-      "low": 1,
-      "medium": 2,
-      "high": 2,
-      "ultra": 3
+      "value": 2
     },
     "maxIcebergContactChecks": {
-      "low": 20,
-      "medium": 40,
-      "high": 60,
-      "ultra": 90
+      "value": 60
     },
     "maxIcebergShards": {
-      "low": 6,
-      "medium": 12,
-      "high": 20,
-      "ultra": 32
+      "value": 20
     },
     "maxIceSealMarks": {
-      "low": 8,
-      "medium": 14,
-      "high": 22,
-      "ultra": 34
+      "value": 22
     },
     "maxIceSealExplosionsPerFrame": {
-      "low": 3,
-      "medium": 5,
-      "high": 8,
-      "ultra": 12
+      "value": 8
     },
     "maxAuroraBands": {
-      "low": 4,
-      "medium": 6,
-      "high": 8,
-      "ultra": 10
+      "value": 8
     },
     "maxAuroraQueriesPerTick": {
-      "low": 8,
-      "medium": 14,
-      "high": 22,
-      "ultra": 34
+      "value": 22
     },
     "maxAuroraBurstsPerFrame": {
-      "low": 2,
-      "medium": 3,
-      "high": 4,
-      "ultra": 6
+      "value": 4
     },
     "maxHeavenfallImpactsPerFrame": {
-      "low": 6,
-      "medium": 12,
-      "high": 20,
-      "ultra": 32
+      "value": 20
     },
     "maxSentinelLegionLinksPerFrame": {
-      "low": 4,
-      "medium": 8,
-      "high": 14,
-      "ultra": 22
+      "value": 14
     },
     "maxContinentalGlacierRushes": {
-      "low": 1,
-      "medium": 2,
-      "high": 2,
-      "ultra": 3
+      "value": 2
     },
     "maxSealedCoffinMarks": {
-      "low": 8,
-      "medium": 14,
-      "high": 22,
-      "ultra": 34
+      "value": 22
     },
     "maxPolarNightBands": {
-      "low": 4,
-      "medium": 6,
-      "high": 8,
-      "ultra": 10
+      "value": 8
     },
     "maxMeleeTargetsPerHit": {
-      "low": 12,
-      "medium": 18,
-      "high": 24,
-      "ultra": 32
+      "value": 24
     },
     "maxSpinTicksPerFrame": {
-      "low": 1,
-      "medium": 2,
-      "high": 2,
-      "ultra": 3
+      "value": 2
     },
     "maxChargeHits": {
-      "low": 6,
-      "medium": 10,
-      "high": 14,
-      "ultra": 18
+      "value": 14
     },
     "maxCounterHits": {
-      "low": 1,
-      "medium": 1,
-      "high": 1,
-      "ultra": 1
+      "value": 1
     },
     "maxBladeDanceStrikes": {
-      "low": 5,
-      "medium": 6,
-      "high": 8,
-      "ultra": 8
+      "value": 8
     },
     "maxWarriorSlams": {
-      "low": 1,
-      "medium": 2,
-      "high": 2,
-      "ultra": 2
+      "value": 2
     },
     "maxMeleeArcVisuals": {
       "low": 2,
@@ -1030,58 +598,31 @@
       "ultra": 8
     },
     "maxOverheadStrikes": {
-      "low": 2,
-      "medium": 2,
-      "high": 3,
-      "ultra": 3
+      "value": 3
     },
     "maxTwinFangStrikes": {
-      "low": 2,
-      "medium": 3,
-      "high": 3,
-      "ultra": 4
+      "value": 3
     },
     "maxExecutesPerCast": {
-      "low": 2,
-      "medium": 3,
-      "high": 3,
-      "ultra": 4
+      "value": 3
     },
     "maxLeapImpacts": {
-      "low": 1,
-      "medium": 2,
-      "high": 2,
-      "ultra": 2
+      "value": 2
     },
     "maxSweepStrikesPerFrame": {
-      "low": 1,
-      "medium": 1,
-      "high": 2,
-      "ultra": 2
+      "value": 2
     },
     "maxCounterWindows": {
-      "low": 2,
-      "medium": 2,
-      "high": 3,
-      "ultra": 3
+      "value": 3
     },
     "maxChainPullsPerCast": {
-      "low": 1,
-      "medium": 1,
-      "high": 1,
-      "ultra": 1
+      "value": 1
     },
     "maxRelentlessStrikes": {
-      "low": 8,
-      "medium": 10,
-      "high": 12,
-      "ultra": 14
+      "value": 12
     },
     "maxRelentlessRetargets": {
-      "low": 2,
-      "medium": 3,
-      "high": 3,
-      "ultra": 4
+      "value": 3
     },
     "maxOverheadSlashVisuals": {
       "low": 2,
@@ -1150,64 +691,34 @@
       "ultra": 14
     },
     "maxLaunchTargets": {
-      "low": 4,
-      "medium": 6,
-      "high": 8,
-      "ultra": 10
+      "value": 8
     },
     "maxChargeContacts": {
-      "low": 8,
-      "medium": 12,
-      "high": 16,
-      "ultra": 20
+      "value": 16
     },
     "maxRiposteStrikes": {
-      "low": 2,
-      "medium": 2,
-      "high": 3,
-      "ultra": 3
+      "value": 3
     },
     "maxThrowImpacts": {
-      "low": 1,
-      "medium": 2,
-      "high": 2,
-      "ultra": 2
+      "value": 2
     },
     "maxCrushStages": {
-      "low": 3,
-      "medium": 3,
-      "high": 3,
-      "ultra": 3
+      "value": 3
     },
     "maxGuardTicksPerFrame": {
-      "low": 1,
-      "medium": 1,
-      "high": 2,
-      "ultra": 2
+      "value": 2
     },
     "maxRushSteps": {
-      "low": 4,
-      "medium": 6,
-      "high": 8,
-      "ultra": 10
+      "value": 8
     },
     "maxAxeHitsPerTarget": {
-      "low": 2,
-      "medium": 2,
-      "high": 2,
-      "ultra": 2
+      "value": 2
     },
     "maxKneeStrikes": {
-      "low": 1,
-      "medium": 1,
-      "high": 2,
-      "ultra": 2
+      "value": 2
     },
     "maxRallyFields": {
-      "low": 1,
-      "medium": 1,
-      "high": 1,
-      "ultra": 1
+      "value": 1
     },
     "maxLaunchVisuals": {
       "low": 4,
@@ -1270,46 +781,25 @@
       "ultra": 6
     },
     "maxLineTargets": {
-      "low": 6,
-      "medium": 8,
-      "high": 10,
-      "ultra": 12
+      "value": 10
     },
     "maxLineThrusts": {
-      "low": 1,
-      "medium": 2,
-      "high": 2,
-      "ultra": 2
+      "value": 2
     },
     "maxDuelTargets": {
-      "low": 1,
-      "medium": 1,
-      "high": 1,
-      "ultra": 1
+      "value": 1
     },
     "maxTranceStances": {
-      "low": 1,
-      "medium": 1,
-      "high": 1,
-      "ultra": 1
+      "value": 1
     },
     "maxMarchStomps": {
-      "low": 4,
-      "medium": 5,
-      "high": 6,
-      "ultra": 7
+      "value": 6
     },
     "maxDeflectionsPerWindow": {
-      "low": 4,
-      "medium": 5,
-      "high": 6,
-      "ultra": 8
+      "value": 6
     },
     "maxReflectedProjectiles": {
-      "low": 4,
-      "medium": 5,
-      "high": 6,
-      "ultra": 8
+      "value": 6
     },
     "maxThrustTrails": {
       "low": 1,
@@ -1341,6 +831,225 @@
       "high": 6,
       "ultra": 8
     }
+  },
+  "skillCapClasses": {
+    "maxFlameLances": "gameplay",
+    "maxHomingWisps": "gameplay",
+    "maxSplitWisps": "gameplay",
+    "maxSummons": "gameplay",
+    "maxSummonProjectiles": "gameplay",
+    "maxActiveVortices": "gameplay",
+    "maxMarks": "gameplay",
+    "maxChainDepth": "safety",
+    "maxSimultaneousExplosions": "gameplay",
+    "maxEvolutionProjectiles": "gameplay",
+    "maxPhoenixEffects": "visual",
+    "maxActiveBeams": "gameplay",
+    "maxBeamTicksPerFrame": "gameplay",
+    "maxMines": "gameplay",
+    "maxMineExplosionsPerFrame": "gameplay",
+    "maxRicochetProjectiles": "gameplay",
+    "maxRicochetChecksPerFrame": "gameplay",
+    "maxClones": "gameplay",
+    "maxCloneCastsPerFrame": "gameplay",
+    "maxBloodfireProjectiles": "gameplay",
+    "maxAbsorbedBulletsPerSecond": "safety",
+    "maxFurnaceCharge": "gameplay",
+    "maxFurnaceProjectiles": "gameplay",
+    "maxScreenEdgeWaves": "gameplay",
+    "maxTethers": "gameplay",
+    "maxTetherRetargetsPerFrame": "gameplay",
+    "maxBlazingTrails": "gameplay",
+    "maxSolarMirrors": "gameplay",
+    "maxMineNetworkDepth": "safety",
+    "maxMineNetworkExplosions": "gameplay",
+    "maxInfernoBlades": "gameplay",
+    "maxAshLegionUnits": "gameplay",
+    "maxAshLegionCastsPerFrame": "gameplay",
+    "maxStarFurnaceCores": "gameplay",
+    "maxStarFurnaceProjectiles": "gameplay",
+    "maxEchoCloneGeneration": "safety",
+    "maxDeathEventsTracked": "safety",
+    "maxDeathEventsPerFrame": "safety",
+    "maxFuneralPyres": "gameplay",
+    "maxPyreEruptionsPerFrame": "gameplay",
+    "maxMagmaVeins": "gameplay",
+    "maxMagmaSegments": "gameplay",
+    "maxMagmaIntersections": "gameplay",
+    "maxTriArrays": "gameplay",
+    "maxArrayTicksPerFrame": "gameplay",
+    "maxResonanceTargets": "gameplay",
+    "maxResonanceChains": "gameplay",
+    "maxResonanceExplosions": "gameplay",
+    "maxOverdriveProjectiles": "gameplay",
+    "maxOverdriveCastsPerFrame": "gameplay",
+    "maxMausoleums": "gameplay",
+    "maxHexagramArrays": "gameplay",
+    "maxHexagramBeams": "gameplay",
+    "maxDoomsdayProjectiles": "gameplay",
+    "maxDoomsdayExplosions": "gameplay",
+    "maxFrozenEnemies": "safety",
+    "maxShattersPerFrame": "gameplay",
+    "maxShatterProjectiles": "gameplay",
+    "maxStatusIndexEntries": "safety",
+    "maxFrostShards": "gameplay",
+    "maxFrostNovaTargetsPerFrame": "gameplay",
+    "maxGlacialLances": "gameplay",
+    "maxPermafrostFields": "gameplay",
+    "maxPermafrostTicksPerFrame": "gameplay",
+    "maxIceWalls": "gameplay",
+    "maxIceWallSegments": "gameplay",
+    "maxIceWallCollisionsPerFrame": "gameplay",
+    "maxDiamondBlizzardProjectiles": "gameplay",
+    "maxAbsoluteZeroDomains": "gameplay",
+    "maxAbsoluteZeroShattersPerFrame": "gameplay",
+    "maxHeavenGlacierFragments": "gameplay",
+    "maxBossFrostbreaksPerFrame": "safety",
+    "maxIcicleVolleyProjectiles": "gameplay",
+    "maxIcicleVolleyBurstsPerFrame": "gameplay",
+    "maxFrostOrbitCrystals": "gameplay",
+    "maxFrostOrbitHitsPerFrame": "gameplay",
+    "maxFreezingRayTargets": "gameplay",
+    "maxFreezingRayTicksPerFrame": "gameplay",
+    "maxHailstorms": "gameplay",
+    "maxHailImpactsPerFrame": "gameplay",
+    "maxCryoMines": "gameplay",
+    "maxCryoMineExplosionsPerFrame": "gameplay",
+    "maxFrostSpirits": "gameplay",
+    "maxFrostSpiritProjectiles": "gameplay",
+    "maxIcePrisons": "gameplay",
+    "maxIcePrisonTargetsPerFrame": "gameplay",
+    "maxAvalancheWaves": "gameplay",
+    "maxAvalancheHitsPerFrame": "gameplay",
+    "maxMirrorIceBarriers": "gameplay",
+    "maxMirrorIceInterceptsPerFrame": "gameplay",
+    "maxMirrorIceCounterProjectiles": "gameplay",
+    "maxGlacierDrops": "gameplay",
+    "maxGlacierImpactsPerFrame": "gameplay",
+    "maxCrystalTempestProjectiles": "gameplay",
+    "maxAbsoluteZeroRayBranches": "gameplay",
+    "maxWhiteoutCataclysms": "gameplay",
+    "maxWhiteoutHailImpactsPerFrame": "gameplay",
+    "maxFrostQueenSpirits": "gameplay",
+    "maxFrostQueenProjectiles": "gameplay",
+    "maxWorldEndAvalancheWaves": "gameplay",
+    "maxWorldEndAvalancheShattersPerFrame": "gameplay",
+    "maxStatusIcons": "visual",
+    "maxChillVisuals": "visual",
+    "maxFrozenVisuals": "visual",
+    "maxImmunityVisuals": "visual",
+    "maxSlowTrails": "visual",
+    "maxShatterEffectsPerFrame": "visual",
+    "maxStatusFloatingTextsPerFrame": "visual",
+    "maxFrostbreakEffects": "visual",
+    "maxStatusDebugHistory": "visual",
+    "chillNearThresholdEffectCooldown": "visual",
+    "statusVisualUpdateInterval": "visual",
+    "maxRimeBoomerangs": "gameplay",
+    "maxRimeBoomerangHitsPerFrame": "gameplay",
+    "maxFrostChainSegmentsPerFrame": "gameplay",
+    "maxCrystalBlooms": "gameplay",
+    "maxCrystalBloomPulsesPerFrame": "gameplay",
+    "maxSnowblindMistTicksPerFrame": "gameplay",
+    "maxPolarStars": "gameplay",
+    "maxPolarStarShards": "gameplay",
+    "maxIcebreakerEffects": "visual",
+    "maxIcebreakerHitsPerFrame": "gameplay",
+    "maxFrozenClockWaves": "gameplay",
+    "maxFrozenClockHitsPerFrame": "gameplay",
+    "maxRefractionProjectiles": "gameplay",
+    "maxWinterHaloVisualShards": "visual",
+    "maxWinterHaloInterceptsPerFrame": "gameplay",
+    "maxCometSleetProjectiles": "gameplay",
+    "maxCometImpactsPerFrame": "gameplay",
+    "maxRimeExecutionWheelHitsPerFrame": "gameplay",
+    "maxEternalFrostChainSegmentsPerFrame": "gameplay",
+    "maxCrystalWorldTrees": "gameplay",
+    "maxEverlastingMistTicksPerFrame": "gameplay",
+    "maxZeroHourWorldWaves": "gameplay",
+    "maxGlacialSpearTelegraphs": "gameplay",
+    "maxGlacialSpearImpactsPerFrame": "gameplay",
+    "maxGlacialSpearProjectiles": "gameplay",
+    "maxSnowflakeSentries": "gameplay",
+    "maxSentryProjectiles": "gameplay",
+    "maxIcebergRams": "gameplay",
+    "maxIcebergContactChecks": "gameplay",
+    "maxIcebergShards": "gameplay",
+    "maxIceSealMarks": "gameplay",
+    "maxIceSealExplosionsPerFrame": "gameplay",
+    "maxAuroraBands": "gameplay",
+    "maxAuroraQueriesPerTick": "gameplay",
+    "maxAuroraBurstsPerFrame": "gameplay",
+    "maxHeavenfallImpactsPerFrame": "gameplay",
+    "maxSentinelLegionLinksPerFrame": "gameplay",
+    "maxContinentalGlacierRushes": "gameplay",
+    "maxSealedCoffinMarks": "gameplay",
+    "maxPolarNightBands": "gameplay",
+    "maxMeleeTargetsPerHit": "gameplay",
+    "maxSpinTicksPerFrame": "gameplay",
+    "maxChargeHits": "gameplay",
+    "maxCounterHits": "safety",
+    "maxBladeDanceStrikes": "gameplay",
+    "maxWarriorSlams": "gameplay",
+    "maxMeleeArcVisuals": "visual",
+    "maxSlashTrails": "visual",
+    "maxSpinVisuals": "visual",
+    "maxDashTrails": "visual",
+    "maxGroundDebris": "visual",
+    "maxWarriorHitSparks": "visual",
+    "maxPoiseIndicators": "visual",
+    "maxOverheadStrikes": "gameplay",
+    "maxTwinFangStrikes": "gameplay",
+    "maxExecutesPerCast": "safety",
+    "maxLeapImpacts": "gameplay",
+    "maxSweepStrikesPerFrame": "gameplay",
+    "maxCounterWindows": "safety",
+    "maxChainPullsPerCast": "safety",
+    "maxRelentlessStrikes": "gameplay",
+    "maxRelentlessRetargets": "gameplay",
+    "maxOverheadSlashVisuals": "visual",
+    "maxTwinSlashVisuals": "visual",
+    "maxExecuteMarkers": "visual",
+    "maxLeapTrails": "visual",
+    "maxLandingDebris": "visual",
+    "maxSweepTrails": "visual",
+    "maxCounterFlashes": "visual",
+    "maxWarCryRings": "visual",
+    "maxChainHookLines": "visual",
+    "maxStompDebris": "visual",
+    "maxRelentlessSparks": "visual",
+    "maxLaunchTargets": "gameplay",
+    "maxChargeContacts": "gameplay",
+    "maxRiposteStrikes": "gameplay",
+    "maxThrowImpacts": "gameplay",
+    "maxCrushStages": "safety",
+    "maxGuardTicksPerFrame": "gameplay",
+    "maxRushSteps": "gameplay",
+    "maxAxeHitsPerTarget": "safety",
+    "maxKneeStrikes": "gameplay",
+    "maxRallyFields": "safety",
+    "maxLaunchVisuals": "visual",
+    "maxChargeTrails": "visual",
+    "maxRiposteTrails": "visual",
+    "maxThrowArcs": "visual",
+    "maxCrushShockVisuals": "visual",
+    "maxGuardBladeVisuals": "visual",
+    "maxRushSparks": "visual",
+    "maxAxeSpinVisuals": "visual",
+    "maxKneeImpactVisuals": "visual",
+    "maxBannerRings": "visual",
+    "maxLineTargets": "gameplay",
+    "maxLineThrusts": "gameplay",
+    "maxDuelTargets": "safety",
+    "maxTranceStances": "safety",
+    "maxMarchStomps": "gameplay",
+    "maxDeflectionsPerWindow": "safety",
+    "maxReflectedProjectiles": "safety",
+    "maxThrustTrails": "visual",
+    "maxDuelMarkers": "visual",
+    "maxTranceAuras": "visual",
+    "maxMarchDustVisuals": "visual",
+    "maxDeflectSparkVisuals": "visual"
   },
   "speedModes": [
     1,
@@ -1458,14 +1167,16 @@
       "unlockAfter": 4
     }
   ],
+  "gameplayLimits": {
+    "maxEnemies": 200,
+    "maxProjectiles": 400
+  },
   "effectQuality": {
     "low": {
       "particleScale": 0.25,
       "damageNumbers": false,
       "screenShake": false,
       "whiteFlash": false,
-      "maxEnemies": 60,
-      "maxProjectiles": 120,
       "maxSparksPerBurst": 3
     },
     "medium": {
@@ -1473,8 +1184,6 @@
       "damageNumbers": true,
       "screenShake": true,
       "whiteFlash": false,
-      "maxEnemies": 120,
-      "maxProjectiles": 250,
       "maxSparksPerBurst": 6
     },
     "high": {
@@ -1482,8 +1191,6 @@
       "damageNumbers": true,
       "screenShake": true,
       "whiteFlash": true,
-      "maxEnemies": 200,
-      "maxProjectiles": 400,
       "maxSparksPerBurst": 10
     },
     "ultra": {
@@ -1491,8 +1198,6 @@
       "damageNumbers": true,
       "screenShake": true,
       "whiteFlash": true,
-      "maxEnemies": 320,
-      "maxProjectiles": 700,
       "maxSparksPerBurst": 16
     }
   },
@@ -1537,7 +1242,7 @@
     "_comment": "Milestone 8-B: 戦士（warrior）専用の調整値。WarriorCombatSystem が唯一の読み手で、スキル側は skills.json の値を使う。",
     "fury": {
       "max": 100,
-      "gainPerMeleeHit": 1.0,
+      "gainPerMeleeHit": 1,
       "gainPerKill": 2.5,
       "gainPerComboStep": 0.3,
       "gainPerMitigatedDamage": 0.06,
@@ -1644,7 +1349,7 @@
       "maxDurationMs": 12000,
       "maxMeleeDamageBonus": 0.5,
       "maxFuryGainBonus": 0.6,
-      "maxComboGraceBonus": 1.0,
+      "maxComboGraceBonus": 1,
       "stack": "refresh"
     },
     "counter": {
@@ -1683,7 +1388,7 @@
       "requireDirection": true,
       "maxFrontalMitigation": 0.55,
       "sideMultiplier": 0.35,
-      "backMultiplier": 0.0
+      "backMultiplier": 0
     },
     "grab": {
       "allowElite": false,
@@ -1691,7 +1396,7 @@
       "maxGrabPerCast": 1,
       "maxThrowMs": 700,
       "worldMargin": 24,
-      "bossPoiseMultiplier": 1.0
+      "bossPoiseMultiplier": 1
     },
     "rally": {
       "maxFields": 1,
@@ -1736,7 +1441,7 @@
       "maxComboGraceBonus": 0.45,
       "maxFuryGainBonus": 0.5,
       "maxMitigationPenalty": 0.15,
-      "minMitigationAfterPenalty": 0.0,
+      "minMitigationAfterPenalty": 0,
       "combinedOffenseCap": 0.85,
       "maxKillHealBonus": 0.5
     },

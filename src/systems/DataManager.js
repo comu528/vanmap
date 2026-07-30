@@ -63,10 +63,17 @@ class DataManagerClass {
   get combatCaps() { return this.balance.combatCaps || {}; }
   get saveConfig() { return this.balance.save || {}; }
   get skillCaps() { return this.balance.skillCaps || {}; }
-  // 品質別のスキル上限（M6-B）。未定義は fallback。
+  get skillCapClasses() { return this.balance.skillCapClasses || {}; }
+  get gameplayLimits() { return this.balance.gameplayLimits || {}; }
+  skillCapClass(name) { return this.skillCapClasses[name] || null; }
+  // スキル上限（M6-B / M9-A）。
+  //   { value }                     … gameplay / safety 上限。**品質に依存しない単一値**。
+  //   { low, medium, high, ultra }  … visual 上限のみ。品質で減らしてよい。
+  // 単一値の形が「品質で戦闘結果が変わらない」ことを構造的に保証する（quality を見る余地が無い）。
   skillCap(name, quality = 'high', fallback = 9999) {
     const c = this.skillCaps[name];
     if (!c) return fallback;
+    if (typeof c.value === 'number') return c.value;
     return c[quality] ?? c.high ?? fallback;
   }
 

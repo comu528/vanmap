@@ -3,6 +3,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DATA, WARRIOR, REPO, runner } from './warrior-common.mjs';
+import { capTiers, isSingleCap } from './cap-shape.mjs';
 const T = runner('戦士 cap / 死にフィールド 完成監査（M8-F）');
 const { ok, section, info } = T;
 const CAPS = DATA.balance.skillCaps;
@@ -14,15 +15,17 @@ for (const d of ['src/skills', 'src/systems', 'src/scenes', 'src/entities', 'src
 const referenced = (k) => SRC.includes(`'${k}'`) || SRC.includes(`"${k}"`) || SRC.includes(`.${k}`) || SRC.includes(`${k}:`);
 
 // ===== 1. skillCaps の形 =====
-section('1. skillCaps 全 217 件が 4 段階・正数・単調非減少');
+section('1. skillCaps 全 217 件が正数・単調非減少（M9-A: visual は 4 段階 / gameplay・safety は単一値）');
 {
   const names = Object.keys(CAPS);
   ok(names.length > 200, `skillCaps ${names.length} 件`);
   for (const name of names) {
     const c = CAPS[name];
-    for (const q of Q) ok(typeof c[q] === 'number' && Number.isFinite(c[q]) && c[q] > 0, `${name}.${q}: 正の有限数（${c[q]}）`);
-    ok(c.low <= c.medium && c.medium <= c.high && c.high <= c.ultra, `${name}: low ≤ medium ≤ high ≤ ultra`);
-    ok(Object.keys(c).every((k) => Q.includes(k)), `${name}: 余分なキーが無い（${Object.keys(c).join(',')}）`);
+    const t4 = capTiers(c);
+    for (const q of Q) ok(Number.isFinite(t4[q]) && t4[q] > 0, `${name}.${q}: 正の有限数（${t4[q]}）`);
+    ok(t4.low <= t4.medium && t4.medium <= t4.high && t4.high <= t4.ultra, `${name}: low ≤ medium ≤ high ≤ ultra`);
+    const allowed = isSingleCap(c) ? ['value'] : Q;
+    ok(Object.keys(c).every((k) => allowed.includes(k)), `${name}: 余分なキーが無い（${Object.keys(c).join(',')}）`);
   }
 }
 

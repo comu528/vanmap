@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { SkillDraftManager } from '../src/systems/SkillDraftManager.js';
+import { expandCapsInBalance } from './cap-shape.mjs';
 
 const dir = join(dirname(fileURLToPath(import.meta.url)), '..', 'data');
 const load = (n) => JSON.parse(readFileSync(join(dir, n), 'utf8'));
@@ -12,7 +13,7 @@ const skills = load('skills.json').skills;
 const passives = load('passives.json').passives;
 const jobs = load('jobs.json').jobs;
 const cfg = load('skill-config.json');
-const balance = load('balance.json');
+const balance = expandCapsInBalance(load('balance.json'));  // M9-A: gameplay/safety cap は単一値なので 4 段階へ展開して従来の検査を通す
 const evolutions = load('skill-evolutions.json').evolutions;
 
 let pass = 0, fail = 0;

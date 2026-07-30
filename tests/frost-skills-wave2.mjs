@@ -3,10 +3,11 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { registeredSkillIds, skillsWithRuntimeState } from '../src/systems/SkillManager.js';
+import { expandCapsInBalance } from './cap-shape.mjs';
 
 const dir = join(dirname(fileURLToPath(import.meta.url)), '..');
 const L = (f) => JSON.parse(readFileSync(join(dir, 'data', f), 'utf8'));
-const skills = L('skills.json').skills, jobs = L('jobs.json').jobs, balance = L('balance.json');
+const skills = L('skills.json').skills, jobs = L('jobs.json').jobs, balance = expandCapsInBalance(L('balance.json'));
 const registered = new Set(registeredSkillIds());
 const runtime = new Set(skillsWithRuntimeState());
 

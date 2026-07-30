@@ -53,17 +53,21 @@ const DEFAULT_CELL_SIZE = 64;
 const SEQ_CMP = (a, b) => (a._seq || 0) - (b._seq || 0);
 
 // 品質名 + ユーザートグルから、EffectManager 用の設定を解決する。
+// M9-A: 敵/弾のプール上限（gameplay）と hitStop（ロジック frame を止める＝gameplay）は
+//       **品質から切り離した**。品質が動かせるのは演出だけ（粒子・数値・シェイク・閃光・火の粉）。
 function resolveEffectSettings(bal, settings) {
   const q = (bal.effectQuality && bal.effectQuality[settings.effectQuality]) || (bal.effectQuality && bal.effectQuality.high) || {};
+  const gl = bal.gameplayLimits || {};
   return {
     quality: settings.effectQuality,
     particleScale: q.particleScale ?? 1,
     damageNumbers: (q.damageNumbers ?? true) && (settings.damageNumbers ?? true),
     screenShake: (q.screenShake ?? true) && (settings.screenShake ?? true),
     whiteFlash: (q.whiteFlash ?? true) && (settings.whiteFlash ?? true),
-    hitStop: settings.effectQuality === 'high' || settings.effectQuality === 'ultra',
-    maxEnemies: q.maxEnemies ?? 200,
-    maxProjectiles: q.maxProjectiles ?? 400,
+    // hitStop はロジックの 1 frame を丸ごと止めるため、品質で切り替えると経過時間が品質依存になる。
+    hitStop: true,
+    maxEnemies: gl.maxEnemies ?? 200,
+    maxProjectiles: gl.maxProjectiles ?? 400,
     maxSparksPerBurst: q.maxSparksPerBurst ?? 12,
   };
 }
@@ -107,10 +111,12 @@ export class BattleScene extends Phaser.Scene {
     const up = this.upgradeStats;
     const reinc = this.reincStats;
 
-    // 魂炎「敵密度/エフェクト限界突破」を上限へ反映（低設定では抑制）。
+    // 魂炎「敵密度/エフェクト限界突破」を上限へ反映。
+    // M9-A: 以前は low で敵密度ノードを、low/medium で弾上限ノードを無効化していたため、
+    //       **品質を落とすと恒久強化が効かない**（＝敵数・弾数が変わる）状態だった。品質による差を廃止した。
     const quality = this.settings.effectQuality;
-    const enemyCapAdd = quality === 'low' ? 0 : (reinc.enemyCapAdd || 0);
-    const effectCapAdd = (quality === 'high' || quality === 'ultra') ? (reinc.effectCapAdd || 0) : 0;
+    const enemyCapAdd = reinc.enemyCapAdd || 0;
+    const effectCapAdd = reinc.effectCapAdd || 0;
     this.enemyCapAdd = enemyCapAdd;
     this.effSettings.maxEnemies += enemyCapAdd;
     this.effSettings.maxProjectiles += effectCapAdd;
@@ -3423,6 +3429,23 @@ export class BattleScene extends Phaser.Scene {
     const rar = { common: 0, uncommon: 0, rare: 0, legendary: 0 };
     for (const id of pool) { const d = DataManager.getSkill(id); if (d) rar[d.rarity] = (rar[d.rarity] || 0) + 1; }
     A.push(`rarity: C${rar.common} U${rar.uncommon} R${rar.rare} L${rar.legendary}`);
+    // M9-A: 3 ジョブ横断の共通比較（カタログ規模・rarity・Lv80 対象・cap 分類・品質不変性）。表示のみ。
+    A.push('— 3 ジョブ比較（M9-A）—');
+    for (const j of DataManager.jobs) {
+      const ap = j.activeSkillPool || [], ep = j.evolutionPool || [], pp = j.passiveSkillPool || [];
+      const r2 = { common: 0, uncommon: 0, rare: 0, legendary: 0 };
+      let lv80 = 0;
+      for (const id of ap) { const d = DataManager.getSkill(id); if (d) { r2[d.rarity] = (r2[d.rarity] || 0) + 1; if (d.lv80ProjectileTarget === true) lv80++; } }
+      const mark = j.id === this.jobId ? '▶' : ' ';
+      A.push(`${mark}${j.displayName || j.id}: A${ap.length}/P${pp.length}/E${ep.length} C${r2.common}U${r2.uncommon}R${r2.rare}L${r2.legendary} Lv80対象${lv80}`);
+    }
+    {
+      const cls = DataManager.skillCapClasses;
+      const cnt = { visual: 0, gameplay: 0, safety: 0 };
+      for (const c of Object.values(cls)) if (cnt[c] != null) cnt[c]++;
+      A.push(`cap: visual${cnt.visual} gameplay${cnt.gameplay} safety${cnt.safety}`);
+      A.push(`品質(${this.settings.effectQuality})は演出のみ・戦闘結果へ影響しない`);
+    }
     A.push('— 取得状況（この周回）—');
     A.push(`active枠 ${ownedIds.length}/${this.activeSlotsMax}  passive ${this.passives ? this.passives.count() : 0}/${this.passiveSlotsMax || 4}`);
     A.push(`Lv8到達: ${ownedIds.filter((id) => owned[id] >= 8).length} 種`);

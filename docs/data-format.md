@@ -1513,3 +1513,42 @@ data の値は `true` のままなので挙動は不変。
 14. `save_version` = 6
 15. `status-effects.json` が 5 種のまま
 16. M8-F の docs 3 件と README の記載の存在
+
+---
+
+## Milestone 9-A: cap 分類と gameplayLimits（`save_version` は v6 のまま）
+
+### `balance.json` — skillCaps の**形**の変更（値は canonical = 旧 high）
+
+```jsonc
+"skillCaps": {
+  "maxSlashTrails":        { "low": 3, "medium": 6, "high": 10, "ultra": 14 },  // visual: 4 段階のまま
+  "maxMeleeTargetsPerHit": { "value": 24 },                                     // gameplay: 単一値
+  "maxEchoCloneGeneration": { "value": 1 }                                      // safety: 単一値
+},
+"skillCapClasses": {         // ★ M9-A 新設: 分類の正（217 件すべて）
+  "maxSlashTrails": "visual",
+  "maxMeleeTargetsPerHit": "gameplay",
+  "maxEchoCloneGeneration": "safety"
+},
+"gameplayLimits": {          // ★ M9-A 新設: プール上限（品質非依存）
+  "maxEnemies": 200,
+  "maxProjectiles": 400
+},
+"effectQuality": {           // ★ 演出キーのみ（maxEnemies / maxProjectiles は削除済み・復活はエラー）
+  "low": { "particleScale": 0.25, "damageNumbers": false, "screenShake": false,
+           "whiteFlash": false, "maxSparksPerBurst": 3 }
+}
+```
+
+- **gameplay / safety cap（170 件）は `{ value }` のみ**。`low` などの品質キーを足すと
+  validate-data の M9-A ブロックがエラーにする（形の混在禁止）。
+- **visual cap（47 件）は従来どおり 4 段階**（`low ≤ medium ≤ high ≤ ultra`・すべて正）。
+- canonical 値の選択理由は `./quality-cap-classification.md`（旧 high ＝出荷既定品質）。
+- **バランス値そのものの変更は 0 件**（damage / cooldown / 敵 / 報酬 / guidance / rarityWeights とも）。
+
+### validate-data の M9-A ブロック
+
+3 ジョブ 30/4/18・全体 156・プール互いに素・Lv80 各 6・cap 分類 47/150/20・visual の単調性・
+gameplay / safety の単一値形・effectQuality の演出キー限定・gameplayLimits 200/400・
+saveVersion 6・状態異常 5 種・docs 5 件と README の M9-A 記載、を固定値で検証する。

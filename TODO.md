@@ -1152,14 +1152,78 @@ M8-E で戦士が **active30 / passive4 / evolution18 = 52** に到達し、火�
 
 ---
 
+## Milestone 9-A: 3 ジョブ横断・共通システム総合監査 — 完了
+
+**新しい active / passive / 進化 / ジョブは 1 件も追加していない。** 3 ジョブの個別完成監査
+（氷 M7-E / 火 M8-A / 戦士 M8-F）を受け、共通システム・品質設定・性能・セーブ・telemetry・
+balance を横断監査した回。
+
+- [x] **最優先: 品質と gameplay の分離。** M8-F 記録の `great_cleave` 分岐（low 58 / high 59）を
+      修正前 tree の production 経路で再現し、根本原因を品質別 cap の誤分類と特定。
+      **敵プール上限（60〜320 体）・弾プール上限（120〜700）・skillCaps 161 件・hitStop・
+      魂炎ノード 2 種**も品質依存だった。
+- [x] **cap 分類**: 全 217 件を **visual 47 / gameplay 150 / safety 20** へ（正は
+      `balance.json` の `skillCapClasses`）。gameplay / safety は**単一値 `{ value }`**
+      （品質キーを構造的に持てない形）、visual だけ 4 段階（単調非減少）。
+- [x] **canonical value = 旧 high（出荷既定品質）**。低品質は強化・high 不変・ultra は
+      計測実績のある high へ整列。**特定スキルを low の挙動へ揃える全体 nerf は 0 件**。
+      選択手順と理由は `docs/quality-cap-classification.md`。
+- [x] **gameplayLimits { maxEnemies: 200, maxProjectiles: 400 } を新設**し、`effectQuality` から
+      gameplay キーを削除（残留は validate-data がエラー化）。hitStop を全品質有効へ。
+      魂炎の恒久強化ノードの品質ゲートを削除。
+- [x] **結果: gameplay trace が 3 ジョブ × active30 / evolution18 × 4 品質で byte-identical**
+      （cast / hit / damage / kill / 対象列 / cooldown / runtimeState / status RNG cursor /
+      闘気・コンボ・体勢）。品質が変えるのは演出だけ（visual 47 件中 45 件が low < ultra）。
+- [x] **cdLeft 改ざん耐性を全 144 スキルへ**: 火 / 氷 96 スキルに M8-F と同種の脆弱性が残っていたため、
+      `SkillManager.restoreRuntime` の共通入口 `_sanitizeRuntimeState` で一律無害化
+      （非有限値は不採用・±120s クランプ・**正当なセーブと候補列 / runtime trace は不変**）。
+- [x] **横断カタログ**: 各 30/4/18・全体 **90/12/54 = 156**・重複 0・orphan 0・プール互いに素・
+      `memberAllowedForJob` 全数一致・暗黙 common 0・Lv80 各 6・進化の Lv80 対象 0。
+- [x] **横断抽選**（production 駆動・200 seed × 枠 4/6/8）: leakage / duplicate / slot 違反 /
+      非飽和候補ゼロ = 0。**しきい値の変更 0 件**。進化 54 件の到達性を全数実駆動で確認。
+- [x] **横断バランス比較**（共通 profile）: 死にスキル 0・utility 0 = 0・一極集中なし。
+      ジョブ間 DPS 比はヘッドレスのハーネス由来と分析し documented note へ（**balance 変更 0 件・
+      個性は均一化しない**）。
+- [x] **combat path**: skillId 全経路・element/physical 分離・再帰ガード固定。重複実装は
+      cooldown 復元の 1 件のみ（共通入口化で解消）。対ボス / 資源の別実装は意図した
+      job-specific policy として記録。
+- [x] **F8 へ 3 ジョブ比較表示を追加**（カタログ / rarity / Lv80 / cap 分類 / 品質不変の明示）。
+      既存のジョブ固有表示は不変・**F10 は 1 行も変えていない**。
+- [x] **セーブ / telemetry / 性能 / Pool / SpatialGrid / dead field / warning / 決定論** の横断監査
+      （詳細は `docs/cross-job-system-audit.md`）。
+- [x] **自動テスト 25 スイート追加**（`cross-job-*` 24 + `three-job-system-nonregression`・
+      **全 210 スイート通過**）・validate.yml へ 25 ステップ（計 211）・validate-data へ
+      M9-A ブロック（**0 エラー 0 警告**）。品質修正を巻き戻すと invariance テストが必ず落ちる。
+- [x] **save_version v6 維持**（保存キー追加 0）・**火 / 氷 / 戦士の候補列と runtime trace を
+      SHA-256 固定**（`three-job-system-nonregression.mjs`）。
+
+### M9-A で見つけて直した不備
+- [ ] gameplay / safety に当たる skillCaps **161 件が品質依存**（対象数・弾数・tick・状態付与が
+      品質で変化 → Combo / 攻撃速度しきい値 / 主発動回数が分岐）→ 単一値化（canonical = 旧 high）。
+- [ ] **敵 / 弾プール上限が品質別**（敵 60〜320 体 = XP / kill も品質依存）→ `gameplayLimits` へ。
+- [ ] **hitStop が high / ultra のみ**（ロジック経過時間が品質依存）→ 全品質有効。
+- [ ] **魂炎の恒久強化 2 ノードが低品質で無効**（品質で恒久強化が消えた）→ ゲート削除。
+- [ ] **火 / 氷 96 スキルの cdLeft 改ざん脆弱性**（NaN / ±Infinity / 桁外れ受け入れ）→
+      `restoreRuntime` 共通入口で全ジョブ無害化。
+
+### M9-A で**実装しない**もの（対象外）
+- [ ] 新 active / passive / 進化 / ジョブ・属性反応・転生レガシー・装備
+- [ ] 新しい敵 / ボス / 難易度・周回時間拡張・UI 全面改修・正式素材
+- [ ] 3 ジョブの個性を均一化する大規模 balance 変更・rarity 体系の全面変更
+- [ ] save_version の不要な更新・無関係な refactor
+
+> **実ブラウザ未確認**: M9-A も Phaser 実プレイ確認は行っていない（Node 純ロジック＋最小モックのみ）。
+> `docs/test-guide.md` の **Milestone 9-A** 項目（同 seed・同 save で 4 品質比較）を実ブラウザで確認すること。
+
+---
+
 ### 次のマイルストーン候補
 - [ ] **火と氷の属性反応**（炎上⇄冷気/凍結の相互作用・付与時の source element を活用）
-- [ ] **3 ジョブ横断の総合監査**（3 ジョブが 30/4/18 で揃い、個別監査も M7-E / M8-A / M8-F で完了した。
-      次はジョブ間の比較・共通機構の重複・共有 cap の整合を見る回）
 - [ ] **転生レガシー / ジョブ間継承**（`futureInheritanceSettings` / `extraAllowedIds` が拡張口）
 - [ ] **周回長の拡張**（10分 / 15分 / 無限モード）・**追加の敵 / ボス / 難易度**
-- [ ] **4 人目のジョブ**（3 ジョブぶんの基盤・監査観点・テスト雛形がそろっている）
-- [ ] **実ブラウザでの M7-E / M8-A / M8-B / M8-C / M8-C.1 / M8-D / M8-E / M8-F 手動確認**（コード変更を伴わない検証タスク）
+- [ ] **4 人目のジョブ**（3 ジョブぶんの基盤・横断監査・テスト雛形がそろっている）
+- [ ] **実ブラウザでの M7-E 〜 M9-A 手動確認**（コード変更を伴わない検証タスク。
+      M9-A の「4 品質で結果が一致し演出だけ変わる」確認価値が特に高い）
 
 ---
 

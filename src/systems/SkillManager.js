@@ -473,7 +473,26 @@ export class SkillManager {
   }
   restoreRuntime(obj) {
     if (!obj) return;
-    for (const [id, state] of Object.entries(obj)) { const sk = this.skills.get(id); if (sk && sk.restoreState) sk.restoreState(state); }
+    for (const [id, state] of Object.entries(obj)) {
+      const sk = this.skills.get(id);
+      if (sk && sk.restoreState) sk.restoreState(this._sanitizeRuntimeState(state));
+    }
+  }
+  // M9-A: 保存された cdLeft の改ざん耐性を 144 スキル共通の入口で担保する。
+  // 戦士は基底の restoreCd()（M8-F）が同じ規則を持つが、火 / 氷の 27 ファイルは
+  // 生の代入（typeof チェックのみ）なので NaN / ±Infinity / 桁外れを採用できた。
+  // 各ファイルを触らず、restoreRuntime の 1 か所で「非有限値は渡さない・±120s へクランプ」する。
+  // 正当なセーブの cdLeft は常にこの範囲内なので、通常の復元結果は 1 件も変わらない。
+  _sanitizeRuntimeState(state) {
+    if (!state || typeof state !== 'object' || typeof state.cdLeft === 'undefined') return state;
+    const v = state.cdLeft;
+    const MAX = 120000;
+    if (typeof v !== 'number' || !Number.isFinite(v)) {
+      const { cdLeft, ...rest } = state; void cdLeft;
+      return rest; // 採用しない（スキルは初期 CD のまま）
+    }
+    if (v > MAX || v < -MAX) return { ...state, cdLeft: Math.max(-MAX, Math.min(v, MAX)) };
+    return state;
   }
 
   // スキル固有統計（M6-B: 最高同時存在数・防御スキル統計 等）。

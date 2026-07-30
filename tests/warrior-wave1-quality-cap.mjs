@@ -8,6 +8,7 @@
 // 実行: node tests/warrior-wave1-quality-cap.mjs
 
 import { DATA, EXPECTED, makeScene, makeEnemies, makeBoss, makeWarrior, bootRuntime, runner, allSrc, capFor } from './warrior-common.mjs';
+import { capTiers } from './cap-shape.mjs';
 
 const T = runner('戦士 Wave1 品質別上限（M8-C）');
 const { ok, section, info } = T;
@@ -54,13 +55,14 @@ for (const name of NEW_CAPS) {
   const c = DATA.balance.skillCaps[name];
   ok(!!c, `${name}: balance.json に定義がある`);
   if (!c) continue;
+  const t4 = capTiers(c);  // M9-A: gameplay / safety は単一値、visual は 4 段階
   for (const q of QUALITIES) {
-    ok(typeof c[q] === 'number' && Number.isFinite(c[q]), `${name}.${q} が数値`);
-    ok(c[q] > 0, `${name}.${q} = ${c[q]} > 0`);
-    ok(Number.isInteger(c[q]), `${name}.${q} が整数`);
+    ok(Number.isFinite(t4[q]), `${name}.${q} が数値`);
+    ok(t4[q] > 0, `${name}.${q} = ${t4[q]} > 0`);
+    ok(Number.isInteger(t4[q]), `${name}.${q} が整数`);
   }
-  ok(c.low <= c.medium && c.medium <= c.high && c.high <= c.ultra,
-    `${name}: low(${c.low}) ≤ medium(${c.medium}) ≤ high(${c.high}) ≤ ultra(${c.ultra})`);
+  ok(t4.low <= t4.medium && t4.medium <= t4.high && t4.high <= t4.ultra,
+    `${name}: low(${t4.low}) ≤ medium(${t4.medium}) ≤ high(${t4.high}) ≤ ultra(${t4.ultra})`);
 }
 
 // ===== 2. 未参照 cap の禁止 =====
@@ -84,7 +86,7 @@ section('3. 火 / 氷を含む全 cap の単調性を壊していない');
   ok(names.length >= 185, `skillCaps 総数 ${names.length} ≥ 185`);
   let bad = 0, nonPositive = 0;
   for (const name of names) {
-    const c = DATA.balance.skillCaps[name];
+    const c = capTiers(DATA.balance.skillCaps[name]);
     if (!(c.low <= c.medium && c.medium <= c.high && c.high <= c.ultra)) bad++;
     if (QUALITIES.some((q) => !(c[q] > 0))) nonPositive++;
   }
@@ -193,18 +195,20 @@ for (const q of QUALITIES) {
 // ===== 9. 火 / 氷の cap 値を変えていない =====
 section('9. 火 / 氷が使う既存 cap の値を 1 件も変えていない');
 {
-  // M8-B 完了時点の代表値（火/氷のテストが依存している cap）。
+  // M9-A 以降の期待値。これら 4 件は gameplay cap なので **品質に依存しない単一値**で、
+  // canonical value は M8-F までの high の値（＝出荷既定品質の値）と一致していなければならない。
   const FROZEN = {
-    maxMeleeTargetsPerHit: { low: 12, medium: 18, high: 24, ultra: 32 },
-    maxFrozenEnemies: { low: 30, medium: 60, high: 100, ultra: 160 },
-    maxShatterProjectiles: { low: 12, medium: 24, high: 40, ultra: 64 },
-    maxFurnaceProjectiles: { low: 24, medium: 48, high: 90, ultra: 160 },
+    maxMeleeTargetsPerHit: 24,
+    maxFrozenEnemies: 100,
+    maxShatterProjectiles: 40,
+    maxFurnaceProjectiles: 90,
   };
   for (const [name, want] of Object.entries(FROZEN)) {
     const c = DATA.balance.skillCaps[name];
     ok(!!c, `${name}: 定義が残っている`);
     if (!c) continue;
-    ok(QUALITIES.every((q) => c[q] === want[q]), `${name}: 値が不変（${QUALITIES.map((q) => c[q]).join('/')}）`);
+    ok(c.value === want, `${name}: canonical value = ${want}（実際 ${c.value}）`);
+    ok(QUALITIES.every((q) => capFor(name, q, -1) === want), `${name}: 4 品質すべてで ${want}（品質非依存）`);
   }
   // M8-C の追加 cap は既存の名前と衝突していない。
   const before = Object.keys(DATA.balance.skillCaps).length - NEW_CAPS.length;

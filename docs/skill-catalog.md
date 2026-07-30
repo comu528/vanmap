@@ -523,3 +523,15 @@ base `execution_strike` より 1 撃の breadth が狭く、**進化すると弱
   いずれも **active 補助で枠を 2 つ使う**構造由来で、到達不能ではない。
 
 監査本体は `./warrior-completion-audit.md`、バランス分布は `./warrior-completion-balance.md`。
+
+---
+
+## 3 ジョブ横断監査（Milestone 9-A）
+
+カタログは 3 ジョブとも M9-A で不変（各 30 / 4 / 18・全体 156）。横断で次を確定:
+
+- id 重複 0・displayName 衝突 0・unknown class 0・orphan 0・JSON-only / class-only 0（144 class 全数）。
+- `SkillCatalog.buildCatalog()` issues = 3 ジョブとも 0。
+- 進化 54 件: base / 補助が同一ジョブ内・置換 id 自己一致・Lv80 対象 0・safetyCaps 全正・
+  **条件を組めば production の抽選で必ず提示される**（全数実駆動・`tests/cross-job-evolution-audit.mjs`）。
+- 横断比較表は `./cross-job-completion-matrix.md`。

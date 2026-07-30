@@ -371,3 +371,17 @@ WarriorSkillBase / WarriorEvolvedBase
   `isElite` / `isBoss` を**読む**スキルはあるが、それは優先度・距離・表示の材料としてだけ。
 
 一覧（保存キー・主発動回数・補助統計つき）は `./warrior-completion-matrix.md`。
+
+---
+
+## Milestone 9-A: スキル共通基盤の変更点
+
+- **cap の解決**: `this.scene.combat.skillCap(name, fallback)` は変更なし。ただし gameplay / safety に
+  分類された cap は data が単一値 `{ value }` になったため、**どの品質でも同じ値**が返る。
+  スキルを書くときは新しい cap に必ず分類（`skillCapClasses`）を与えること
+  （分類が無いと validate-data が落ちる）。演出だけの上限なら visual（4 段階可）、
+  ダメージ / 対象数 / 実体数 / tick に関与するなら gameplay（単一値）。
+- **cdLeft の復元**: `SkillManager.restoreRuntime` が全スキル共通で cdLeft を無害化する。
+  新スキルは何もしなくても改ざん耐性を継承する（戦士は基底 `restoreCd()` との二重防御）。
+- スキル側から `recordCast` を呼んでよいのは data に `mainCastEvent` を宣言した custom-cast のみ
+  （`tests/cross-job-record-cast.mjs` が 144 件を全数検査）。

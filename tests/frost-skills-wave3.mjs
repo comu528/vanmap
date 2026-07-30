@@ -4,10 +4,11 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { registeredSkillIds, skillsWithRuntimeState } from '../src/systems/SkillManager.js';
 import { appliesLv80ProjectileCount } from '../src/systems/SkillAudit.js';
+import { expandCapsInBalance } from './cap-shape.mjs';
 
 const dir = join(dirname(fileURLToPath(import.meta.url)), '..');
 const L = (f) => JSON.parse(readFileSync(join(dir, 'data', f), 'utf8'));
-const skills = L('skills.json').skills, jobs = L('jobs.json').jobs, balance = L('balance.json'), status = L('status-effects.json');
+const skills = L('skills.json').skills, jobs = L('jobs.json').jobs, balance = expandCapsInBalance(L('balance.json')), status = L('status-effects.json');
 const registered = new Set(registeredSkillIds());
 const runtime = new Set(skillsWithRuntimeState());
 const statusIds = new Set((status.statusEffects || []).map((s) => s.id));

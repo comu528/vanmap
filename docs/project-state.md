@@ -4,12 +4,14 @@
 > **各 Milestone 完了時に必ず更新する**（完了報告の要約・コミットID・テスト結果・次 Milestone）。
 > compact 後・新セッション開始時は `CLAUDE.md` → `README.md` → `TODO.md` → 本ファイル → `git log -5 --oneline` の順で確認する。
 >
-> 最終更新: Milestone 8-F 完了時点
+> 最終更新: Milestone 9-A 完了時点
 
 ## Current branch
 
 - ブランチ: **`claude/funny-heisenberg-frhgq9`**（`CLAUDE.md` の継続ブランチ。指定なき限りここへコミット・プッシュ）
 - 直近コミット:
+  - `M9A_COMMIT` Milestone 9-A: 3 ジョブ横断・共通システム総合監査（品質と gameplay の分離 / cap 分類 / cdLeft 改ざん耐性の全ジョブ化）
+  - `8478974` Milestone 8-F ドキュメント更新: docs/project-state.md へ commit ID を記載
   - `dd39087` Milestone 8-F: 戦士 完成監査（cdLeft復元の改ざん耐性 / 進化済み基礎の再提示 / destroy後の残留 / 上限クランプ 3 件）
   - `d8c915b` Milestone 8-E ドキュメント更新: docs/project-state.md へ commit ID を記載
   - `00e886f` Milestone 8-E: 戦士スキル拡張 最終Wave（active30 / 進化18・貫穿突き/一騎討ち/修羅の構え/震天踏破/刃返し）
@@ -30,7 +32,40 @@
 
 ## Current milestone
 
-- **Milestone 8-F（戦士 完成監査）完了・停止中。** 次の指示待ち。
+- **Milestone 9-A（3 ジョブ横断・共通システム総合監査）完了・停止中。** 次の指示待ち。
+- **新しい active / passive / 進化 / ジョブは 1 件も追加していない。**
+- **最優先課題（M8-F 記録の「品質が戦闘結果へ影響する」）を解消した:**
+  - 再現: 修正前 tree の production 経路で `great_cleave` 分岐（low 58 / high 59）を確認。
+  - 根本原因: 品質別 cap の誤分類。**敵プール上限（60〜320 体）・弾プール上限（120〜700）・
+    skillCaps 161 件・hitStop・魂炎ノード 2 種**が品質依存だった。
+  - 修正: 全 217 cap を **visual 47 / gameplay 150 / safety 20** へ分類（正は `balance.json` の
+    `skillCapClasses`）。gameplay / safety は**単一値 `{ value }`**（canonical = 旧 high ＝出荷既定品質）、
+    敵 / 弾上限は新設 `gameplayLimits`（200 / 400）へ。hitStop を全品質有効化・魂炎ノードの品質ゲート削除。
+  - 結果: **gameplay trace（cast / hit / damage / kill / 対象列 / cooldown / runtimeState /
+    status RNG cursor / 闘気・コンボ・体勢）が 3 ジョブ × active30 / evolution18 × 4 品質で
+    byte-identical**。品質が変えるのは演出だけ（visual 47 件中 45 件が low < ultra）。
+- **cdLeft 改ざん耐性を全 144 スキルへ拡張:** 火 / 氷 96 スキルに M8-F と同種の脆弱性が残っていた。
+  `SkillManager.restoreRuntime` の共通入口 `_sanitizeRuntimeState` で一律無害化
+  （非有限値は不採用・±120s クランプ・**正当なセーブと候補列 / runtime trace は不変**）。
+- **バランス値・guidance・抽選しきい値の変更 0 件**（ジョブの個性は数値上均一化していない）。
+- 横断監査の全項目と結果は `docs/cross-job-system-audit.md`。品質分離の詳細は
+  `docs/quality-cap-classification.md` / `docs/quality-gameplay-invariance.md`。
+- **全 210 スイート通過**・`validate-data` 0 エラー 0 警告・**save_version v6 維持**・実ブラウザ未確認。
+
+### M9-A の抽選横断実測（200 seed × evolution-first × level-up 60・しきい値変更なし）
+
+| ジョブ | 枠4 ≥1 / 平均 | 枠6 ≥1 / 平均 | 枠8 ≥1 / 平均 | 最頻進化シェア |
+|--------|---------------|---------------|---------------|----------------|
+| 火の魔女 | 88.0% / 1.30 | 97.5% / 2.08 | 99.5% / 2.30 | 19.8〜23.0% |
+| 氷術師 | 100% / 3.50 | 100% / 3.87 | 100% / 2.69 | 9.9〜14.2% |
+| 戦士 | 100% / 3.35 | 100% / 4.38 | 100% / 3.75 | 11.8〜13.9% |
+
+leakage / duplicate / slot 違反 / 非飽和候補ゼロ = **9 構成 × 200 seed で 0 件**。
+（この表は単一戦略の横断回帰フロア。5 戦略合算の completion しきい値は per-job スイートが維持。）
+
+### 旧 Current milestone（M8-F）
+
+- Milestone 8-F（戦士 完成監査）完了。
 - **新しい active / passive / 進化 / ジョブは 1 件も追加していない。** M8-E で確定した
   **active30 / passive4 / evolution18 = 52** のカタログを 12 観点で総点検した回。
 - **不備 8 件 + data の死にフィールド 1 件**を修正した（内容は下の「M8-F で見つけて直した不備」）。
@@ -215,7 +250,8 @@ M8-D では `heaven_crushing_descent` が枠6 で 7 件だったので**大き�
 | M8-C.1 | 戦士 4 枠時の進化導線修正（ジョブ限定 guidance ＋ 進化導線 pity・新規コンテンツなし）（`6f9b1de` `02ab13e`） |
 | M8-D | 戦士スキル拡張 Wave2（active25 / 進化13・打ち上げ / 前面防御 / 掴み投げ / 戦旗の陣 / 低 HP スケーリング・guidance へ active 補助補正を 1 キー追加）（`dec7eaa` `05587df`） |
 | M8-E | 戦士スキル拡張 最終Wave（active30 / 進化18 で**3 ジョブが同規模へ到達**・直線の対象選択 / 決闘 / 構え / 進軍 / 弾き返し・guidance へ高要求補助の補正を 2 キー追加）（`00e886f` `d8c915b`） |
-| **M8-F** | **戦士 完成監査**（**新スキル追加なし**・12 観点で 48 スキルを全数監査・不備 8 件 + 死にフィールド 1 件を修正・23 スイート追加で全 185 通過・火 / 氷は SHA-256 一致）（`dd39087`） |
+| M8-F | 戦士 完成監査（**新スキル追加なし**・12 観点で 48 スキルを全数監査・不備 8 件 + 死にフィールド 1 件を修正・23 スイート追加で全 185 通過・火 / 氷は SHA-256 一致）（`dd39087` `8478974`） |
+| **M9-A** | **3 ジョブ横断・共通システム総合監査**（**品質と gameplay の分離**＝cap 217 件を visual47 / gameplay150 / safety20 へ分類し gameplay trace を 4 品質で byte-identical に・cdLeft 改ざん耐性を全 144 スキルへ・F8 に 3 ジョブ比較・25 スイート追加で全 210 通過・バランス / guidance / しきい値変更 0）（`M9A_COMMIT`） |
 
 ## Job catalog counts
 
@@ -306,6 +342,10 @@ M8-D では `heaven_crushing_descent` が枠6 で 7 件だったので**大き�
   旋風の回転残り時間は data の `duration` で、陣の半径は `rally.maxRadius` で、
   反撃窓の回数と持続は `counter.maxCountersPerWindow` / `counter.maxWindowMs` でクランプされる。
   **保存ファイルを書き換えても上限を超えられない。**
+- **M9-A でも保存キーを増やしていない**（v6 のまま）。復元の入口がさらに固くなった:
+  **全 144 スキルの `cdLeft` は `SkillManager.restoreRuntime` の共通入口 `_sanitizeRuntimeState` を通り、
+  数値以外 / 非有限値は採用されず、±120s へクランプされる**（火 / 氷の 27 ファイルの restore 実装は
+  1 行も変えず、正当なセーブの復元結果も不変）。品質設定は settings 側のままで save へ追加していない。
 - 詳細は `docs/save-format.md`。
 
 ## Important architecture
@@ -385,6 +425,11 @@ M8-D では `heaven_crushing_descent` が枠6 で 7 件だったので**大き�
 | 27 | **M8-F** | **決闘マーカー（`Enemy._duelMark`）が時間切れ / 再指定 / 解除で外れなかった**（生きている敵に古いマーカーが `Enemy.reset()` まで残った）。`BattleScene._setDuelMark` / `_clearDuelMark` でマーカーの寿命を 1 か所へ集約し、決闘が終わったフレームと Scene 終了で必ず外す | `dd39087` |
 | 28 | **M8-F** | **`crimson_execution`（血断処刑）が base より弱かった**（群れの中で総ダメージ 69% の逆転）。`safetyCaps.maxTargetsPerStrike: 10` が base `execution_strike` の実効 breadth（品質上限 24 のもとで実測 20）より狭かった。**10 → 20** にした（修正後 evo/base = 1.37・依然として有界で品質上限以下）。18 進化のうち逆転はこの 1 件だけ | `dd39087` |
 | 29 | **M8-F** | **data の死にフィールド `charge_slash.config.hitOncePerTarget`**（コメントでしか触れられておらず、挙動はハードコードだった）。実装から読むようにした（`false` を宣言すれば毎フレーム判定に切り替わる。現在の data は `true` なので挙動は不変） | `dd39087` |
+| 30 | **M9-A** | **skillCaps のうち gameplay / safety に当たる 161 件が品質別の値を持ち、対象数・弾実体数・tick 数・状態付与数が演出品質で変化した**（great_cleave の主発動分岐 low58/high59 の根本原因。Combo 進行・攻撃速度しきい値到達・XP / kill にまで波及し、3 ジョブ全 144 スキルが対象）。217 件を分類し gameplay / safety を単一値 `{ value }`（canonical = 旧 high）へ | `M9A_COMMIT` |
+| 31 | **M9-A** | **敵プール上限（品質別 60〜320 体）と弾プール上限（120〜700）が品質依存** —— 敵の同時数＝XP / kill / 密度そのものが品質で変わった。新設 `gameplayLimits`（200 / 400）へ移し、`effectQuality` からキーを削除（残留は validate-data がエラー化） | `M9A_COMMIT` |
+| 32 | **M9-A** | **hitStop が high / ultra のみ有効**で、ロジックの経過時間が品質依存だった。全品質で有効化 | `M9A_COMMIT` |
+| 33 | **M9-A** | **魂炎の恒久強化ノードが品質で無効化されていた**（敵密度は low で、弾上限は low / medium で効かない＝品質を下げると恒久強化が消えた）。品質ゲートを削除 | `M9A_COMMIT` |
+| 34 | **M9-A** | **火 / 氷 96 スキルの `restoreState({cdLeft})` に M8-F と同種の改ざん脆弱性**（NaN / ±Infinity / 桁外れを採用できた）。各ファイルを触らず `SkillManager.restoreRuntime` の共通入口 `_sanitizeRuntimeState` で全 144 スキル一律に無害化（非有限値は不採用・±120s クランプ・**正当なセーブの復元結果と候補列 / runtime trace は SHA-256 一致で不変**） | `M9A_COMMIT` |
 | 14 | M8-B | 実装中に作り込みかけた**死にフィールド 2 件を作らずに済ませた**: passive `heavy_armor` の `knockbackResist`（プレイヤーがノックバックされる仕組みが存在しない）と `charge_slash.levels[].visual`（`visualScale()` を使わない）。data・`modifierKeys`・`balance.warrior.mitigation` から削除し、「予約値として残さない」原則を維持 | `4c8bd10` |
 
 ## Non-regression requirements
@@ -441,6 +486,12 @@ M8-D では `heaven_crushing_descent` が枠6 で 7 件だったので**大き�
   **evo/base < 1.0 の逆転が 0 件**（18 進化すべて）／
   **死にフィールド 0・未参照 `skillCaps` 0**（217 件）／
   **候補ゼロは飽和由来のみ**（非飽和の候補ゼロが出たら抽選の欠陥）
+- **品質と gameplay の分離（M9-A）**:
+  gameplay / safety cap は**単一値 `{ value }` の形**で品質キーを持たない（4 段階へ戻すと validate-data と
+  分類テストが落ちる）／敵 / 弾プール上限は `gameplayLimits` 由来（`effectQuality` に置けない）／
+  hitStop・魂炎ノードは品質非依存／**gameplay trace は 4 品質で byte-identical**
+  （`tests/cross-job-quality-gameplay-invariance.mjs` ほか）／visual cap 47 件だけが品質で変わる／
+  cdLeft は `restoreRuntime` の共通入口で全ジョブ無害化される
 - **3 ジョブのプール完全分離**（各メンバーが適格なジョブは最大 1 つ）
 - passive のジョブプール分離／`poolEligibility.memberAllowedForJob` が単一の正／`jobs` 未指定を暗黙共通にしない
 - active slot 4→6→8・passive slot 4・Job Lv1〜100・Job XP・熟練度
@@ -460,7 +511,9 @@ M8-D では `heaven_crushing_descent` が枠6 で 7 件だったので**大き�
   `tests/three-job-final-catalog-nonregression.mjs` /
   `tests/warrior-wave1-determinism.mjs` / `tests/warrior-wave2-determinism.mjs` /
   `tests/warrior-final-determinism.mjs` /
-  `tests/three-job-completion-nonregression.mjs` / `tests/warrior-completion-determinism.mjs` のハッシュ**
+  `tests/three-job-completion-nonregression.mjs` / `tests/warrior-completion-determinism.mjs` /
+  `tests/three-job-system-nonregression.mjs`（M9-A: 3 ジョブの候補列・runtime trace・cap 分類 47/150/20・
+  gameplayLimits 200/400 を SHA-256 固定）のハッシュ**
   （火/氷の候補列・火/氷のランタイムトレース）。火・氷を触ったら必ずここが落ちる。
   落ちたら「意図した変更か」を必ず確認すること。
 - **push 型 passive modifier の反映**（M8-B.1）: status 乗率・戦士 mods は `passives.version` 駆動で、
@@ -533,6 +586,14 @@ M7-E の「火由来の未参照 cap 5 件」は解消済み。**戦士は M8-C 
   M8-F で新たに生じた差ではない。
 - **M8-F の性能数値は Node 純ロジックの計算時間**（10 分相当で 2.5〜3.1s）であり、
   **実ブラウザの FPS ではない**。描画・入力・Phaser の内部処理は含まれていない。
+- **M9-A の canonical 化で低品質の gameplay 計算量が high 相当へ増えた**（敵 200 体上限・対象数 canonical）。
+  Node 実測ではロジック差は小さい（M8-F 実測で low と high の差 約 8%・M9-A の 4 品質実行時間はほぼ同一）が、
+  **低スペック実機の low で FPS が悪化しないかは実ブラウザで要確認**。演出は従来どおり low で軽い。
+- **ultra の gameplay 値は canonical（high）へ整列した**（例: 敵上限 320 → 200・
+  `maxMeleeTargetsPerHit` 32 → 24）。バランス計測の正は high なので意図した整列だが、
+  ultra 常用者には「敵がやや減った」と見える可能性がある（演出は最大のまま）。
+- **横断ハーネスの限界**: fire / frost の弾ダメージは Scene モックで解決されないため、
+  ジョブ間の絶対 DPS 比較には使えない（`docs/cross-job-balance.md` の documented note）。
 
 ## Browser verification status
 
@@ -637,7 +698,45 @@ M8-F は**新しい見た目・新しい操作を 1 つも追加していない*
 - **陣 / 反撃窓 / 旋風が正常プレイでは従来どおりであること**（追加した上限に通常は達しない）
 - すべての品質で 1 周回して **JS エラー 0**・**60FPS 維持**
 
+### M9-A（3 ジョブ横断）で未確認のもの
+
+- **同 seed・同 save・同敵配置で low / medium / high / ultra の実プレイ結果が一致する**こと
+  （damage / kills / XP / Combo / Fury / status / poise / boss HP / cast 数 / リザルト）。
+  Node では byte-identical を確認済みだが、**実ブラウザの実描画・実入力経路では未確認**。
+- 低品質実機での FPS（gameplay 計算量が high 相当へ増えたため）。
+- 周回中の品質切替（陣 / 構え / 凍結 / 炎上 / CD が消えない・増えないこと）。
+- 魂炎ノードが low でも効くこと・hitStop が low でも入ること。
+- F8 の「3 ジョブ比較（M9-A）」表示の描画。
+- 手順は `docs/test-guide.md` の **Milestone 9-A** 節。
+
 ## Latest test results
+
+- 実行日時点: Milestone 9-A 完了時（コミット `M9A_COMMIT`）
+- **テストスイート: 210 件（`tests/*.mjs` から共通土台 `frost-audit-common.mjs` / `flame-audit-common.mjs` /
+  `warrior-common.mjs` / `status-passive-common.mjs` / `warrior-draft-sim.mjs` / `cap-shape.mjs` /
+  `cross-job-common.mjs` と `validate-data.mjs` を除く）→ 全 210 通過・失敗 0**
+  （`validate.yml` のステップ数は `validate-data` を含めて **211**）
+- `node tests/validate-data.mjs` → **0 エラー / 0 警告**（M9-A ブロックを追加）
+- M9-A 新規 25 スイート:
+  `cross-job-catalog` / `cross-job-pool-isolation` / `cross-job-quality-cap-classification` /
+  `cross-job-quality-gameplay-invariance` / `cross-job-quality-rng-invariance` /
+  `cross-job-quality-visual-reduction` / `cross-job-draft-audit` / `cross-job-evolution-audit` /
+  `cross-job-balance-comparison` / `cross-job-combat-paths` / `cross-job-record-cast` /
+  `cross-job-cooldown-save` / `cross-job-runtime-state` / `cross-job-status-resource` /
+  `cross-job-defense` / `cross-job-save-switching` / `cross-job-folder-save` / `cross-job-telemetry` /
+  `cross-job-debug-panels` / `cross-job-performance` / `cross-job-pool-spatial` /
+  `cross-job-caps-fields` / `cross-job-warning-consistency` / `cross-job-determinism` /
+  `three-job-system-nonregression`
+- M9-A で更新した既存のもの: 品質 cap の形の変更に伴い、cap の単調性 / 正値検査を持つ既存 12 スイート
+  （flame/frost-quality-cap-audit・warrior-*-quality-cap・warrior-completion-caps-fields /
+  -performance・three-job-completion-nonregression・fire/frost-skills-wave*・new-fire-skills・
+  cast-event-audit・warrior-final-cleanup）を `tests/cap-shape.mjs` の 4 段階展開ビュー経由へ。
+  **検査の意味は不変**（単一値は 4 つ同値として同じ単調・正検査を通る）。
+- **M9-A の品質修正を巻き戻すと**、validate-data（形の混在）・cap-classification・
+  gameplay-invariance・visual-reduction が必ず落ちる。cdLeft 共通入口を巻き戻すと
+  cross-job-cooldown-save の火 / 氷の改ざん節が落ちる。
+
+### 旧 Latest test results（M8-F）
 
 - 実行日時点: Milestone 8-F 完了時（コミット `dd39087`）
 - **テストスイート: 185 件（`tests/*.mjs` から共通土台 `frost-audit-common.mjs` / `flame-audit-common.mjs` /
@@ -715,21 +814,18 @@ M8-F は**新しい見た目・新しい操作を 1 つも追加していない*
 
 ## Next milestone
 
-**未定（次の指示待ち）。** 3 ジョブすべてのカタログ（各 30 / 4 / 18）と
-完成監査（氷 M7-E / 火 M8-A / 戦士 M8-F）が揃ったので、次はジョブ単体の作業ではない選択肢が中心。候補は以下。
+**未定（次の指示待ち）。** 3 ジョブの個別監査（M7-E / M8-A / M8-F）と横断監査（M9-A）が完了し、
+共通基盤（品質分離・cap 分類・保存・telemetry・決定論）が SHA-256 で固定された。候補は以下。
 
-1. **3 ジョブ横断の総合監査** — 個別監査は 3 ジョブとも完了した。次はジョブ間の比較
-   （同規模なのに体験が違うか）・共通機構の重複（3 ジョブで似た処理が別実装になっていないか）・
-   共有 cap / balance キーの整合・3 ジョブ同時の性能を見る回。
-2. **火と氷の属性反応** — 炎上⇄冷気/凍結の相互作用（付与時の source element を活用）。
-3. **転生レガシー / ジョブ間継承**（`futureInheritanceSettings` / `extraAllowedIds` が拡張口）。
-4. **周回長の拡張**（10分 / 15分 / 無限モード）・**追加の敵 / ボス / 難易度**。
-5. **4 人目のジョブ** — 3 ジョブぶんの基盤・監査観点・テスト雛形がそろっている
-   （M8-B〜M8-F の流れをそのまま再利用できる）。
-6. **実ブラウザでの M7-E / M8-A / M8-B / M8-B.1 / M8-C / M8-C.1 / M8-D / M8-E / M8-F 手動確認**
-   （`docs/test-guide.md` の該当節）— コード変更を伴わない検証タスク。
-   **M8-F は「進化済み基礎が候補に出ない」「決闘マーカーが消える」「進化置換で二重に攻撃しない」
-   「保存 / 再開で cooldown が正しい」の 4 点の確認価値が特に高い。**
+1. **火と氷の属性反応** — 炎上⇄冷気/凍結の相互作用（付与時の source element を活用）。
+   横断監査で combat path が整理されたので、相互作用の挿入点は明確。
+2. **転生レガシー / ジョブ間継承**（`futureInheritanceSettings` / `extraAllowedIds` が拡張口）。
+3. **周回長の拡張**（10分 / 15分 / 無限モード）・**追加の敵 / ボス / 難易度**。
+4. **4 人目のジョブ** — 3 ジョブぶんの基盤・監査観点・テスト雛形・横断非回帰がそろっている。
+   新ジョブの cap は最初から分類つき（visual / gameplay / safety）で追加する。
+5. **実ブラウザでの M7-E 〜 M9-A 手動確認**（`docs/test-guide.md` の該当節）— コード変更を伴わない
+   検証タスク。**M9-A の「同 seed・4 品質で結果が一致し演出だけ変わる」「低品質実機の FPS」の
+   確認価値が特に高い。**
 
 いずれも**指示された範囲のみ**実装し、未指定の先行実装はしない（`CLAUDE.md` の作業手順）。
 

@@ -9,6 +9,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DATA, EXPECTED, REPO, makeScene, makeEnemies, makeWarrior, bootRuntime, runner, capFor } from './warrior-common.mjs';
+import { capTiers } from './cap-shape.mjs';
 
 const T = runner('戦士 最終Wave 品質・安全上限（M8-E）');
 const { ok, section, info } = T;
@@ -25,17 +26,18 @@ const FINAL_VISUAL_CAPS = ['maxThrustTrails', 'maxDuelMarkers', 'maxTranceAuras'
 const FINAL_CAPS = [...FINAL_EVENT_CAPS, ...FINAL_VISUAL_CAPS];
 
 // ===== 1. cap の形 =====
-section('1. M8-E の cap が 4 段階そろい、単調非減少・正の数');
+section('1. M8-E の cap が単調非減少・正の数（visual は 4 段階 / gameplay・safety は単一値）');
 for (const name of FINAL_CAPS) {
   const c = CAPS[name];
   ok(!!c, `${name}: balance.json にある`);
   if (!c) continue;
+  const t4 = capTiers(c);  // M9-A: gameplay / safety は単一値、visual は 4 段階
   for (const q of QUALITIES) {
-    ok(typeof c[q] === 'number' && Number.isFinite(c[q]), `${name}.${q}: 有限数`);
-    ok(c[q] > 0, `${name}.${q}: 正の数（${c[q]}）— 0 にすると効果が消える`);
+    ok(Number.isFinite(t4[q]), `${name}.${q}: 有限数`);
+    ok(t4[q] > 0, `${name}.${q}: 正の数（${t4[q]}）— 0 にすると効果が消える`);
   }
-  ok(c.low <= c.medium && c.medium <= c.high && c.high <= c.ultra,
-    `${name}: low ≤ medium ≤ high ≤ ultra（${c.low}/${c.medium}/${c.high}/${c.ultra}）`);
+  ok(t4.low <= t4.medium && t4.medium <= t4.high && t4.high <= t4.ultra,
+    `${name}: low ≤ medium ≤ high ≤ ultra（${t4.low}/${t4.medium}/${t4.high}/${t4.ultra}）`);
 }
 info(`M8-E で追加した cap: ${FINAL_CAPS.length} 件 / skillCaps 全体 ${Object.keys(CAPS).length} 件`);
 
@@ -122,9 +124,9 @@ section('5. 個別 cap が実効している');
     ok(r.hits <= r.casts * perCast, `${q}: 貫穿突きの命中 ${r.hits} ≤ cast${r.casts} × 上限${perCast}`);
   }
   // 効果が消える cap が無い（最低品質でも 1 以上）。
-  for (const name of FINAL_EVENT_CAPS) ok(CAPS[name].low >= 1, `${name}.low ≥ 1（最低品質でも効果が消えない）`);
-  ok(CAPS.maxTranceStances.low >= 1, '構えは最低品質でも 1 本は張れる');
-  ok(CAPS.maxDuelTargets.low >= 1, '決闘は最低品質でも 1 体は挑める');
+  for (const name of FINAL_EVENT_CAPS) ok(capFor(name, 'low', 0) >= 1, `${name}.low ≥ 1（最低品質でも効果が消えない）`);
+  ok(capFor('maxTranceStances', 'low', 0) >= 1, '構えは最低品質でも 1 本は張れる');
+  ok(capFor('maxDuelTargets', 'low', 0) >= 1, '決闘は最低品質でも 1 体は挑める');
 }
 
 // ===== 6. balance.warrior の M8-E ブロック =====
@@ -175,7 +177,7 @@ section('7. 火 / 氷が使う cap を 1 件も変えていない');
     'maxActiveBeams', 'maxMines', 'maxClones', 'maxInfernoBlades'].filter((k) => CAPS[k]);
   ok(FIRE_ICE.length > 0, `火 / 氷の cap を確認できる（${FIRE_ICE.join(',')}）`);
   for (const k of FIRE_ICE) {
-    const c = CAPS[k];
+    const c = capTiers(CAPS[k]);
     ok(c.low <= c.medium && c.medium <= c.high && c.high <= c.ultra, `${k}: 単調性が保たれている`);
     ok(c.low > 0, `${k}: low が正のまま`);
   }
