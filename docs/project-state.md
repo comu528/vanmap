@@ -10,7 +10,7 @@
 
 - ブランチ: **`claude/funny-heisenberg-frhgq9`**（`CLAUDE.md` の継続ブランチ。指定なき限りここへコミット・プッシュ）
 - 直近コミット:
-  - `M9A_COMMIT` Milestone 9-A: 3 ジョブ横断・共通システム総合監査（品質と gameplay の分離 / cap 分類 / cdLeft 改ざん耐性の全ジョブ化）
+  - `01d4e3e` Milestone 9-A: 3 ジョブ横断・共通システム総合監査（品質と gameplay の分離 / cap 分類 / cdLeft 改ざん耐性の全ジョブ化）
   - `8478974` Milestone 8-F ドキュメント更新: docs/project-state.md へ commit ID を記載
   - `dd39087` Milestone 8-F: 戦士 完成監査（cdLeft復元の改ざん耐性 / 進化済み基礎の再提示 / destroy後の残留 / 上限クランプ 3 件）
   - `d8c915b` Milestone 8-E ドキュメント更新: docs/project-state.md へ commit ID を記載
@@ -251,7 +251,7 @@ M8-D では `heaven_crushing_descent` が枠6 で 7 件だったので**大き�
 | M8-D | 戦士スキル拡張 Wave2（active25 / 進化13・打ち上げ / 前面防御 / 掴み投げ / 戦旗の陣 / 低 HP スケーリング・guidance へ active 補助補正を 1 キー追加）（`dec7eaa` `05587df`） |
 | M8-E | 戦士スキル拡張 最終Wave（active30 / 進化18 で**3 ジョブが同規模へ到達**・直線の対象選択 / 決闘 / 構え / 進軍 / 弾き返し・guidance へ高要求補助の補正を 2 キー追加）（`00e886f` `d8c915b`） |
 | M8-F | 戦士 完成監査（**新スキル追加なし**・12 観点で 48 スキルを全数監査・不備 8 件 + 死にフィールド 1 件を修正・23 スイート追加で全 185 通過・火 / 氷は SHA-256 一致）（`dd39087` `8478974`） |
-| **M9-A** | **3 ジョブ横断・共通システム総合監査**（**品質と gameplay の分離**＝cap 217 件を visual47 / gameplay150 / safety20 へ分類し gameplay trace を 4 品質で byte-identical に・cdLeft 改ざん耐性を全 144 スキルへ・F8 に 3 ジョブ比較・25 スイート追加で全 210 通過・バランス / guidance / しきい値変更 0）（`M9A_COMMIT`） |
+| **M9-A** | **3 ジョブ横断・共通システム総合監査**（**品質と gameplay の分離**＝cap 217 件を visual47 / gameplay150 / safety20 へ分類し gameplay trace を 4 品質で byte-identical に・cdLeft 改ざん耐性を全 144 スキルへ・F8 に 3 ジョブ比較・25 スイート追加で全 210 通過・バランス / guidance / しきい値変更 0）（`01d4e3e`） |
 
 ## Job catalog counts
 
@@ -425,11 +425,11 @@ M8-D では `heaven_crushing_descent` が枠6 で 7 件だったので**大き�
 | 27 | **M8-F** | **決闘マーカー（`Enemy._duelMark`）が時間切れ / 再指定 / 解除で外れなかった**（生きている敵に古いマーカーが `Enemy.reset()` まで残った）。`BattleScene._setDuelMark` / `_clearDuelMark` でマーカーの寿命を 1 か所へ集約し、決闘が終わったフレームと Scene 終了で必ず外す | `dd39087` |
 | 28 | **M8-F** | **`crimson_execution`（血断処刑）が base より弱かった**（群れの中で総ダメージ 69% の逆転）。`safetyCaps.maxTargetsPerStrike: 10` が base `execution_strike` の実効 breadth（品質上限 24 のもとで実測 20）より狭かった。**10 → 20** にした（修正後 evo/base = 1.37・依然として有界で品質上限以下）。18 進化のうち逆転はこの 1 件だけ | `dd39087` |
 | 29 | **M8-F** | **data の死にフィールド `charge_slash.config.hitOncePerTarget`**（コメントでしか触れられておらず、挙動はハードコードだった）。実装から読むようにした（`false` を宣言すれば毎フレーム判定に切り替わる。現在の data は `true` なので挙動は不変） | `dd39087` |
-| 30 | **M9-A** | **skillCaps のうち gameplay / safety に当たる 161 件が品質別の値を持ち、対象数・弾実体数・tick 数・状態付与数が演出品質で変化した**（great_cleave の主発動分岐 low58/high59 の根本原因。Combo 進行・攻撃速度しきい値到達・XP / kill にまで波及し、3 ジョブ全 144 スキルが対象）。217 件を分類し gameplay / safety を単一値 `{ value }`（canonical = 旧 high）へ | `M9A_COMMIT` |
-| 31 | **M9-A** | **敵プール上限（品質別 60〜320 体）と弾プール上限（120〜700）が品質依存** —— 敵の同時数＝XP / kill / 密度そのものが品質で変わった。新設 `gameplayLimits`（200 / 400）へ移し、`effectQuality` からキーを削除（残留は validate-data がエラー化） | `M9A_COMMIT` |
-| 32 | **M9-A** | **hitStop が high / ultra のみ有効**で、ロジックの経過時間が品質依存だった。全品質で有効化 | `M9A_COMMIT` |
-| 33 | **M9-A** | **魂炎の恒久強化ノードが品質で無効化されていた**（敵密度は low で、弾上限は low / medium で効かない＝品質を下げると恒久強化が消えた）。品質ゲートを削除 | `M9A_COMMIT` |
-| 34 | **M9-A** | **火 / 氷 96 スキルの `restoreState({cdLeft})` に M8-F と同種の改ざん脆弱性**（NaN / ±Infinity / 桁外れを採用できた）。各ファイルを触らず `SkillManager.restoreRuntime` の共通入口 `_sanitizeRuntimeState` で全 144 スキル一律に無害化（非有限値は不採用・±120s クランプ・**正当なセーブの復元結果と候補列 / runtime trace は SHA-256 一致で不変**） | `M9A_COMMIT` |
+| 30 | **M9-A** | **skillCaps のうち gameplay / safety に当たる 161 件が品質別の値を持ち、対象数・弾実体数・tick 数・状態付与数が演出品質で変化した**（great_cleave の主発動分岐 low58/high59 の根本原因。Combo 進行・攻撃速度しきい値到達・XP / kill にまで波及し、3 ジョブ全 144 スキルが対象）。217 件を分類し gameplay / safety を単一値 `{ value }`（canonical = 旧 high）へ | `01d4e3e` |
+| 31 | **M9-A** | **敵プール上限（品質別 60〜320 体）と弾プール上限（120〜700）が品質依存** —— 敵の同時数＝XP / kill / 密度そのものが品質で変わった。新設 `gameplayLimits`（200 / 400）へ移し、`effectQuality` からキーを削除（残留は validate-data がエラー化） | `01d4e3e` |
+| 32 | **M9-A** | **hitStop が high / ultra のみ有効**で、ロジックの経過時間が品質依存だった。全品質で有効化 | `01d4e3e` |
+| 33 | **M9-A** | **魂炎の恒久強化ノードが品質で無効化されていた**（敵密度は low で、弾上限は low / medium で効かない＝品質を下げると恒久強化が消えた）。品質ゲートを削除 | `01d4e3e` |
+| 34 | **M9-A** | **火 / 氷 96 スキルの `restoreState({cdLeft})` に M8-F と同種の改ざん脆弱性**（NaN / ±Infinity / 桁外れを採用できた）。各ファイルを触らず `SkillManager.restoreRuntime` の共通入口 `_sanitizeRuntimeState` で全 144 スキル一律に無害化（非有限値は不採用・±120s クランプ・**正当なセーブの復元結果と候補列 / runtime trace は SHA-256 一致で不変**） | `01d4e3e` |
 | 14 | M8-B | 実装中に作り込みかけた**死にフィールド 2 件を作らずに済ませた**: passive `heavy_armor` の `knockbackResist`（プレイヤーがノックバックされる仕組みが存在しない）と `charge_slash.levels[].visual`（`visualScale()` を使わない）。data・`modifierKeys`・`balance.warrior.mitigation` から削除し、「予約値として残さない」原則を維持 | `4c8bd10` |
 
 ## Non-regression requirements
@@ -711,7 +711,7 @@ M8-F は**新しい見た目・新しい操作を 1 つも追加していない*
 
 ## Latest test results
 
-- 実行日時点: Milestone 9-A 完了時（コミット `M9A_COMMIT`）
+- 実行日時点: Milestone 9-A 完了時（コミット `01d4e3e`）
 - **テストスイート: 210 件（`tests/*.mjs` から共通土台 `frost-audit-common.mjs` / `flame-audit-common.mjs` /
   `warrior-common.mjs` / `status-passive-common.mjs` / `warrior-draft-sim.mjs` / `cap-shape.mjs` /
   `cross-job-common.mjs` と `validate-data.mjs` を除く）→ 全 210 通過・失敗 0**
