@@ -10,7 +10,7 @@
 
 - ブランチ: **`claude/funny-heisenberg-frhgq9`**（`CLAUDE.md` の継続ブランチ。指定なき限りここへコミット・プッシュ）
 - 直近コミット:
-  - `(M9-A.1 実装コミット・コミット時に本行を更新)` Milestone 9-A.1: 横断 balance ハーネス完成・実ブラウザ検証ゲート
+  - `0f34e1c` Milestone 9-A.1: 横断 balance ハーネス完成・実ブラウザ検証ゲート（production 全経路駆動 / 絶対比較 / browser gate / dead key 2 件修正）
   - `6c6a2a4` Milestone 9-A ドキュメント更新: docs/project-state.md へ commit ID を記載
   - `01d4e3e` Milestone 9-A: 3 ジョブ横断・共通システム総合監査（品質と gameplay の分離 / cap 分類 / cdLeft 改ざん耐性の全ジョブ化）
   - `8478974` Milestone 8-F ドキュメント更新: docs/project-state.md へ commit ID を記載
@@ -283,7 +283,7 @@ M8-D では `heaven_crushing_descent` が枠6 で 7 件だったので**大き�
 | M8-E | 戦士スキル拡張 最終Wave（active30 / 進化18 で**3 ジョブが同規模へ到達**・直線の対象選択 / 決闘 / 構え / 進軍 / 弾き返し・guidance へ高要求補助の補正を 2 キー追加）（`00e886f` `d8c915b`） |
 | M8-F | 戦士 完成監査（**新スキル追加なし**・12 観点で 48 スキルを全数監査・不備 8 件 + 死にフィールド 1 件を修正・23 スイート追加で全 185 通過・火 / 氷は SHA-256 一致）（`dd39087` `8478974`） |
 | **M9-A** | **3 ジョブ横断・共通システム総合監査**（**品質と gameplay の分離**＝cap 217 件を visual47 / gameplay150 / safety20 へ分類し gameplay trace を 4 品質で byte-identical に・cdLeft 改ざん耐性を全 144 スキルへ・F8 に 3 ジョブ比較・25 スイート追加で全 210 通過・バランス / guidance / しきい値変更 0）（`01d4e3e`） |
-| **M9-A.1** | **横断 balance ハーネス完成・実ブラウザ検証ゲート**（production 全経路駆動で未解決 damage 経路 0・共通 profile 5 種で 3 ジョブ絶対比較・warning は role / profile 分類のみ・品質不変を完全ハーネスで再確認・実ブラウザ自動検証 console エラー 0 / 未確認は external gate へ・dead key 2 件最小修正・15 スイート追加で全 225 通過・バランス変更 0）（コミット時に ID 記載） |
+| **M9-A.1** | **横断 balance ハーネス完成・実ブラウザ検証ゲート**（production 全経路駆動で未解決 damage 経路 0・共通 profile 5 種で 3 ジョブ絶対比較・warning は role / profile 分類のみ・品質不変を完全ハーネスで再確認・実ブラウザ自動検証 console エラー 0 / 未確認は external gate へ・dead key 2 件最小修正・15 スイート追加で全 225 通過・バランス変更 0）（`0f34e1c`） |
 
 ## Job catalog counts
 
@@ -463,7 +463,7 @@ M8-D では `heaven_crushing_descent` が枠6 で 7 件だったので**大き�
 | 33 | **M9-A** | **魂炎の恒久強化ノードが品質で無効化されていた**（敵密度は low で、弾上限は low / medium で効かない＝品質を下げると恒久強化が消えた）。品質ゲートを削除 | `01d4e3e` |
 | 34 | **M9-A** | **火 / 氷 96 スキルの `restoreState({cdLeft})` に M8-F と同種の改ざん脆弱性**（NaN / ±Infinity / 桁外れを採用できた）。各ファイルを触らず `SkillManager.restoreRuntime` の共通入口 `_sanitizeRuntimeState` で全 144 スキル一律に無害化（非有限値は不採用・±120s クランプ・**正当なセーブの復元結果と候補列 / runtime trace は SHA-256 一致で不変**） | `01d4e3e` |
 | 35 | **M9-A.1** | **`CombatTelemetry.status.burningDamage` が dead key**（宣言され F8 が表示していたのに発行元が 1 つも無く常に 0）。`BattleScene.dealDamage` で fire かつ DoT（`isDoT` / `tag:'dot'`）の命中を集計するよう最小修正。観測のみ＝damage / 状態 / RNG に影響なし（品質不変ハッシュ不変）。実測 6,399（full build） | M9-A.1 |
-| 36 | **M9-A.1** | **`BattleScene._damageTakenTotal` が dead field**（`finalizeTelemetry` と F8 が参照するのに加算箇所が無く `damageTaken` が常に 0）。`Player.takeDamage` の HP 減算と同じ位置（障壁 / 軽減の後）で実被弾量を累計。観測のみ | M9-A.1 |
+| 36 | **M9-A.1** | **`BattleScene._damageTakenTotal` が dead field**（`finalizeTelemetry` と F8 が参照するのに加算箇所が無く `damageTaken` が常に 0）。`Player.takeDamage` の HP 減算と同じ位置（障壁 / 軽減の後）で実被弾量を累計。観測のみ | `0f34e1c` |
 | 14 | M8-B | 実装中に作り込みかけた**死にフィールド 2 件を作らずに済ませた**: passive `heavy_armor` の `knockbackResist`（プレイヤーがノックバックされる仕組みが存在しない）と `charge_slash.levels[].visual`（`visualScale()` を使わない）。data・`modifierKeys`・`balance.warrior.mitigation` から削除し、「予約値として残さない」原則を維持 | `4c8bd10` |
 
 ## Non-regression requirements
@@ -781,7 +781,7 @@ M8-F は**新しい見た目・新しい操作を 1 つも追加していない*
 
 ## Latest test results
 
-- 実行日時点: Milestone 9-A.1 完了時
+- 実行日時点: Milestone 9-A.1 完了時（コミット `0f34e1c`）
 - **テストスイート: 225 件 → 全 225 通過・失敗 0**（`tests/*.mjs` から共通土台
   `frost-audit-common` / `flame-audit-common` / `warrior-common` / `status-passive-common` /
   `warrior-draft-sim` / `cap-shape` / `cross-job-common` / `cross-job-harness` / `phaser-stub` と
