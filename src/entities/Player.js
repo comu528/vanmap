@@ -122,6 +122,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // 3) 通常HPダメージ
     if (dmg > 0) this.hp = clamp(this.hp - dmg, 0, this.maxHp);
+    // M9-A.1: 実被弾量（障壁・軽減の後・HP 減算と同じ値）の累計。
+    // `_damageTakenTotal` は finalizeTelemetry と F8 が参照していたが**加算する場所が無い dead field**だった。
+    // 観測のみ。damage / 状態 / RNG / 判定順序には一切影響しない。
+    if (dmg > 0) this.scene._damageTakenTotal = (this.scene._damageTakenTotal || 0) + dmg;
     this._invulnUntil = this.scene.time.now + this.invulnMs;
 
     // 4) 致死時のみ不死鳥判定（使用可能状態のときだけ・同じ被弾で複数回復活しない）

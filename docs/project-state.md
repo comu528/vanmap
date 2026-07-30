@@ -4,12 +4,14 @@
 > **各 Milestone 完了時に必ず更新する**（完了報告の要約・コミットID・テスト結果・次 Milestone）。
 > compact 後・新セッション開始時は `CLAUDE.md` → `README.md` → `TODO.md` → 本ファイル → `git log -5 --oneline` の順で確認する。
 >
-> 最終更新: Milestone 9-A 完了時点
+> 最終更新: Milestone 9-A.1 完了時点
 
 ## Current branch
 
 - ブランチ: **`claude/funny-heisenberg-frhgq9`**（`CLAUDE.md` の継続ブランチ。指定なき限りここへコミット・プッシュ）
 - 直近コミット:
+  - `(M9-A.1 実装コミット・コミット時に本行を更新)` Milestone 9-A.1: 横断 balance ハーネス完成・実ブラウザ検証ゲート
+  - `6c6a2a4` Milestone 9-A ドキュメント更新: docs/project-state.md へ commit ID を記載
   - `01d4e3e` Milestone 9-A: 3 ジョブ横断・共通システム総合監査（品質と gameplay の分離 / cap 分類 / cdLeft 改ざん耐性の全ジョブ化）
   - `8478974` Milestone 8-F ドキュメント更新: docs/project-state.md へ commit ID を記載
   - `dd39087` Milestone 8-F: 戦士 完成監査（cdLeft復元の改ざん耐性 / 進化済み基礎の再提示 / destroy後の残留 / 上限クランプ 3 件）
@@ -32,7 +34,36 @@
 
 ## Current milestone
 
-- **Milestone 9-A（3 ジョブ横断・共通システム総合監査）完了・停止中。** 次の指示待ち。
+- **Milestone 9-A.1（横断 balance ハーネス完成・実ブラウザ検証ゲート）完了・停止中。** 次の指示待ち。
+- **新コンテンツ 0 件・バランス値 / guidance / しきい値の変更 0 件・save_version v6 維持。**
+- **M9-A の測定制約（未解決経路）を解消した:**
+  - M9-A まで: fire / frost の弾ダメージ・DoT tick・場 / 遅延・reactive 刺激・死亡イベント / XP が
+    横断ハーネスでは解決されず、ジョブ間の絶対比較ができなかった（火:氷 2.72 は見かけ値と記録）。
+  - M9-A.1: `tests/phaser-stub.mjs`（Phaser プリミティブのみの最小 stub）＋
+    `tests/cross-job-harness.mjs` が **production の `BattleScene.prototype` を直接駆動**
+    （SkillManager / 全スキル class / Projectile・Enemy・Boss・Gem / SpawnManager /
+    StatusEffectManager / WarriorCombatSystem / CombatTelemetry すべて production 実装のまま。
+    置換は表示 / 保存 / シーン遷移だけで、`scene[m] === BattleScene.prototype[m]` を機械検査）。
+  - **未解決の damage 経路 0・未解決の弾種別 0・反応しない reactive 0**（144 スキル全件に utility）。
+- **共通 battle profile 5 種**（normal / elite / boss / survival / stimulus）で 3 ジョブを同一条件比較:
+  - boss kill time 中央値: **火 7,552ms / 戦士 12,512ms / 氷 22,176ms**（3 ジョブとも有限時間で撃破）。
+  - survival: 戦士 43.5s ≫ 火 10.5s / 氷 9.4s（軽減 / 不屈 / 回復は戦士のみ＝設計どおり）。
+  - warning はすべて **role / profile に分類**（bug / balance 分類 0 件）。`docs/cross-job-final-balance.md`。
+- **品質不変性を完全ハーネスで再監査**: 4 品質 × 3 ジョブ × 全 profile ＋ 周回途中切替
+  （low→ultra→medium）で gameplay trace byte-identical（254 + 78 assertions）。
+- **実ブラウザ検証を自動化で実施**（環境既存ツールのみ・**必須依存の追加 0**）: Phaser 3.90.0 起動 /
+  3 ジョブ実プレイ / 4 品質で gameplay 上限同値 / 品質途中切替 / F8 / セーブ往復 v6 / 相対パスを
+  **console エラー合計 0** で確認。**手入力の体感・長時間・高負荷ピークは未確認**として
+  `docs/browser-validation-gate.md` の external gate へ記録（再現手順 + テンプレートつき）。
+- **観測の dead key 2 件を最小修正**（`burningDamage` 発行元なし / `_damageTakenTotal` 加算なし。
+  damage / 状態 / RNG へ影響なし＝品質不変ハッシュ不変）。
+- **テスト 15 スイート追加で全 225 通過**・validate-data M9-A.1 ブロック（0 エラー 0 警告）・
+  validate.yml 226 ステップ。trace / 経路集合 / 測定条件を SHA-256 固定
+  （`tests/three-job-balance-harness-nonregression.mjs`）。
+
+### 旧 Current milestone（M9-A）
+
+- **Milestone 9-A（3 ジョブ横断・共通システム総合監査）完了。**
 - **新しい active / passive / 進化 / ジョブは 1 件も追加していない。**
 - **最優先課題（M8-F 記録の「品質が戦闘結果へ影響する」）を解消した:**
   - 再現: 修正前 tree の production 経路で `great_cleave` 分岐（low 58 / high 59）を確認。
@@ -252,6 +283,7 @@ M8-D では `heaven_crushing_descent` が枠6 で 7 件だったので**大き�
 | M8-E | 戦士スキル拡張 最終Wave（active30 / 進化18 で**3 ジョブが同規模へ到達**・直線の対象選択 / 決闘 / 構え / 進軍 / 弾き返し・guidance へ高要求補助の補正を 2 キー追加）（`00e886f` `d8c915b`） |
 | M8-F | 戦士 完成監査（**新スキル追加なし**・12 観点で 48 スキルを全数監査・不備 8 件 + 死にフィールド 1 件を修正・23 スイート追加で全 185 通過・火 / 氷は SHA-256 一致）（`dd39087` `8478974`） |
 | **M9-A** | **3 ジョブ横断・共通システム総合監査**（**品質と gameplay の分離**＝cap 217 件を visual47 / gameplay150 / safety20 へ分類し gameplay trace を 4 品質で byte-identical に・cdLeft 改ざん耐性を全 144 スキルへ・F8 に 3 ジョブ比較・25 スイート追加で全 210 通過・バランス / guidance / しきい値変更 0）（`01d4e3e`） |
+| **M9-A.1** | **横断 balance ハーネス完成・実ブラウザ検証ゲート**（production 全経路駆動で未解決 damage 経路 0・共通 profile 5 種で 3 ジョブ絶対比較・warning は role / profile 分類のみ・品質不変を完全ハーネスで再確認・実ブラウザ自動検証 console エラー 0 / 未確認は external gate へ・dead key 2 件最小修正・15 スイート追加で全 225 通過・バランス変更 0）（コミット時に ID 記載） |
 
 ## Job catalog counts
 
@@ -430,6 +462,8 @@ M8-D では `heaven_crushing_descent` が枠6 で 7 件だったので**大き�
 | 32 | **M9-A** | **hitStop が high / ultra のみ有効**で、ロジックの経過時間が品質依存だった。全品質で有効化 | `01d4e3e` |
 | 33 | **M9-A** | **魂炎の恒久強化ノードが品質で無効化されていた**（敵密度は low で、弾上限は low / medium で効かない＝品質を下げると恒久強化が消えた）。品質ゲートを削除 | `01d4e3e` |
 | 34 | **M9-A** | **火 / 氷 96 スキルの `restoreState({cdLeft})` に M8-F と同種の改ざん脆弱性**（NaN / ±Infinity / 桁外れを採用できた）。各ファイルを触らず `SkillManager.restoreRuntime` の共通入口 `_sanitizeRuntimeState` で全 144 スキル一律に無害化（非有限値は不採用・±120s クランプ・**正当なセーブの復元結果と候補列 / runtime trace は SHA-256 一致で不変**） | `01d4e3e` |
+| 35 | **M9-A.1** | **`CombatTelemetry.status.burningDamage` が dead key**（宣言され F8 が表示していたのに発行元が 1 つも無く常に 0）。`BattleScene.dealDamage` で fire かつ DoT（`isDoT` / `tag:'dot'`）の命中を集計するよう最小修正。観測のみ＝damage / 状態 / RNG に影響なし（品質不変ハッシュ不変）。実測 6,399（full build） | M9-A.1 |
+| 36 | **M9-A.1** | **`BattleScene._damageTakenTotal` が dead field**（`finalizeTelemetry` と F8 が参照するのに加算箇所が無く `damageTaken` が常に 0）。`Player.takeDamage` の HP 減算と同じ位置（障壁 / 軽減の後）で実被弾量を累計。観測のみ | M9-A.1 |
 | 14 | M8-B | 実装中に作り込みかけた**死にフィールド 2 件を作らずに済ませた**: passive `heavy_armor` の `knockbackResist`（プレイヤーがノックバックされる仕組みが存在しない）と `charge_slash.levels[].visual`（`visualScale()` を使わない）。data・`modifierKeys`・`balance.warrior.mitigation` から削除し、「予約値として残さない」原則を維持 | `4c8bd10` |
 
 ## Non-regression requirements
@@ -492,6 +526,13 @@ M8-D では `heaven_crushing_descent` が枠6 で 7 件だったので**大き�
   hitStop・魂炎ノードは品質非依存／**gameplay trace は 4 品質で byte-identical**
   （`tests/cross-job-quality-gameplay-invariance.mjs` ほか）／visual cap 47 件だけが品質で変わる／
   cdLeft は `restoreRuntime` の共通入口で全ジョブ無害化される
+- **横断 balance ハーネスの原則（M9-A.1）**: ハーネスは production の `BattleScene.prototype` を
+  直接駆動する（独自 damage 式 / 即着弾扱い / DoT 一括化 / 回数推測 / Math.random / 品質分岐 /
+  production に無い補正は禁止＝`cross-job-full-harness` §1-2 が機械検査）／ハーネス周回は常に
+  debugRun でセーブへ書かない（`cross-job-harness-save-isolation`）／未解決 damage 経路 0・
+  未解決弾種 0・無反応 reactive 0（`cross-job-projectile-resolution` ほか）／
+  npm / build / Playwright を必須依存にしない（`cross-job-browser-gate` §4 が package.json 等の
+  不在を検査）
 - **3 ジョブのプール完全分離**（各メンバーが適格なジョブは最大 1 つ）
 - passive のジョブプール分離／`poolEligibility.memberAllowedForJob` が単一の正／`jobs` 未指定を暗黙共通にしない
 - active slot 4→6→8・passive slot 4・Job Lv1〜100・Job XP・熟練度
@@ -513,7 +554,9 @@ M8-D では `heaven_crushing_descent` が枠6 で 7 件だったので**大き�
   `tests/warrior-final-determinism.mjs` /
   `tests/three-job-completion-nonregression.mjs` / `tests/warrior-completion-determinism.mjs` /
   `tests/three-job-system-nonregression.mjs`（M9-A: 3 ジョブの候補列・runtime trace・cap 分類 47/150/20・
-  gameplayLimits 200/400 を SHA-256 固定）のハッシュ**
+  gameplayLimits 200/400 を SHA-256 固定）/
+  `tests/three-job-balance-harness-nonregression.mjs`（M9-A.1: production 全経路 trace（3 ジョブ ×
+  normal / boss）・経路カバレッジ集合・profile / stimulus / 上限 / カタログの測定条件を SHA-256 固定）のハッシュ**
   （火/氷の候補列・火/氷のランタイムトレース）。火・氷を触ったら必ずここが落ちる。
   落ちたら「意図した変更か」を必ず確認すること。
 - **push 型 passive modifier の反映**（M8-B.1）: status 乗率・戦士 mods は `passives.version` 駆動で、
@@ -592,12 +635,39 @@ M7-E の「火由来の未参照 cap 5 件」は解消済み。**戦士は M8-C 
 - **ultra の gameplay 値は canonical（high）へ整列した**（例: 敵上限 320 → 200・
   `maxMeleeTargetsPerHit` 32 → 24）。バランス計測の正は high なので意図した整列だが、
   ultra 常用者には「敵がやや減った」と見える可能性がある（演出は最大のまま）。
-- **横断ハーネスの限界**: fire / frost の弾ダメージは Scene モックで解決されないため、
-  ジョブ間の絶対 DPS 比較には使えない（`docs/cross-job-balance.md` の documented note）。
+- **横断ハーネスの限界 → M9-A.1 で解消**: 「fire / frost の弾ダメージが Scene モックで解決されない」
+  制約は M9-A.1 の production 駆動ハーネス（`tests/cross-job-harness.mjs`）で解消し、
+  ジョブ間の絶対比較が可能になった（`docs/cross-job-final-balance.md`）。M9-A の旧ハーネス
+  （`cross-job-common.mjs`）は非回帰ハッシュの土台として維持しており、その数値（火:氷 2.72 等）は
+  引き続き見かけ値として扱う（`docs/cross-job-balance.md` の documented note は歴史的記録）。
+- **`great_cleave` の 58→59 分岐は M9-A で解消済み**（上記の記述は M8-F 時点の記録）。
+- **M9-A.1 の性能数値も Node 純ロジックの計算時間**（300 秒相当の survival 3 ジョブで実測 6 秒前後・
+  225 スイート全体で約 6分40秒）。実ブラウザ FPS は browser gate の実測（50〜60fps・20 秒サンプル）が正。
 
 ## Browser verification status
 
-**実ブラウザ（Phaser 実プレイ）確認は本環境では一度も実施していない。** 未実施の項目を「確認済み」と報告しない。
+**M9-A.1 で初めて実ブラウザ（Chromium + 静的配信）での自動検証を実施した。**
+ただし範囲は自動化できた項目だけで、**手入力の実プレイ体感は引き続き未確認**。
+未実施の項目を「確認済み」と報告しない。実施 / 未実施の区別と再現手順は
+`docs/browser-validation-gate.md`（external gate）・記録様式は
+`docs/browser-validation-result-template.md`。
+
+- **実ブラウザで確認済み（M9-A.1・自動化・console エラー合計 0）**:
+  - Phaser **3.90.0** 起動・canvas 生成・8 シーン登録・Title 到達（CDN 固定 URL への要求を確認。
+    網の方針で CDN へ届かないため同一版ファイルで応答・index.html 無変更）。
+  - 3 ジョブの実プレイ各 20 秒（敵湧き / 撃破 / XP / 被弾 / level 進行・実 FPS 50〜60・heap 25〜29MB）。
+  - 4 品質で gameplay 上限が同値（敵 200 / 弾 400 / hitStop 有・skillCap 3 種同値・
+    品質差は damageNumbers / particleBudget のみ）。
+  - 周回途中の品質切替（low→ultra→medium）で周回継続・gameplay 上限不変。
+  - F8 分析パネル開閉と「横断バランス（M9-A.1）」節の表示（gameplay/safety cap 170 件の品質差 0 を実機表示で確認）。
+  - セーブ往復（`autoSave()` → `loadActiveRun()`・save_version 6・jobId 保持）。
+  - 相対パス（リソース 224 件すべて配信元・失敗 0・外部ホスト 0 ＝ GitHub Pages サブパス相当）。
+- **実ブラウザで未確認（external gate に残る）**:
+  - 人間の手入力による実プレイの体感・操作感（ダッシュ / エイム / 近接の当たり判定の体感）。
+  - 10 分以上 / 2 倍速の長時間セッションの FPS・メモリ傾向（自動計測は 20 秒 × 9 周回まで）。
+  - 敵 100 体 + 弾数百発の負荷ピーク時の実 FPS（自動プレイは序盤 20 秒のため密度が低い）。
+  - EvolutionScene / ResultScene を跨ぐ一連の実プレイ・実機（スマートフォン）・GitHub Pages 本番 URL。
+  - 以下の M8 系の体感項目（従来から継続）。
 
 - 検証済み: Node 純ロジック（データ検証・監査・シミュレーション）＋ graphics 対応の最小 Phaser モックによるランタイムスモーク。
   **M8-B で追加した戦士のコードは、ヘッドレスで実際に駆動して命中・闘気・コンボ・体勢・保存まで確認している**
@@ -711,6 +781,29 @@ M8-F は**新しい見た目・新しい操作を 1 つも追加していない*
 
 ## Latest test results
 
+- 実行日時点: Milestone 9-A.1 完了時
+- **テストスイート: 225 件 → 全 225 通過・失敗 0**（`tests/*.mjs` から共通土台
+  `frost-audit-common` / `flame-audit-common` / `warrior-common` / `status-passive-common` /
+  `warrior-draft-sim` / `cap-shape` / `cross-job-common` / `cross-job-harness` / `phaser-stub` と
+  `validate-data.mjs` を除く。`validate.yml` のステップ数は `validate-data` を含め **226**）
+- `node tests/validate-data.mjs` → **0 エラー / 0 警告**（M9-A.1 ブロックを追加）
+- M9-A.1 新規 15 スイート（すべて production 全経路駆動・Node 標準機能のみ）:
+  `cross-job-full-harness`(81) / `cross-job-projectile-resolution`(29) /
+  `cross-job-dot-persistent-resolution`(29) / `cross-job-reactive-stimulus`(36) /
+  `cross-job-boss-profile`(15) / `cross-job-survival-profile`(15) / `cross-job-balance-final`(63) /
+  `cross-job-balance-warning-classification`(27) / `cross-job-quality-full-invariance`(254) /
+  `cross-job-quality-midrun-switch`(78) / `cross-job-balance-determinism`(55) /
+  `cross-job-harness-save-isolation`(52) / `cross-job-harness-cleanup`(74) /
+  `cross-job-browser-gate`(54) / `three-job-balance-harness-nonregression`(17)
+- 共通土台の追加: `tests/cross-job-harness.mjs`（production 駆動ハーネス）・
+  `tests/phaser-stub.mjs`（Phaser プリミティブの最小 stub・ゲームロジックなし）
+- `HEAVY=1` で seed 数（3→5〜7）と profile 数（2→4）が拡張される。
+- **projectile 解決を巻き戻す（弾を即着弾扱い・checkCollisions のモック化）と**
+  `cross-job-projectile-resolution`（命中カバレッジ）と `cross-job-full-harness` §1
+  （prototype 同一性）が必ず落ちる。
+
+### 旧 Latest test results（M9-A）
+
 - 実行日時点: Milestone 9-A 完了時（コミット `01d4e3e`）
 - **テストスイート: 210 件（`tests/*.mjs` から共通土台 `frost-audit-common.mjs` / `flame-audit-common.mjs` /
   `warrior-common.mjs` / `status-passive-common.mjs` / `warrior-draft-sim.mjs` / `cap-shape.mjs` /
@@ -814,8 +907,10 @@ M8-F は**新しい見た目・新しい操作を 1 つも追加していない*
 
 ## Next milestone
 
-**未定（次の指示待ち）。** 3 ジョブの個別監査（M7-E / M8-A / M8-F）と横断監査（M9-A）が完了し、
-共通基盤（品質分離・cap 分類・保存・telemetry・決定論）が SHA-256 で固定された。候補は以下。
+**未定（次の指示待ち）。** 3 ジョブの個別監査（M7-E / M8-A / M8-F）・横断監査（M9-A）・
+横断 balance ハーネス完成と実ブラウザ検証ゲート（M9-A.1）が完了し、共通基盤
+（品質分離・cap 分類・保存・telemetry・決定論・**production 全経路の絶対比較**）が
+SHA-256 で固定された。候補は以下。
 
 1. **火と氷の属性反応** — 炎上⇄冷気/凍結の相互作用（付与時の source element を活用）。
    横断監査で combat path が整理されたので、相互作用の挿入点は明確。
@@ -823,9 +918,10 @@ M8-F は**新しい見た目・新しい操作を 1 つも追加していない*
 3. **周回長の拡張**（10分 / 15分 / 無限モード）・**追加の敵 / ボス / 難易度**。
 4. **4 人目のジョブ** — 3 ジョブぶんの基盤・監査観点・テスト雛形・横断非回帰がそろっている。
    新ジョブの cap は最初から分類つき（visual / gameplay / safety）で追加する。
-5. **実ブラウザでの M7-E 〜 M9-A 手動確認**（`docs/test-guide.md` の該当節）— コード変更を伴わない
-   検証タスク。**M9-A の「同 seed・4 品質で結果が一致し演出だけ変わる」「低品質実機の FPS」の
-   確認価値が特に高い。**
+5. **実ブラウザでの手動確認（外部ゲートの残項目）** — `docs/browser-validation-gate.md` §4 の
+   未確認項目（手入力の体感・10 分 / 2 倍速の長時間・敵 100 体の負荷ピーク・実機）。
+   自動化で確認できる範囲（起動 / 3 ジョブ / 4 品質 / 途中切替 / F8 / セーブ往復 / 相対パス）は
+   M9-A.1 で console エラー 0 を確認済み。
 
 いずれも**指示された範囲のみ**実装し、未指定の先行実装はしない（`CLAUDE.md` の作業手順）。
 

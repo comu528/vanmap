@@ -1004,3 +1004,28 @@ SkillManager.restoreRuntime(obj)
   M9-A 以前に書かれた単調性検査は「4 段階展開ビュー」で意味を変えずに通る。
 - `tests/cross-job-common.mjs` — 3 ジョブを同一条件で実駆動する `runJob()`（gameplay trace 生成）と、
   production SkillDraftManager を任意ジョブで回す汎用 `simDraft()`。Math.random 不使用。
+
+## 横断 balance ハーネス（M9-A.1）
+
+M9-A の横断ハーネスが解決できなかった弾 / DoT / 場 / reactive / 湧き / ボス / XP を、
+**production の `BattleScene.prototype` を Node から直接駆動**して解決した測定基盤。
+構成と原則は `./cross-job-full-balance-harness.md`、比較結果は `./cross-job-final-balance.md`。
+
+- `tests/phaser-stub.mjs` — Phaser が提供するプリミティブ（Math / Geom / GameObject setter /
+  Arcade Body / add / physics）だけの最小 stub。**ゲームロジックを 1 行も持たない**。
+  `stepPhysics()` が Arcade 相当の位置積分（velocity × dt・worldBounds）を行う。
+- `tests/cross-job-harness.mjs` — `Object.create(BattleScene.prototype)` に production の
+  create() と同じ初期化（プール hook は 1 文字も違わない内容）を行い、`scene.update()` を
+  dt 32ms 固定で回す。置換は表示 / 保存 / シーン遷移のみ。
+- 共通 battle profile（normal / elite / boss / survival / stimulus）と共通刺激 timeline
+  （17 イベント）が 3 ジョブへ同一に適用される。
+- ハーネス周回は常に `debugRun`。`RunBalanceSummary.applyRun` の分岐により通常統計
+  （summaryBySkill / recentRuns）へは 1 バイトも入らない。
+- 実ブラウザ検証は `docs/browser-validation-gate.md`（**必須依存を追加しない**外部ゲート）。
+
+### M9-A.1 の観測フィールド（dead key の解消・2 件）
+
+- `CombatTelemetry.status.burningDamage` — `dealDamage` の fire × DoT 命中で発行（従来は発行元なし）。
+- `BattleScene._damageTakenTotal` — `Player.takeDamage` が障壁 / 軽減後の実被弾量を累計（従来は加算なし）。
+
+どちらも観測のみで、damage / 状態 / RNG / 判定順序を変えない。

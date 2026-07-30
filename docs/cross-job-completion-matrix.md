@@ -57,8 +57,20 @@
 非回帰ハッシュ（候補列 100 seed / runtime trace / cap 分類 47-150-20 / gameplayLimits 200-400 /
 カタログ 30-4-18×3 / save v6）は `three-job-system-nonregression.mjs` に固定。
 
-## 6. 横断完成判定
+## 6. 横断バランス（M9-A.1 で追記）
+
+| 検査 | 結果 |
+|------|------|
+| 未解決 damage 経路 / 弾種 / 無反応 reactive | **0 / 0 / 0**（production 全経路駆動・144 skill 全件に utility） |
+| boss kill time（中央値） | 火 7.6s / 戦士 12.5s / 氷 22.2s（3 ジョブとも有限時間で撃破） |
+| warning 分類 | すべて role / profile（**bug / balance = 0 件**・`./cross-job-final-balance.md`） |
+| 品質不変（完全ハーネス + 周回途中切替） | byte-identical 維持 |
+| 実ブラウザ | 自動検証（起動 / 3 ジョブ / 4 品質 / 切替 / F8 / セーブ / 相対パス）console エラー 0。体感は未確認 |
+| 非回帰 | trace / 経路集合 / 測定条件を SHA-256 固定（`three-job-balance-harness-nonregression.mjs`） |
+
+## 7. 横断完成判定
 
 3 ジョブは**カタログ・抽選・runtime・保存・telemetry・性能・品質分離のすべてで同一の共通規則に乗り、
 かつ個性（rarity 構成・資源・状態異常・対ボス手段）は data と記録で明示的に differ する**。
-コードとデータとしては横断完成。実プレイの体感・描画は未確認（`./test-guide.md` M9-A 節）。
+コードとデータとしては横断完成。**M9-A.1 で production 全経路の絶対比較も完成**
+（`./cross-job-final-balance.md`）。実プレイの体感は未確認（`./browser-validation-gate.md` §4）。

@@ -1440,3 +1440,40 @@ node tests/warrior-active-support-evolution.mjs  node tests/warrior-draft-determ
 > **注記**: 上記はいずれも**本環境では未実施**。Node の 210 スイートは gameplay trace の
 > byte-identical・RNG cursor 一致・visual cap の削減までを production クラスの実測で確認しているが、
 > **実描画・FPS・メモリ・体感は Phaser 依存のため計測していない**。
+
+## Milestone 9-A.1: 横断 balance ハーネス・実ブラウザ検証ゲート
+
+### A. Node（自動・実施済み）
+
+```
+node tests/validate-data.mjs                              # 0 エラー / 0 警告（M9-A.1 ブロック含む）
+node tests/cross-job-full-harness.mjs                     # production prototype 駆動の機械検査
+node tests/cross-job-projectile-resolution.mjs            # 弾の命中・全弾種カバレッジ
+node tests/cross-job-dot-persistent-resolution.mjs        # DoT / 場 / 遅延 / 起爆 / 氷砕 / 体勢
+node tests/cross-job-reactive-stimulus.mjs                # 共通刺激 timeline で reactive 全反応
+node tests/cross-job-boss-profile.mjs                     # boss kill time（3 ジョブとも撃破）
+node tests/cross-job-survival-profile.mjs                 # 生存 / 被弾 / 回復
+node tests/cross-job-balance-final.mjs                    # 4 profile の比較表と構造異常 0
+node tests/cross-job-balance-warning-classification.mjs   # warning の分類（bug / balance = 0）
+node tests/cross-job-quality-full-invariance.mjs          # 4 品質 byte-identical（完全ハーネス）
+node tests/cross-job-quality-midrun-switch.mjs            # 周回途中切替でも不変
+node tests/cross-job-balance-determinism.mjs              # 同 seed 完全一致・Math.random 不使用
+node tests/cross-job-harness-save-isolation.mjs           # debugRun 分離・ストレージ書き込み 0
+node tests/cross-job-harness-cleanup.mjs                  # プール上限 / グリッド残留 / 長時間
+node tests/cross-job-browser-gate.mjs                     # ゲート文書と必須依存 0 の機械検査
+node tests/three-job-balance-harness-nonregression.mjs    # SHA-256 固定
+HEAVY=1 node tests/cross-job-balance-final.mjs            # seed / profile 拡張版
+```
+
+### B. 実ブラウザ（自動化で実施済みの範囲と、未実施の範囲）
+
+実施済み（console エラー 0・詳細は `./browser-validation-gate.md` §3）:
+起動 / Title 到達 / 3 ジョブ実プレイ 20 秒 / 4 品質の gameplay 上限同値 / 周回途中の品質切替 /
+F8 分析（横断バランス節）/ セーブ往復（v6）/ 相対パス（失敗 0）。
+
+未実施（手動での確認項目・`./browser-validation-gate.md` §2 の手順で実施し §4 を更新する）:
+
+- [ ] 手入力での実プレイ体感（移動 / ダッシュ / 近接の当たり判定・各 60 秒以上）。
+- [ ] 10 分 / 2 倍速の長時間セッションで FPS・メモリの傾向。
+- [ ] 敵 100 体 + 弾数百発の負荷ピークで FPS ≥ 30。
+- [ ] EvolutionScene / ResultScene を跨ぐ一連のプレイと GitHub Pages 本番 URL。

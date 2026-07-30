@@ -86,11 +86,14 @@
 
 - `validate-data`: **0 エラー / 0 警告**。
 - 火 / 氷の既知 warning（`FROST_EVOLUTION_LOW_RATE` ほか）は per-job docs の記録どおり（変更なし）。
-- ヘッドレスの限界（documented note）:
-  - fire / frost の弾ダメージは Scene モックでは解決されないため、**ジョブ間の絶対 DPS 比較には使えない**
-    （`./cross-job-balance.md`）。
-  - reactive スキル（火 5 / 氷 1）は横断ハーネスでは発動刺激が無い（per-job スイートが実駆動済み）。
-- **実ブラウザ（描画 / FPS / メモリ / 体感）は未確認**。`./test-guide.md` の M9-A 節を参照。
+- ヘッドレスの限界（documented note）→ **M9-A.1 で解消**:
+  - 「fire / frost の弾ダメージが Scene モックで解決されない」「reactive に刺激が無い」の 2 点は、
+    production 駆動の完全ハーネス（`./cross-job-full-balance-harness.md`）で解消した。
+    絶対比較の正は `./cross-job-final-balance.md`。本ファイルと `./cross-job-balance.md` の
+    M9-A 時点の数値は歴史的記録として残す。
+- **実ブラウザ**: M9-A.1 で自動化できる範囲（起動 / 3 ジョブ / 4 品質 / 途中切替 / F8 / セーブ往復 /
+  相対パス）は console エラー 0 で確認済み。**手入力の体感・長時間・高負荷ピークは未確認**
+  （`./browser-validation-gate.md`）。
 
 ## 6. 追加 / 変更したファイル（実装）
 

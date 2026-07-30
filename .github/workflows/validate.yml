@@ -493,3 +493,33 @@ jobs:
         run: node tests/cross-job-determinism.mjs
       - name: Three job system non-regression tests
         run: node tests/three-job-system-nonregression.mjs
+      - name: Cross-job full harness tests (M9-A.1)
+        run: node tests/cross-job-full-harness.mjs
+      - name: Cross-job projectile resolution tests (M9-A.1)
+        run: node tests/cross-job-projectile-resolution.mjs
+      - name: Cross-job DoT persistent resolution tests (M9-A.1)
+        run: node tests/cross-job-dot-persistent-resolution.mjs
+      - name: Cross-job reactive stimulus tests (M9-A.1)
+        run: node tests/cross-job-reactive-stimulus.mjs
+      - name: Cross-job boss profile tests (M9-A.1)
+        run: node tests/cross-job-boss-profile.mjs
+      - name: Cross-job survival profile tests (M9-A.1)
+        run: node tests/cross-job-survival-profile.mjs
+      - name: Cross-job balance final tests (M9-A.1)
+        run: node tests/cross-job-balance-final.mjs
+      - name: Cross-job balance warning classification tests (M9-A.1)
+        run: node tests/cross-job-balance-warning-classification.mjs
+      - name: Cross-job quality full invariance tests (M9-A.1)
+        run: node tests/cross-job-quality-full-invariance.mjs
+      - name: Cross-job quality mid-run switch tests (M9-A.1)
+        run: node tests/cross-job-quality-midrun-switch.mjs
+      - name: Cross-job balance determinism tests (M9-A.1)
+        run: node tests/cross-job-balance-determinism.mjs
+      - name: Cross-job harness save isolation tests (M9-A.1)
+        run: node tests/cross-job-harness-save-isolation.mjs
+      - name: Cross-job harness cleanup tests (M9-A.1)
+        run: node tests/cross-job-harness-cleanup.mjs
+      - name: Cross-job browser gate tests (M9-A.1)
+        run: node tests/cross-job-browser-gate.mjs
+      - name: Three job balance harness non-regression tests (M9-A.1)
+        run: node tests/three-job-balance-harness-nonregression.mjs

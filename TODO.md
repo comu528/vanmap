@@ -1217,13 +1217,47 @@ balance を横断監査した回。
 
 ---
 
+## Milestone 9-A.1: 横断 balance ハーネス完成・実ブラウザ検証ゲート（完了）
+
+**新コンテンツ 0 件・バランス値 / guidance / しきい値の変更 0 件・save_version v6 維持。**
+
+- [x] **M9-A の未解決経路を全解消**: production の `BattleScene.prototype` / `SpawnManager` / `Boss` /
+      `Projectile` プールを Node から直接駆動する完全ハーネス（`tests/cross-job-harness.mjs` +
+      `tests/phaser-stub.mjs`）。弾（貫通 / 帰還 / 周回 / ホーミング / 爆発 / 連鎖 / 跳弾 / 分裂 /
+      二次世代 / 反射）・DoT / 場 / 遅延・reactive・death event / XP / level-up まで
+      **未解決 damage 経路 0**。独自 damage 式 / 即着弾 / 回数推測 / Math.random / 品質分岐なし
+      （機械検査つき・`docs/cross-job-full-balance-harness.md`）。
+- [x] **共通 battle profile 5 種**（normal / elite / boss / survival / stimulus）で 3 ジョブを
+      同一条件で絶対比較。boss kill time 中央値: 火 7.6s / 戦士 12.5s / 氷 22.2s。
+      死にスキル 0・zero utility 0（144 skill 全件）・warning はすべて role / profile に分類
+      （**bug / balance 分類 0 件**・`docs/cross-job-final-balance.md`）。
+- [x] **品質不変性を完全ハーネスで再監査**: 4 品質 × 全 profile + 周回途中切替で byte-identical。
+- [x] **実ブラウザ検証（自動化・必須依存の追加 0）**: 起動 / 3 ジョブ実プレイ / 4 品質上限同値 /
+      品質途中切替 / F8 / セーブ往復 v6 / 相対パス = **console エラー合計 0**。
+      未確認（手入力の体感・長時間・高負荷ピーク）は `docs/browser-validation-gate.md` の
+      external gate へ区別して記録（手順 + `docs/browser-validation-result-template.md`）。
+- [x] **観測の dead key 2 件を最小修正**（`burningDamage` 発行元なし / `_damageTakenTotal` 加算なし。
+      gameplay / RNG 不変）。F8 分析へ「横断バランス（M9-A.1）」節を追加（表示のみ）。
+- [x] **テスト 15 スイート追加で全 225 通過**・validate.yml 226 ステップ・validate-data へ
+      M9-A.1 ブロック（**0 エラー 0 警告**）・trace / 経路集合 / 測定条件を SHA-256 固定。
+
+### M9-A.1 で**実装しない**もの（対象外）
+- [ ] 新 active / passive / 進化 / ジョブ・属性反応・転生レガシー・装備・新敵 / ボス / 難易度
+- [ ] 3 ジョブの数値均一化・大規模 balance 変更・rarity 全面変更
+- [ ] Playwright 等の必須依存化・npm / build 必須化・save_version の不要更新
+
+> **実ブラウザの残項目**: 手入力の実プレイ体感・10 分 / 2 倍速の長時間・敵 100 体の負荷ピークは
+> **未確認**。`docs/browser-validation-gate.md` §2 の手順で実施し §4 を更新すること。
+
+---
+
 ### 次のマイルストーン候補
 - [ ] **火と氷の属性反応**（炎上⇄冷気/凍結の相互作用・付与時の source element を活用）
 - [ ] **転生レガシー / ジョブ間継承**（`futureInheritanceSettings` / `extraAllowedIds` が拡張口）
 - [ ] **周回長の拡張**（10分 / 15分 / 無限モード）・**追加の敵 / ボス / 難易度**
 - [ ] **4 人目のジョブ**（3 ジョブぶんの基盤・横断監査・テスト雛形がそろっている）
-- [ ] **実ブラウザでの M7-E 〜 M9-A 手動確認**（コード変更を伴わない検証タスク。
-      M9-A の「4 品質で結果が一致し演出だけ変わる」確認価値が特に高い）
+- [ ] **実ブラウザでの手動確認（外部ゲートの残項目）** — `docs/browser-validation-gate.md` §4
+      （手入力の体感・長時間・負荷ピーク・実機。自動化できる範囲は M9-A.1 で確認済み）
 
 ---
 

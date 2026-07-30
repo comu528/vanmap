@@ -171,3 +171,10 @@ trap / field tick / wave / barrage / mark 起爆 / shatter / frostbreak / status
 - **cdLeft の改ざん耐性**が `SkillManager.restoreRuntime` の共通入口として全 48 スキルへ適用された
   （正当なセーブの復元結果は不変）。
 - 詳細は `./cross-job-system-audit.md` / `./quality-cap-classification.md`。
+
+---
+
+> **M9-A.1 追記**: 本監査の後、3 ジョブ横断の production 全経路ハーネス（弾 / DoT / 場 / reactive /
+> ボス / XP まで解決）が完成し、ジョブ間の絶対比較と warning 分類が
+> `docs/cross-job-final-balance.md` に記録された（本ジョブのバランス値の変更は 0 件）。
+> ハーネスの構成は `docs/cross-job-full-balance-harness.md`。

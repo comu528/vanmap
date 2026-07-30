@@ -2647,6 +2647,101 @@ if (jobProgData) {
   } catch { err('M9-A: README.md を読めない'); }
 }
 
+// --- M9-A.1: 横断 balance ハーネス完成・実ブラウザ検証ゲート ---
+{
+  const ROOT91 = join(__dirname, '..');
+  const rd91 = (p) => { try { return readFileSync(join(ROOT91, p), 'utf8'); } catch { return null; } };
+  const bal = loadJson('balance.json');
+  const jobsAll = ((loadJson('jobs.json') || {}).jobs) || [];
+
+  // 1. カタログ不変（M9-A.1 は新コンテンツ 0 件）。
+  for (const jid of ['flame_witch', 'frost_mage', 'warrior']) {
+    const j = jobsAll.find((x) => x.id === jid) || {};
+    if ((j.activeSkillPool || []).length !== 30 || (j.passiveSkillPool || []).length !== 4 || (j.evolutionPool || []).length !== 18) {
+      err(`M9-A.1: ${jid} のカタログが 30/4/18 でない（新コンテンツ追加は禁止）`);
+    }
+  }
+
+  // 2. save_version v6 維持。
+  if (bal && bal.saveVersion !== 6) err(`M9-A.1: saveVersion が 6 でない (${bal && bal.saveVersion})`);
+
+  // 3. ハーネスとテストの実在（full harness / projectile / DoT / reactive / boss / survival /
+  //    quality full trace / mid-run switch / save isolation / determinism / cleanup /
+  //    warning 分類 / browser gate / 非回帰）。
+  const suites91 = [
+    'cross-job-harness.mjs', 'phaser-stub.mjs',
+    'cross-job-full-harness.mjs', 'cross-job-projectile-resolution.mjs',
+    'cross-job-dot-persistent-resolution.mjs', 'cross-job-reactive-stimulus.mjs',
+    'cross-job-boss-profile.mjs', 'cross-job-survival-profile.mjs',
+    'cross-job-balance-final.mjs', 'cross-job-balance-warning-classification.mjs',
+    'cross-job-quality-full-invariance.mjs', 'cross-job-quality-midrun-switch.mjs',
+    'cross-job-balance-determinism.mjs', 'cross-job-harness-save-isolation.mjs',
+    'cross-job-harness-cleanup.mjs', 'cross-job-browser-gate.mjs',
+    'three-job-balance-harness-nonregression.mjs',
+  ];
+  for (const f of suites91) if (!existsSync(join(ROOT91, 'tests', f))) err(`M9-A.1: tests/${f} が無い`);
+
+  // 4. ハーネスが production 準拠であること（独自 damage 式 / Math.random / 品質分岐の禁止）。
+  {
+    const h = rd91('tests/cross-job-harness.mjs');
+    if (!h) err('M9-A.1: tests/cross-job-harness.mjs を読めない');
+    else {
+      const stripped = h.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+      if (stripped.includes('Math.random')) err('M9-A.1: ハーネスに Math.random がある');
+      if (!/BattleScene\.prototype/.test(h)) err('M9-A.1: ハーネスが BattleScene.prototype を駆動していない');
+      if (!/new M\.SpawnManager\(scene\)/.test(h)) err('M9-A.1: ハーネスが production の SpawnManager を使っていない');
+      if (!/debugRun: true/.test(h)) err('M9-A.1: ハーネスの telemetry が debugRun でない');
+      if (/import[^\n]*SaveManager/.test(h)) err('M9-A.1: ハーネスが SaveManager を import している（セーブ隔離違反）');
+    }
+    const stub = rd91('tests/phaser-stub.mjs');
+    if (stub) {
+      const s2 = stub.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+      if (s2.includes('Math.random')) err('M9-A.1: phaser-stub に Math.random がある');
+    }
+  }
+
+  // 5. 未解決経路 0 の宣言が docs と一致し、実装の裏づけ（burningDamage 発行元）がある。
+  {
+    const doc = rd91('docs/cross-job-full-balance-harness.md');
+    if (!doc) err('M9-A.1: docs/cross-job-full-balance-harness.md が無い');
+    else {
+      if (!/推測による置換はしていない/.test(doc)) err('M9-A.1: ハーネス docs に非推測の原則が無い');
+      if (!doc.includes('burningDamage')) err('M9-A.1: ハーネス docs に burningDamage 修正の記録が無い');
+      if (!doc.includes('_damageTakenTotal')) err('M9-A.1: ハーネス docs に _damageTakenTotal 修正の記録が無い');
+    }
+    const fin = rd91('docs/cross-job-final-balance.md');
+    if (!fin) err('M9-A.1: docs/cross-job-final-balance.md が無い');
+    else {
+      if (!/未解決の damage 経路[^|]*\|\s*0/.test(fin)) err('M9-A.1: 最終比較 docs に unresolved damage path 0 の記録が無い');
+      if (!/balance 変更(は)?\s*0\s*件/.test(fin)) err('M9-A.1: 最終比較 docs に balance 変更 0 件の明記が無い');
+      for (const k of ['DPS_RATIO', 'BOSS_KILL_TIME_RATIO', 'SURVIVAL_DIFF', 'TOP_SHARE']) {
+        if (!fin.includes(k)) err(`M9-A.1: warning 分類 ${k} が docs に無い`);
+      }
+    }
+    const bs = rd91('src/scenes/BattleScene.js');
+    if (bs && !/noteStatusEvent\('burningDamage'/.test(bs)) err('M9-A.1: burningDamage の発行元が無い（dead key へ回帰）');
+    const pl = rd91('src/entities/Player.js');
+    if (pl && !/_damageTakenTotal/.test(pl)) err('M9-A.1: Player.takeDamage が被弾量を集計していない（dead field へ回帰）');
+  }
+
+  // 6. 実ブラウザ検証ゲート（documented external gate）。
+  {
+    const g = rd91('docs/browser-validation-gate.md');
+    if (!g) err('M9-A.1: docs/browser-validation-gate.md が無い');
+    else {
+      if (!/未確認/.test(g)) err('M9-A.1: browser gate に未確認項目の記録が無い');
+      if (!/必須依存/.test(g)) err('M9-A.1: browser gate に「必須依存を追加しない」原則が無い');
+    }
+    if (!existsSync(join(ROOT91, 'docs', 'browser-validation-result-template.md'))) {
+      err('M9-A.1: docs/browser-validation-result-template.md が無い');
+    }
+    // 必須依存の混入検知（npm / build / Playwright をリポジトリへ入れない）。
+    for (const f of ['package.json', 'package-lock.json', 'playwright.config.js', 'playwright.config.ts']) {
+      if (existsSync(join(ROOT91, f))) err(`M9-A.1: ${f} が存在する（npm / build / Playwright の必須化は禁止）`);
+    }
+  }
+}
+
 // --- report ---
 if (warnings.length) {
   console.log('--- 警告 ---');

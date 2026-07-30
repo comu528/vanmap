@@ -683,3 +683,26 @@ HEAVY=1 node tests/cross-job-quality-gameplay-invariance.mjs   # 長時間版
   逆に「品質で結果が変わったら回帰」なので、invariance テストが常時それを検知する。
 - ジョブ間比較の読み方と限界（fire / frost の弾未解決・warrior の別尺度）は
   `./cross-job-balance.md` の documented note を参照。ジョブ間 DPS 比は回帰フェンス（≤4.0）のみ。
+
+## Milestone 9-A.1: 完全ハーネスでの絶対比較
+
+M9-A の documented note（fire / frost の弾未解決・warrior 別尺度・DPS 比は回帰フェンスのみ）は
+**M9-A.1 で解消した**。production 全経路を駆動する `tests/cross-job-harness.mjs` により、
+3 ジョブの DPS / boss kill time / 生存力を同一条件で絶対比較できる。
+
+### 回すコマンド
+
+```
+node tests/cross-job-balance-final.mjs                    # 4 profile 比較表・構造異常 0
+node tests/cross-job-balance-warning-classification.mjs   # warning 分類（bug / balance = 0）
+node tests/cross-job-quality-full-invariance.mjs          # 完全ハーネスで 4 品質一致
+node tests/three-job-balance-harness-nonregression.mjs    # SHA-256 固定
+HEAVY=1 node tests/cross-job-balance-final.mjs            # seed / profile 拡張
+```
+
+### 読み方
+
+- 比較の正は `./cross-job-final-balance.md`。ジョブ間比率の超過はすべて role / profile に分類済みで、
+  **balance 変更の根拠にしない**（暴走検知フェンスは DPS ≤ 6.0 / boss kill ≤ 6.0）。
+- 旧ハーネス（`cross-job-common.mjs` の `runJob()`）は品質不変性・非回帰ハッシュの土台として残る。
+  その DPS 値は見かけ値なので比較には使わない。

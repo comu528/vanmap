@@ -87,7 +87,20 @@ M8-F が記録した `great_cleave` の分岐を production 経路（`SkillManag
 - `CombatTelemetry.run.quality` は表示用ヘッダとして残る（集計値へは影響しない —
   `cross-job-telemetry.mjs` §2 で quality 以外の全キー一致を確認）。
 
-## 7. 実ブラウザ未確認
+## 7. M9-A.1 での再監査（完全ハーネス）
 
-上記はすべて Node 純ロジック＋最小モックの実測。**実描画・実 FPS・実プレイの体感は未確認**。
-手順は `./test-guide.md` の Milestone 9-A 節（同 seed・同 save で 4 品質を実プレイ比較）。
+M9-A の検証は Scene モック上だった。M9-A.1 で production 全経路
+（弾の命中 / DoT / 場 / reactive / 湧き / ボス / XP / 死亡）を駆動する完全ハーネスでも再確認した:
+
+- **4 品質 × 3 ジョブ × 全 profile で gameplay trace が byte-identical**
+  （`tests/cross-job-quality-full-invariance.mjs`・254 assertions。trace には skills / kills / level /
+  HP / boss HP / status RNG cursor / 資源 / runtime / pools / deathEvents / telemetry を含む）。
+- **周回途中の切替（low→ultra→medium）でも不変**（`cross-job-quality-midrun-switch.mjs`・78 件。
+  pending gameplay event が消えない・切替後は visual だけ変わる）。
+- 実ブラウザでも 4 品質で gameplay 上限（敵 200 / 弾 400 / hitStop / skillCap）が同値なことを
+  自動検証で確認（`./browser-validation-gate.md` §3・console エラー 0）。
+
+## 8. 実ブラウザで未確認の範囲
+
+Node と自動化で確認したのは上記まで。**手入力の実プレイ体感・長時間の FPS / メモリは未確認**。
+手順は `./browser-validation-gate.md` §2（同 seed・同 save で 4 品質を実プレイ比較）。

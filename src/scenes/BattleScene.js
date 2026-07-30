@@ -243,6 +243,7 @@ export class BattleScene extends Phaser.Scene {
     this.eliteKills = 0; // M6-C: エリート撃破数（ジョブXP計算に使用）
     this.bossKills = 0;
     this.maxHit = 0;
+    this._damageTakenTotal = 0; // M9-A.1: 実被弾量の累計（Player.takeDamage が加算・観測のみ）
     this.autoMove = !!this.settings.autoMove;
     this.paused = false;
     this.gameOver = false;
@@ -1226,6 +1227,13 @@ export class BattleScene extends Phaser.Scene {
     if (skillId) { this.skills.recordDamage(skillId, dealt); this.skills.recordHit(skillId); }
     if (dealt > this.maxHit) this.maxHit = dealt;
     if (element === 'ice' && this.telemetry) this.telemetry.noteStatusEvent('iceDamage', dealt);
+    // M9-A.1: 炎上 / DoT ダメージのテレメトリ。iceDamage と対称の位置に置く。
+    // burningDamage は CombatTelemetry が宣言し F8 が表示していたが、**発行元が無い dead key** だった。
+    // 炎上はマーカーで、継続ダメージ自体は各スキルが tag:'dot' で与える設計（M6-E 以来）なので、
+    // 火属性の DoT 命中を集計する。**観測のみで damage / 状態 / RNG には一切影響しない。**
+    if (element === 'fire' && this.telemetry && (opts.isDoT || opts.tag === 'dot')) {
+      this.telemetry.noteStatusEvent('burningDamage', dealt);
+    }
 
     if (!opts.quiet) this.effects.damageNumber(target.x, target.y - (target.isBoss ? 20 : 6), Math.round(dealt), !!opts.crit);
     if (!target.isBoss) this.effects.enemyFlash(target);
@@ -3575,12 +3583,59 @@ export class BattleScene extends Phaser.Scene {
       if (w.deflectWindows > 0 && w.deflectSeen === 0) B.push('⚠ 刃返しの窓は開くが弾を 1 度も検知していない');
       if (w.deflected > 0 && w.reflectedSpawned === 0 && ownedIds.includes('heaven_mirror_reversal')) B.push('⚠ 天鏡返しだが反射弾が 0');
     }
+    // M9-A.1: 横断バランスハーネス（Node）の測定軸を、実プレイ中の同じ軸で並べて確認できるようにする。
+    // 表示のみ・profile も統計も変更しない（?debug=1 のパネル内なので通常プレイには出ない）。
+    B.push(...this.crossJobBalanceReport(stats, total, ownedIds, evolved));
     B.push('— 性能 / 上限 —');
     B.push(`抑制/f ${(this._mLast || this._m).suppressed}  索引上限 ${JSON.stringify(sfx ? sfx.capReached() : {})}`);
     B.push(`表示上限到達 ${JSON.stringify(this.statusVisuals ? this.statusVisuals.capReached() : {})}`);
     B.push(`この周回は debugRun: ${this._debugRun ? 'はい（通常統計へ記録しない）' : 'いいえ'}`);
     B.push('※ 分析はローカル表示のみ。外部送信しません。');
     return [A.join('\n'), B.join('\n')];
+  }
+
+  // M9-A.1: 横断バランス（実プレイ側の実測）。docs/cross-job-final-balance.md と同じ軸で並べる。
+  // **表示専用**。ここから戦闘状態・profile・統計・RNG を触らない。
+  crossJobBalanceReport(stats, total, ownedIds, evolved) {
+    const L = [];
+    const sec = Math.max(0.001, this.timeSec || 0);
+    const w = this.warrior && this.warrior.enabled ? this.warrior.summary() : null;
+    const q = this.settings.effectQuality;
+    L.push('— 横断バランス（M9-A.1・この周回の実測）—');
+    L.push(`DPS ${Math.round(total / sec)}（総${Math.round(total)} / ${sec.toFixed(0)}s） 最大単発 ${Math.round(this.maxHit)}`);
+    L.push(`撃破 通常${this.kills} エリート${this.eliteKills} ボス${this.bossKills}`
+      + (this.bossKills > 0 ? ` ボス撃破 ${sec.toFixed(0)}s` : (this.boss && this.boss.alive ? ` ボス残${Math.round(this.boss.hp)}/${Math.round(this.boss.maxHp)}` : '')));
+    L.push(`被ダメージ ${Math.round(this._damageTakenTotal || 0)} 回復 ${w ? Math.round(w.recoveryAmount + w.killHeal) : 0}`
+      + ` 軽減 ${w ? Math.round(w.mitigationAmount) : 0} 生存 ${sec.toFixed(0)}s HP ${Math.round(this.player.hp)}/${this.player.maxHp}`);
+    // top share / 死にスキル / reactive utility（damage 0 でも extra があれば「生きている」）。
+    const top = stats.slice().sort((a, b) => (b.damage || 0) - (a.damage || 0))[0];
+    L.push(`最大シェア ${top ? `${top.id} ${((top.damage || 0) / total * 100).toFixed(1)}%` : '-'}`);
+    const dead = [], reactive = [];
+    for (const id of new Set(ownedIds.concat(evolved))) {
+      const st = stats.find((s) => s.id === id);
+      const ex = (st && st.extra) || {};
+      const exSum = Object.values(ex).reduce((n, v) => n + (typeof v === 'number' ? v : 0), 0);
+      if (!st || ((st.casts || 0) === 0 && (st.damage || 0) === 0 && exSum === 0)) dead.push(id);
+      else if ((st.damage || 0) === 0 && (st.hits || 0) === 0 && exSum > 0) reactive.push(id);
+    }
+    L.push(`未発動 ${dead.length}${dead.length ? `（${dead.slice(0, 6).join(' ')}${dead.length > 6 ? '…' : ''}）` : ''}`);
+    L.push(`damage0 だが utility あり ${reactive.length}${reactive.length ? `（${reactive.slice(0, 6).join(' ')}）` : ''}`);
+    L.push(`cast>0 hit0 ${stats.filter((s) => (s.casts || 0) > 0 && (s.hits || 0) === 0).length} 件`);
+    // 未解決の弾（実ブラウザでは全て解決される。Node ハーネスとの差分確認用）。
+    L.push(`弾 生成${this.projPool.createdCount} 再利用${this.projPool.reusedCount} 現存${this.projPool.activeCount}`
+      + ` / 敵弾${this.bossBulletPool.createdCount} — 実ブラウザでは未解決 0`);
+    // 品質 trace: gameplay cap が品質非依存であることを、この周回の実値で見せる。
+    const cls = DataManager.skillCapClasses || {};
+    const gp = Object.keys(cls).filter((k) => cls[k] === 'gameplay' || cls[k] === 'safety');
+    const varying = gp.filter((k) => {
+      const a = DataManager.skillCap(k, 'low', null), b = DataManager.skillCap(k, 'ultra', null);
+      return a !== b;
+    });
+    L.push(`品質 ${q}: 敵上限${this.effSettings.maxEnemies} 弾上限${this.effSettings.maxProjectiles} hitStop${this.effSettings.hitStop ? '有' : '無'}`);
+    L.push(`gameplay/safety cap ${gp.length} 件中 品質で変わるもの ${varying.length} 件（0 が正常）`);
+    if (varying.length) L.push(`⚠ 品質依存の gameplay cap: ${varying.slice(0, 4).join(' ')}`);
+    L.push('検証ゲート: docs/browser-validation-gate.md / 比較: docs/cross-job-final-balance.md');
+    return L;
   }
 
   // 検証開始: 一時状態のみを初期化して新しい検証周回を始める（profile は不変・debugRun）。
@@ -3610,7 +3665,7 @@ export class BattleScene extends Phaser.Scene {
     // プレイヤー進行リセット（HP/レベル/XP）。位置はそのまま。
     this.player.hp = this.player.maxHp; this.player.level = 1; this.player.xp = 0;
     this.player.xpToNext = DataManager.balance.leveling.baseXpToLevel || 5;
-    this.timeSec = 0; this.kills = 0; this.eliteKills = 0; this.bossKills = 0; this.maxHit = 0;
+    this.timeSec = 0; this.kills = 0; this.eliteKills = 0; this.bossKills = 0; this.maxHit = 0; this._damageTakenTotal = 0;
 
     // 枠・候補・難易度・速度・seed・戦闘時間の上書き。
     if (ov.activeSlots) this.activeSlotsMax = ov.activeSlots;
