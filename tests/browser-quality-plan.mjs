@@ -51,7 +51,10 @@ section('3. gameplay が 4 品質で同水準（実ブラウザは実時間 delt
     ok(Math.max(...caps) - Math.min(...caps) <= 5,
       `${j}: 4 品質の採取時刻が ±5 秒で揃っている（${caps.map((x) => Math.round(x)).join('/')}）`);
     ok(Math.min(...caps) >= 150, `${j}: 採取時刻が 150 ゲーム秒以上（${Math.round(Math.min(...caps))}）`);
-    for (const k of ['level', 'kills', 'damage', 'casts', 'hits', 'xp']) {
+    // ★ level / xp は品質比較に使わない。実測で同 seed・同 build・同品質でも Lv1〜Lv10 まで振れた
+    //   （オート移動の経路次第で XP 玉の回収量が大きく変わる。撃破数 277〜285 は安定していた）。
+    //   品質依存ではない run 間分散なので、安定して観測できる量だけで比較する。
+    for (const k of ['kills', 'damage', 'casts', 'hits']) {
       const vals = rs.map((x) => x.gameplay[k]);
       const lo = Math.min(...vals), hi = Math.max(...vals);
       const spread = lo > 0 ? (hi - lo) / lo : (hi === 0 ? 0 : 1);
@@ -83,12 +86,22 @@ for (const j of JOB_IDS) {
   info(`${j}: 表示オブジェクト最大 low ${by.low.visual.maxDisplayObjects} / medium ${by.medium.visual.maxDisplayObjects} / high ${by.high.visual.maxDisplayObjects} / ultra ${by.ultra.visual.maxDisplayObjects}`);
 }
 
+section('5.5 XP 回収量の run 間分散を記録している（品質差ではない）');
+{
+  const lv = R.quality.map((q) => q.gameplay.level);
+  const gemNote = R.qualityComparison.levelVarianceNote;
+  info(`到達 Lv の分布: ${lv.join('/')}`);
+  ok(typeof gemNote === 'string' && gemNote.length > 20,
+    'level / xp を品質比較に使わない理由が記録されている');
+  ok(/オート移動|autoMove|回収/.test(gemNote), '理由がオート移動の回収経路であることを明示している');
+}
+
 section('6. 低品質で gameplay イベントが「減って」いない（一方向の劣化が無い）');
 for (const j of JOB_IDS) {
   const by = Object.fromEntries(R.quality.filter((x) => x.job === j).map((x) => [x.quality, x]));
   const tol = R.qualityComparison.tolerance;
   for (const k of ['casts', 'hits', 'kills', 'damage']) {
-    const lowV = by.low.gameplay[k], ultraV = by.ultra.gameplay[k];
+    const lowV = by.low.gameplay[k], ultraV = by.ultra.gameplay[k];  // level / xp は含めない
     ok(lowV >= ultraV * (1 - tol), `${j}: ${k} が low で系統的に減っていない（low ${lowV} / ultra ${ultraV}）`);
   }
 }
