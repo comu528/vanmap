@@ -49,13 +49,16 @@ for (const r of R.stress) {
   ok(typeof r.statusIndex === 'number', `${tag}: 状態索引 ${r.statusIndex} を記録`);
 }
 
-section('5. heap が単調増加しない');
+section('5. heap が単調増加しない（GC が効いている）');
 for (const r of R.stress) {
   const tag = `${r.job}/${r.quality}`;
-  ok(typeof r.heap.start === 'number' && typeof r.heap.end === 'number', `${tag}: heap 開始 ${r.heap.start}MB / 終了 ${r.heap.end}MB`);
-  const growth = r.heap.end - r.heap.start;
-  ok(growth <= Math.max(80, r.heap.start), `${tag}: heap 増加 ${growth}MB が許容内`);
-  ok(r.heap.monotonic === false, `${tag}: heap が単調増加していない（GC が効いている）`);
+  // ★ start / end の 1 サンプル比較は GC のタイミング次第で大きく振れるので使わない。
+  //   見るのは「単調増加でない」「上限内に収まる」「前半と後半の中央値が跳ね上がらない」。
+  ok(typeof r.heap.max === 'number' && r.heap.max > 0, `${tag}: heap ピーク ${r.heap.max}MB / 谷 ${r.heap.min}MB`);
+  ok(r.heap.monotonic === false, `${tag}: heap が単調増加していない`);
+  ok(r.heap.max <= 400, `${tag}: heap ピークが 400MB 以内（${r.heap.max}MB）`);
+  ok(r.heap.secondHalfMedian <= r.heap.firstHalfMedian * 2 + 20,
+    `${tag}: 後半の heap 中央値が前半の 2 倍以内（${r.heap.firstHalfMedian} → ${r.heap.secondHalfMedian}MB）`);
 }
 
 section('6. cleanup 残留 0');
