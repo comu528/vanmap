@@ -118,9 +118,10 @@ export class BattleScene extends Phaser.Scene {
     const enemyCapAdd = reinc.enemyCapAdd || 0;
     const effectCapAdd = reinc.effectCapAdd || 0;
     this.enemyCapAdd = enemyCapAdd;
+    this.effectCapAdd = effectCapAdd;   // M9-A.2: 品質を周回中に変えたとき再計算するため保持する
     this.effSettings.maxEnemies += enemyCapAdd;
     this.effSettings.maxProjectiles += effectCapAdd;
-    this.particleBudget = (DataManager.combatCaps.particleBudget?.[quality] || 200) + effectCapAdd;
+    this._applyParticleBudget();
 
     // プレイヤー（恒久強化を反映）
     const pcfg = { ...bal.player, baseXpToLevel: bal.leveling.baseXpToLevel };
@@ -2651,7 +2652,21 @@ export class BattleScene extends Phaser.Scene {
   // 一時停止メニューから設定を反映する（PauseMenu から呼ばれる）。
   applyEffectSettings() {
     this.effSettings = resolveEffectSettings(DataManager.balance, this.settings);
+    // M9-A.2: 周回中に品質を変えると effSettings は作り直されるが、**粒子予算だけ create() の値のまま**
+    // 残っていた（low で始めて ultra へ切り替えても粒子が増えない / その逆も減らない）。
+    // gameplay へは影響しない演出専用の値だが、品質の切替が片側だけ効くのは一貫していないので揃える。
+    // 恒久強化ぶん（魂炎「エフェクト限界突破」）は create() と同じく加算する。
+    this._applyParticleBudget();
+    // 敵 / 弾のプール上限は gameplayLimits 由来（品質非依存）。作り直した effSettings へ再適用する。
+    this.effSettings.maxEnemies += this.enemyCapAdd || 0;
+    this.effSettings.maxProjectiles += this.effectCapAdd || 0;
     this.effects.setSettings(this.effSettings);
+  }
+
+  // 粒子予算 = 品質別の演出上限 + 恒久強化ぶん。create() と品質切替の両方から使う。
+  _applyParticleBudget() {
+    const q = this.settings.effectQuality;
+    this.particleBudget = (DataManager.combatCaps.particleBudget?.[q] || 200) + (this.effectCapAdd || 0);
   }
 
   resumeFromMenu() {
