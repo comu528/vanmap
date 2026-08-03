@@ -1477,3 +1477,37 @@ F8 分析（横断バランス節）/ セーブ往復（v6）/ 相対パス（�
 - [ ] 10 分 / 2 倍速の長時間セッションで FPS・メモリの傾向。
 - [ ] 敵 100 体 + 弾数百発の負荷ピークで FPS ≥ 30。
 - [ ] EvolutionScene / ResultScene を跨ぐ一連のプレイと GitHub Pages 本番 URL。
+
+## Milestone 9-A.2: 3 ジョブ実ブラウザ長時間プレイテスト・最終バランス判定
+
+### A. Node（自動・CI で毎回走る）
+
+CI は**ブラウザを起動しない**。計画・ゲート・記録 schema・Node との整合だけを検証する。
+
+```
+node tests/validate-data.mjs                              # 0 エラー / 0 警告（M9-A.2 ブロック含む）
+node tests/browser-longrun-gate.mjs                       # 計画 / 記録 / 未確認の誠実さ / 必須依存 0
+node tests/browser-normal-draft-plan.mjs                  # 通常 draft 9 run（固定 build の代用でない）
+node tests/browser-evolution-plan.mjs                     # 進化 3 種以上 / base 再提示 0 / reload 二重 0
+node tests/browser-result-cycle.mjs                       # Result / 報酬 / 二重加算 0 / Base / 再 run
+node tests/browser-resume-plan.mjs                        # save / reload / resume と悪用の不在
+node tests/browser-quality-plan.mjs                       # 4 品質長時間（上限一致・低品質で減らない）
+node tests/browser-quality-midrun-plan.mjs                # 周回途中の品質切替
+node tests/browser-stress-plan.mjs                        # 敵100 / 10 分相当 / cleanup 残留 0
+node tests/browser-balance-verdict.mjs                    # 6 分類の判定と構造異常 0
+node tests/browser-human-feel-gate.mjs                    # 人間評価が未確認として残っているか
+node tests/cross-job-browser-node-consistency.mjs         # Node ハーネスをライブ実行して結論を照合
+node tests/three-job-final-playtest-nonregression.mjs     # 測定条件 / 分類の SHA-256 固定
+```
+
+### B. 実ブラウザ（自動化で実施済みの範囲）
+
+手順は `./browser-longrun-playtest.md`、結果は `./browser-longrun-results.md`。
+実施範囲と実測値は `./browser-longrun-results.md` に記録する
+（通常 draft の通し run / Result・拠点・再 run / 敗北 run / 進化取得 / save-reload-resume /
+品質 4 段階の長時間比較 / 周回途中切替 / stress / 実キー入力 / UI 構造）。
+
+### C. 人間プレイテスト（**未実施・external manual gate**）
+
+`./human-playtest-gate.md` の 12 項目（楽しさ・爽快感・難易度・氷ボス戦・戦士の安全度・
+火の体感・視認性・操作感 ほか）。**自動操作では判定していない。**

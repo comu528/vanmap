@@ -100,7 +100,23 @@ M9-A の検証は Scene モック上だった。M9-A.1 で production 全経路
 - 実ブラウザでも 4 品質で gameplay 上限（敵 200 / 弾 400 / hitStop / skillCap）が同値なことを
   自動検証で確認（`./browser-validation-gate.md` §3・console エラー 0）。
 
-## 8. 実ブラウザで未確認の範囲
+## 8. M9-A.2 の実ブラウザ長時間確認
 
-Node と自動化で確認したのは上記まで。**手入力の実プレイ体感・長時間の FPS / メモリは未確認**。
-手順は `./browser-validation-gate.md` §2（同 seed・同 save で 4 品質を実プレイ比較）。
+M9-A.1 の実ブラウザ確認は 12 秒サンプルだった。M9-A.2 で**長時間（1 ジョブ 5 分相当 /
+他 2 ジョブ 3 分相当 × 4 品質）**と **stress（敵 100 体・10 分相当 × low/high）**へ広げた
+（`./browser-longrun-results.md`）。
+
+- 4 品質とも `maxEnemies 200` / `maxProjectiles 400` / `hitStop 有` / `skillCap` 同値。
+- 取得スキルの集合が 4 品質で**完全一致**（draft が品質非依存であることの実機確認）。
+- 低品質で cast / hit / kill / damage が**系統的に減らない**（許容幅内）。
+- 品質差は `particleBudget`（40/120/260/480）と `damageNumbers`（low のみ無効）＝**演出のみ**。
+- 周回途中の切替（low↔ultra / medium→high）で飛行中の弾・敵・状態・上限が不変。
+
+> **注意**: Phaser の `delta` は実時間なので、実ブラウザでは run 間がフレーム単位で一致しない。
+> **byte-identical の証明は固定 dt の Node ハーネスの担当**（§7）。実ブラウザで byte-identical を
+> 主張しないことを `tests/browser-quality-plan.mjs` が機械検査する。
+
+## 9. 実ブラウザで未確認の範囲
+
+**手入力の実プレイ体感は未確認**（`./human-playtest-gate.md`）。
+手順は `./browser-longrun-playtest.md`（M9-A.2）/ `./browser-validation-gate.md` §2（M9-A.1）。

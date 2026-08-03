@@ -135,3 +135,23 @@ reactive スキルが消える。`skills.stats` の Map を直接読む。
 `cross-job-browser-gate` / `three-job-balance-harness-nonregression`。
 
 `HEAVY=1` で seed 数と profile 数が増える（既定は CI 実行時間に収まる構成）。
+
+
+---
+
+## 11. M9-A.2 での位置づけ（Node と実ブラウザの役割分担）
+
+M9-A.2 で実ブラウザの長時間プレイテスト（`./browser-longrun-playtest.md`）を実施した。
+**両者は測るものが違う**ので、数値を直接比較しない。
+
+| | Node ハーネス（本書） | 実ブラウザ（M9-A.2） |
+|---|---|---|
+| build | 固定（`slot8` / `full` / `evolved`） | **production の通常 draft**（seed / strategy が決める） |
+| dt | **32ms 固定** → 同 seed で byte-identical | 実時間（2 倍速 × 59fps ≒ 33ms）→ run 間で完全一致はしない |
+| 担当する証明 | 品質不変性・構造異常 0・回帰フェンス・決定論 | 到達点・進行曲線・実 FPS / heap・UI と入力・save/resume |
+| 使いどころ | 回帰検知（CI で毎回） | 節目の実機確認（CI ではブラウザを起動しない） |
+
+**byte-identical は Node の担当**であり、実ブラウザでそれを主張してはいけない
+（`tests/browser-quality-plan.mjs` が「主張していないこと」を機械検査する）。
+実ブラウザで見るのは「gameplay 上限が品質で変わらない」「低品質で gameplay が減らない」
+「取得スキルの集合が 4 品質で完全一致（draft が品質非依存）」の 3 点。

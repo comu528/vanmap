@@ -1,5 +1,11 @@
 # 実ブラウザ検証ゲート（Milestone 9-A.1）
 
+> **M9-A.2 で拡張済み**: 本書は「起動 / 3 ジョブ各 20 秒 / 4 品質の上限一致 / F8 / セーブ往復 /
+> 相対パス」の基本ゲート。**通常 draft の通し run・Result / Base / 再 run・save/resume・
+> 品質長時間比較・stress・実キー入力**は `./browser-longrun-playtest.md` と
+> `./browser-longrun-results.md` を参照（§4 の未確認項目のうち長時間・高負荷は M9-A.2 で実施済み。
+> **手入力の体感だけが `./human-playtest-gate.md` に残る**）。
+
 Node ハーネス（`./cross-job-full-balance-harness.md`）が確認できない範囲 —— 実描画・実 FPS・
 メモリ・JS error・実入力 —— を実ブラウザで確認するための**再現可能な手順**と、
 M9-A.1 時点の**実施記録**。記録様式は `./browser-validation-result-template.md`。
@@ -68,11 +74,17 @@ CDN の固定 URL への応答として差し替えた（index.html 無変更・
 
 ## 4. 未確認の内容（実施していない・Node 結果で代替しない）
 
-- **人間の手入力による実プレイの体感・操作感は未確認**（キーボード / タッチ・ダッシュ操作・エイム感）。
-- **10 分以上の長時間セッション**での FPS 低下・メモリ増加の傾向（自動計測は 20 秒 × 9 周回まで）。
-- **敵 100 体 + 弾数百発の負荷ピーク時**の実 FPS（自動プレイは序盤 20 秒のため敵密度が低い）。
-- 2 倍速での長時間プレイ・EvolutionScene / ResultScene を跨ぐ一連の実プレイ・実機（スマートフォン）。
-- GitHub Pages 本番 URL での確認（配信はローカル静的サーバで代替）。
+- **人間の手入力による実プレイの体感・操作感は未確認**（楽しさ / 爽快感 / 難易度の妥当性）。
+  → M9-A.2 でも自動操作では判定しておらず、`./human-playtest-gate.md` に **open な manual gate** として残る。
+- ~~10 分以上の長時間セッションでの FPS / メモリ~~ → **M9-A.2 の stress（10 分相当 × 6 run）で実施済み**。
+- ~~敵 100 体 + 弾数百発の負荷ピーク時の実 FPS~~ → **M9-A.2 の stress で実施済み**。
+- ~~2 倍速での長時間プレイ・EvolutionScene / ResultScene を跨ぐ一連の実プレイ~~ →
+  **M9-A.2 の通常 draft 通し run（9 件）と Result / 拠点 / 再 run で実施済み**。
+- **実機（GPU 搭載 PC / スマートフォン）**での FPS とタッチ操作は未確認（計測は software GL のコンテナ）。
+- **GitHub Pages 本番 URL** での確認は未確認（配信はローカル静的サーバで代替）。
+- **30 分以上の超長時間セッション**のメモリ傾向は未確認。
+
+M9-A.2 の実施範囲と結果は `./browser-longrun-results.md`、手順は `./browser-longrun-playtest.md`。
 
 これらは §2 の手順で誰でも再実施できる。結果は
 `./browser-validation-result-template.md` の様式で記録し、本書 §3 を更新すること。

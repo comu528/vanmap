@@ -706,3 +706,28 @@ HEAVY=1 node tests/cross-job-balance-final.mjs            # seed / profile 拡�
   **balance 変更の根拠にしない**（暴走検知フェンスは DPS ≤ 6.0 / boss kill ≤ 6.0）。
 - 旧ハーネス（`cross-job-common.mjs` の `runJob()`）は品質不変性・非回帰ハッシュの土台として残る。
   その DPS 値は見かけ値なので比較には使わない。
+
+## Milestone 9-A.2: 実ブラウザ長時間プレイテストによる最終判定
+
+Node ハーネス（M9-A.1）は「同一条件での構造比較」、実ブラウザ（M9-A.2）は
+「通常 draft・実描画・実 FPS での到達点」を測る。**両者は役割が違う**ので数値は直接比較しない。
+
+| | Node ハーネス（M9-A.1） | 実ブラウザ（M9-A.2） |
+|---|---|---|
+| build | 固定（slot8 / full / evolved） | **production の通常 draft**（seed / strategy で決まる） |
+| dt | 32ms 固定 → byte-identical が成立 | 実時間（2 倍速 × 59fps ≒ 33ms）→ run 間で完全一致はしない |
+| 用途 | 品質不変性・構造異常・回帰フェンス | 到達点・進行曲線・実 FPS / heap・UI と入力 |
+
+### 回すコマンド
+
+```
+node tests/browser-balance-verdict.mjs               # 6 分類の判定
+node tests/cross-job-browser-node-consistency.mjs    # Node をライブ実行して結論を照合
+```
+
+### 読み方
+
+- 判定の正は `./final-balance-verdict.md`。**明確な bug 以外は自動調整しない。**
+- 数値差（DPS 比・生存差・rarity 差・active 補助進化の低率）は `role` / `profile` 分類で、
+  それ自体は balance 変更の根拠にしない。
+- 人間の体感（`human-feel`）は `./human-playtest-gate.md` が埋まるまで**判定しない**。

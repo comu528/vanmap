@@ -692,6 +692,7 @@ export class BattleScene extends Phaser.Scene {
     if (this._w2dbg) { this._w2dbg.destroy(true); this._w2dbg = null; }
     if (this._w3dbg) { this._w3dbg.destroy(true); this._w3dbg = null; }
     if (this._bpdbg) { this._bpdbg.destroy(true); this._bpdbg = null; }
+    if (this._btdbg) { this._btdbg.destroy(true); this._btdbg = null; } // M9-A.2 ブラウザ検証パネル
     if (this._bpBanner) { this._bpBanner.destroy(); this._bpBanner = null; }
     if (this._frostdbg) { this._frostdbg.destroy(true); this._frostdbg = null; }
     // M7-B.1: 状態表示・ボス氷砕表示・状態デバッグの破棄（古い entity 参照/Graphics/Text/Tween を残さない）。
@@ -2717,6 +2718,8 @@ export class BattleScene extends Phaser.Scene {
       [() => `性能パネル(F2): ${this._perfText ? 'ON' : 'OFF'}`, () => this.togglePerfOverlay()],
       [() => `グリッド可視化(F3): ${this._gridGfx ? 'ON' : 'OFF'}`, () => this.toggleGridViz()],
       ['負荷テスト: 敵+100体生成', () => this.debugSpawnEnemies(100)],
+      // M9-A.2: 実ブラウザ長時間検証パネル（表示と production API 呼び出しのみ・profile 非汚染）。
+      ['M9-A.2 ブラウザ検証パネル', () => { this.toggleDebug(); this.toggleBrowserTestPanel(); }],
     ];
     let yy = GAME_HEIGHT / 2 - 110;
     for (const [label, fn] of acts) {
@@ -2729,6 +2732,87 @@ export class BattleScene extends Phaser.Scene {
     close.on('pointerdown', () => this.toggleDebug());
     ui.add(close);
     this._dbg = ui;
+  }
+
+  // ---------------- M9-A.2: 実ブラウザ長時間検証パネル（?debug=1・F1 / F9 から開く） ----------------
+  // **表示と production API の呼び出しだけ**を行う。profile を書き換えず、周回は debugRun として
+  // 通常統計から分離する（報酬の二重付与も起きない：付与は Result 側の lastResultId ガードが担当）。
+  toggleBrowserTestPanel() {
+    if (this._btdbg) { this._btdbg.destroy(true); this._btdbg = null; return; }
+    this.markDebugRun();
+    const cx = GAME_WIDTH / 2;
+    const ui = this.add.container(0, 0).setScrollFactor(0).setDepth(4000);
+    ui.add(this.add.rectangle(cx, GAME_HEIGHT / 2, 512, 340, 0x0b1418, 0.97).setScrollFactor(0).setStrokeStyle(1, 0x9ccc65));
+    ui.add(this.add.text(cx, 4, 'M9-A.2 ブラウザ長時間検証（表示のみ・profile 非汚染）', { fontSize: '11px', color: '#9ccc65' }).setScrollFactor(0).setOrigin(0.5, 0));
+    const redraw = () => { this.toggleBrowserTestPanel(); this.toggleBrowserTestPanel(); };
+    const QUAL = ['low', 'medium', 'high', 'ultra'];
+    const acts = [
+      [() => `seed: ${this.rngSeed}`, () => {}],
+      [() => `job: ${this.jobId} / difficulty ${this.difficultyId} / 倍速 ${this.speedMult}x`, () => {}],
+      [() => `品質: ${this.settings.effectQuality}（切替）`, () => {
+        const i = QUAL.indexOf(this.settings.effectQuality);
+        this.settings.effectQuality = QUAL[(i + 1) % QUAL.length];
+        if (this.applyEffectSettings) this.applyEffectSettings();
+        if (this.effects && this.effects.setSettings) this.effects.setSettings(this.effSettings);
+      }],
+      ['敵 +100 体（負荷）', () => this.debugSpawnEnemies(100)],
+      ['ボスを今すぐ出す', () => { if (!this.bossSpawned) { this.bossSpawned = true; this.spawnBoss(); this.hud.showBoss(DataManager.bosses[0]?.name || 'BOSS'); } }],
+      ['進化条件を満たす候補を表示', () => { this.openLevelUp(); }],
+      ['途中保存（active_run）', () => this.autoSave()],
+      ['この周回を勝利（Result へ）', () => this.finishRun(true)],
+      ['この周回を敗北（Result へ）', () => this.finishRun(false)],
+    ];
+    let yy = 22;
+    for (const [label, fn] of acts) {
+      const text = typeof label === 'function' ? label() : label;
+      const b = this.add.text(cx - 252, yy, text, { fontSize: '8px', color: '#fff', backgroundColor: '#1c2b16', padding: { x: 4, y: 1 } }).setScrollFactor(0).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+      b.on('pointerdown', () => { fn(); redraw(); });
+      ui.add(b); yy += 15;
+    }
+    ui.add(this.add.text(cx + 8, 20, this.browserTestReport(), { fontSize: '8px', color: '#dcedc8', lineSpacing: 2, wordWrap: { width: 236 } }).setScrollFactor(0).setOrigin(0, 0));
+    const close = this.add.text(cx, GAME_HEIGHT - 10, '閉じる', { fontSize: '9px', color: '#bcaaa4' }).setScrollFactor(0).setOrigin(0.5, 1).setInteractive({ useHandCursor: true });
+    close.on('pointerdown', () => this.toggleBrowserTestPanel());
+    ui.add(close);
+    this._btdbg = ui;
+  }
+
+  // 実ブラウザ検証で見る値（DPS / ボス / 生存 / share / 進化 / save / FPS / heap / gate）。
+  browserTestReport() {
+    const L = [];
+    const sec = Math.max(0.001, this.timeSec || 0);
+    const stats = this.skills ? this.skills.statsList() : [];
+    const total = stats.reduce((a, s) => a + (s.damage || 0), 0);
+    const top = stats.slice().sort((a, b) => (b.damage || 0) - (a.damage || 0))[0];
+    const w = this.warrior && this.warrior.enabled ? this.warrior.summary() : null;
+    const evoPool = (this.job && this.job.evolutionPool) || [];
+    const evolved = evoPool.filter((id) => this.skills && this.skills.skills.has(id));
+    L.push('— browser profile —');
+    L.push(`seed ${this.rngSeed} / 品質 ${this.settings.effectQuality} / ${this.speedMult}x / diff ${this.difficultyId}`);
+    L.push(`debugRun: ${this._debugRun ? 'はい（通常統計と分離）' : 'いいえ'}`);
+    L.push('— DPS / ボス / 生存 —');
+    L.push(`DPS ${Math.round(total / sec)}（総 ${Math.round(total)} / ${sec.toFixed(0)}s）`);
+    L.push(`ボス ${this.bossSpawned ? (this.boss && this.boss.alive ? `HP ${Math.round(this.boss.hp)}/${Math.round(this.boss.maxHp)}` : `撃破 ${this.bossKills}`) : '未出現'}`);
+    L.push(`生存 ${sec.toFixed(0)}s HP ${Math.round(this.player.hp)}/${this.player.maxHp} 被弾 ${Math.round(this._damageTakenTotal || 0)}`);
+    L.push(`回復 ${w ? Math.round(w.recoveryAmount + w.killHeal) : 0} 軽減 ${w ? Math.round(w.mitigationAmount) : 0}`);
+    L.push('— share / 進化 —');
+    L.push(`top ${top ? `${top.id} ${((top.damage || 0) / (total || 1) * 100).toFixed(1)}%` : '-'}`);
+    L.push(`進化 ${evolved.length}/${evoPool.length} 取得 ${Object.keys(this.skills.activeLevels()).length} 種`);
+    L.push('— save / reload —');
+    L.push(`active_run: ${SaveManager.hasActiveRun() ? 'あり' : 'なし'} / save_version ${this.saveVersion}`);
+    L.push('— FPS / heap（proxy）—');
+    const p = this._perf || {};
+    const heap = (typeof performance !== 'undefined' && performance.memory)
+      ? `${Math.round(performance.memory.usedJSHeapSize / 1048576)}MB` : '取得不可';
+    L.push(`FPS 平均 ${p.frames ? Math.round(1000 / (p.dtSum / p.frames)) : '-'} / 最低 ${Number.isFinite(p.fpsMin) ? Math.round(p.fpsMin) : '-'}`);
+    L.push(`最大フレーム ${Math.round(p.dtMax || 0)}ms / heap ${heap}`);
+    L.push(`敵 ${this.enemyPool.activeCount}/${this.effSettings.maxEnemies} 弾 ${this.projPool.activeCount}/${this.effSettings.maxProjectiles}`);
+    L.push('— gate —');
+    L.push('手順: docs/browser-longrun-playtest.md');
+    L.push('結果: docs/browser-longrun-results.md');
+    L.push('判定: docs/final-balance-verdict.md');
+    L.push('人間評価（未確認）: docs/human-playtest-gate.md');
+    L.push('※ 面白さ・爽快感・難易度の妥当性はここでは判定しない。');
+    return L.join('\n');
   }
 
   // ---------------- M5-A: 空間グリッド ON/OFF と性能計測 ----------------
@@ -3181,6 +3265,10 @@ export class BattleScene extends Phaser.Scene {
       ui.add(b); yy += 14.5;
     }
     ui.add(this.add.text(cx + 8, 20, this._warriorReport(), { fontSize: '8px', color: '#ffe0b2', lineSpacing: 2, wordWrap: { width: 236 } }).setScrollFactor(0).setOrigin(0, 0));
+    // M9-A.2: ブラウザ長時間検証パネルへの導線（F9 から開く・既存表示は不変）。
+    const bt = this.add.text(cx - 252, yy + 2, 'M9-A.2 ブラウザ検証パネル', { fontSize: '8px', color: '#fff', backgroundColor: '#3a2410', padding: { x: 4, y: 1 } }).setScrollFactor(0).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+    bt.on('pointerdown', () => { this.toggleWarriorDebug(); this.toggleBrowserTestPanel(); });
+    ui.add(bt);
     const close = this.add.text(cx, GAME_HEIGHT - 10, '閉じる (F9)', { fontSize: '9px', color: '#bcaaa4' }).setScrollFactor(0).setOrigin(0.5, 1).setInteractive({ useHandCursor: true });
     close.on('pointerdown', () => this.toggleWarriorDebug());
     ui.add(close);
@@ -3324,6 +3412,10 @@ export class BattleScene extends Phaser.Scene {
       ui.add(b); yy += 14.5;
     }
     ui.add(this.add.text(cx + 8, 20, this._frostReport(), { fontSize: '8px', color: '#b2ebf2', lineSpacing: 2, wordWrap: { width: 236 } }).setScrollFactor(0).setOrigin(0, 0));
+    // M9-A.2: ブラウザ長時間検証パネルへの導線（F9 から開く・既存表示は不変）。
+    const bt = this.add.text(cx - 252, yy + 2, 'M9-A.2 ブラウザ検証パネル', { fontSize: '8px', color: '#fff', backgroundColor: '#123642', padding: { x: 4, y: 1 } }).setScrollFactor(0).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+    bt.on('pointerdown', () => { this.toggleFrostDebug(); this.toggleBrowserTestPanel(); });
+    ui.add(bt);
     const close = this.add.text(cx, GAME_HEIGHT - 10, '閉じる (F9)', { fontSize: '9px', color: '#bcaaa4' }).setScrollFactor(0).setOrigin(0.5, 1).setInteractive({ useHandCursor: true });
     close.on('pointerdown', () => this.toggleFrostDebug());
     ui.add(close);

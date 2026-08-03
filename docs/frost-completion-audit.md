@@ -178,3 +178,8 @@ trap / field tick / wave / barrage / mark 起爆 / shatter / frostbreak / status
 > ボス / XP まで解決）が完成し、ジョブ間の絶対比較と warning 分類が
 > `docs/cross-job-final-balance.md` に記録された（本ジョブのバランス値の変更は 0 件）。
 > ハーネスの構成は `docs/cross-job-full-balance-harness.md`。
+
+> **M9-A.2 追記**: 実ブラウザで通常 draft の通し run（3 strategy × 3 seed）・Result / Base / 再 run・
+> save/reload/resume・品質 4 段階の長時間比較・stress（敵 100 体 / 10 分相当）を実施した
+> （`docs/browser-longrun-results.md`）。**本ジョブのバランス値の変更は 0 件**。
+> 最終判定は `docs/final-balance-verdict.md`、人間の体感評価は `docs/human-playtest-gate.md`（未確認）。
