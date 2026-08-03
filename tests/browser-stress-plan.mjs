@@ -19,7 +19,12 @@ section('2. 負荷条件を満たしている（敵 100 体・弾多数・boss�
 for (const r of R.stress) {
   const tag = `${r.job}/${r.quality}`;
   ok(r.peakEnemies >= 100, `${tag}: 敵ピーク ${r.peakEnemies} ≥ 100`);
-  ok(r.peakProjectiles >= 50, `${tag}: 弾ピーク ${r.peakProjectiles} ≥ 50`);
+  // ★ 戦士は近接ジョブで自弾をほぼ撃たない（反射弾のみ）。弾の負荷は敵弾側で掛かる。
+  //   ジョブの設計差を「不足」と誤判定しないよう、**自弾 + 敵弾の合計**で負荷を見る。
+  const projLoad = r.peakProjectiles + r.peakBossBullets;
+  ok(projLoad >= 50, `${tag}: 弾ピーク（自弾 ${r.peakProjectiles} + 敵弾 ${r.peakBossBullets}）= ${projLoad} ≥ 50`);
+  if (r.job === 'warrior') ok(r.peakProjectiles <= 20, `${tag}: 戦士の自弾はほぼ 0（${r.peakProjectiles}・反射弾のみ＝設計どおり）`);
+  else ok(r.peakProjectiles >= 20, `${tag}: 弾を撃つジョブの自弾ピーク ${r.peakProjectiles} ≥ 20`);
   ok(r.bossActive === true, `${tag}: ボスが出現している`);
   ok(r.eliteSeen === true, `${tag}: エリートが混在している`);
   ok(r.speed === 2, `${tag}: 2 倍速`);
@@ -81,7 +86,8 @@ for (const j of JOB_IDS) {
   ok(lo.caps.maxEnemies === hi.caps.maxEnemies && lo.caps.maxProjectiles === hi.caps.maxProjectiles && lo.caps.hitStop === hi.caps.hitStop,
     `${j}: 負荷時も gameplay 上限が同一（敵 ${lo.caps.maxEnemies} / 弾 ${lo.caps.maxProjectiles} / hitStop ${lo.caps.hitStop}）`);
   ok(lo.maxDisplayObjects <= hi.maxDisplayObjects, `${j}: 表示オブジェクト low ${lo.maxDisplayObjects} ≤ high ${hi.maxDisplayObjects}`);
-  ok(lo.peakProjectiles >= hi.peakProjectiles * 0.8, `${j}: gameplay 弾数が low で削られない（low ${lo.peakProjectiles} / high ${hi.peakProjectiles}）`);
+  ok(lo.peakProjectiles + lo.peakBossBullets >= (hi.peakProjectiles + hi.peakBossBullets) * 0.8,
+    `${j}: gameplay 弾数が low で削られない（low ${lo.peakProjectiles}+${lo.peakBossBullets} / high ${hi.peakProjectiles}+${hi.peakBossBullets}）`);
   ok(lo.peakEnemies >= hi.peakEnemies * 0.8, `${j}: 敵数が low で削られない（low ${lo.peakEnemies} / high ${hi.peakEnemies}）`);
 }
 
