@@ -2742,6 +2742,151 @@ if (jobProgData) {
   }
 }
 
+// --- M9-A.2: 3 ジョブ実ブラウザ長時間プレイテスト・最終バランス判定 ---
+{
+  const ROOT92 = join(__dirname, '..');
+  const rd92 = (p) => { try { return readFileSync(join(ROOT92, p), 'utf8'); } catch { return null; } };
+  const bal = loadJson('balance.json');
+  const jobsAll = ((loadJson('jobs.json') || {}).jobs) || [];
+
+  // 1. カタログ不変（M9-A.2 も新コンテンツ 0 件）。
+  for (const jid of ['flame_witch', 'frost_mage', 'warrior']) {
+    const j = jobsAll.find((x) => x.id === jid) || {};
+    if ((j.activeSkillPool || []).length !== 30 || (j.passiveSkillPool || []).length !== 4 || (j.evolutionPool || []).length !== 18) {
+      err(`M9-A.2: ${jid} のカタログが 30/4/18 でない（新コンテンツ追加は禁止）`);
+    }
+  }
+  if (bal && bal.saveVersion !== 6) err(`M9-A.2: saveVersion が 6 でない (${bal && bal.saveVersion})`);
+
+  // 2. テストと共通土台の実在。
+  const suites92 = [
+    'browser-results-common.mjs', 'browser-longrun-gate.mjs', 'browser-normal-draft-plan.mjs',
+    'browser-evolution-plan.mjs', 'browser-result-cycle.mjs', 'browser-resume-plan.mjs',
+    'browser-quality-plan.mjs', 'browser-quality-midrun-plan.mjs', 'browser-stress-plan.mjs',
+    'browser-balance-verdict.mjs', 'browser-human-feel-gate.mjs',
+    'cross-job-browser-node-consistency.mjs', 'three-job-final-playtest-nonregression.mjs',
+  ];
+  for (const f of suites92) if (!existsSync(join(ROOT92, 'tests', f))) err(`M9-A.2: tests/${f} が無い`);
+
+  // 3. docs の実在。
+  for (const f of ['browser-longrun-playtest.md', 'browser-longrun-results.md',
+    'final-balance-verdict.md', 'human-playtest-gate.md']) {
+    if (!existsSync(join(ROOT92, 'docs', f))) err(`M9-A.2: docs/${f} が無い`);
+  }
+
+  // 4. 実測記録（要約 JSON）の schema。
+  const rp = join(ROOT92, 'tests/browser-results/m9a2-results.json');
+  if (!existsSync(rp)) err('M9-A.2: tests/browser-results/m9a2-results.json が無い');
+  else {
+    let R = null;
+    try { R = JSON.parse(readFileSync(rp, 'utf8')); } catch (e) { err(`M9-A.2: 実測記録が JSON として読めない (${e.message})`); }
+    if (R) {
+      if (R.milestone !== 'M9-A.2') err('M9-A.2: 実測記録の milestone が M9-A.2 でない');
+      for (const k of ['environment', 'conditions', 'draftRuns', 'defeatRuns', 'evolution', 'resultCycle',
+        'resume', 'quality', 'midrun', 'stress', 'uiInput', 'progressionTiers', 'errorTotals',
+        'verdict', 'unverified', 'humanFeelGate', 'qualityComparison', 'browserNodeDeltas']) {
+        if (!(k in R)) err(`M9-A.2: 実測記録に ${k} が無い`);
+      }
+      // 環境
+      const e = R.environment || {};
+      if (e.phaser !== '3.90.0') err(`M9-A.2: 記録の Phaser 版が 3.90.0 でない (${e.phaser})`);
+      if (!e.commit) err('M9-A.2: 記録に commit が無い');
+      if (!('pagesProductionUrl' in e)) err('M9-A.2: GitHub Pages 本番 URL の可否が記録されていない');
+      // 3 job × 3 seed / 3 strategy
+      const runs = R.draftRuns || [];
+      if (runs.length < 9) err(`M9-A.2: 通常 draft run が 9 未満 (${runs.length})`);
+      for (const jid of ['flame_witch', 'frost_mage', 'warrior']) {
+        const rs = runs.filter((x) => x.job === jid);
+        if (rs.length < 3) err(`M9-A.2: ${jid} の run が 3 未満 (${rs.length})`);
+        if (new Set(rs.map((x) => x.strategy)).size < 3) err(`M9-A.2: ${jid} の strategy が 3 種未満`);
+      }
+      if (new Set(runs.map((x) => x.seed)).size < 3) err('M9-A.2: seed が 3 種未満');
+      if (!runs.every((x) => x.levelUpSceneSeen > 0 && x.picks > 0)) err('M9-A.2: production の通常 draft を通っていない run がある');
+      if (runs.reduce((a, x) => a + x.rerolls, 0) === 0) err('M9-A.2: reroll を一度も使っていない');
+      if (runs.reduce((a, x) => a + x.banishes, 0) === 0) err('M9-A.2: banish を一度も使っていない');
+      if (runs.reduce((a, x) => a + x.skips, 0) === 0) err('M9-A.2: skip を一度も使っていない');
+      // 進化 coverage（active 補助を含む）
+      for (const ev of (R.evolution || [])) {
+        const all = [...(ev.viaNormalDraft || []), ...(ev.viaDebugGrant || [])];
+        if (all.length < 3) err(`M9-A.2: ${ev.job} の進化取得が 3 種未満 (${all.length})`);
+        if (ev.baseReoffered !== 0) err(`M9-A.2: ${ev.job} で進化後の base が再提示された (${ev.baseReoffered})`);
+        if (ev.baseCoexist !== 0) err(`M9-A.2: ${ev.job} で base と evolution を同時所持した`);
+      }
+      // save / resume
+      for (const rr of (R.resume || [])) {
+        if (!rr.resumed) err(`M9-A.2: ${rr.job} の再開に失敗している`);
+        if (rr.saveVersion !== 6) err(`M9-A.2: ${rr.job} の active_run save_version が 6 でない (${rr.saveVersion})`);
+        if (rr.freeCastBurst) err(`M9-A.2: ${rr.job} で再開直後の無料 cast が発生している`);
+        if (rr.cooldownFullyReset) err(`M9-A.2: ${rr.job} で cooldown が全回復している`);
+        if (!rr.jobIdGuard || rr.jobIdGuard.activeRunJobId !== rr.job) err(`M9-A.2: ${rr.job} で selectedJobId 変更が active_run.jobId を汚染している`);
+      }
+      // 品質 4 段階 + 途中切替
+      for (const jid of ['flame_witch', 'frost_mage', 'warrior']) {
+        const qs = (R.quality || []).filter((x) => x.job === jid).map((x) => x.quality);
+        for (const q of ['low', 'medium', 'high', 'ultra']) if (!qs.includes(q)) err(`M9-A.2: ${jid} の品質 ${q} が未実施`);
+      }
+      if ((R.quality || []).some((q) => q.caps.maxEnemies !== 200 || q.caps.maxProjectiles !== 400 || q.caps.hitStop !== true)) {
+        err('M9-A.2: 品質によって gameplay 上限が変わっている');
+      }
+      if (R.qualityComparison && R.qualityComparison.byteIdenticalClaimed !== false) {
+        err('M9-A.2: 実ブラウザで byte-identical を主張している（実時間 delta のため成立しない）');
+      }
+      const trans = (R.midrun || []).flatMap((m) => (m.transitions || []).map((t) => `${t.from}->${t.to}`));
+      for (const need of ['low->ultra', 'ultra->low', 'medium->high']) {
+        if (!trans.includes(need)) err(`M9-A.2: 周回途中の品質切替 ${need} が未実施`);
+      }
+      // stress
+      for (const st of (R.stress || [])) {
+        if (st.peakEnemies < 100) err(`M9-A.2: ${st.job}/${st.quality} の敵ピークが 100 未満 (${st.peakEnemies})`);
+        if (st.gameSecReached < 540) err(`M9-A.2: ${st.job}/${st.quality} が 10 分相当に達していない (${st.gameSecReached})`);
+        if (st.fps.freezes500ms > 0) err(`M9-A.2: ${st.job}/${st.quality} で 500ms 超のフリーズ (${st.fps.freezes500ms})`);
+        if (st.heap.monotonic) err(`M9-A.2: ${st.job}/${st.quality} で heap が単調増加`);
+        if (st.cleanup.skills !== 0 || st.cleanup.grid !== 0 || st.cleanup.deathEvents !== 0) {
+          err(`M9-A.2: ${st.job}/${st.quality} の cleanup 残留`);
+        }
+      }
+      // エラー / 記録の誠実さ
+      const et = R.errorTotals || {};
+      if (et.console !== 0 || et.pageerror !== 0 || et.requestfailed !== 0) {
+        err(`M9-A.2: ブラウザエラーが 0 でない (console ${et.console} / pageerror ${et.pageerror} / requestfailed ${et.requestfailed})`);
+      }
+      if (!Array.isArray(R.unverified) || R.unverified.length === 0) err('M9-A.2: 未確認項目が記録されていない');
+      if (!R.humanFeelGate || R.humanFeelGate.status !== 'open') err('M9-A.2: human-feel gate が open として記録されていない');
+      // 判定
+      const V = R.verdict || {};
+      const CLASSES = ['harness', 'profile', 'role', 'bug', 'balance', 'human-feel'];
+      if (!Array.isArray(V.classified) || V.classified.length === 0) err('M9-A.2: verdict の分類が無い');
+      for (const c of (V.classified || [])) {
+        if (!CLASSES.includes(c.class)) err(`M9-A.2: verdict ${c.key} の分類 ${c.class} が未知`);
+        if (c.class === 'bug' && !c.fix) err(`M9-A.2: bug 分類 ${c.key} に修正内容が無い`);
+      }
+      if (typeof V.balanceChanges !== 'number') err('M9-A.2: balance 変更件数が記録されていない');
+      const balCount = (V.classified || []).filter((c) => c.class === 'balance').length;
+      if (V.balanceChanges !== balCount) err(`M9-A.2: balance 変更件数 ${V.balanceChanges} と分類 ${balCount} が不一致`);
+      const st2 = V.structural || {};
+      for (const k of ['deadSkills', 'acquiredZeroUtility', 'zeroHitCasts', 'bossIneffectiveJobs', 'allLastJobs', 'tripleMonopolyJobs']) {
+        if (typeof st2[k] !== 'number') err(`M9-A.2: structural.${k} が記録されていない`);
+        else if (st2[k] !== 0) err(`M9-A.2: structural.${k} が 0 でない (${st2[k]})`);
+      }
+      if (!V.personality || V.personality.uniformized !== false) err('M9-A.2: 3 ジョブの均一化をしていないことが記録されていない');
+      if ((R.browserNodeDeltas || []).length < 3) err('M9-A.2: browser / Node の乖離記録が 3 件未満');
+    }
+  }
+
+  // 5. browser 自動化を必須依存にしていない。
+  for (const f of ['package.json', 'package-lock.json', 'playwright.config.js', 'playwright.config.ts']) {
+    if (existsSync(join(ROOT92, f))) err(`M9-A.2: ${f} が存在する（npm / build / Playwright の必須化は禁止）`);
+  }
+  // 6. 誇張表現の検知（AI 自動操作を人間評価と言い換えない）。
+  {
+    const docs = ['docs/browser-longrun-playtest.md', 'docs/browser-longrun-results.md',
+      'docs/final-balance-verdict.md', 'docs/human-playtest-gate.md'].map(rd92).filter(Boolean).join('\n');
+    if (/(自動|AI)[^\n]*(楽しさ|面白さ|爽快)[^\n]*(判定|確認)済み/.test(docs)) err('M9-A.2: AI が面白さを判定済みと書いている');
+    if (/体感[^\n]*確認済み/.test(docs)) err('M9-A.2: 体感を確認済みと書いている');
+    if (!/未確認/.test(docs)) err('M9-A.2: 未確認項目の記載が無い');
+  }
+}
+
 // --- report ---
 if (warnings.length) {
   console.log('--- 警告 ---');

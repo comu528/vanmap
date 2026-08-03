@@ -1248,6 +1248,47 @@ balance を横断監査した回。
 
 > **実ブラウザの残項目**: 手入力の実プレイ体感・10 分 / 2 倍速の長時間・敵 100 体の負荷ピークは
 > **未確認**。`docs/browser-validation-gate.md` §2 の手順で実施し §4 を更新すること。
+> → **長時間・高負荷は M9-A.2 で実施済み**。残るのは手入力の体感のみ（`docs/human-playtest-gate.md`）。
+
+---
+
+## Milestone 9-A.2: 3 ジョブ実ブラウザ長時間プレイテスト・最終バランス判定（完了）
+
+**新コンテンツ 0 件・バランス値 / guidance / しきい値の変更 0 件・save_version v6 維持。**
+
+- [x] **通常 draft の通し run 9 件**（3 ジョブ × evolution-first / balanced / random-valid・
+      production の `SkillDraftManager` / `LevelUpScene` / `EvolutionScene` を通す・
+      reroll / banish / skip も実仕様で使用）。**固定完成 build の代用ではない。**
+- [x] **Result / 残り火 / Job XP / 拠点 / 再 run**（同じ `resultId` の再処理で二重加算しないことを実機確認・
+      次 run の残留 0）／**敗北 run**（`active_run` 消去・少量報酬・再 run 可能）。
+- [x] **進化の実取得**（各ジョブ 3 種以上・base 再提示 0・同時所持 0・reload で二重にならない・
+      通常 draft 到達と条件を組んだ取得を**区別して記録**）。
+- [x] **save → reload → つづきから**（15 項目の復元一致・無料 cast なし・cooldown 全回復なし・
+      `selectedJobId` を変えても `active_run.jobId` 不変・export/import 往復）。
+- [x] **品質 4 段階の長時間比較**（固定 build・同 seed。gameplay 上限は 4 品質で完全同一・
+      取得スキルの集合も完全一致・差は `particleBudget` と `damageNumbers` のみ）と
+      **周回途中の切替**（low↔ultra / medium→high で pending gameplay が消えない）。
+- [x] **stress**（敵 100 体維持 + 弾多数 + ボス + エリート + active30 + 進化 + 2 倍速 + **10 分相当** ×
+      low / high・crash 0・フリーズ 0・heap 単調増加なし・cleanup 残留 0）。
+- [x] **実キー入力**（WASD / SPACE / Q / ESC）と F8 / F9 / F10 の構造確認。
+- [x] **console / pageerror / requestfailed = 全フェーズ合計 0 件。**
+- [x] **最終バランス判定**: production の不具合 **1 件を発見・修正**（周回中の品質変更が敵 / 弾のプール上限から
+      恒久強化ぶんを落としていた ＝ 品質変更が gameplay 上限を変える状態）／**balance 変更 0 件**。
+      超過した目安はすべて `role` / `profile` / `harness` に分類（`docs/final-balance-verdict.md`）。
+- [x] **テスト 12 スイート追加で全 237 通過**・validate.yml 12 ステップ・
+      validate-data へ M9-A.2 ブロック（**0 エラー 0 警告**）。
+      **CI はブラウザを起動しない**（計画 / ゲート / 記録 schema / Node との整合だけを検証）。
+- [x] ブラウザ自動化は**リポジトリ外**スクリプト。要約 JSON だけをコミットし、
+      `package.json` / Playwright 設定 / 生ログ / スクリーンショットは追加しない。
+
+### M9-A.2 で**実装しない**もの（対象外）
+- [ ] 新 active / passive / 進化 / ジョブ・属性反応・転生レガシー・装備・新敵 / ボス / 難易度
+- [ ] 3 ジョブの数値均一化・大規模 balance 変更・rarity 全面変更・UI 全面改修
+- [ ] Playwright 等の必須依存化・npm / build 必須化・save_version の不要更新
+
+> **人間プレイテストは未実施（open な external gate）**: 楽しさ・爽快感・難易度の妥当性・
+> 氷のボス戦の単調さ・戦士の安全度・火の強さの体感は **AI の自動操作では判定していない**。
+> `docs/human-playtest-gate.md` の 12 項目を人間が実施すること。
 
 ---
 
@@ -1256,8 +1297,9 @@ balance を横断監査した回。
 - [ ] **転生レガシー / ジョブ間継承**（`futureInheritanceSettings` / `extraAllowedIds` が拡張口）
 - [ ] **周回長の拡張**（10分 / 15分 / 無限モード）・**追加の敵 / ボス / 難易度**
 - [ ] **4 人目のジョブ**（3 ジョブぶんの基盤・横断監査・テスト雛形がそろっている）
-- [ ] **実ブラウザでの手動確認（外部ゲートの残項目）** — `docs/browser-validation-gate.md` §4
-      （手入力の体感・長時間・負荷ピーク・実機。自動化できる範囲は M9-A.1 で確認済み）
+- [ ] **人間プレイテスト（open な external gate）** — `docs/human-playtest-gate.md` の 12 項目
+      （楽しさ・爽快感・難易度・氷ボス戦・戦士の安全度・火の体感・視認性・操作感）。
+      長時間 / 高負荷 / 通常 draft の到達点は M9-A.2 で自動確認済み
 
 ---
 

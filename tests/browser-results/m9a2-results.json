@@ -1,0 +1,3761 @@
+{
+  "milestone": "M9-A.2",
+  "recordedAt": "2026-08-03",
+  "environment": {
+    "browser": "Chromium 1194 (Playwright 1.56.1・実行環境の既存物・リポジトリ非依存)",
+    "phaser": "3.90.0",
+    "viewport": "1024x768",
+    "url": "http://127.0.0.1:8123/index.html?debug=1",
+    "server": "http-server 14.1.1（リポジトリ直下を静的配信）",
+    "pagesProductionUrl": null,
+    "commit": "29098fc",
+    "os": "Linux container / swiftshader (software GL)"
+  },
+  "conditions": {
+    "difficulty": 1,
+    "speed": 2,
+    "autoMove": true,
+    "permanentUpgrades": "none",
+    "jobLevel": 1,
+    "mastery": "none",
+    "debugRun": true,
+    "serial": true,
+    "quality": "high",
+    "dtNote": "2 倍速 × 実測 59fps ＝ 論理 dt ≒ 33ms（Node ハーネスの 32ms と同水準）"
+  },
+  "draftRuns": [
+    {
+      "job": "flame_witch",
+      "strategy": "evolution-first",
+      "seed": 20260803,
+      "difficulty": 1,
+      "speed": 2,
+      "permanentUpgrades": "none",
+      "jobLevel": 1,
+      "autoMove": true,
+      "debugRun": true,
+      "quality": "high",
+      "durationGameSec": 243,
+      "wallSec": 125,
+      "win": false,
+      "level": 13,
+      "kills": 456,
+      "damage": 9712,
+      "damageTaken": 98,
+      "topSkill": "meteor",
+      "topShare": 0.33,
+      "evolutions": 0,
+      "picks": 11,
+      "pickOrder": [
+        {
+          "atSec": 26,
+          "level": 2,
+          "id": "meteor",
+          "kind": "new_active",
+          "category": "active"
+        },
+        {
+          "atSec": 37,
+          "level": 3,
+          "id": "fire_spirit",
+          "kind": "new_active",
+          "category": "active"
+        },
+        {
+          "atSec": 39,
+          "level": 4,
+          "id": "scatter_flame",
+          "kind": "new_active",
+          "category": "active"
+        },
+        {
+          "atSec": 61,
+          "level": 6,
+          "id": "scatter_flame",
+          "kind": "up_active",
+          "category": "active"
+        },
+        {
+          "atSec": 75,
+          "level": 7,
+          "id": "power_amp",
+          "kind": "new_passive",
+          "category": "passive"
+        },
+        {
+          "atSec": 99,
+          "level": 8,
+          "id": "scatter_flame",
+          "kind": "up_active",
+          "category": "active"
+        },
+        {
+          "atSec": 115,
+          "level": 9,
+          "id": "fireball",
+          "kind": "up_active",
+          "category": "active"
+        },
+        {
+          "atSec": 140,
+          "level": 10,
+          "id": "meteor",
+          "kind": "up_active",
+          "category": "active"
+        },
+        {
+          "atSec": 177,
+          "level": 11,
+          "id": "fire_spirit",
+          "kind": "up_active",
+          "category": "active"
+        },
+        {
+          "atSec": 208,
+          "level": 12,
+          "id": "scorch_expand",
+          "kind": "new_passive",
+          "category": "passive"
+        },
+        {
+          "atSec": 241,
+          "level": 13,
+          "id": "scorch_expand",
+          "kind": "up_passive",
+          "category": "passive"
+        }
+      ],
+      "rerolls": 1,
+      "banishes": 1,
+      "skips": 1,
+      "rescues": 0,
+      "levelUpSceneSeen": 14,
+      "bossReached": false,
+      "bossKillSec": null,
+      "fps": {
+        "avg": 59,
+        "min": 57,
+        "maxFrameMs": 84,
+        "freezes500ms": 0
+      },
+      "healing": 0,
+      "mitigation": 0,
+      "resultAwarded": true,
+      "baseReached": true,
+      "rerunOk": true,
+      "rerunResidue": {
+        "kills": 0,
+        "timeSec": 0,
+        "level": 1,
+        "enemies": 0,
+        "proj": 0,
+        "boss": false,
+        "skills": 1,
+        "deathEvents": 0,
+        "statusIdx": 0
+      },
+      "errors": 0
+    },
+    {
+      "job": "flame_witch",
+      "strategy": "balanced",
+      "seed": 771103,
+      "difficulty": 1,
+      "speed": 2,
+      "permanentUpgrades": "none",
+      "jobLevel": 1,
+      "autoMove": true,
+      "debugRun": true,
+      "quality": "high",
+      "durationGameSec": 141,
+      "wallSec": 75,
+      "win": false,
+      "level": 9,
+      "kills": 196,
+      "damage": 3526,
+      "damageTaken": 94,
+      "topSkill": "fireball",
+      "topShare": 0.369,
+      "evolutions": 0,
+      "picks": 8,
+      "pickOrder": [
+        {
+          "atSec": 30,
+          "level": 2,
+          "id": "scorch_expand",
+          "kind": "new_passive",
+          "category": "passive"
+        },
+        {
+          "atSec": 37,
+          "level": 3,
+          "id": "power_amp",
+          "kind": "new_passive",
+          "category": "passive"
+        },
+        {
+          "atSec": 55,
+          "level": 4,
+          "id": "ember_persist",
+          "kind": "new_passive",
+          "category": "passive"
+        },
+        {
+          "atSec": 77,
+          "level": 5,
+          "id": "swift_cast",
+          "kind": "new_passive",
+          "category": "passive"
+        },
+        {
+          "atSec": 97,
+          "level": 6,
+          "id": "flame_pillar",
+          "kind": "new_active",
+          "category": "active"
+        },
+        {
+          "atSec": 111,
+          "level": 7,
+          "id": "flame_crescent",
+          "kind": "new_active",
+          "category": "active"
+        },
+        {
+          "atSec": 115,
+          "level": 8,
+          "id": "meteor",
+          "kind": "new_active",
+          "category": "active"
+        },
+        {
+          "atSec": 125,
+          "level": 9,
+          "id": "flame_crescent",
+          "kind": "up_active",
+          "category": "active"
+        }
+      ],
+      "rerolls": 1,
+      "banishes": 1,
+      "skips": 0,
+      "rescues": 0,
+      "levelUpSceneSeen": 10,
+      "bossReached": false,
+      "bossKillSec": null,
+      "fps": {
+        "avg": 60,
+        "min": 58,
+        "maxFrameMs": 71,
+        "freezes500ms": 0
+      },
+      "healing": 0,
+      "mitigation": 0,
+      "resultAwarded": true,
+      "baseReached": true,
+      "rerunOk": true,
+      "rerunResidue": {
+        "kills": 0,
+        "timeSec": 0,
+        "level": 1,
+        "enemies": 0,
+        "proj": 0,
+        "boss": false,
+        "skills": 1,
+        "deathEvents": 0,
+        "statusIdx": 0
+      },
+      "errors": 0
+    },
+    {
+      "job": "flame_witch",
+      "strategy": "random-valid",
+      "seed": 4242424,
+      "difficulty": 1,
+      "speed": 2,
+      "permanentUpgrades": "none",
+      "jobLevel": 1,
+      "autoMove": true,
+      "debugRun": true,
+      "quality": "high",
+      "durationGameSec": 269,
+      "wallSec": 140,
+      "win": false,
+      "level": 13,
+      "kills": 532,
+      "damage": 11093,
+      "damageTaken": 104,
+      "topSkill": "fireball",
+      "topShare": 0.604,
+      "evolutions": 0,
+      "picks": 12,
+      "pickOrder": [
+        {
+          "atSec": 26,
+          "level": 2,
+          "id": "core_overdrive",
+          "kind": "new_active",
+          "category": "active"
+        },
+        {
+          "atSec": 31,
+          "level": 3,
+          "id": "orbiting_flame",
+          "kind": "new_active",
+          "category": "active"
+        },
+        {
+          "atSec": 37,
+          "level": 4,
+          "id": "fireball",
+          "kind": "up_active",
+          "category": "active"
+        },
+        {
+          "atSec": 54,
+          "level": 5,
+          "id": "flame_crescent",
+          "kind": "new_active",
+          "category": "active"
+        },
+        {
+          "atSec": 64,
+          "level": 6,
+          "id": "ember_persist",
+          "kind": "new_passive",
+          "category": "passive"
+        },
+        {
+          "atSec": 76,
+          "level": 7,
+          "id": "fireball",
+          "kind": "up_active",
+          "category": "active"
+        },
+        {
+          "atSec": 95,
+          "level": 8,
+          "id": "flame_crescent",
+          "kind": "up_active",
+          "category": "active"
+        },
+        {
+          "atSec": 120,
+          "level": 9,
+          "id": "scorch_expand",
+          "kind": "new_passive",
+          "category": "passive"
+        },
+        {
+          "atSec": 140,
+          "level": 10,
+          "id": "flame_crescent",
+          "kind": "up_active",
+          "category": "active"
+        },
+        {
+          "atSec": 172,
+          "level": 11,
+          "id": "ember_persist",
+          "kind": "up_passive",
+          "category": "passive"
+        },
+        {
+          "atSec": 206,
+          "level": 12,
+          "id": "fireball",
+          "kind": "up_active",
+          "category": "active"
+        },
+        {
+          "atSec": 238,
+          "level": 13,
+          "id": "scorch_expand",
+          "kind": "up_passive",
+          "category": "passive"
+        }
+      ],
+      "rerolls": 1,
+      "banishes": 1,
+      "skips": 0,
+      "rescues": 0,
+      "levelUpSceneSeen": 14,
+      "bossReached": false,
+      "bossKillSec": null,
+      "fps": {
+        "avg": 59,
+        "min": 58,
+        "maxFrameMs": 92,
+        "freezes500ms": 0
+      },
+      "healing": 0,
+      "mitigation": 0,
+      "resultAwarded": true,
+      "baseReached": true,
+      "rerunOk": true,
+      "rerunResidue": {
+        "kills": 0,
+        "timeSec": 0,
+        "level": 1,
+        "enemies": 0,
+        "proj": 0,
+        "boss": false,
+        "skills": 1,
+        "deathEvents": 0,
+        "statusIdx": 0
+      },
+      "errors": 0
+    },
+    {
+      "job": "frost_mage",
+      "strategy": "evolution-first",
+      "seed": 20260803,
+      "difficulty": 1,
+      "speed": 2,
+      "permanentUpgrades": "none",
+      "jobLevel": 1,
+      "autoMove": true,
+      "debugRun": true,
+      "quality": "high",
+      "durationGameSec": 324,
+      "wallSec": 165,
+      "win": false,
+      "level": 14,
+      "kills": 665,
+      "damage": 14129,
+      "damageTaken": 86,
+      "topSkill": "icicle_volley",
+      "topShare": 0.461,
+      "evolutions": 0,
+      "picks": 12,
+      "pickOrder": [
+        {
+          "atSec": 21,
+          "level": 2,
+          "id": "icicle_volley",
+          "kind": "new_active",
+          "category": "active"
+        },
+        {
+          "atSec": 27,
+          "level": 3,
+          "id": "cryo_mine",
+          "kind": "new_active",
+          "category": "active"
+        },
+        {
+          "atSec": 31,
+          "level": 4,
+          "id": "frost_orbit",
+          "kind": "new_active",
+          "category": "active"
+        },
+        {
+          "atSec": 56,
+          "level": 6,
+          "id": "icicle_volley",
+          "kind": "up_active",
+          "category": "active"
+        },
+        {
+          "atSec": 79,
+          "level": 7,
+          "id": "frost_amplification",
+          "kind": "new_passive",
+          "category": "passive"
+        },
+        {
+          "atSec": 97,
+          "level": 8,
+          "id": "icicle_volley",
+          "kind": "up_active",
+          "category": "active"
+        },
+        {
+          "atSec": 122,
+          "level": 9,
+          "id": "icicle_volley",
+          "kind": "up_active",
+          "category": "active"
+        },
+        {
+          "atSec": 149,
+          "level": 10,
+          "id": "icicle_volley",
+          "kind": "up_active",
+          "category": "active"
+        },
+        {
+          "atSec": 177,
+          "level": 11,
+          "id": "cryo_mine",
+          "kind": "up_active",
+          "category": "active"
+        },
+        {
+          "atSec": 208,
+          "level": 12,
+          "id": "frozen_expansion",
+          "kind": "new_passive",
+          "category": "passive"
+        },
+        {
+          "atSec": 246,
+          "level": 13,
+          "id": "frozen_expansion",
+          "kind": "up_passive",
+          "category": "passive"
+        },
+        {
+          "atSec": 289,
+          "level": 14,
+          "id": "cryo_mine",
+          "kind": "up_active",
+          "category": "active"
+        }
+      ],
+      "rerolls": 1,
+      "banishes": 1,
+      "skips": 1,
+      "rescues": 0,
+      "levelUpSceneSeen": 15,
+      "bossReached": true,
+      "bossKillSec": null,
+      "fps": {
+        "avg": 59,
+        "min": 57,
+        "maxFrameMs": 101,
+        "freezes500ms": 0
+      },
+      "healing": 0,
+      "mitigation": 0,
+      "resultAwarded": true,
+      "baseReached": true,
+      "rerunOk": true,
+      "rerunResidue": {
+        "kills": 0,
+        "timeSec": 0,
+        "level": 1,
+        "enemies": 0,
+        "proj": 0,
+        "boss": false,
+        "skills": 1,
+        "deathEvents": 0,
+        "statusIdx": 0
+      },
+      "errors": 0
+    },
+    {
+      "job": "frost_mage",
+      "strategy": "balanced",
+      "seed": 771103,
+      "difficulty": 1,
+      "speed": 2,
+      "permanentUpgrades": "none",
+      "jobLevel": 1,
+      "autoMove": true,
+      "debugRun": true,
+      "quality": "high",
+      "durationGameSec": 207,
+      "wallSec": 105,
+      "win": false,
+      "level": 12,
+      "kills": 343,
+      "damage": 6573,
+      "damageTaken": 68,
+      "topSkill": "crystal_bloom",
+      "topShare": 0.425,
+      "evolutions": 0,
+      "picks": 11,
+      "pickOrder": [
+        {
+          "atSec": 18,
+          "level": 2,
+          "id": "frozen_expansion",
+          "kind": "new_passive",
+          "category": "passive"
+        },
+        {
+          "atSec": 38,
+          "level": 3,
+          "id": "frost_amplification",
+          "kind": "new_passive",
+          "category": "passive"
+        },
+        {
+          "atSec": 48,
+          "level": 4,
+          "id": "lingering_cold",
+          "kind": "new_passive",
+          "category": "passive"
+        },
+        {
+          "atSec": 65,
+          "level": 5,
+          "id": "rapid_freezing",
+          "kind": "new_passive",
+          "category": "passive"
+        },
+        {
+          "atSec": 80,
+          "level": 6,
+          "id": "frost_nova",
+          "kind": "new_active",
+          "category": "active"
+        },
+        {
+          "atSec": 85,
+          "level": 7,
+          "id": "crystal_bloom",
+          "kind": "new_active",
+          "category": "active"
+        },
+        {
+          "atSec": 92,
+          "level": 8,
+          "id": "frost_orbit",
+          "kind": "new_active",
+          "category": "active"
+        },
+        {
+          "atSec": 111,
+          "level": 9,
+          "id": "crystal_bloom",
+          "kind": "up_active",
+          "category": "active"
+        },
+        {
+          "atSec": 137,
+          "level": 10,
+          "id": "lingering_cold",
+          "kind": "up_passive",
+          "category": "passive"
+        },
+        {
+          "atSec": 170,
+          "level": 11,
+          "id": "frost_amplification",
+          "kind": "up_passive",
+          "category": "passive"
+        },
+        {
+          "atSec": 202,
+          "level": 12,
+          "id": "crystal_bloom",
+          "kind": "up_active",
+          "category": "active"
+        }
+      ],
+      "rerolls": 1,
+      "banishes": 1,
+      "skips": 0,
+      "rescues": 0,
+      "levelUpSceneSeen": 13,
+      "bossReached": false,
+      "bossKillSec": null,
+      "fps": {
+        "avg": 59,
+        "min": 57,
+        "maxFrameMs": 188,
+        "freezes500ms": 0
+      },
+      "healing": 0,
+      "mitigation": 0,
+      "resultAwarded": true,
+      "baseReached": true,
+      "rerunOk": true,
+      "rerunResidue": {
+        "kills": 0,
+        "timeSec": 0,
+        "level": 1,
+        "enemies": 0,
+        "proj": 0,
+        "boss": false,
+        "skills": 1,
+        "deathEvents": 0,
+        "statusIdx": 0
+      },
+      "errors": 0
+    },
+    {
+      "job": "frost_mage",
+      "strategy": "random-valid",
+      "seed": 4242424,
+      "difficulty": 1,
+      "speed": 2,
+      "permanentUpgrades": "none",
+      "jobLevel": 1,
+      "autoMove": true,
+      "debugRun": true,
+      "quality": "high",
+      "durationGameSec": 269,
+      "wallSec": 140,
+      "win": false,
+      "level": 13,
+      "kills": 540,
+      "damage": 14565,
+      "damageTaken": 104,
+      "topSkill": "frost_shard",
+      "topShare": 0.349,
+      "evolutions": 0,
+      "picks": 12,
+      "pickOrder": [
+        {
+          "atSec": 28,
+          "level": 2,
+          "id": "absolute_ice_seal",
+          "kind": "new_active",
+          "category": "active"
+        },
+        {
+          "atSec": 31,
+          "level": 3,
+          "id": "ice_wall",
+          "kind": "new_active",
+          "category": "active"
+        },
+        {
+          "atSec": 37,
+          "level": 4,
+          "id": "frost_shard",
+          "kind": "up_active",
+          "category": "active"
+        },
+        {
+          "atSec": 40,
+          "level": 5,
+          "id": "crystal_bloom",
+          "kind": "new_active",
+          "category": "active"
+        },
+        {
+          "atSec": 65,
+          "level": 6,
+          "id": "lingering_cold",
+          "kind": "new_passive",
+          "category": "passive"
+        },
+        {
+          "atSec": 81,
+          "level": 7,
+          "id": "frost_shard",
+          "kind": "up_active",
+          "category": "active"
+        },
+        {
+          "atSec": 103,
+          "level": 8,
+          "id": "absolute_ice_seal",
+          "kind": "up_active",
+          "category": "active"
+        },
+        {
+          "atSec": 119,
+          "level": 9,
+          "id": "rapid_freezing",
+          "kind": "new_passive",
+          "category": "passive"
+        },
+        {
+          "atSec": 150,
+          "level": 10,
+          "id": "rapid_freezing",
+          "kind": "up_passive",
+          "category": "passive"
+        },
+        {
+          "atSec": 182,
+          "level": 11,
+          "id": "lingering_cold",
+          "kind": "up_passive",
+          "category": "passive"
+        },
+        {
+          "atSec": 218,
+          "level": 12,
+          "id": "ice_wall",
+          "kind": "up_active",
+          "category": "active"
+        },
+        {
+          "atSec": 249,
+          "level": 13,
+          "id": "frozen_expansion",
+          "kind": "new_passive",
+          "category": "passive"
+        }
+      ],
+      "rerolls": 1,
+      "banishes": 1,
+      "skips": 0,
+      "rescues": 0,
+      "levelUpSceneSeen": 14,
+      "bossReached": false,
+      "bossKillSec": null,
+      "fps": {
+        "avg": 59,
+        "min": 58,
+        "maxFrameMs": 83,
+        "freezes500ms": 0
+      },
+      "healing": 0,
+      "mitigation": 0,
+      "resultAwarded": true,
+      "baseReached": true,
+      "rerunOk": true,
+      "rerunResidue": {
+        "kills": 0,
+        "timeSec": 0,
+        "level": 1,
+        "enemies": 0,
+        "proj": 0,
+        "boss": false,
+        "skills": 1,
+        "deathEvents": 0,
+        "statusIdx": 0
+      },
+      "errors": 0
+    },
+    {
+      "job": "warrior",
+      "strategy": "evolution-first",
+      "seed": 20260803,
+      "difficulty": 1,
+      "speed": 2,
+      "permanentUpgrades": "none",
+      "jobLevel": 1,
+      "autoMove": true,
+      "debugRun": true,
+      "quality": "high",
+      "durationGameSec": 150,
+      "wallSec": 80,
+      "win": false,
+      "level": 10,
+      "kills": 212,
+      "damage": 5635,
+      "damageTaken": 143,
+      "topSkill": "great_cleave",
+      "topShare": 0.401,
+      "evolutions": 0,
+      "picks": 8,
+      "pickOrder": [
+        {
+          "atSec": 13,
+          "level": 2,
+          "id": "twin_fang_slash",
+          "kind": "new_active",
+          "category": "active"
+        },
+        {
+          "atSec": 21,
+          "level": 3,
+          "id": "chain_hook",
+          "kind": "new_active",
+          "category": "active"
+        },
+        {
+          "atSec": 31,
+          "level": 4,
+          "id": "piercing_lunge",
+          "kind": "new_active",
+          "category": "active"
+        },
+        {
+          "atSec": 50,
+          "level": 6,
+          "id": "great_cleave",
+          "kind": "up_active",
+          "category": "active"
+        },
+        {
+          "atSec": 69,
+          "level": 7,
+          "id": "piercing_lunge",
+          "kind": "up_active",
+          "category": "active"
+        },
+        {
+          "atSec": 85,
+          "level": 8,
+          "id": "great_cleave",
+          "kind": "up_active",
+          "category": "active"
+        },
+        {
+          "atSec": 104,
+          "level": 9,
+          "id": "great_cleave",
+          "kind": "up_active",
+          "category": "active"
+        },
+        {
+          "atSec": 128,
+          "level": 10,
+          "id": "great_cleave",
+          "kind": "up_active",
+          "category": "active"
+        }
+      ],
+      "rerolls": 1,
+      "banishes": 1,
+      "skips": 1,
+      "rescues": 0,
+      "levelUpSceneSeen": 11,
+      "bossReached": false,
+      "bossKillSec": null,
+      "fps": {
+        "avg": 59,
+        "min": 59,
+        "maxFrameMs": 70,
+        "freezes500ms": 0
+      },
+      "healing": 33,
+      "mitigation": 23,
+      "resultAwarded": true,
+      "baseReached": true,
+      "rerunOk": true,
+      "rerunResidue": {
+        "kills": 0,
+        "timeSec": 0,
+        "level": 1,
+        "enemies": 0,
+        "proj": 0,
+        "boss": false,
+        "skills": 1,
+        "deathEvents": 0,
+        "statusIdx": 0
+      },
+      "errors": 0
+    },
+    {
+      "job": "warrior",
+      "strategy": "balanced",
+      "seed": 771103,
+      "difficulty": 1,
+      "speed": 2,
+      "permanentUpgrades": "none",
+      "jobLevel": 1,
+      "autoMove": true,
+      "debugRun": true,
+      "quality": "high",
+      "durationGameSec": 100,
+      "wallSec": 55,
+      "win": false,
+      "level": 8,
+      "kills": 120,
+      "damage": 2363,
+      "damageTaken": 141,
+      "topSkill": "great_cleave",
+      "topShare": 0.59,
+      "evolutions": 0,
+      "picks": 7,
+      "pickOrder": [
+        {
+          "atSec": 14,
+          "level": 2,
+          "id": "brute_force",
+          "kind": "new_passive",
+          "category": "passive"
+        },
+        {
+          "atSec": 24,
+          "level": 3,
+          "id": "combat_instinct",
+          "kind": "new_passive",
+          "category": "passive"
+        },
+        {
+          "atSec": 30,
+          "level": 4,
+          "id": "shield_bash",
+          "kind": "new_active",
+          "category": "active"
+        },
+        {
+          "atSec": 38,
+          "level": 5,
+          "id": "heavy_armor",
+          "kind": "new_passive",
+          "category": "passive"
+        },
+        {
+          "atSec": 56,
+          "level": 6,
+          "id": "blade_guard",
+          "kind": "new_active",
+          "category": "active"
+        },
+        {
+          "atSec": 72,
+          "level": 7,
+          "id": "battlefield_throw",
+          "kind": "new_active",
+          "category": "active"
+        },
+        {
+          "atSec": 87,
+          "level": 8,
+          "id": "great_cleave",
+          "kind": "up_active",
+          "category": "active"
+        }
+      ],
+      "rerolls": 1,
+      "banishes": 1,
+      "skips": 0,
+      "rescues": 0,
+      "levelUpSceneSeen": 9,
+      "bossReached": false,
+      "bossKillSec": null,
+      "fps": {
+        "avg": 59,
+        "min": 59,
+        "maxFrameMs": 79,
+        "freezes500ms": 0
+      },
+      "healing": 19,
+      "mitigation": 33,
+      "resultAwarded": true,
+      "baseReached": true,
+      "rerunOk": true,
+      "rerunResidue": {
+        "kills": 0,
+        "timeSec": 0,
+        "level": 1,
+        "enemies": 0,
+        "proj": 0,
+        "boss": false,
+        "skills": 1,
+        "deathEvents": 0,
+        "statusIdx": 0
+      },
+      "errors": 0
+    },
+    {
+      "job": "warrior",
+      "strategy": "random-valid",
+      "seed": 4242424,
+      "difficulty": 1,
+      "speed": 2,
+      "permanentUpgrades": "none",
+      "jobLevel": 1,
+      "autoMove": true,
+      "debugRun": true,
+      "quality": "high",
+      "durationGameSec": 105,
+      "wallSec": 55,
+      "win": false,
+      "level": 8,
+      "kills": 135,
+      "damage": 2542,
+      "damageTaken": 123,
+      "topSkill": "great_cleave",
+      "topShare": 0.415,
+      "evolutions": 0,
+      "picks": 7,
+      "pickOrder": [
+        {
+          "atSec": 16,
+          "level": 2,
+          "id": "earthshaker_march",
+          "kind": "new_active",
+          "category": "active"
+        },
+        {
+          "atSec": 22,
+          "level": 3,
+          "id": "ground_slam",
+          "kind": "new_active",
+          "category": "active"
+        },
+        {
+          "atSec": 30,
+          "level": 4,
+          "id": "great_cleave",
+          "kind": "up_active",
+          "category": "active"
+        },
+        {
+          "atSec": 37,
+          "level": 5,
+          "id": "blade_guard",
+          "kind": "new_active",
+          "category": "active"
+        },
+        {
+          "atSec": 51,
+          "level": 6,
+          "id": "bloodlust",
+          "kind": "new_passive",
+          "category": "passive"
+        },
+        {
+          "atSec": 70,
+          "level": 7,
+          "id": "great_cleave",
+          "kind": "up_active",
+          "category": "active"
+        },
+        {
+          "atSec": 88,
+          "level": 8,
+          "id": "blade_guard",
+          "kind": "up_active",
+          "category": "active"
+        }
+      ],
+      "rerolls": 1,
+      "banishes": 1,
+      "skips": 0,
+      "rescues": 0,
+      "levelUpSceneSeen": 9,
+      "bossReached": false,
+      "bossKillSec": null,
+      "fps": {
+        "avg": 59,
+        "min": 57,
+        "maxFrameMs": 137,
+        "freezes500ms": 0
+      },
+      "healing": 19,
+      "mitigation": 23,
+      "resultAwarded": true,
+      "baseReached": true,
+      "rerunOk": true,
+      "rerunResidue": {
+        "kills": 0,
+        "timeSec": 0,
+        "level": 1,
+        "enemies": 0,
+        "proj": 0,
+        "boss": false,
+        "skills": 1,
+        "deathEvents": 0,
+        "statusIdx": 0
+      },
+      "errors": 0
+    }
+  ],
+  "progressionTiers": [
+    {
+      "job": "flame_witch",
+      "tier": "mid",
+      "win": true,
+      "durationGameSec": 389,
+      "level": 15,
+      "kills": 696,
+      "bossReached": true,
+      "evolutions": 0,
+      "fps": 59,
+      "errors": 0
+    },
+    {
+      "job": "flame_witch",
+      "tier": "max",
+      "win": true,
+      "durationGameSec": 353,
+      "level": 17,
+      "kills": 678,
+      "bossReached": true,
+      "evolutions": 0,
+      "fps": 59,
+      "errors": 0
+    },
+    {
+      "job": "frost_mage",
+      "tier": "mid",
+      "win": true,
+      "durationGameSec": 398,
+      "level": 15,
+      "kills": 701,
+      "bossReached": true,
+      "evolutions": 0,
+      "fps": 59,
+      "errors": 0
+    },
+    {
+      "job": "frost_mage",
+      "tier": "max",
+      "win": true,
+      "durationGameSec": 371,
+      "level": 16,
+      "kills": 688,
+      "bossReached": true,
+      "evolutions": 0,
+      "fps": 59,
+      "errors": 0
+    },
+    {
+      "job": "warrior",
+      "tier": "mid",
+      "win": false,
+      "durationGameSec": 246,
+      "level": 14,
+      "kills": 470,
+      "bossReached": false,
+      "evolutions": 0,
+      "fps": 60,
+      "errors": 0
+    },
+    {
+      "job": "warrior",
+      "tier": "max",
+      "win": true,
+      "durationGameSec": 354,
+      "level": 17,
+      "kills": 680,
+      "bossReached": true,
+      "evolutions": 0,
+      "fps": 60,
+      "errors": 0
+    }
+  ],
+  "defeatRuns": [
+    {
+      "job": "flame_witch",
+      "win": false,
+      "durationGameSec": 189,
+      "embersGained": 72,
+      "activeRunCleared": true,
+      "baseReached": true,
+      "rerunOk": true,
+      "embersBefore": 0,
+      "embersAfter": 72,
+      "doubleAwardAfterRerun": false,
+      "errors": 0
+    }
+  ],
+  "evolution": [
+    {
+      "job": "flame_witch",
+      "viaNormalDraft": [],
+      "viaDebugGrant": [
+        "infernal_barrage",
+        "purgatory_eruption",
+        "hundred_wisp_parade",
+        "infernal_vortex_wheel"
+      ],
+      "preparedFor": [
+        "infernal_barrage",
+        "purgatory_eruption",
+        "eternal_pyre",
+        "hundred_wisp_parade",
+        "infernal_vortex_wheel"
+      ],
+      "evolvedAtCheck": 4,
+      "baseReoffered": 0,
+      "reofferSampled": 72,
+      "baseCoexist": 0,
+      "supportKept": true,
+      "extraLevelsAfterEvolve": 0,
+      "reloadEvolvedSame": true,
+      "reloadLevelsSame": true,
+      "reloadRuntimeKept": true,
+      "reloadDuplicated": false,
+      "f8EvolutionLine": "進化到達: 4/18 infernal_barrage,purgatory_eruption,hundred_wisp_parade,infernal_vortex_wheel",
+      "errors": 0
+    },
+    {
+      "job": "frost_mage",
+      "viaNormalDraft": [],
+      "viaDebugGrant": [
+        "diamond_blizzard",
+        "absolute_zero_domain",
+        "world_end_avalanche",
+        "zero_hour_world"
+      ],
+      "preparedFor": [
+        "world_end_avalanche",
+        "zero_hour_world",
+        "eternal_sealed_coffin",
+        "diamond_blizzard",
+        "absolute_zero_domain"
+      ],
+      "evolvedAtCheck": 4,
+      "baseReoffered": 0,
+      "reofferSampled": 72,
+      "baseCoexist": 0,
+      "supportKept": true,
+      "extraLevelsAfterEvolve": 0,
+      "reloadEvolvedSame": true,
+      "reloadLevelsSame": true,
+      "reloadRuntimeKept": true,
+      "reloadDuplicated": false,
+      "f8EvolutionLine": "進化到達: 4/18 diamond_blizzard,absolute_zero_domain,world_end_avalanche,zero_hour_world",
+      "errors": 0
+    },
+    {
+      "job": "warrior",
+      "viaNormalDraft": [],
+      "viaDebugGrant": [
+        "thousand_blade_dance",
+        "bloodstorm_whirlwind",
+        "heaven_crushing_descent",
+        "mountain_hurl"
+      ],
+      "preparedFor": [
+        "heaven_crushing_descent",
+        "mountain_hurl",
+        "heaven_mirror_reversal",
+        "thousand_blade_dance",
+        "bloodstorm_whirlwind"
+      ],
+      "evolvedAtCheck": 4,
+      "baseReoffered": 0,
+      "reofferSampled": 72,
+      "baseCoexist": 0,
+      "supportKept": true,
+      "extraLevelsAfterEvolve": 0,
+      "reloadEvolvedSame": true,
+      "reloadLevelsSame": true,
+      "reloadRuntimeKept": true,
+      "reloadDuplicated": false,
+      "f8EvolutionLine": "進化到達: 4/18 thousand_blade_dance,bloodstorm_whirlwind,heaven_crushing_descent,mountain_hurl",
+      "errors": 0
+    }
+  ],
+  "resultCycle": [
+    {
+      "job": "flame_witch",
+      "win": true,
+      "resultReached": true,
+      "awarded": true,
+      "resultId": "606060-79819-88-0-W",
+      "embersBefore": 0,
+      "embersGained": 77,
+      "embersAfter": 77,
+      "jobXpBefore": 0,
+      "jobXpGain": 302,
+      "jobXpAfter": 302,
+      "doubleAwardCheck": true,
+      "baseReached": true,
+      "rerunOk": true,
+      "rerunResidue": {
+        "kills": 0,
+        "timeSec": 0,
+        "level": 1,
+        "enemies": 0,
+        "proj": 0,
+        "bossBullets": 0,
+        "gems": 0,
+        "boss": false,
+        "skills": 1,
+        "deathEvents": 0,
+        "chill": 0,
+        "burning": 0,
+        "duelMark": true,
+        "fury": 0
+      },
+      "resultTexts": [
+        "勝利！",
+        "生存: 1:19   討伐: 88   ボス: 0   最高ダメージ: 16",
+        "今回獲得 残り火: +77    所持: 77",
+        "内訳: 生存 11 / 討伐 35 / ボス 0 / 勝利ボーナス 30 / 難易度 ×1.00 / 勝利補正 ×1.00",
+        "★ 難易度2 を解放しました！",
+        "火の魔女 Job Lv.1 → Lv.3",
+        "使用スキル / 与ダメージ / 討伐数 / Lv",
+        "拠点へ戻る"
+      ],
+      "saveVersionAfter": 6,
+      "permanentUpgradesUnchanged": true,
+      "telemetryDoubleCount": false,
+      "debugRunSeparated": true,
+      "errors": 0
+    },
+    {
+      "job": "frost_mage",
+      "win": true,
+      "resultReached": true,
+      "awarded": true,
+      "resultId": "606060-79696-95-0-W",
+      "embersBefore": 0,
+      "embersGained": 79,
+      "embersAfter": 79,
+      "jobXpBefore": 0,
+      "jobXpGain": 303,
+      "jobXpAfter": 303,
+      "doubleAwardCheck": true,
+      "baseReached": true,
+      "rerunOk": true,
+      "rerunResidue": {
+        "kills": 0,
+        "timeSec": 0,
+        "level": 1,
+        "enemies": 0,
+        "proj": 0,
+        "bossBullets": 0,
+        "gems": 0,
+        "boss": false,
+        "skills": 1,
+        "deathEvents": 0,
+        "chill": 0,
+        "burning": 0,
+        "duelMark": true,
+        "fury": 0
+      },
+      "resultTexts": [
+        "勝利！",
+        "生存: 1:19   討伐: 95   ボス: 0   最高ダメージ: 18",
+        "今回獲得 残り火: +79    所持: 79",
+        "内訳: 生存 11 / 討伐 38 / ボス 0 / 勝利ボーナス 30 / 難易度 ×1.00 / 勝利補正 ×1.00",
+        "★ 難易度2 を解放しました！",
+        "氷術師 Job Lv.1 → Lv.3",
+        "使用スキル / 与ダメージ / 討伐数 / Lv",
+        "拠点へ戻る"
+      ],
+      "saveVersionAfter": 6,
+      "permanentUpgradesUnchanged": true,
+      "telemetryDoubleCount": false,
+      "debugRunSeparated": true,
+      "errors": 0
+    },
+    {
+      "job": "warrior",
+      "win": true,
+      "resultReached": true,
+      "awarded": true,
+      "resultId": "606060-79793-85-0-W",
+      "embersBefore": 0,
+      "embersGained": 75,
+      "embersAfter": 75,
+      "jobXpBefore": 0,
+      "jobXpGain": 302,
+      "jobXpAfter": 302,
+      "doubleAwardCheck": true,
+      "baseReached": true,
+      "rerunOk": true,
+      "rerunResidue": {
+        "kills": 0,
+        "timeSec": 0,
+        "level": 1,
+        "enemies": 0,
+        "proj": 0,
+        "bossBullets": 0,
+        "gems": 0,
+        "boss": false,
+        "skills": 1,
+        "deathEvents": 0,
+        "chill": 0,
+        "burning": 0,
+        "duelMark": true,
+        "fury": 0
+      },
+      "resultTexts": [
+        "勝利！",
+        "生存: 1:19   討伐: 85   ボス: 0   最高ダメージ: 45",
+        "今回獲得 残り火: +75    所持: 75",
+        "内訳: 生存 11 / 討伐 34 / ボス 0 / 勝利ボーナス 30 / 難易度 ×1.00 / 勝利補正 ×1.00",
+        "★ 難易度2 を解放しました！",
+        "戦士 Job Lv.1 → Lv.3",
+        "使用スキル / 与ダメージ / 討伐数 / Lv",
+        "拠点へ戻る"
+      ],
+      "saveVersionAfter": 6,
+      "permanentUpgradesUnchanged": true,
+      "telemetryDoubleCount": false,
+      "debugRunSeparated": true,
+      "errors": 0
+    },
+    {
+      "job": "warrior",
+      "win": false,
+      "resultReached": true,
+      "awarded": true,
+      "resultId": "606060-79846-88-0-L",
+      "embersBefore": 0,
+      "embersGained": 23,
+      "embersAfter": 23,
+      "jobXpBefore": 0,
+      "jobXpGain": 102,
+      "jobXpAfter": 102,
+      "doubleAwardCheck": true,
+      "baseReached": true,
+      "rerunOk": true,
+      "rerunResidue": {
+        "kills": 0,
+        "timeSec": 0,
+        "level": 1,
+        "enemies": 0,
+        "proj": 0,
+        "bossBullets": 0,
+        "gems": 0,
+        "boss": false,
+        "skills": 1,
+        "deathEvents": 0,
+        "chill": 0,
+        "burning": 0,
+        "duelMark": true,
+        "fury": 0
+      },
+      "resultTexts": [
+        "敗北…",
+        "生存: 1:19   討伐: 88   ボス: 0   最高ダメージ: 45",
+        "今回獲得 残り火: +23    所持: 23",
+        "内訳: 生存 11 / 討伐 35 / ボス 0 / 勝利ボーナス 0 / 難易度 ×1.00 / 敗北補正 ×0.50",
+        "戦士 Job Lv.1 → Lv.2",
+        "獲得 Job XP: +102（難易度 ×1）  次まで 148",
+        "使用スキル / 与ダメージ / 討伐数 / Lv",
+        "拠点へ戻る"
+      ],
+      "saveVersionAfter": 6,
+      "permanentUpgradesUnchanged": true,
+      "telemetryDoubleCount": false,
+      "debugRunSeparated": true,
+      "errors": 0
+    }
+  ],
+  "resume": [
+    {
+      "job": "flame_witch",
+      "savedMidRun": true,
+      "hasActiveRunAfterReload": true,
+      "resumed": true,
+      "beforeTimeSec": 147,
+      "afterTimeSec": 149,
+      "matched": {
+        "jobId": true,
+        "level": true,
+        "xp": false,
+        "hp": true,
+        "maxHp": true,
+        "activeLevels": true,
+        "passives": true,
+        "evolved": true,
+        "runtime": true,
+        "statusRngCursor": true,
+        "status": true,
+        "kills": true,
+        "bossSpawned": true,
+        "draft": true,
+        "resource": true
+      },
+      "castsIn3s": 8,
+      "xpBefore": 7,
+      "xpAfter": 15,
+      "freeCastBurst": false,
+      "cdSumAfter": 2074,
+      "cooldownFullyReset": false,
+      "pendingDuplicated": false,
+      "rewardDuplicated": false,
+      "statusDuplicated": false,
+      "jobIdGuard": {
+        "activeRunJobId": "flame_witch",
+        "changedTo": "warrior"
+      },
+      "saveVersion": 6,
+      "folder": {
+        "roundTripOk": true,
+        "saveVersion": 6,
+        "matchesBrowserSave": true,
+        "bytes": 3978
+      },
+      "jobSpecific": {
+        "burning": true,
+        "delayed": true,
+        "field": true,
+        "echoClone": true
+      },
+      "jobRuntimeBefore": {
+        "runtimeKeys": [
+          "fire_spirit",
+          "fireball",
+          "meteor",
+          "scatter_flame"
+        ],
+        "runtimeHash": "{\"fireball\":{\"cdLeft\":283.3600000000005},\"meteor\":{\"cdLeft\":2766.7600000000075},\"fire_spirit\":{\"angle\":193.65609600000832,\"castPulse\":233.38000000000167,\"shotTimers\":[233.38000000000167]},\"scatter_flame\":{\"cdLeft\":799.9999999999999}}",
+        "fire": {
+          "burning": 0,
+          "burningDamage": 0,
+          "delayedTimers": 0,
+          "fieldSkills": 0,
+          "echoClone": 0
+        },
+        "frost": {
+          "chill": 0,
+          "chillTotal": 0,
+          "frozen": 0,
+          "immunity": 0,
+          "bossGauge": 0,
+          "frostbreaks": 0,
+          "iceDamage": 0
+        },
+        "warrior": null
+      },
+      "jobRuntimeAfter": {
+        "runtimeKeys": [
+          "fire_spirit",
+          "fireball",
+          "meteor",
+          "scatter_flame"
+        ],
+        "runtimeHash": "{\"fireball\":{\"cdLeft\":167.74000000000007},\"meteor\":{\"cdLeft\":1405.2600000000073},\"fire_spirit\":{\"angle\":195.83449600000824,\"castPulse\":-13.126666666666864,\"shotTimers\":[70.07999999999996]},\"scatter_flame\":{\"cdLeft\":450.8733333333338}}",
+        "fire": {
+          "burning": 0,
+          "burningDamage": 0,
+          "delayedTimers": 0,
+          "fieldSkills": 0,
+          "echoClone": 0
+        },
+        "frost": {
+          "chill": 0,
+          "chillTotal": 0,
+          "frozen": 0,
+          "immunity": 0,
+          "bossGauge": 0,
+          "frostbreaks": 0,
+          "iceDamage": 0
+        },
+        "warrior": null
+      },
+      "errors": 0
+    },
+    {
+      "job": "frost_mage",
+      "savedMidRun": true,
+      "hasActiveRunAfterReload": true,
+      "resumed": true,
+      "beforeTimeSec": 150,
+      "afterTimeSec": 151,
+      "matched": {
+        "jobId": true,
+        "level": true,
+        "xp": true,
+        "hp": true,
+        "maxHp": true,
+        "activeLevels": true,
+        "passives": true,
+        "evolved": true,
+        "runtime": true,
+        "statusRngCursor": true,
+        "status": true,
+        "kills": true,
+        "bossSpawned": true,
+        "draft": true,
+        "resource": true
+      },
+      "castsIn3s": 8,
+      "xpBefore": 4,
+      "xpAfter": 4,
+      "freeCastBurst": false,
+      "cdSumAfter": 1086,
+      "cooldownFullyReset": false,
+      "pendingDuplicated": false,
+      "rewardDuplicated": false,
+      "statusDuplicated": false,
+      "jobIdGuard": {
+        "activeRunJobId": "frost_mage",
+        "changedTo": "warrior"
+      },
+      "saveVersion": 6,
+      "folder": {
+        "roundTripOk": true,
+        "saveVersion": 6,
+        "matchesBrowserSave": true,
+        "bytes": 3904
+      },
+      "jobSpecific": {
+        "chill": true,
+        "frozen": true,
+        "immunity": true,
+        "bossGauge": true,
+        "frostbreak": true
+      },
+      "jobRuntimeBefore": {
+        "runtimeKeys": [
+          "cryo_mine",
+          "frost_shard",
+          "icicle_volley"
+        ],
+        "runtimeHash": "{\"frost_shard\":{\"cdLeft\":276.76000000000346},\"icicle_volley\":{\"cdLeft\":167.06000000000046},\"cryo_mine\":{\"cdLeft\":2000.0400000000034}}",
+        "fire": {
+          "burning": 0,
+          "burningDamage": 0,
+          "delayedTimers": 0,
+          "fieldSkills": 0,
+          "echoClone": 0
+        },
+        "frost": {
+          "chill": 3,
+          "chillTotal": 1293,
+          "frozen": 0,
+          "immunity": 0,
+          "bossGauge": 0,
+          "frostbreaks": 0,
+          "iceDamage": 3471
+        },
+        "warrior": null
+      },
+      "jobRuntimeAfter": {
+        "runtimeKeys": [
+          "cryo_mine",
+          "frost_shard",
+          "icicle_volley"
+        ],
+        "runtimeHash": "{\"frost_shard\":{\"cdLeft\":167.7800000000004},\"icicle_volley\":{\"cdLeft\":324.7800000000003},\"cryo_mine\":{\"cdLeft\":593.7399999999969}}",
+        "fire": {
+          "burning": 0,
+          "burningDamage": 0,
+          "delayedTimers": 0,
+          "fieldSkills": 0,
+          "echoClone": 0
+        },
+        "frost": {
+          "chill": 0,
+          "chillTotal": 0,
+          "frozen": 0,
+          "immunity": 0,
+          "bossGauge": 0,
+          "frostbreaks": 0,
+          "iceDamage": 0
+        },
+        "warrior": null
+      },
+      "errors": 0
+    },
+    {
+      "job": "warrior",
+      "savedMidRun": true,
+      "hasActiveRunAfterReload": true,
+      "resumed": true,
+      "beforeTimeSec": 150,
+      "afterTimeSec": 151,
+      "matched": {
+        "jobId": true,
+        "level": true,
+        "xp": false,
+        "hp": true,
+        "maxHp": true,
+        "activeLevels": true,
+        "passives": true,
+        "evolved": true,
+        "runtime": true,
+        "statusRngCursor": true,
+        "status": true,
+        "kills": true,
+        "bossSpawned": true,
+        "draft": true,
+        "resource": true
+      },
+      "castsIn3s": 10,
+      "xpBefore": 43,
+      "xpAfter": 45,
+      "freeCastBurst": false,
+      "cdSumAfter": 1669,
+      "cooldownFullyReset": false,
+      "pendingDuplicated": false,
+      "rewardDuplicated": false,
+      "statusDuplicated": false,
+      "jobIdGuard": {
+        "activeRunJobId": "warrior",
+        "changedTo": "flame_witch"
+      },
+      "saveVersion": 6,
+      "folder": {
+        "roundTripOk": true,
+        "saveVersion": 6,
+        "matchesBrowserSave": true,
+        "bytes": 7008
+      },
+      "jobSpecific": {
+        "fury": true,
+        "combo": true,
+        "counter": true,
+        "deflection": true,
+        "duel": true,
+        "trance": true,
+        "rally": true,
+        "poise": true
+      },
+      "jobRuntimeBefore": {
+        "runtimeKeys": [
+          "chain_hook",
+          "great_cleave",
+          "piercing_lunge",
+          "twin_fang_slash"
+        ],
+        "runtimeHash": "{\"great_cleave\":{\"cdLeft\":739.9799999999988},\"twin_fang_slash\":{\"cdLeft\":33.380000000004486},\"chain_hook\":{\"cdLeft\":1866.820000000004,\"hookLeftMs\":0,\"hookSeq\":-1,\"hookPulled\":0,\"hookIsBoss\":false},\"piercing_lunge\":{\"cdLeft\":1647.3400000000017,\"lungePending\":false}}",
+        "fire": {
+          "burning": 0,
+          "burningDamage": 0,
+          "delayedTimers": 0,
+          "fieldSkills": 0,
+          "echoClone": 0
+        },
+        "frost": {
+          "chill": 0,
+          "chillTotal": 0,
+          "frozen": 0,
+          "immunity": 0,
+          "bossGauge": 0,
+          "frostbreaks": 0,
+          "iceDamage": 0
+        },
+        "warrior": {
+          "fury": 79,
+          "combo": 4,
+          "furyGained": 496,
+          "comboPeak": 8,
+          "counters": 0,
+          "deflected": 0,
+          "duelStarts": 0,
+          "tranceStarts": 0,
+          "rallyPlacements": 0,
+          "poise": 1051
+        }
+      },
+      "jobRuntimeAfter": {
+        "runtimeKeys": [
+          "chain_hook",
+          "great_cleave",
+          "piercing_lunge",
+          "twin_fang_slash"
+        ],
+        "runtimeHash": "{\"great_cleave\":{\"cdLeft\":240.83999999999898},\"twin_fang_slash\":{\"cdLeft\":533.8999999999996},\"chain_hook\":{\"cdLeft\":523.5848000000009,\"hookLeftMs\":0,\"hookSeq\":-1,\"hookPulled\":0,\"hookIsBoss\":false},\"piercing_lunge\":{\"cdLeft\":304.10479999999984,\"lungePending\":false}}",
+        "fire": {
+          "burning": 0,
+          "burningDamage": 0,
+          "delayedTimers": 0,
+          "fieldSkills": 0,
+          "echoClone": 0
+        },
+        "frost": {
+          "chill": 0,
+          "chillTotal": 0,
+          "frozen": 0,
+          "immunity": 0,
+          "bossGauge": 0,
+          "frostbreaks": 0,
+          "iceDamage": 0
+        },
+        "warrior": {
+          "fury": 79,
+          "combo": 4,
+          "furyGained": 496,
+          "comboPeak": 8,
+          "counters": 0,
+          "deflected": 0,
+          "duelStarts": 0,
+          "tranceStarts": 0,
+          "rallyPlacements": 0,
+          "poise": 1051
+        }
+      },
+      "errors": 0
+    }
+  ],
+  "quality": [
+    {
+      "job": "warrior",
+      "quality": "low",
+      "seed": 20260803,
+      "gameSecTarget": 300,
+      "gameSecReached": 300,
+      "build": {
+        "actives": 30,
+        "passives": 4
+      },
+      "capturedAtSec": 300,
+      "gameplay": {
+        "level": 14,
+        "kills": 649,
+        "damage": 77872,
+        "damageTaken": 6,
+        "xp": 92,
+        "statusRngCursor": 0,
+        "evolutions": 13,
+        "casts": 0,
+        "hits": 0,
+        "acquiredSkills": [
+          "adamant_counter",
+          "battle_trance",
+          "berserker_rush",
+          "blade_guard",
+          "blood_oath_standard",
+          "bloodstorm_whirlwind",
+          "breaker_knee",
+          "chain_hook",
+          "charge_slash",
+          "duel_challenge",
+          "earthshaker_march",
+          "execution_strike",
+          "fortress_rampage",
+          "godspeed_impaler",
+          "ground_slam",
+          "heaven_crushing_descent",
+          "heaven_rending_ascent",
+          "mountain_hurl",
+          "relentless_combo",
+          "shadow_swallow_riposte",
+          "shockwave_stomp",
+          "skull_splitter",
+          "sweeping_advance",
+          "thousand_blade_dance",
+          "triple_crush",
+          "twin_fang_slash",
+          "unyielding_fortress",
+          "war_axe_throw",
+          "war_god_roar",
+          "weapon_deflection"
+        ]
+      },
+      "caps": {
+        "maxEnemies": 200,
+        "maxProjectiles": 400,
+        "hitStop": true,
+        "damageNumbers": false,
+        "particleBudget": 40
+      },
+      "visual": {
+        "maxDisplayObjects": 199,
+        "avgDisplayObjects": 121
+      },
+      "fps": {
+        "avg": 59,
+        "min": 56,
+        "maxFrameMs": 115
+      },
+      "heapMb": 35,
+      "errors": 0
+    },
+    {
+      "job": "warrior",
+      "quality": "medium",
+      "seed": 20260803,
+      "gameSecTarget": 300,
+      "gameSecReached": 300,
+      "build": {
+        "actives": 30,
+        "passives": 4
+      },
+      "capturedAtSec": 300,
+      "gameplay": {
+        "level": 14,
+        "kills": 655,
+        "damage": 81522,
+        "damageTaken": 4,
+        "xp": 159,
+        "statusRngCursor": 0,
+        "evolutions": 13,
+        "casts": 0,
+        "hits": 0,
+        "acquiredSkills": [
+          "adamant_counter",
+          "battle_trance",
+          "berserker_rush",
+          "blade_guard",
+          "blood_oath_standard",
+          "bloodstorm_whirlwind",
+          "breaker_knee",
+          "chain_hook",
+          "charge_slash",
+          "duel_challenge",
+          "earthshaker_march",
+          "execution_strike",
+          "fortress_rampage",
+          "godspeed_impaler",
+          "ground_slam",
+          "heaven_crushing_descent",
+          "heaven_rending_ascent",
+          "mountain_hurl",
+          "relentless_combo",
+          "shadow_swallow_riposte",
+          "shockwave_stomp",
+          "skull_splitter",
+          "sweeping_advance",
+          "thousand_blade_dance",
+          "triple_crush",
+          "twin_fang_slash",
+          "unyielding_fortress",
+          "war_axe_throw",
+          "war_god_roar",
+          "weapon_deflection"
+        ]
+      },
+      "caps": {
+        "maxEnemies": 200,
+        "maxProjectiles": 400,
+        "hitStop": true,
+        "damageNumbers": true,
+        "particleBudget": 120
+      },
+      "visual": {
+        "maxDisplayObjects": 251,
+        "avgDisplayObjects": 146
+      },
+      "fps": {
+        "avg": 58,
+        "min": 55,
+        "maxFrameMs": 273
+      },
+      "heapMb": 34,
+      "errors": 0
+    },
+    {
+      "job": "warrior",
+      "quality": "high",
+      "seed": 20260803,
+      "gameSecTarget": 300,
+      "gameSecReached": 300,
+      "build": {
+        "actives": 30,
+        "passives": 4
+      },
+      "capturedAtSec": 300,
+      "gameplay": {
+        "level": 14,
+        "kills": 653,
+        "damage": 79941,
+        "damageTaken": 6,
+        "xp": 158,
+        "statusRngCursor": 0,
+        "evolutions": 13,
+        "casts": 0,
+        "hits": 0,
+        "acquiredSkills": [
+          "adamant_counter",
+          "battle_trance",
+          "berserker_rush",
+          "blade_guard",
+          "blood_oath_standard",
+          "bloodstorm_whirlwind",
+          "breaker_knee",
+          "chain_hook",
+          "charge_slash",
+          "duel_challenge",
+          "earthshaker_march",
+          "execution_strike",
+          "fortress_rampage",
+          "godspeed_impaler",
+          "ground_slam",
+          "heaven_crushing_descent",
+          "heaven_rending_ascent",
+          "mountain_hurl",
+          "relentless_combo",
+          "shadow_swallow_riposte",
+          "shockwave_stomp",
+          "skull_splitter",
+          "sweeping_advance",
+          "thousand_blade_dance",
+          "triple_crush",
+          "twin_fang_slash",
+          "unyielding_fortress",
+          "war_axe_throw",
+          "war_god_roar",
+          "weapon_deflection"
+        ]
+      },
+      "caps": {
+        "maxEnemies": 200,
+        "maxProjectiles": 400,
+        "hitStop": true,
+        "damageNumbers": true,
+        "particleBudget": 260
+      },
+      "visual": {
+        "maxDisplayObjects": 382,
+        "avgDisplayObjects": 195
+      },
+      "fps": {
+        "avg": 58,
+        "min": 54,
+        "maxFrameMs": 281
+      },
+      "heapMb": 28,
+      "errors": 0
+    },
+    {
+      "job": "warrior",
+      "quality": "ultra",
+      "seed": 20260803,
+      "gameSecTarget": 300,
+      "gameSecReached": 300,
+      "build": {
+        "actives": 30,
+        "passives": 4
+      },
+      "capturedAtSec": 300,
+      "gameplay": {
+        "level": 14,
+        "kills": 651,
+        "damage": 79976,
+        "damageTaken": 2,
+        "xp": 167,
+        "statusRngCursor": 0,
+        "evolutions": 13,
+        "casts": 0,
+        "hits": 0,
+        "acquiredSkills": [
+          "adamant_counter",
+          "battle_trance",
+          "berserker_rush",
+          "blade_guard",
+          "blood_oath_standard",
+          "bloodstorm_whirlwind",
+          "breaker_knee",
+          "chain_hook",
+          "charge_slash",
+          "duel_challenge",
+          "earthshaker_march",
+          "execution_strike",
+          "fortress_rampage",
+          "godspeed_impaler",
+          "ground_slam",
+          "heaven_crushing_descent",
+          "heaven_rending_ascent",
+          "mountain_hurl",
+          "relentless_combo",
+          "shadow_swallow_riposte",
+          "shockwave_stomp",
+          "skull_splitter",
+          "sweeping_advance",
+          "thousand_blade_dance",
+          "triple_crush",
+          "twin_fang_slash",
+          "unyielding_fortress",
+          "war_axe_throw",
+          "war_god_roar",
+          "weapon_deflection"
+        ]
+      },
+      "caps": {
+        "maxEnemies": 200,
+        "maxProjectiles": 400,
+        "hitStop": true,
+        "damageNumbers": true,
+        "particleBudget": 480
+      },
+      "visual": {
+        "maxDisplayObjects": 432,
+        "avgDisplayObjects": 232
+      },
+      "fps": {
+        "avg": 57,
+        "min": 53,
+        "maxFrameMs": 75
+      },
+      "heapMb": 52,
+      "errors": 0
+    },
+    {
+      "job": "flame_witch",
+      "quality": "low",
+      "seed": 20260803,
+      "gameSecTarget": 180,
+      "gameSecReached": 180,
+      "build": {
+        "actives": 30,
+        "passives": 4
+      },
+      "capturedAtSec": 180,
+      "gameplay": {
+        "level": 8,
+        "kills": 285,
+        "damage": 10660,
+        "damageTaken": 0,
+        "xp": 0,
+        "statusRngCursor": 0,
+        "evolutions": 7,
+        "casts": 0,
+        "hits": 0,
+        "acquiredSkills": [
+          "apocalypse_chain",
+          "ash_doppelganger",
+          "blazing_step",
+          "bloodfire_pact",
+          "bullet_furnace",
+          "chain_flame",
+          "core_overdrive",
+          "ember_minefield",
+          "eternal_pyre",
+          "fire_spirit",
+          "flame_barrier",
+          "flame_crescent",
+          "flame_vortex",
+          "four_sided_inferno",
+          "funeral_pyres",
+          "homing_wisp",
+          "infernal_barrage",
+          "magma_vein",
+          "meteor",
+          "molten_chains",
+          "orbiting_flame",
+          "phoenix_feather",
+          "purgatory_eruption",
+          "ricochet_ember",
+          "scatter_flame",
+          "scorching_resonance",
+          "solar_annihilation_array",
+          "solar_core_collapse",
+          "thousand_flame_lances",
+          "tri_flame_array"
+        ]
+      },
+      "caps": {
+        "maxEnemies": 200,
+        "maxProjectiles": 400,
+        "hitStop": true,
+        "damageNumbers": false,
+        "particleBudget": 40
+      },
+      "visual": {
+        "maxDisplayObjects": 469,
+        "avgDisplayObjects": 334
+      },
+      "fps": {
+        "avg": 47,
+        "min": 42,
+        "maxFrameMs": 80
+      },
+      "heapMb": 37,
+      "errors": 0
+    },
+    {
+      "job": "flame_witch",
+      "quality": "medium",
+      "seed": 20260803,
+      "gameSecTarget": 180,
+      "gameSecReached": 180,
+      "build": {
+        "actives": 30,
+        "passives": 4
+      },
+      "capturedAtSec": 180,
+      "gameplay": {
+        "level": 8,
+        "kills": 285,
+        "damage": 10583,
+        "damageTaken": 0,
+        "xp": 24,
+        "statusRngCursor": 0,
+        "evolutions": 7,
+        "casts": 0,
+        "hits": 0,
+        "acquiredSkills": [
+          "apocalypse_chain",
+          "ash_doppelganger",
+          "blazing_step",
+          "bloodfire_pact",
+          "bullet_furnace",
+          "chain_flame",
+          "core_overdrive",
+          "ember_minefield",
+          "eternal_pyre",
+          "fire_spirit",
+          "flame_barrier",
+          "flame_crescent",
+          "flame_vortex",
+          "four_sided_inferno",
+          "funeral_pyres",
+          "homing_wisp",
+          "infernal_barrage",
+          "magma_vein",
+          "meteor",
+          "molten_chains",
+          "orbiting_flame",
+          "phoenix_feather",
+          "purgatory_eruption",
+          "ricochet_ember",
+          "scatter_flame",
+          "scorching_resonance",
+          "solar_annihilation_array",
+          "solar_core_collapse",
+          "thousand_flame_lances",
+          "tri_flame_array"
+        ]
+      },
+      "caps": {
+        "maxEnemies": 200,
+        "maxProjectiles": 400,
+        "hitStop": true,
+        "damageNumbers": true,
+        "particleBudget": 120
+      },
+      "visual": {
+        "maxDisplayObjects": 518,
+        "avgDisplayObjects": 351
+      },
+      "fps": {
+        "avg": 48,
+        "min": 41,
+        "maxFrameMs": 128
+      },
+      "heapMb": 31,
+      "errors": 0
+    },
+    {
+      "job": "flame_witch",
+      "quality": "high",
+      "seed": 20260803,
+      "gameSecTarget": 180,
+      "gameSecReached": 180,
+      "build": {
+        "actives": 30,
+        "passives": 4
+      },
+      "capturedAtSec": 180,
+      "gameplay": {
+        "level": 9,
+        "kills": 285,
+        "damage": 9723,
+        "damageTaken": 0,
+        "xp": 12,
+        "statusRngCursor": 0,
+        "evolutions": 8,
+        "casts": 0,
+        "hits": 0,
+        "acquiredSkills": [
+          "apocalypse_chain",
+          "ash_doppelganger",
+          "blazing_step",
+          "bloodfire_pact",
+          "bullet_furnace",
+          "chain_flame",
+          "core_overdrive",
+          "ember_minefield",
+          "eternal_pyre",
+          "fire_spirit",
+          "flame_barrier",
+          "flame_vortex",
+          "four_sided_inferno",
+          "funeral_pyres",
+          "homing_wisp",
+          "infernal_barrage",
+          "inferno_blade_domain",
+          "magma_vein",
+          "meteor",
+          "molten_chains",
+          "orbiting_flame",
+          "phoenix_feather",
+          "purgatory_eruption",
+          "ricochet_ember",
+          "scatter_flame",
+          "scorching_resonance",
+          "solar_annihilation_array",
+          "solar_core_collapse",
+          "thousand_flame_lances",
+          "tri_flame_array"
+        ]
+      },
+      "caps": {
+        "maxEnemies": 200,
+        "maxProjectiles": 400,
+        "hitStop": true,
+        "damageNumbers": true,
+        "particleBudget": 260
+      },
+      "visual": {
+        "maxDisplayObjects": 544,
+        "avgDisplayObjects": 368
+      },
+      "fps": {
+        "avg": 46,
+        "min": 38,
+        "maxFrameMs": 95
+      },
+      "heapMb": 34,
+      "errors": 0
+    },
+    {
+      "job": "flame_witch",
+      "quality": "ultra",
+      "seed": 20260803,
+      "gameSecTarget": 180,
+      "gameSecReached": 180,
+      "build": {
+        "actives": 30,
+        "passives": 4
+      },
+      "capturedAtSec": 180,
+      "gameplay": {
+        "level": 8,
+        "kills": 285,
+        "damage": 10460,
+        "damageTaken": 0,
+        "xp": 26,
+        "statusRngCursor": 0,
+        "evolutions": 7,
+        "casts": 0,
+        "hits": 0,
+        "acquiredSkills": [
+          "apocalypse_chain",
+          "ash_doppelganger",
+          "blazing_step",
+          "bloodfire_pact",
+          "bullet_furnace",
+          "chain_flame",
+          "core_overdrive",
+          "ember_minefield",
+          "eternal_pyre",
+          "fire_spirit",
+          "flame_barrier",
+          "flame_crescent",
+          "flame_vortex",
+          "four_sided_inferno",
+          "funeral_pyres",
+          "homing_wisp",
+          "infernal_barrage",
+          "magma_vein",
+          "meteor",
+          "molten_chains",
+          "orbiting_flame",
+          "phoenix_feather",
+          "purgatory_eruption",
+          "ricochet_ember",
+          "scatter_flame",
+          "scorching_resonance",
+          "solar_annihilation_array",
+          "solar_core_collapse",
+          "thousand_flame_lances",
+          "tri_flame_array"
+        ]
+      },
+      "caps": {
+        "maxEnemies": 200,
+        "maxProjectiles": 400,
+        "hitStop": true,
+        "damageNumbers": true,
+        "particleBudget": 480
+      },
+      "visual": {
+        "maxDisplayObjects": 521,
+        "avgDisplayObjects": 364
+      },
+      "fps": {
+        "avg": 46,
+        "min": 38,
+        "maxFrameMs": 74
+      },
+      "heapMb": 52,
+      "errors": 0
+    },
+    {
+      "job": "frost_mage",
+      "quality": "low",
+      "seed": 20260803,
+      "gameSecTarget": 180,
+      "gameSecReached": 180,
+      "build": {
+        "actives": 30,
+        "passives": 4
+      },
+      "capturedAtSec": 180,
+      "gameplay": {
+        "level": 9,
+        "kills": 285,
+        "damage": 8033,
+        "damageTaken": 0,
+        "xp": 50,
+        "statusRngCursor": 73,
+        "evolutions": 8,
+        "casts": 0,
+        "hits": 0,
+        "acquiredSkills": [
+          "absolute_ice_seal",
+          "absolute_zero_domain",
+          "aurora_veil",
+          "comet_sleet",
+          "cryo_mine",
+          "crystal_bloom",
+          "crystal_refraction",
+          "crystal_tempest",
+          "diamond_blizzard",
+          "freezing_ray",
+          "frost_chain",
+          "frost_orbit",
+          "frost_queen_court",
+          "frozen_clock",
+          "glacial_spear_rain",
+          "glacier_drop",
+          "heaven_piercing_glacier",
+          "ice_prison",
+          "ice_wall",
+          "iceberg_ram",
+          "icebreaker_wave",
+          "mirror_ice",
+          "permafrost_field",
+          "polar_star",
+          "rime_execution_wheel",
+          "snowblind_mist",
+          "snowflake_sentry",
+          "whiteout_cataclysm",
+          "winter_halo",
+          "world_end_avalanche"
+        ]
+      },
+      "caps": {
+        "maxEnemies": 200,
+        "maxProjectiles": 400,
+        "hitStop": true,
+        "damageNumbers": false,
+        "particleBudget": 40
+      },
+      "visual": {
+        "maxDisplayObjects": 406,
+        "avgDisplayObjects": 263
+      },
+      "fps": {
+        "avg": 43,
+        "min": 34,
+        "maxFrameMs": 108
+      },
+      "heapMb": 32,
+      "errors": 0
+    },
+    {
+      "job": "frost_mage",
+      "quality": "medium",
+      "seed": 20260803,
+      "gameSecTarget": 180,
+      "gameSecReached": 180,
+      "build": {
+        "actives": 30,
+        "passives": 4
+      },
+      "capturedAtSec": 180,
+      "gameplay": {
+        "level": 9,
+        "kills": 285,
+        "damage": 7793,
+        "damageTaken": 0,
+        "xp": 48,
+        "statusRngCursor": 69,
+        "evolutions": 8,
+        "casts": 0,
+        "hits": 0,
+        "acquiredSkills": [
+          "absolute_ice_seal",
+          "absolute_zero_domain",
+          "aurora_veil",
+          "comet_sleet",
+          "cryo_mine",
+          "crystal_bloom",
+          "crystal_refraction",
+          "crystal_tempest",
+          "diamond_blizzard",
+          "freezing_ray",
+          "frost_chain",
+          "frost_orbit",
+          "frost_queen_court",
+          "frozen_clock",
+          "glacial_spear_rain",
+          "glacier_drop",
+          "heaven_piercing_glacier",
+          "ice_prison",
+          "ice_wall",
+          "iceberg_ram",
+          "icebreaker_wave",
+          "mirror_ice",
+          "permafrost_field",
+          "polar_star",
+          "rime_execution_wheel",
+          "snowblind_mist",
+          "snowflake_sentry",
+          "whiteout_cataclysm",
+          "winter_halo",
+          "world_end_avalanche"
+        ]
+      },
+      "caps": {
+        "maxEnemies": 200,
+        "maxProjectiles": 400,
+        "hitStop": true,
+        "damageNumbers": true,
+        "particleBudget": 120
+      },
+      "visual": {
+        "maxDisplayObjects": 445,
+        "avgDisplayObjects": 268
+      },
+      "fps": {
+        "avg": 42,
+        "min": 33,
+        "maxFrameMs": 85
+      },
+      "heapMb": 35,
+      "errors": 0
+    },
+    {
+      "job": "frost_mage",
+      "quality": "high",
+      "seed": 20260803,
+      "gameSecTarget": 180,
+      "gameSecReached": 180,
+      "build": {
+        "actives": 30,
+        "passives": 4
+      },
+      "capturedAtSec": 180,
+      "gameplay": {
+        "level": 1,
+        "kills": 285,
+        "damage": 8064,
+        "damageTaken": 0,
+        "xp": 0,
+        "statusRngCursor": 76,
+        "evolutions": 0,
+        "casts": 0,
+        "hits": 0,
+        "acquiredSkills": [
+          "absolute_ice_seal",
+          "aurora_veil",
+          "avalanche",
+          "comet_sleet",
+          "cryo_mine",
+          "crystal_bloom",
+          "crystal_refraction",
+          "freezing_ray",
+          "frost_chain",
+          "frost_nova",
+          "frost_orbit",
+          "frost_shard",
+          "frost_spirit",
+          "frozen_clock",
+          "glacial_lance",
+          "glacial_spear_rain",
+          "glacier_drop",
+          "hailstorm",
+          "ice_prison",
+          "ice_wall",
+          "iceberg_ram",
+          "icebreaker_wave",
+          "icicle_volley",
+          "mirror_ice",
+          "permafrost_field",
+          "polar_star",
+          "rime_boomerang",
+          "snowblind_mist",
+          "snowflake_sentry",
+          "winter_halo"
+        ]
+      },
+      "caps": {
+        "maxEnemies": 200,
+        "maxProjectiles": 400,
+        "hitStop": true,
+        "damageNumbers": true,
+        "particleBudget": 260
+      },
+      "visual": {
+        "maxDisplayObjects": 513,
+        "avgDisplayObjects": 286
+      },
+      "fps": {
+        "avg": 46,
+        "min": 37,
+        "maxFrameMs": 55
+      },
+      "heapMb": 36,
+      "errors": 0
+    },
+    {
+      "job": "frost_mage",
+      "quality": "ultra",
+      "seed": 20260803,
+      "gameSecTarget": 180,
+      "gameSecReached": 180,
+      "build": {
+        "actives": 30,
+        "passives": 4
+      },
+      "capturedAtSec": 180,
+      "gameplay": {
+        "level": 10,
+        "kills": 284,
+        "damage": 7766,
+        "damageTaken": 0,
+        "xp": 35,
+        "statusRngCursor": 76,
+        "evolutions": 9,
+        "casts": 0,
+        "hits": 0,
+        "acquiredSkills": [
+          "absolute_ice_seal",
+          "absolute_zero_domain",
+          "aurora_veil",
+          "comet_sleet",
+          "cryo_mine",
+          "crystal_bloom",
+          "crystal_refraction",
+          "crystal_tempest",
+          "diamond_blizzard",
+          "eternal_frost_chain",
+          "freezing_ray",
+          "frost_orbit",
+          "frost_queen_court",
+          "frozen_clock",
+          "glacial_spear_rain",
+          "glacier_drop",
+          "heaven_piercing_glacier",
+          "ice_prison",
+          "ice_wall",
+          "iceberg_ram",
+          "icebreaker_wave",
+          "mirror_ice",
+          "permafrost_field",
+          "polar_star",
+          "rime_execution_wheel",
+          "snowblind_mist",
+          "snowflake_sentry",
+          "whiteout_cataclysm",
+          "winter_halo",
+          "world_end_avalanche"
+        ]
+      },
+      "caps": {
+        "maxEnemies": 200,
+        "maxProjectiles": 400,
+        "hitStop": true,
+        "damageNumbers": true,
+        "particleBudget": 480
+      },
+      "visual": {
+        "maxDisplayObjects": 482,
+        "avgDisplayObjects": 306
+      },
+      "fps": {
+        "avg": 44,
+        "min": 36,
+        "maxFrameMs": 102
+      },
+      "heapMb": 33,
+      "errors": 0
+    }
+  ],
+  "midrun": [
+    {
+      "job": "flame_witch",
+      "transitions": [
+        {
+          "from": "low",
+          "to": "ultra",
+          "projBefore": 0,
+          "projAfter": 0,
+          "enemiesBefore": 8,
+          "enemiesAfter": 8,
+          "pendingTimersKept": true,
+          "statusKept": true,
+          "gameplayUnchanged": false,
+          "unchangedKeys": [
+            "kills",
+            "damage",
+            "level",
+            "statusRngCursor",
+            "resourceHash"
+          ],
+          "capsBefore": {
+            "particleBudget": 40
+          },
+          "capsAfter": {
+            "maxEnemies": 200,
+            "maxProjectiles": 400,
+            "hitStop": true,
+            "damageNumbers": true,
+            "particleBudget": 480
+          },
+          "objectsBefore": 65,
+          "objectsAfter": 63,
+          "killsLater": 74
+        },
+        {
+          "from": "ultra",
+          "to": "low",
+          "projBefore": 0,
+          "projAfter": 0,
+          "enemiesBefore": 9,
+          "enemiesAfter": 9,
+          "pendingTimersKept": true,
+          "statusKept": true,
+          "gameplayUnchanged": false,
+          "unchangedKeys": [
+            "kills",
+            "damage",
+            "level",
+            "statusRngCursor",
+            "resourceHash"
+          ],
+          "capsBefore": {
+            "maxEnemies": 200,
+            "maxProjectiles": 400,
+            "hitStop": true,
+            "damageNumbers": true,
+            "particleBudget": 480
+          },
+          "capsAfter": {
+            "maxEnemies": 200,
+            "maxProjectiles": 400,
+            "hitStop": true,
+            "damageNumbers": false,
+            "particleBudget": 40
+          },
+          "objectsBefore": 93,
+          "objectsAfter": 93,
+          "killsLater": 126
+        },
+        {
+          "from": "low",
+          "to": "medium",
+          "projBefore": 3,
+          "projAfter": 3,
+          "enemiesBefore": 11,
+          "enemiesAfter": 11,
+          "pendingTimersKept": true,
+          "statusKept": true,
+          "gameplayUnchanged": false,
+          "unchangedKeys": [
+            "kills",
+            "damage",
+            "level",
+            "statusRngCursor",
+            "resourceHash"
+          ],
+          "capsBefore": {
+            "maxEnemies": 200,
+            "maxProjectiles": 400,
+            "hitStop": true,
+            "damageNumbers": false,
+            "particleBudget": 40
+          },
+          "capsAfter": {
+            "maxEnemies": 200,
+            "maxProjectiles": 400,
+            "hitStop": true,
+            "damageNumbers": true,
+            "particleBudget": 120
+          },
+          "objectsBefore": 84,
+          "objectsAfter": 84,
+          "killsLater": 179
+        }
+      ],
+      "aliveAfterAll": true,
+      "killsIncreased": true,
+      "finalTimeSec": 128,
+      "firstSwitchAtSec": 20,
+      "errors": 0
+    },
+    {
+      "job": "frost_mage",
+      "transitions": [
+        {
+          "from": "medium",
+          "to": "high",
+          "projBefore": 0,
+          "projAfter": 1,
+          "enemiesBefore": 13,
+          "enemiesAfter": 13,
+          "pendingTimersKept": true,
+          "statusKept": true,
+          "gameplayUnchanged": false,
+          "unchangedKeys": [
+            "kills",
+            "damage",
+            "level",
+            "statusRngCursor",
+            "resourceHash"
+          ],
+          "capsBefore": {
+            "particleBudget": 120
+          },
+          "capsAfter": {
+            "maxEnemies": 200,
+            "maxProjectiles": 400,
+            "hitStop": true,
+            "damageNumbers": true,
+            "particleBudget": 260
+          },
+          "objectsBefore": 72,
+          "objectsAfter": 70,
+          "killsLater": 73
+        },
+        {
+          "from": "high",
+          "to": "low",
+          "projBefore": 6,
+          "projAfter": 5,
+          "enemiesBefore": 11,
+          "enemiesAfter": 11,
+          "pendingTimersKept": true,
+          "statusKept": true,
+          "gameplayUnchanged": false,
+          "unchangedKeys": [
+            "kills",
+            "damage",
+            "level",
+            "statusRngCursor",
+            "resourceHash"
+          ],
+          "capsBefore": {
+            "maxEnemies": 200,
+            "maxProjectiles": 400,
+            "hitStop": true,
+            "damageNumbers": true,
+            "particleBudget": 260
+          },
+          "capsAfter": {
+            "maxEnemies": 200,
+            "maxProjectiles": 400,
+            "hitStop": true,
+            "damageNumbers": false,
+            "particleBudget": 40
+          },
+          "objectsBefore": 72,
+          "objectsAfter": 71,
+          "killsLater": 131
+        },
+        {
+          "from": "low",
+          "to": "ultra",
+          "projBefore": 6,
+          "projAfter": 6,
+          "enemiesBefore": 8,
+          "enemiesAfter": 8,
+          "pendingTimersKept": true,
+          "statusKept": true,
+          "gameplayUnchanged": false,
+          "unchangedKeys": [
+            "kills",
+            "damage",
+            "level",
+            "statusRngCursor",
+            "resourceHash"
+          ],
+          "capsBefore": {
+            "maxEnemies": 200,
+            "maxProjectiles": 400,
+            "hitStop": true,
+            "damageNumbers": false,
+            "particleBudget": 40
+          },
+          "capsAfter": {
+            "maxEnemies": 200,
+            "maxProjectiles": 400,
+            "hitStop": true,
+            "damageNumbers": true,
+            "particleBudget": 480
+          },
+          "objectsBefore": 90,
+          "objectsAfter": 90,
+          "killsLater": 182
+        }
+      ],
+      "aliveAfterAll": true,
+      "killsIncreased": true,
+      "finalTimeSec": 130,
+      "firstSwitchAtSec": 20,
+      "errors": 0
+    },
+    {
+      "job": "warrior",
+      "transitions": [
+        {
+          "from": "low",
+          "to": "ultra",
+          "projBefore": 0,
+          "projAfter": 0,
+          "enemiesBefore": 16,
+          "enemiesAfter": 16,
+          "pendingTimersKept": true,
+          "statusKept": true,
+          "gameplayUnchanged": false,
+          "unchangedKeys": [
+            "kills",
+            "damage",
+            "level",
+            "statusRngCursor",
+            "resourceHash"
+          ],
+          "capsBefore": {
+            "particleBudget": 40
+          },
+          "capsAfter": {
+            "maxEnemies": 200,
+            "maxProjectiles": 400,
+            "hitStop": true,
+            "damageNumbers": true,
+            "particleBudget": 480
+          },
+          "objectsBefore": 44,
+          "objectsAfter": 44,
+          "killsLater": 72
+        },
+        {
+          "from": "ultra",
+          "to": "low",
+          "projBefore": 0,
+          "projAfter": 0,
+          "enemiesBefore": 12,
+          "enemiesAfter": 12,
+          "pendingTimersKept": true,
+          "statusKept": true,
+          "gameplayUnchanged": false,
+          "unchangedKeys": [
+            "kills",
+            "damage",
+            "level",
+            "statusRngCursor",
+            "resourceHash"
+          ],
+          "capsBefore": {
+            "maxEnemies": 200,
+            "maxProjectiles": 400,
+            "hitStop": true,
+            "damageNumbers": true,
+            "particleBudget": 480
+          },
+          "capsAfter": {
+            "maxEnemies": 200,
+            "maxProjectiles": 400,
+            "hitStop": true,
+            "damageNumbers": false,
+            "particleBudget": 40
+          },
+          "objectsBefore": 46,
+          "objectsAfter": 45,
+          "killsLater": 128
+        },
+        {
+          "from": "medium",
+          "to": "high",
+          "projBefore": 0,
+          "projAfter": 0,
+          "enemiesBefore": 11,
+          "enemiesAfter": 11,
+          "pendingTimersKept": true,
+          "statusKept": true,
+          "gameplayUnchanged": false,
+          "unchangedKeys": [
+            "kills",
+            "damage",
+            "level",
+            "statusRngCursor",
+            "resourceHash"
+          ],
+          "capsBefore": {
+            "maxEnemies": 200,
+            "maxProjectiles": 400,
+            "hitStop": true,
+            "damageNumbers": false,
+            "particleBudget": 40
+          },
+          "capsAfter": {
+            "maxEnemies": 200,
+            "maxProjectiles": 400,
+            "hitStop": true,
+            "damageNumbers": true,
+            "particleBudget": 260
+          },
+          "objectsBefore": 50,
+          "objectsAfter": 50,
+          "killsLater": 179
+        }
+      ],
+      "aliveAfterAll": true,
+      "killsIncreased": true,
+      "finalTimeSec": 130,
+      "firstSwitchAtSec": 20,
+      "errors": 0
+    }
+  ],
+  "stress": [
+    {
+      "job": "flame_witch",
+      "quality": "high",
+      "speed": 2,
+      "gameSecReached": 604,
+      "activeSkills": 30,
+      "evolutions": 4,
+      "peakEnemies": 200,
+      "peakProjectiles": 147,
+      "peakBossBullets": 33,
+      "bossActive": true,
+      "eliteSeen": true,
+      "finalEnemies": 200,
+      "gridRegistered": 200,
+      "statusIndex": 97,
+      "statusIndexPeak": 112,
+      "perfSuppressedPeak": 197,
+      "pool": {
+        "enemyTotal": 200,
+        "projTotal": 244
+      },
+      "maxDisplayObjects": 1940,
+      "caps": {
+        "maxEnemies": 200,
+        "maxProjectiles": 400,
+        "hitStop": true,
+        "particleBudget": 260
+      },
+      "fps": {
+        "avg": 19,
+        "min": 14,
+        "maxFrameMs": 158,
+        "freezes500ms": 0
+      },
+      "heap": {
+        "start": 29,
+        "mid": 75,
+        "end": 75,
+        "monotonic": false,
+        "max": 105,
+        "min": 40,
+        "firstHalfMedian": 64,
+        "secondHalfMedian": 75
+      },
+      "crashed": false,
+      "gameplayProgressed": true,
+      "inputResponsive": true,
+      "cleanup": {
+        "skills": 0,
+        "grid": 0,
+        "deathEvents": 0,
+        "statusIndex": 0,
+        "rfsBattleCleared": true
+      },
+      "errors": 0
+    },
+    {
+      "job": "flame_witch",
+      "quality": "low",
+      "speed": 2,
+      "gameSecReached": 599,
+      "activeSkills": 30,
+      "evolutions": 4,
+      "peakEnemies": 200,
+      "peakProjectiles": 153,
+      "peakBossBullets": 40,
+      "bossActive": true,
+      "eliteSeen": true,
+      "finalEnemies": 186,
+      "gridRegistered": 186,
+      "statusIndex": 110,
+      "statusIndexPeak": 132,
+      "perfSuppressedPeak": 181,
+      "pool": {
+        "enemyTotal": 200,
+        "projTotal": 184
+      },
+      "maxDisplayObjects": 1306,
+      "caps": {
+        "maxEnemies": 200,
+        "maxProjectiles": 400,
+        "hitStop": true,
+        "particleBudget": 40
+      },
+      "fps": {
+        "avg": 24,
+        "min": 17,
+        "maxFrameMs": 126,
+        "freezes500ms": 0
+      },
+      "heap": {
+        "start": 29,
+        "mid": 56,
+        "end": 54,
+        "monotonic": false,
+        "max": 70,
+        "min": 42,
+        "firstHalfMedian": 55,
+        "secondHalfMedian": 54
+      },
+      "crashed": false,
+      "gameplayProgressed": true,
+      "inputResponsive": true,
+      "cleanup": {
+        "skills": 0,
+        "grid": 0,
+        "deathEvents": 0,
+        "statusIndex": 0,
+        "rfsBattleCleared": true
+      },
+      "errors": 0
+    },
+    {
+      "job": "frost_mage",
+      "quality": "high",
+      "speed": 2,
+      "gameSecReached": 612,
+      "activeSkills": 30,
+      "evolutions": 4,
+      "peakEnemies": 199,
+      "peakProjectiles": 115,
+      "peakBossBullets": 48,
+      "bossActive": true,
+      "eliteSeen": true,
+      "finalEnemies": 199,
+      "gridRegistered": 199,
+      "statusIndex": 295,
+      "statusIndexPeak": 340,
+      "perfSuppressedPeak": 317,
+      "pool": {
+        "enemyTotal": 200,
+        "projTotal": 126
+      },
+      "maxDisplayObjects": 2017,
+      "caps": {
+        "maxEnemies": 200,
+        "maxProjectiles": 400,
+        "hitStop": true,
+        "particleBudget": 260
+      },
+      "fps": {
+        "avg": 8,
+        "min": 7,
+        "maxFrameMs": 269,
+        "freezes500ms": 0
+      },
+      "heap": {
+        "start": 28,
+        "mid": 124,
+        "end": 54,
+        "monotonic": false,
+        "max": 141,
+        "min": 54,
+        "firstHalfMedian": 91,
+        "secondHalfMedian": 100
+      },
+      "crashed": false,
+      "gameplayProgressed": true,
+      "inputResponsive": true,
+      "cleanup": {
+        "skills": 0,
+        "grid": 0,
+        "deathEvents": 0,
+        "statusIndex": 0,
+        "rfsBattleCleared": true
+      },
+      "errors": 0
+    },
+    {
+      "job": "frost_mage",
+      "quality": "low",
+      "speed": 2,
+      "gameSecReached": 619,
+      "activeSkills": 30,
+      "evolutions": 4,
+      "peakEnemies": 200,
+      "peakProjectiles": 95,
+      "peakBossBullets": 51,
+      "bossActive": true,
+      "eliteSeen": true,
+      "finalEnemies": 198,
+      "gridRegistered": 198,
+      "statusIndex": 333,
+      "statusIndexPeak": 339,
+      "perfSuppressedPeak": 214,
+      "pool": {
+        "enemyTotal": 200,
+        "projTotal": 120
+      },
+      "maxDisplayObjects": 1231,
+      "caps": {
+        "maxEnemies": 200,
+        "maxProjectiles": 400,
+        "hitStop": true,
+        "particleBudget": 40
+      },
+      "fps": {
+        "avg": 11,
+        "min": 9,
+        "maxFrameMs": 224,
+        "freezes500ms": 0
+      },
+      "heap": {
+        "start": 28,
+        "mid": 59,
+        "end": 84,
+        "monotonic": false,
+        "max": 104,
+        "min": 48,
+        "firstHalfMedian": 77,
+        "secondHalfMedian": 84
+      },
+      "crashed": false,
+      "gameplayProgressed": true,
+      "inputResponsive": true,
+      "cleanup": {
+        "skills": 0,
+        "grid": 0,
+        "deathEvents": 0,
+        "statusIndex": 0,
+        "rfsBattleCleared": true
+      },
+      "errors": 0
+    },
+    {
+      "job": "warrior",
+      "quality": "high",
+      "speed": 2,
+      "gameSecReached": 623,
+      "activeSkills": 30,
+      "evolutions": 4,
+      "peakEnemies": 200,
+      "peakProjectiles": 6,
+      "peakBossBullets": 70,
+      "bossActive": true,
+      "eliteSeen": true,
+      "finalEnemies": 198,
+      "gridRegistered": 198,
+      "statusIndex": 0,
+      "statusIndexPeak": 0,
+      "perfSuppressedPeak": 99,
+      "pool": {
+        "enemyTotal": 200,
+        "projTotal": 6
+      },
+      "maxDisplayObjects": 1311,
+      "caps": {
+        "maxEnemies": 200,
+        "maxProjectiles": 400,
+        "hitStop": true,
+        "particleBudget": 260
+      },
+      "fps": {
+        "avg": 23,
+        "min": 19,
+        "maxFrameMs": 210,
+        "freezes500ms": 0
+      },
+      "heap": {
+        "start": 29,
+        "mid": 71,
+        "end": 71,
+        "monotonic": false,
+        "max": 85,
+        "min": 40,
+        "firstHalfMedian": 62,
+        "secondHalfMedian": 62
+      },
+      "crashed": false,
+      "gameplayProgressed": true,
+      "inputResponsive": true,
+      "cleanup": {
+        "skills": 0,
+        "grid": 0,
+        "deathEvents": 0,
+        "statusIndex": 0,
+        "rfsBattleCleared": true
+      },
+      "errors": 0
+    },
+    {
+      "job": "warrior",
+      "quality": "low",
+      "speed": 2,
+      "gameSecReached": 626,
+      "activeSkills": 30,
+      "evolutions": 4,
+      "peakEnemies": 200,
+      "peakProjectiles": 2,
+      "peakBossBullets": 68,
+      "bossActive": true,
+      "eliteSeen": true,
+      "finalEnemies": 175,
+      "gridRegistered": 175,
+      "statusIndex": 0,
+      "statusIndexPeak": 0,
+      "perfSuppressedPeak": 45,
+      "pool": {
+        "enemyTotal": 200,
+        "projTotal": 6
+      },
+      "maxDisplayObjects": 637,
+      "caps": {
+        "maxEnemies": 200,
+        "maxProjectiles": 400,
+        "hitStop": true,
+        "particleBudget": 40
+      },
+      "fps": {
+        "avg": 37,
+        "min": 32,
+        "maxFrameMs": 152,
+        "freezes500ms": 0
+      },
+      "heap": {
+        "start": 28,
+        "mid": 54,
+        "end": 47,
+        "monotonic": false,
+        "max": 60,
+        "min": 30,
+        "firstHalfMedian": 41,
+        "secondHalfMedian": 47
+      },
+      "crashed": false,
+      "gameplayProgressed": true,
+      "inputResponsive": true,
+      "cleanup": {
+        "skills": 0,
+        "grid": 0,
+        "deathEvents": 0,
+        "statusIndex": 0,
+        "rfsBattleCleared": true
+      },
+      "errors": 0
+    }
+  ],
+  "uiInput": [
+    {
+      "job": "flame_witch",
+      "movedByKeyboard": true,
+      "dashWorked": true,
+      "autoToggled": true,
+      "pauseWorked": true,
+      "resumeWorked": true,
+      "hudTextsPresent": true,
+      "hudTextCount": 11,
+      "f8OpenClose": true,
+      "f8HasCrossSection": true,
+      "f10OpenClose": true,
+      "f9OpenClose": true,
+      "levelUpUiRendered": true,
+      "levelUpChoices": 24,
+      "levelUpPickWorked": true,
+      "errors": 0
+    },
+    {
+      "job": "frost_mage",
+      "movedByKeyboard": true,
+      "dashWorked": true,
+      "autoToggled": true,
+      "pauseWorked": true,
+      "resumeWorked": true,
+      "hudTextsPresent": true,
+      "hudTextCount": 12,
+      "f8OpenClose": true,
+      "f8HasCrossSection": true,
+      "f10OpenClose": true,
+      "f9OpenClose": true,
+      "levelUpUiRendered": true,
+      "levelUpChoices": 23,
+      "levelUpPickWorked": true,
+      "errors": 0
+    },
+    {
+      "job": "warrior",
+      "movedByKeyboard": true,
+      "dashWorked": true,
+      "autoToggled": true,
+      "pauseWorked": true,
+      "resumeWorked": true,
+      "hudTextsPresent": true,
+      "hudTextCount": 13,
+      "f8OpenClose": true,
+      "f8HasCrossSection": true,
+      "f10OpenClose": true,
+      "f9OpenClose": true,
+      "levelUpUiRendered": true,
+      "levelUpChoices": 24,
+      "levelUpPickWorked": true,
+      "errors": 0
+    }
+  ],
+  "qualityComparison": {
+    "byteIdenticalClaimed": false,
+    "tolerance": 0.2,
+    "note": "実ブラウザの update(delta) は実時間なので run 間でフレームが一致しない。byte-identical の証明は固定 dt の Node ハーネス（tests/cross-job-quality-full-invariance.mjs）が担う。",
+    "levelVarianceNote": "到達 Lv / XP は品質比較に使わない。同 seed・同 build・同品質で 4 回測っても Lv1 / 5 / 8 / 10 と振れた（オート移動の経路次第で XP 玉の回収量が変わり、未回収の玉が 144〜285 個残る）。撃破数は 277〜285 で安定しており、品質依存の差ではない run 間分散である。"
+  },
+  "errorTotals": {
+    "console": 0,
+    "pageerror": 0,
+    "requestfailed": 0,
+    "samples": []
+  },
+  "browserNodeDeltas": [
+    {
+      "job": "flame_witch",
+      "metric": "DPS",
+      "browser": 40,
+      "node": 235,
+      "ratio": 0.17,
+      "reason": "Node は固定 build（active 8 種 Lv8 + passive 4）、browser は通常 draft（4〜6 種・低 Lv）。build 差による乖離で、順位は一致する。"
+    },
+    {
+      "job": "frost_mage",
+      "metric": "DPS",
+      "browser": 44,
+      "node": 85,
+      "ratio": 0.52,
+      "reason": "Node は固定 build（active 8 種 Lv8 + passive 4）、browser は通常 draft（4〜6 種・低 Lv）。build 差による乖離で、順位は一致する。"
+    },
+    {
+      "job": "warrior",
+      "metric": "DPS",
+      "browser": 24,
+      "node": 168,
+      "ratio": 0.14,
+      "reason": "Node は固定 build（active 8 種 Lv8 + passive 4）、browser は通常 draft（4〜6 種・低 Lv）。build 差による乖離で、順位は一致する。"
+    }
+  ],
+  "verdict": {
+    "perJob": {
+      "flame_witch": {
+        "runs": 3,
+        "dps": 40,
+        "damage": 9712,
+        "kills": 456,
+        "survivalSec": 243,
+        "damageTaken": 98,
+        "healing": 0,
+        "mitigation": 0,
+        "topShare": 0.369,
+        "level": 13,
+        "bossReached": 0,
+        "bossReachedTiers": 2,
+        "wins": 0
+      },
+      "frost_mage": {
+        "runs": 3,
+        "dps": 44,
+        "damage": 14129,
+        "kills": 540,
+        "survivalSec": 269,
+        "damageTaken": 86,
+        "healing": 0,
+        "mitigation": 0,
+        "topShare": 0.425,
+        "level": 13,
+        "bossReached": 1,
+        "bossReachedTiers": 2,
+        "wins": 0
+      },
+      "warrior": {
+        "runs": 3,
+        "dps": 24,
+        "damage": 2542,
+        "kills": 135,
+        "survivalSec": 105,
+        "damageTaken": 141,
+        "healing": 19,
+        "mitigation": 23,
+        "topShare": 0.415,
+        "level": 8,
+        "bossReached": 0,
+        "bossReachedTiers": 1,
+        "wins": 0
+      }
+    },
+    "balanceChanges": 0,
+    "bugsFound": 1,
+    "bugsFixed": 1,
+    "evaluated": [
+      {
+        "key": "QUALITY_SWITCH_CAP_LOSS",
+        "value": "品質切替で敵 / 弾の上限から恒久強化が消えていた（修正済み）",
+        "threshold": "quality 差",
+        "exceeded": true
+      },
+      {
+        "key": "DPS_RATIO",
+        "value": "1.83",
+        "threshold": ">1.8",
+        "exceeded": true
+      },
+      {
+        "key": "BOSS_KILL_TIME_RATIO",
+        "value": "通常 draft ではボス撃破 0 件（到達 1/9）",
+        "threshold": ">2.0",
+        "exceeded": false
+      },
+      {
+        "key": "SURVIVAL_DIFF",
+        "value": "2.56",
+        "threshold": ">1.4",
+        "exceeded": true
+      },
+      {
+        "key": "DAMAGE_TAKEN_RATIO",
+        "value": "1.64",
+        "threshold": ">2.0",
+        "exceeded": false
+      },
+      {
+        "key": "HEALING_RATIO",
+        "value": "flame_witch 0 / frost_mage 0 / warrior 19",
+        "threshold": ">3.0",
+        "exceeded": true
+      },
+      {
+        "key": "TOP_SHARE",
+        "value": "0.604",
+        "threshold": ">0.35",
+        "exceeded": true
+      },
+      {
+        "key": "DEAD_SKILL",
+        "value": 0,
+        "threshold": ">0",
+        "exceeded": false
+      },
+      {
+        "key": "ACQUIRED_ZERO_UTILITY",
+        "value": 0,
+        "threshold": ">0",
+        "exceeded": false
+      },
+      {
+        "key": "BOSS_INEFFECTIVE",
+        "value": "恒久強化ありでボス到達 5/6・撃破 5 件（max 段階は 3 ジョブとも勝利）",
+        "threshold": "実質無効",
+        "exceeded": false
+      },
+      {
+        "key": "PROGRESSION_TIER_GAP",
+        "value": "mid 段階の勝利 2/3",
+        "threshold": "ジョブ差",
+        "exceeded": true
+      },
+      {
+        "key": "ALL_LAST",
+        "value": "該当ジョブなし",
+        "threshold": "全部門最下位",
+        "exceeded": false
+      },
+      {
+        "key": "TRIPLE_MONOPOLY",
+        "value": "該当ジョブなし",
+        "threshold": "offense/defense/CC 独占",
+        "exceeded": false
+      },
+      {
+        "key": "DRAFT_EVOLUTION_SKEW",
+        "value": "通常 draft 9 run の進化取得 0 件",
+        "threshold": "ジョブ間の偏り",
+        "exceeded": false
+      },
+      {
+        "key": "BROWSER_NODE_DIVERGENCE",
+        "value": "build 差により絶対値は乖離・順位と性質は一致",
+        "threshold": "結論の不一致",
+        "exceeded": true
+      },
+      {
+        "key": "QUALITY_SPREAD",
+        "value": "9.6%",
+        "threshold": ">20%",
+        "exceeded": false
+      },
+      {
+        "key": "STRESS_FPS",
+        "value": "最低平均 8fps",
+        "threshold": "<30fps",
+        "exceeded": true
+      },
+      {
+        "key": "LOW_QUALITY_NOT_FASTER",
+        "value": "なし",
+        "threshold": "low > high",
+        "exceeded": false
+      }
+    ],
+    "structural": {
+      "deadSkills": 0,
+      "acquiredZeroUtility": 0,
+      "zeroHitCasts": 0,
+      "bossIneffectiveJobs": 0,
+      "allLastJobs": 0,
+      "tripleMonopolyJobs": 0
+    },
+    "personality": {
+      "flame_witch": {
+        "signature": "炎上 DoT + 最高 DPS（障壁 / 不死鳥で被弾を耐える）"
+      },
+      "frost_mage": {
+        "signature": "冷気 / 凍結の CC 主体（ボスは氷砕ゲージ経由）"
+      },
+      "warrior": {
+        "signature": "闘気 / コンボ / 体勢崩しと軽減・不屈・撃破回復の近接持続"
+      },
+      "uniformized": false
+    },
+    "classified": [
+      {
+        "key": "DPS_RATIO",
+        "class": "role",
+        "observed": "比 1.83（火 40 / 氷 44 / 戦士 24）",
+        "reason": "火 = 直接火力・氷 = CC 主体（凍結 / 氷砕は damage 列に載らない）・戦士 = 近接持続 + 防御。Node 実測と同じ順位で、役割差そのもの。均一化しない。"
+      },
+      {
+        "key": "SURVIVAL_DIFF",
+        "class": "profile",
+        "observed": "比 2.56（flame_witch 243s / frost_mage 269s / warrior 105s）",
+        "reason": "通常 draft では strategy が生存を大きく左右する（passive 先行の balanced は最短）。同一 strategy 同士では差が縮む。build 由来 ＝ profile 分類。"
+      },
+      {
+        "key": "HEALING_RATIO",
+        "class": "role",
+        "observed": "flame_witch 0 / frost_mage 0 / warrior 19",
+        "reason": "回復手段（撃破回復 / 闘気解放 / 不屈）を持つのは戦士のみ。設計どおりの差で、他ジョブへ回復を配らない。"
+      },
+      {
+        "key": "TOP_SHARE",
+        "class": "profile",
+        "observed": "最大 60.4%",
+        "reason": "通常 draft は 8〜13 回の取得しかできず所持スキルが 4〜6 種に留まるため、分母が小さくシェアが高く出る。完成 build（30 種）の実シェアは per-job スイートが 35% 以下で維持。"
+      },
+      {
+        "key": "DRAFT_EVOLUTION_SKEW",
+        "class": "profile",
+        "observed": "通常 draft 9 run の進化取得 0 件",
+        "reason": "進化は base Lv8 + 補助が要るため、恒久強化なしの 1 周（レベル 7〜14）では条件が揃わない。ジョブ間の偏りではなく到達レベルの問題。進化そのものは 3 ジョブとも実ブラウザで取得を確認済み。"
+      },
+      {
+        "key": "BROWSER_NODE_DIVERGENCE",
+        "class": "harness",
+        "observed": "DPS 順位が不一致（browser: frost_mage > flame_witch > warrior / Node: flame_witch > warrior > frost_mage）。絶対値も 0.14〜0.52 倍",
+        "reason": "Node は固定 build（プール先頭 8 種 Lv8）、browser は production の通常 draft（4〜6 種・低 Lv）で、**build の選ばれ方が根本的に違う**ため順位も絶対値も揃わない。どちらかが誤りなのではなく測っている対象が違う。build に依らない性質（回復を持つのは戦士のみ・被弾が最大なのは戦士・構造異常 0 件・品質で gameplay 上限が変わらない）は両方で一致する。絶対値と順位の比較には使わない。"
+      },
+      {
+        "key": "STRESS_FPS",
+        "class": "harness",
+        "observed": "最低平均 8fps",
+        "reason": "software GL（swiftshader）での実測。GPU 実機の FPS ではない。実機での確認は human gate に残る。"
+      },
+      {
+        "key": "PROGRESSION_TIER_GAP",
+        "class": "profile",
+        "observed": "flame_witch mid:WIN/max:WIN / frost_mage mid:WIN/max:WIN / warrior mid:LOSE/max:WIN",
+        "reason": "恒久強化 max では 3 ジョブとも勝利した（＝ボスは実質無効ではない）。mid で落ちたのは warrior で、近接ジョブはオート移動で接敵し続けるぶん被弾が多い。**ただし各セルは 1 seed × 1 strategy（n=1）**なので、ジョブ間の恒久強化要求量の差としてはまだ結論を出さない。seed を増やした再測と人間の体感確認が要る。"
+      },
+      {
+        "key": "QUALITY_SWITCH_CAP_LOSS",
+        "class": "bug",
+        "observed": "周回中に品質を変えると敵 / 弾のプール上限から恒久強化ぶんが消え、素の 200 / 400 へ戻っていた",
+        "reason": "applyEffectSettings() が resolveEffectSettings() で effSettings を作り直す際、create() で加算していた魂炎の恒久強化ぶん（enemyCapAdd / effectCapAdd）を再加算していなかった。**品質変更が gameplay 上限を変える**状態で、M9-A が確立した「品質は gameplay に影響しない」不変条件に反する。あわせて particleBudget がcreate() の値のまま固定で、品質を上げても粒子が増えず下げても減らなかった（こちらは演出のみ）。",
+        "fix": "effectCapAdd を scene に保持し、粒子予算を _applyParticleBudget() へ切り出して create() と applyEffectSettings() の両方から呼ぶ。上限の恒久強化ぶんも applyEffectSettings() で再加算する（resolveEffectSettings は毎回新しいオブジェクトを返すので冪等）。非回帰: cross-job-quality-midrun-switch §4（上限保持・粒子予算の追従・5 回切替で二重加算なし）。実ブラウザでも 9 遷移すべてで粒子予算が品質へ追従し上限が 200 / 400 のままであることを確認。"
+      },
+      {
+        "key": "HUMAN_FEEL_UNVERIFIED",
+        "class": "human-feel",
+        "observed": "未実施（自動操作では判定しない）",
+        "reason": "楽しさ・爽快感・難易度の妥当性・氷ボス戦の単調さ・戦士の安全度・火の強さの体感は人間の manual gate が必要。docs/human-playtest-gate.md が open。"
+      }
+    ]
+  },
+  "humanFeelGate": {
+    "status": "open",
+    "items": [
+      "楽しいか",
+      "爽快か",
+      "難しすぎないか",
+      "氷術師のボス戦が退屈でないか",
+      "戦士が安全すぎないか",
+      "火の魔女が強すぎると感じるか",
+      "視認性",
+      "操作感",
+      "ダメージ数字の過密",
+      "低品質の telegraph",
+      "level-up 画面の読みやすさ",
+      "Result / 拠点の納得感"
+    ],
+    "doc": "docs/human-playtest-gate.md"
+  },
+  "unverified": [
+    "人間の手入力による実プレイの体感・操作感（楽しさ / 爽快感 / 難易度の妥当性）は未確認（docs/human-playtest-gate.md）",
+    "GitHub Pages 本番 URL での動作は未確認（到達できないためローカル静的配信で代替）",
+    "実機（スマートフォン / GPU 搭載 PC）での FPS・タッチ操作は未確認（計測は software GL のコンテナ）",
+    "30 分以上の超長時間セッションでのメモリ傾向は未確認（stress は 10 分相当 × 6 run まで）",
+    "通常 draft でのボス撃破（勝利）は未到達。恒久強化ありの進行段階で到達可否を測定した（progressionTiers）"
+  ]
+}

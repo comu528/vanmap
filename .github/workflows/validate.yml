@@ -523,3 +523,27 @@ jobs:
         run: node tests/cross-job-browser-gate.mjs
       - name: Three job balance harness non-regression tests (M9-A.1)
         run: node tests/three-job-balance-harness-nonregression.mjs
+      - name: Browser long-run gate tests (M9-A.2)
+        run: node tests/browser-longrun-gate.mjs
+      - name: Browser normal draft plan tests (M9-A.2)
+        run: node tests/browser-normal-draft-plan.mjs
+      - name: Browser evolution plan tests (M9-A.2)
+        run: node tests/browser-evolution-plan.mjs
+      - name: Browser result cycle tests (M9-A.2)
+        run: node tests/browser-result-cycle.mjs
+      - name: Browser resume plan tests (M9-A.2)
+        run: node tests/browser-resume-plan.mjs
+      - name: Browser quality plan tests (M9-A.2)
+        run: node tests/browser-quality-plan.mjs
+      - name: Browser quality mid-run plan tests (M9-A.2)
+        run: node tests/browser-quality-midrun-plan.mjs
+      - name: Browser stress plan tests (M9-A.2)
+        run: node tests/browser-stress-plan.mjs
+      - name: Browser balance verdict tests (M9-A.2)
+        run: node tests/browser-balance-verdict.mjs
+      - name: Browser human-feel gate tests (M9-A.2)
+        run: node tests/browser-human-feel-gate.mjs
+      - name: Cross-job browser/Node consistency tests (M9-A.2)
+        run: node tests/cross-job-browser-node-consistency.mjs
+      - name: Three job final playtest non-regression tests (M9-A.2)
+        run: node tests/three-job-final-playtest-nonregression.mjs

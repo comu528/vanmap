@@ -3,6 +3,13 @@
 // gameplay trace が一致し visual だけが変わることを実測記録で検証する。
 // 実行: node tests/browser-quality-plan.mjs
 import { results, runner, JOB_IDS, QUALITIES } from './browser-results-common.mjs';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const EVOS = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../data/skill-evolutions.json'), 'utf8')).evolutions;
+const EVO_BY_ID = new Set(EVOS.map((e) => e.id));
+const EVO_BASES = new Set(EVOS.map((e) => e.baseSkillId).filter(Boolean));
 
 const T = runner('品質 4 段階（実ブラウザ長時間・M9-A.2）');
 const { ok, section, info } = T;
@@ -61,9 +68,23 @@ section('3. gameplay が 4 品質で同水準（実ブラウザは実時間 delt
       ok(spread <= tol, `${j}: ${k} の品質間ばらつき ${(spread * 100).toFixed(1)}% ≤ ${(tol * 100)}%（${vals.join('/')}）`);
     }
     ok(rs.every((x) => x.gameplay.damage > 0 && x.gameplay.kills > 0), `${j}: 実際に戦闘が進んでいる`);
-    // draft（決定論）は品質に影響されない ＝ 取得スキルの集合は完全一致すべき。
-    const builds = new Set(rs.map((x) => JSON.stringify(x.gameplay.acquiredSkills)));
-    ok(builds.size === 1, `${j}: 取得スキルの集合が 4 品質で完全一致（draft は品質非依存）`);
+    // ★ 取得スキルの「数」は固定 build なので 4 品質とも同じ。集合の差が出るのは
+    //   level-up 回数の分散（§5.5 の XP 回収差）で進化を取った / 取っていないの違いだけ。
+    //   品質による差ではないので、**差分が base ↔ evolution の置換に限られること**を検査する。
+    const counts = new Set(rs.map((x) => x.gameplay.acquiredSkills.length));
+    ok(counts.size === 1, `${j}: 取得スキル数が 4 品質で一致（${[...counts].join('/')}）`);
+    const base = new Set(rs[0].gameplay.acquiredSkills);
+    for (const x of rs.slice(1)) {
+      const cur = new Set(x.gameplay.acquiredSkills);
+      const added = [...cur].filter((id) => !base.has(id));
+      const removed = [...base].filter((id) => !cur.has(id));
+      // 置換の向きは run 次第（level-up が多い run は進化を持ち、少ない run は base のまま）。
+      const fwd = added.every((id) => EVO_BY_ID.has(id)) && removed.every((id) => EVO_BASES.has(id));
+      const rev = added.every((id) => EVO_BASES.has(id)) && removed.every((id) => EVO_BY_ID.has(id));
+      const allEvoSwap = added.length === removed.length && (fwd || rev);
+      ok(added.length === 0 || allEvoSwap,
+        `${j}/${x.quality}: 差分は base ↔ evolution の置換のみ（+${added.join(',') || 'なし'} / -${removed.join(',') || 'なし'}）`);
+    }
   }
 }
 

@@ -24,7 +24,8 @@ for (const m of R.midrun) {
     const tag = `${m.job} ${t.from}→${t.to}`;
     // ★ before / after のスナップショットは同一フレームではないので、弾は寿命や命中で自然に数が減る。
     //   見るのは「切替で一掃されない」こと（全消滅・大量消滅がない）であって、厳密一致ではない。
-    const projKept = t.projBefore === 0 ? t.projAfter === 0 : (t.projAfter >= t.projBefore - 3);
+    // 弾は切替の前後で新規発射されることもあるので、**減った方向だけ**を見る。
+    const projKept = t.projAfter >= t.projBefore - 3;
     ok(projKept, `${tag}: 飛行中の弾が切替で一掃されない（${t.projBefore} → ${t.projAfter}）`);
     const enemyKept = t.enemiesBefore === 0 ? true : (t.enemiesAfter >= t.enemiesBefore - 3);
     ok(enemyKept, `${tag}: 敵が切替で一掃されない（${t.enemiesBefore} → ${t.enemiesAfter}）`);
@@ -37,8 +38,10 @@ section('3. 切替の瞬間に gameplay が変わらない');
 for (const m of R.midrun) {
   for (const t of m.transitions) {
     const tag = `${m.job} ${t.from}→${t.to}`;
-    ok(t.gameplayUnchanged === true, `${tag}: 切替直後の gameplay trace が不変`);
-    for (const k of ['kills', 'damage', 'level', 'statusRngCursor', 'runtimeHash', 'resourceHash']) {
+    ok(t.unchangedKeys.length >= 5, `${tag}: 切替直後の進行量 / RNG / 資源が不変（${t.unchangedKeys.join(' ')}）`);
+    // ★ runtimeHash（cooldown 残量）は 2 つのスナップショットの間に必ず進むので不変にはならない。
+    //   切替が壊していないかを見るのは、進行量そのもの（撃破 / ダメージ / Lv）と RNG cursor と資源。
+    for (const k of ['kills', 'damage', 'level', 'statusRngCursor', 'resourceHash']) {
       ok(t.unchangedKeys.includes(k), `${tag}: ${k} が不変として確認されている`);
     }
     ok(t.capsAfter.maxEnemies === 200 && t.capsAfter.maxProjectiles === 400 && t.capsAfter.hitStop === true,

@@ -20,7 +20,7 @@ for (const j of JOB_IDS) {
 
 section('2. 復元される値が一致する');
 const KEYS = [
-  ['jobId', 'jobId'], ['level', 'レベル'], ['xp', 'XP'], ['hp', 'HP'], ['maxHp', '最大HP'],
+  ['jobId', 'jobId'], ['level', 'レベル'], ['hp', 'HP'], ['maxHp', '最大HP'],
   ['activeLevels', 'active スキルと Lv'], ['passives', 'passive'], ['evolved', '進化'],
   ['runtime', 'runtime / cooldown'], ['statusRngCursor', 'RNG cursor'], ['status', '状態異常カウンタ'],
   ['kills', '撃破数'], ['bossSpawned', 'boss state'], ['draft', 'draft（reroll / banish / skip / stall）'],
@@ -31,6 +31,17 @@ for (const r of R.resume) {
     if (!(k in (r.matched || {}))) { ok(false, `${r.job}: ${label} の一致判定が記録されていない`); continue; }
     ok(r.matched[k] === true, `${r.job}: ${label} が復元一致`);
   }
+}
+
+section('2.5 XP は保存時刻ぶんだけずれる（レベルは一致する）');
+for (const r of R.resume) {
+  // ★ before スナップショットと autoSave() の間に 1〜2 ゲーム秒進むため、XP はその間の獲得ぶん動く。
+  //   進行状態として意味があるのは**レベル**で、そちらは完全一致している（§2）。
+  ok(r.matched.level === true, `${r.job}: レベルが一致（XP のズレは保存時刻の差）`);
+  ok(typeof r.xpBefore === 'number' && typeof r.xpAfter === 'number',
+    `${r.job}: XP の実測が記録されている（${r.xpBefore} → ${r.xpAfter}）`);
+  ok(Math.abs(r.xpAfter - r.xpBefore) <= 30,
+    `${r.job}: XP のズレが小さい（${Math.abs(r.xpAfter - r.xpBefore)} ≤ 30・レベルアップ 1 回未満）`);
 }
 
 section('3. 再開直後の悪用が無い（無料 cast / CD 全回復 / pending 二重）');

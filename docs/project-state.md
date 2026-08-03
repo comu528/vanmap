@@ -4,12 +4,14 @@
 > **各 Milestone 完了時に必ず更新する**（完了報告の要約・コミットID・テスト結果・次 Milestone）。
 > compact 後・新セッション開始時は `CLAUDE.md` → `README.md` → `TODO.md` → 本ファイル → `git log -5 --oneline` の順で確認する。
 >
-> 最終更新: Milestone 9-A.1 完了時点
+> 最終更新: Milestone 9-A.2 完了時点
 
 ## Current branch
 
 - ブランチ: **`claude/funny-heisenberg-frhgq9`**（`CLAUDE.md` の継続ブランチ。指定なき限りここへコミット・プッシュ）
 - 直近コミット:
+  - `(M9-A.2 実装コミット・コミット時に本行を更新)` Milestone 9-A.2: 3 ジョブ実ブラウザ長時間プレイテスト・最終バランス判定
+  - `1fd1398` Milestone 9-A.1 ドキュメント更新: docs/project-state.md へ commit ID を記載
   - `0f34e1c` Milestone 9-A.1: 横断 balance ハーネス完成・実ブラウザ検証ゲート（production 全経路駆動 / 絶対比較 / browser gate / dead key 2 件修正）
   - `6c6a2a4` Milestone 9-A ドキュメント更新: docs/project-state.md へ commit ID を記載
   - `01d4e3e` Milestone 9-A: 3 ジョブ横断・共通システム総合監査（品質と gameplay の分離 / cap 分類 / cdLeft 改ざん耐性の全ジョブ化）
@@ -34,7 +36,41 @@
 
 ## Current milestone
 
-- **Milestone 9-A.1（横断 balance ハーネス完成・実ブラウザ検証ゲート）完了・停止中。** 次の指示待ち。
+- **Milestone 9-A.2（3 ジョブ実ブラウザ長時間プレイテスト・最終バランス判定）完了・停止中。** 次の指示待ち。
+- **新コンテンツ 0 件・バランス値 / guidance / しきい値の変更 0 件・save_version v6 維持。**
+- **実ブラウザで実施したこと**（Chromium + 静的配信・**リポジトリへの必須依存追加 0**）:
+  - **通常 draft の通し run 9 件**（3 ジョブ × evolution-first / balanced / random-valid）。
+    production の `SkillDraftManager` / `LevelUpScene` / `EvolutionScene` を通し、
+    reroll / banish / skip も実仕様で使用した。**固定完成 build の代用ではない。**
+  - **Result / 残り火 / Job XP / 拠点 / 再 run**（同じ `resultId` の再処理で二重加算しないことを実機確認）、
+    **敗北 run**（`active_run` 消去・少量報酬・再 run 可能）。
+  - **進化の実取得**（各ジョブ 3 種以上・base 再提示 0・base と evolution の同時所持 0・
+    reload で二重にならない。通常 draft 到達と条件を組んだ取得を**区別して記録**）。
+  - **save → reload →「つづきから」**（15 項目の復元一致・無料 cast なし・cooldown 全回復なし・
+    `selectedJobId` を変えても `active_run.jobId` 不変・export/import 往復）。
+  - **品質 4 段階の長時間比較**（固定 build・同 seed）と**周回途中の切替**（low↔ultra / medium→high）。
+  - **stress**（敵 100 体維持 + 弾多数 + ボス + エリート + active30 + 進化 + 2 倍速 + **10 分相当** × low/high）。
+  - **実キー入力**（WASD / SPACE / Q / ESC）と F8 / F9 / F10 の構造確認。
+  - **console / pageerror / requestfailed は全フェーズ合計 0 件。**
+- **計測は直列実行**。software GL で 3 並列にすると 27〜35fps まで落ち、2 倍速の論理 dt が
+  60〜75ms へ伸びて到達点が半減した（同 seed で 226s → 105s）。直列では**平均 59fps**を維持し、
+  論理 dt ≒ 33ms ＝ Node ハーネスの 32ms と同水準になる。
+- **実ブラウザで byte-identical は主張しない**（`update(delta)` の `delta` が実時間のため）。
+  byte-identical の証明は固定 dt の Node ハーネスの担当で、
+  `tests/browser-quality-plan.mjs` が「主張していないこと」を機械検査する。
+- **最終判定**（`docs/final-balance-verdict.md`）: **production の不具合 1 件を発見・修正 / balance 変更 0 件**。
+  超過した目安はすべて `role`（役割差）/ `profile`（build と strategy の偏り）/
+  `harness`（測り方の限界）に分類した。
+- **人間評価は未実施（open な external gate）**: 楽しさ・爽快感・難易度の妥当性・
+  氷のボス戦の単調さ・戦士の安全度・火の強さの体感は**自動操作では一切判定していない**
+  （`docs/human-playtest-gate.md` の 12 項目）。
+- **テスト 12 スイート追加で全 237 通過**・validate.yml 238 ステップ・
+  validate-data へ M9-A.2 ブロック（0 エラー 0 警告）。**CI はブラウザを起動しない**
+  （計画 / ゲート / 記録 schema / Node との整合だけを検証する）。
+
+### 旧 Current milestone（M9-A.1）
+
+- **Milestone 9-A.1（横断 balance ハーネス完成・実ブラウザ検証ゲート）完了。**
 - **新コンテンツ 0 件・バランス値 / guidance / しきい値の変更 0 件・save_version v6 維持。**
 - **M9-A の測定制約（未解決経路）を解消した:**
   - M9-A まで: fire / frost の弾ダメージ・DoT tick・場 / 遅延・reactive 刺激・死亡イベント / XP が
@@ -284,6 +320,7 @@ M8-D では `heaven_crushing_descent` が枠6 で 7 件だったので**大き�
 | M8-F | 戦士 完成監査（**新スキル追加なし**・12 観点で 48 スキルを全数監査・不備 8 件 + 死にフィールド 1 件を修正・23 スイート追加で全 185 通過・火 / 氷は SHA-256 一致）（`dd39087` `8478974`） |
 | **M9-A** | **3 ジョブ横断・共通システム総合監査**（**品質と gameplay の分離**＝cap 217 件を visual47 / gameplay150 / safety20 へ分類し gameplay trace を 4 品質で byte-identical に・cdLeft 改ざん耐性を全 144 スキルへ・F8 に 3 ジョブ比較・25 スイート追加で全 210 通過・バランス / guidance / しきい値変更 0）（`01d4e3e`） |
 | **M9-A.1** | **横断 balance ハーネス完成・実ブラウザ検証ゲート**（production 全経路駆動で未解決 damage 経路 0・共通 profile 5 種で 3 ジョブ絶対比較・warning は role / profile 分類のみ・品質不変を完全ハーネスで再確認・実ブラウザ自動検証 console エラー 0 / 未確認は external gate へ・dead key 2 件最小修正・15 スイート追加で全 225 通過・バランス変更 0）（`0f34e1c`） |
+| **M9-A.2** | **3 ジョブ実ブラウザ長時間プレイテスト・最終バランス判定**（通常 draft 9 run・Result / 拠点 / 再 run・敗北 run・進化取得・save/reload/resume・品質 4 段階長時間 + 途中切替・stress 10 分相当・実キー入力・console エラー 0・bug 1 件を発見・修正 / balance 変更 0・人間評価は open な manual gate・12 スイート追加で全 237 通過）（コミット時に ID 記載） |
 
 ## Job catalog counts
 
@@ -463,6 +500,7 @@ M8-D では `heaven_crushing_descent` が枠6 で 7 件だったので**大き�
 | 33 | **M9-A** | **魂炎の恒久強化ノードが品質で無効化されていた**（敵密度は low で、弾上限は low / medium で効かない＝品質を下げると恒久強化が消えた）。品質ゲートを削除 | `01d4e3e` |
 | 34 | **M9-A** | **火 / 氷 96 スキルの `restoreState({cdLeft})` に M8-F と同種の改ざん脆弱性**（NaN / ±Infinity / 桁外れを採用できた）。各ファイルを触らず `SkillManager.restoreRuntime` の共通入口 `_sanitizeRuntimeState` で全 144 スキル一律に無害化（非有限値は不採用・±120s クランプ・**正当なセーブの復元結果と候補列 / runtime trace は SHA-256 一致で不変**） | `01d4e3e` |
 | 35 | **M9-A.1** | **`CombatTelemetry.status.burningDamage` が dead key**（宣言され F8 が表示していたのに発行元が 1 つも無く常に 0）。`BattleScene.dealDamage` で fire かつ DoT（`isDoT` / `tag:'dot'`）の命中を集計するよう最小修正。観測のみ＝damage / 状態 / RNG に影響なし（品質不変ハッシュ不変）。実測 6,399（full build） | M9-A.1 |
+| 37 | **M9-A.2** | **周回中に品質を変えると敵 / 弾のプール上限から魂炎の恒久強化ぶんが消えていた**（`applyEffectSettings()` が `resolveEffectSettings()` で `effSettings` を作り直す際、`create()` で加算した `enemyCapAdd` / `effectCapAdd` を再加算していなかった。**品質変更が gameplay 上限を変える**状態で、M9-A が確立した「品質は gameplay に影響しない」不変条件に反していた）。あわせて `particleBudget` が `create()` の値のまま固定で品質切替に追従しなかった（演出のみ）。`effectCapAdd` を scene へ保持し、粒子予算を `_applyParticleBudget()` へ切り出して両方から呼ぶ形へ修正（冪等）。非回帰は `cross-job-quality-midrun-switch` §4。実ブラウザの 9 遷移でも確認 | `(M9-A.2 実装コミット)` |
 | 36 | **M9-A.1** | **`BattleScene._damageTakenTotal` が dead field**（`finalizeTelemetry` と F8 が参照するのに加算箇所が無く `damageTaken` が常に 0）。`Player.takeDamage` の HP 減算と同じ位置（障壁 / 軽減の後）で実被弾量を累計。観測のみ | `0f34e1c` |
 | 14 | M8-B | 実装中に作り込みかけた**死にフィールド 2 件を作らずに済ませた**: passive `heavy_armor` の `knockbackResist`（プレイヤーがノックバックされる仕組みが存在しない）と `charge_slash.levels[].visual`（`visualScale()` を使わない）。data・`modifierKeys`・`balance.warrior.mitigation` から削除し、「予約値として残さない」原則を維持 | `4c8bd10` |
 
@@ -526,6 +564,15 @@ M8-D では `heaven_crushing_descent` が枠6 で 7 件だったので**大き�
   hitStop・魂炎ノードは品質非依存／**gameplay trace は 4 品質で byte-identical**
   （`tests/cross-job-quality-gameplay-invariance.mjs` ほか）／visual cap 47 件だけが品質で変わる／
   cdLeft は `restoreRuntime` の共通入口で全ジョブ無害化される
+- **実ブラウザ検証の原則（M9-A.2）**: 通常 draft の通し run は production の
+  `SkillDraftManager` / `LevelUpScene` を経由すること（固定完成 build で代用しない・
+  `browser-normal-draft-plan` が `levelUpSceneSeen > 0` と取得順を検査）／
+  **実ブラウザで byte-identical を主張しない**（`delta` が実時間のため・
+  `browser-quality-plan` が `byteIdenticalClaimed === false` を検査）／
+  gameplay 上限は 4 品質で 200 / 400 / hitStop 有のまま／
+  **人間の体感を自動操作で判定済みと書かない**（`browser-human-feel-gate` と validate-data が
+  禁止表現を検知）／ブラウザ自動化を必須依存にしない（`package.json` / Playwright 設定の不在を検査）／
+  記録は要約のみ（`tests/browser-results/` は JSON だけ・合計 512KB 未満）
 - **横断 balance ハーネスの原則（M9-A.1）**: ハーネスは production の `BattleScene.prototype` を
   直接駆動する（独自 damage 式 / 即着弾扱い / DoT 一括化 / 回数推測 / Math.random / 品質分岐 /
   production に無い補正は禁止＝`cross-job-full-harness` §1-2 が機械検査）／ハーネス周回は常に
@@ -556,7 +603,9 @@ M8-D では `heaven_crushing_descent` が枠6 で 7 件だったので**大き�
   `tests/three-job-system-nonregression.mjs`（M9-A: 3 ジョブの候補列・runtime trace・cap 分類 47/150/20・
   gameplayLimits 200/400 を SHA-256 固定）/
   `tests/three-job-balance-harness-nonregression.mjs`（M9-A.1: production 全経路 trace（3 ジョブ ×
-  normal / boss）・経路カバレッジ集合・profile / stimulus / 上限 / カタログの測定条件を SHA-256 固定）のハッシュ**
+  normal / boss）・経路カバレッジ集合・profile / stimulus / 上限 / カタログの測定条件を SHA-256 固定）/
+  `tests/three-job-final-playtest-nonregression.mjs`（M9-A.2: 実ブラウザ実測の測定条件・構造的結論・
+  warning 分類・計画パラメータを SHA-256 固定。docs と記録の整合も検査）のハッシュ**
   （火/氷の候補列・火/氷のランタイムトレース）。火・氷を触ったら必ずここが落ちる。
   落ちたら「意図した変更か」を必ず確認すること。
 - **push 型 passive modifier の反映**（M8-B.1）: status 乗率・戦士 mods は `passives.version` 駆動で、
@@ -645,6 +694,29 @@ M7-E の「火由来の未参照 cap 5 件」は解消済み。**戦士は M8-C 
   225 スイート全体で約 6分40秒）。実ブラウザ FPS は browser gate の実測（50〜60fps・20 秒サンプル）が正。
 
 ## Browser verification status
+
+**M9-A.2 で実ブラウザの長時間プレイテストまで実施した**（M9-A.1 は 20 秒サンプルの基本ゲートだった）。
+**自動操作で確認できるのは「壊れていない・数値が期待どおり・構造が揃っている」までで、
+面白さ・爽快感・難易度の妥当性は判定していない。**
+
+- **M9-A.2 で実ブラウザ確認済み**（console / pageerror / requestfailed 合計 **0 件**・
+  詳細は `docs/browser-longrun-results.md`）:
+  - 通常 draft の通し run 9 件（3 ジョブ × 3 strategy・production の抽選 UI を経由）
+  - Result / 残り火 / Job XP / 拠点 / 再 run・二重加算なし・次 run の残留 0
+  - 敗北 run（`active_run` 消去・少量報酬・再 run 可能）
+  - 進化の実取得（各ジョブ 3 種以上・base 再提示 0・reload で二重にならない）
+  - save → reload → つづきから（15 項目一致・無料 cast なし・cooldown 全回復なし）
+  - 品質 4 段階の長時間比較 + 周回途中の切替（gameplay 上限は 4 品質で同一）
+  - stress（敵 100 体 + 弾多数 + ボス + 2 倍速 + 10 分相当 × low/high・cleanup 残留 0）
+  - 実キー入力（WASD / SPACE / Q / ESC）と F8 / F9 / F10 の開閉
+- **未確認（open な external gate）**:
+  - **人間の手入力による実プレイの体感**（楽しさ / 爽快感 / 難易度の妥当性 / 氷ボス戦の単調さ /
+    戦士の安全度 / 火の強さ）—— `docs/human-playtest-gate.md` の 12 項目
+  - GitHub Pages **本番 URL**（到達できずローカル静的配信で代替）
+  - **実機**（GPU 搭載 PC / スマートフォン）の FPS とタッチ操作（計測は software GL のコンテナ）
+  - 30 分以上の超長時間セッションのメモリ傾向
+
+### 旧 Browser verification status（M9-A.1）
 
 **M9-A.1 で初めて実ブラウザ（Chromium + 静的配信）での自動検証を実施した。**
 ただし範囲は自動化できた項目だけで、**手入力の実プレイ体感は引き続き未確認**。
@@ -780,6 +852,26 @@ M8-F は**新しい見た目・新しい操作を 1 つも追加していない*
 - 手順は `docs/test-guide.md` の **Milestone 9-A** 節。
 
 ## Latest test results
+
+- 実行日時点: Milestone 9-A.2 完了時
+- **テストスイート: 237 件 → 全 237 通過・失敗 0**（`tests/*.mjs` から共通土台
+  `frost-audit-common` / `flame-audit-common` / `warrior-common` / `status-passive-common` /
+  `warrior-draft-sim` / `cap-shape` / `cross-job-common` / `cross-job-harness` / `phaser-stub` /
+  `browser-results-common` と `validate-data.mjs` を除く。`validate.yml` は **238 ステップ**）
+- `node tests/validate-data.mjs` → **0 エラー / 0 警告**（M9-A.2 ブロックを追加）
+- M9-A.2 新規 12 スイート（**CI はブラウザを起動しない**。計画 / ゲート / 記録 schema /
+  Node との整合だけを検証する）:
+  `browser-longrun-gate` / `browser-normal-draft-plan` / `browser-evolution-plan` /
+  `browser-result-cycle` / `browser-resume-plan` / `browser-quality-plan` /
+  `browser-quality-midrun-plan` / `browser-stress-plan` / `browser-balance-verdict` /
+  `browser-human-feel-gate` / `cross-job-browser-node-consistency`（**Node ハーネスをライブ実行**して
+  browser の結論と照合）/ `three-job-final-playtest-nonregression`
+- 共通土台の追加: `tests/browser-results-common.mjs`。実測記録は
+  `tests/browser-results/m9a2-results.json`（**要約のみ**・生ログとスクリーンショットはコミットしない）
+- **記録を差し替えるだけでは通らない**: `three-job-final-playtest-nonregression` が測定条件・
+  構造的結論・warning 分類・計画パラメータを SHA-256 で固定し、docs と記録の整合も検査する。
+
+### 旧 Latest test results（M9-A.1）
 
 - 実行日時点: Milestone 9-A.1 完了時（コミット `0f34e1c`）
 - **テストスイート: 225 件 → 全 225 通過・失敗 0**（`tests/*.mjs` から共通土台
@@ -918,10 +1010,11 @@ SHA-256 で固定された。候補は以下。
 3. **周回長の拡張**（10分 / 15分 / 無限モード）・**追加の敵 / ボス / 難易度**。
 4. **4 人目のジョブ** — 3 ジョブぶんの基盤・監査観点・テスト雛形・横断非回帰がそろっている。
    新ジョブの cap は最初から分類つき（visual / gameplay / safety）で追加する。
-5. **実ブラウザでの手動確認（外部ゲートの残項目）** — `docs/browser-validation-gate.md` §4 の
-   未確認項目（手入力の体感・10 分 / 2 倍速の長時間・敵 100 体の負荷ピーク・実機）。
-   自動化で確認できる範囲（起動 / 3 ジョブ / 4 品質 / 途中切替 / F8 / セーブ往復 / 相対パス）は
-   M9-A.1 で console エラー 0 を確認済み。
+5. **人間プレイテスト（open な external gate・コード変更を伴わない）** —
+   `docs/human-playtest-gate.md` の 12 項目（楽しさ・爽快感・難易度の妥当性・氷のボス戦・
+   戦士の安全度・火の体感・視認性・操作感 ほか）。長時間 / 高負荷 / 通常 draft の到達点は
+   M9-A.2 で自動確認済みなので、**残るのは人間にしか判定できない部分だけ**。
+   ここが埋まるまでバランス値は動かさない方針（`docs/final-balance-verdict.md`）。
 
 いずれも**指示された範囲のみ**実装し、未指定の先行実装はしない（`CLAUDE.md` の作業手順）。
 

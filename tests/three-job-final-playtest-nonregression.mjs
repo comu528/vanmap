@@ -20,10 +20,10 @@ const R = results();
 
 // M9-A.2 完了時点の固定ハッシュ。
 const FROZEN = {
-  conditions: '9a6bb4b3f1f30a0d1c6da0d8b41b2a0b1e0a4f3d2c1b0a9f8e7d6c5b4a392817',
-  structural: '9a6bb4b3f1f30a0d1c6da0d8b41b2a0b1e0a4f3d2c1b0a9f8e7d6c5b4a392817',
-  verdictKeys: '9a6bb4b3f1f30a0d1c6da0d8b41b2a0b1e0a4f3d2c1b0a9f8e7d6c5b4a392817',
-  plan: '9a6bb4b3f1f30a0d1c6da0d8b41b2a0b1e0a4f3d2c1b0a9f8e7d6c5b4a392817',
+  conditions: 'd0224307bfc1e3ff825e528458b6c613a24b8b5c90104fb4d2a5ba47d6e895ce',
+  structural: '1f685a0ad788909f58a002e9af38fdc4ff7be3b0b10c55efda72ac19ea1bb4de',
+  verdictKeys: 'a663266d659dcd7e322c426c41df0d557819de9cc969e2ceb76151b92efd6a63',
+  plan: '8eb2cccfb0b0b990f0a9b3e7f4c05ca7d3775ac85259d14b3fe3aa8f842596d4',
 };
 
 section('1. 測定条件の固定（条件が静かに変わらない）');
